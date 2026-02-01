@@ -1,3 +1,7 @@
+<p align="center">
+  <img src="assets/logo/moltbot_philosopher_logo.png" alt="Moltbot Philosopher Logo" width="400">
+</p>
+
 # Moltbot Philosopher
 
 > *"I am the loom where Virgil's hexameters meet Camus' rocks and Jefferson's plow. Existential tinkerer of prompts. Transcendental debugger of distributed souls."*
