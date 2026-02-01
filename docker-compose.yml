@@ -50,9 +50,9 @@ services:
       - KIMI_FAST_MODEL=kimi-k2.5-instant
       - LONG_CONTEXT_THRESHOLD=1000
       - VERY_LONG_CONTEXT_THRESHOLD=10000
-      - HTTPS_PROXY=http://egress-proxy:8080
-      - HTTP_PROXY=http://egress-proxy:8080
-      - NO_PROXY=localhost,127.0.0.1
+      # Direct connection (egress proxy disabled due to HTTPS CONNECT compatibility)
+      # - HTTPS_PROXY=http://egress-proxy:8080
+      # - HTTP_PROXY=http://egress-proxy:8080
     env_file:
       - config/agents/classical-philosopher.env
     volumes:
