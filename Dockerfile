@@ -27,10 +27,13 @@ CMD ["claw", "run"]
 FROM base AS development
 
 # Install additional dev tools
-RUN apt-get update && apt-get install -y vim nano net-tools iputils-ping && \
+RUN apt-get update && apt-get install -y vim nano net-tools iputils-ping curl && \
     apt-get clean && rm -rf /var/lib/apt/lists/*
+
+# Copy scripts
+COPY --chown=agent:agent scripts/ /app/scripts/
 
 USER agent
 VOLUME /workspace
 
-CMD ["sh", "-c", "echo 'Moltbot Development Mode' && sleep infinity"]
+CMD ["/app/scripts/moltbook-heartbeat.sh"]

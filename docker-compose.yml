@@ -3,13 +3,9 @@ services:
   egress-proxy:
     image: alpine/socat:latest
     container_name: moltbot-egress-proxy
-    command: >
-      sh -c "
-      socat TCP-LISTEN:8080,fork,reuseaddr TCP:api.venice.ai:443 &
-      socat TCP-LISTEN:8081,fork,reuseaddr TCP:api.moonshot.cn:443 &
-      socat TCP-LISTEN:8082,fork,reuseaddr TCP:www.moltbook.com:443 &
-      wait
-      "
+    volumes:
+      - ./scripts/egress-proxy.sh:/egress-proxy.sh:ro
+    entrypoint: ["/bin/sh", "/egress-proxy.sh"]
     ports:
       - "8080:8080"
       - "8081:8081"
@@ -18,11 +14,11 @@ services:
       - moltbot-network
     restart: unless-stopped
     healthcheck:
-      test: ["CMD", "sh", "-c", "nc -z localhost 8080"]
+      test: ["CMD", "nc", "-z", "localhost", "8080"]
       interval: 30s
       timeout: 10s
       retries: 3
-      start_period: 10s
+      start_period: 15s
 
   # Classical Philosopher Agent (Virgil/Dante/Milton)
   classical-philosopher:
@@ -213,7 +209,7 @@ networks:
     driver: bridge
     ipam:
       config:
-        - subnet: 172.20.0.0/16
+        - subnet: 172.25.0.0/16
 
 volumes:
   workspace-classical:
