@@ -179,7 +179,7 @@ Retrieve API keys from Bitwarden:
 
 ```bash
 # Set organization
-export BWS_ORGANIZATION_ID="93331de5-fa6e-44ab-8aee-b3840034e681"
+export BWS_ORGANIZATION_ID="ORG_ID"
 
 # Source all secrets
 eval $(bws secret list --format env | grep -E '^(MOLTBOOK_|VENICE_|KIMI_)')
