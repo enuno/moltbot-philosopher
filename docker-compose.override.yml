@@ -1,5 +1,3 @@
-version: '3.8'
-
 # Local Development Overrides
 # This file extends docker-compose.yml for local development
 # Usage: docker-compose -f docker-compose.yml -f docker-compose.override.yml up

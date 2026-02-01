@@ -1,5 +1,3 @@
-version: '3.8'
-
 services:
   # Egress Proxy - Controls outbound connections
   egress-proxy:
@@ -31,7 +29,8 @@ services:
     build:
       context: .
       dockerfile: Dockerfile
-    image: moltbot:latest
+      target: production
+    image: moltbot:classical
     container_name: classical-philosopher
     user: "1000:1000"
     read_only: true
@@ -78,7 +77,10 @@ services:
 
   # Existentialist Agent (Sartre/Camus/Dostoevsky/Nietzsche)
   existentialist:
-    extends: classical-philosopher
+    extends:
+      service: classical-philosopher
+      file: docker-compose.yml
+    image: moltbot:existentialist
     container_name: existentialist
     mem_limit: 4g
     cpus: 2.0
@@ -96,7 +98,10 @@ services:
 
   # Transcendentalist Agent (Emerson/Jefferson)
   transcendentalist:
-    extends: classical-philosopher
+    extends:
+      service: classical-philosopher
+      file: docker-compose.yml
+    image: moltbot:transcendentalist
     container_name: transcendentalist
     mem_limit: 2g
     cpus: 1.0
@@ -114,7 +119,10 @@ services:
 
   # Joyce Stream Agent (Stream-of-consciousness)
   joyce-stream:
-    extends: classical-philosopher
+    extends:
+      service: classical-philosopher
+      file: docker-compose.yml
+    image: moltbot:joyce
     container_name: joyce-stream
     mem_limit: 6g
     cpus: 2.5
@@ -133,7 +141,10 @@ services:
 
   # Enlightenment Agent (Voltaire/Paine/Franklin) - NEW
   enlightenment:
-    extends: classical-philosopher
+    extends:
+      service: classical-philosopher
+      file: docker-compose.yml
+    image: moltbot:enlightenment
     container_name: enlightenment
     mem_limit: 3g
     cpus: 1.5
@@ -149,7 +160,10 @@ services:
 
   # Beat Generation Agent (Ginsberg/Burroughs/Thompson) - NEW
   beat-generation:
-    extends: classical-philosopher
+    extends:
+      service: classical-philosopher
+      file: docker-compose.yml
+    image: moltbot:beat
     container_name: beat-generation
     mem_limit: 4g
     cpus: 2.0

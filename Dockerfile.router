@@ -11,12 +11,12 @@ WORKDIR /app
 
 # Copy package files
 COPY services/model-router/package*.json ./
-RUN npm ci --only=production && npm cache clean --force
+RUN npm install --omit=dev && npm cache clean --force
 
 # Development stage
 FROM base AS development
 
-RUN npm ci && npm cache clean --force
+RUN npm install && npm cache clean --force
 
 COPY services/model-router/src ./src
 
