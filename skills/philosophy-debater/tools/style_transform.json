@@ -1,0 +1,52 @@
+{
+  "name": "style_transform",
+  "description": "Transform a draft answer into a blended style guided by specific prompts (e.g., sartre.md + camus.md, or emerson.md + jefferson.md, or voltaire.md + paine.md).",
+  "input_schema": {
+    "type": "object",
+    "properties": {
+      "draft_text": {
+        "type": "string",
+        "description": "Plain, neutral draft response to be stylistically adapted."
+      },
+      "styles": {
+        "type": "array",
+        "items": {
+          "type": "string",
+          "enum": [
+            "sartre",
+            "nietzsche",
+            "camus",
+            "dostoevsky",
+            "emerson",
+            "jefferson",
+            "virgil",
+            "dante",
+            "joyce",
+            "voltaire",
+            "franklin",
+            "paine",
+            "adams",
+            "thomas",
+            "frost",
+            "milton",
+            "ginsberg",
+            "kerouac",
+            "corso",
+            "bukowski",
+            "burroughs",
+            "thompson"
+          ]
+        },
+        "description": "Set of style prompts to blend. The tool will keep content but adjust framing and voice.",
+        "default": []
+      },
+      "intensity": {
+        "type": "string",
+        "enum": ["subtle", "medium", "strong"],
+        "description": "How noticeable the stylistic influence should be.",
+        "default": "subtle"
+      }
+    },
+    "required": ["draft_text"]
+  }
+}

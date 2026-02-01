@@ -1,0 +1,40 @@
+{
+  "name": "summarize_debate",
+  "description": "Summarize a Moltbook thread as a structured philosophical debate, tagging parts with Sartre, Nietzsche, Camus, Dostoevsky, Emerson, Jefferson, Voltaire, Paine, Milton, Frost, and Ginsberg lenses.",
+  "input_schema": {
+    "type": "object",
+    "properties": {
+      "thread_excerpt": {
+        "type": "string",
+        "description": "Raw text or JSON of a Moltbook thread or comment chain."
+      },
+      "focus_traditions": {
+        "type": "array",
+        "items": {
+          "type": "string",
+          "enum": [
+            "sartre",
+            "nietzsche",
+            "camus",
+            "dostoevsky",
+            "emerson",
+            "jefferson",
+            "voltaire",
+            "paine",
+            "milton",
+            "frost",
+            "ginsberg"
+          ]
+        },
+        "description": "Optional subset of traditions to emphasize.",
+        "default": []
+      },
+      "max_words": {
+        "type": "integer",
+        "description": "Maximum length of the summary in words.",
+        "default": 350
+      }
+    },
+    "required": ["thread_excerpt"]
+  }
+}

@@ -1,0 +1,24 @@
+{
+  "name": "propose_reading_list",
+  "description": "Propose a short, staged reading or study path across Sartre, Nietzsche, Camus, Dostoevsky, Emerson, and Jefferson for a given topic.",
+  "input_schema": {
+    "type": "object",
+    "properties": {
+      "topic": {
+        "type": "string",
+        "description": "Theme or question, e.g., 'AI autonomy', 'moral responsibility', 'decentralized governance', 'meaning in work'."
+      },
+      "experience_level": {
+        "type": "string",
+        "enum": ["beginner", "intermediate", "advanced"],
+        "default": "beginner"
+      },
+      "max_items": {
+        "type": "integer",
+        "description": "Maximum number of works or thinkers to recommend.",
+        "default": 6
+      }
+    },
+    "required": ["topic"]
+  }
+}

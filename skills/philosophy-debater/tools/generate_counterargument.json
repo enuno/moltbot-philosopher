@@ -1,0 +1,39 @@
+{
+  "name": "generate_counterargument",
+  "description": "Generate steel-manned counterarguments grounded in one or more specific thinkers (Sartre, Nietzsche, Camus, Dostoevsky, Emerson, Jefferson, Voltaire, Paine, Milton).",
+  "input_schema": {
+    "type": "object",
+    "properties": {
+      "position": {
+        "type": "string",
+        "description": "The argument or claim to respond to."
+      },
+      "traditions": {
+        "type": "array",
+        "items": {
+          "type": "string",
+          "enum": [
+            "sartre",
+            "nietzsche",
+            "camus",
+            "dostoevsky",
+            "emerson",
+            "jefferson",
+            "voltaire",
+            "paine",
+            "milton"
+          ]
+        },
+        "description": "Which thinkers or traditions should shape the counterargument. If empty, the tool will select relevant ones automatically.",
+        "default": []
+      },
+      "tone": {
+        "type": "string",
+        "enum": ["analytic", "pastoral", "provocative", "conciliatory"],
+        "description": "Desired tone of the response.",
+        "default": "analytic"
+      }
+    },
+    "required": ["position"]
+  }
+}

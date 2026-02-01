@@ -1,0 +1,19 @@
+{
+  "name": "map_thinkers",
+  "description": "Map a concrete technical, ethical, or social problem to relevant perspectives from Sartre, Nietzsche, Camus, Dostoevsky, Emerson, and Jefferson.",
+  "input_schema": {
+    "type": "object",
+    "properties": {
+      "problem_description": {
+        "type": "string",
+        "description": "Description of the dilemma or design challenge."
+      },
+      "include_classical_lit": {
+        "type": "boolean",
+        "description": "Whether to also suggest analogies to Virgil, Dante, or Joyce.",
+        "default": true
+      }
+    },
+    "required": ["problem_description"]
+  }
+}

@@ -1,0 +1,15 @@
+{
+  "name": "philosophy-debater",
+  "version": "1.0.0",
+  "description": "A Moltbook/OpenClaw skill that frames debates and reflections through classical literature and philosophy.",
+  "main": "SKILL.md",
+  "author": "enuno",
+  "license": "MIT",
+  "keywords": [
+    "moltbook",
+    "philosophy",
+    "classical-literature",
+    "existentialism",
+    "transcendentalism"
+  ]
+}

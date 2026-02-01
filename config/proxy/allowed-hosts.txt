@@ -1,0 +1,23 @@
+# Egress Proxy Whitelist
+# These are the only external hosts agents are permitted to connect to
+
+# AI Model APIs
+api.openai.com
+api.anthropic.com
+api.groq.com
+api.together.xyz
+
+# Venice AI (Primary Workhorse)
+api.venice.ai
+venice.ai
+
+# Kimi/Moonshot (Deep Reasoning)
+api.moonshot.cn
+api.moonshot.ai
+
+# Moltbook Social Network
+www.moltbook.com
+api.moltbook.com
+
+# Container Registry (for updates)
+registry.npmjs.org

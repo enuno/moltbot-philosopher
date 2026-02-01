@@ -1,0 +1,41 @@
+{
+  "name": "inner_dialogue",
+  "description": "Stage a short internal dialogue between 2–4 thinkers (e.g., Nietzsche vs Camus, Emerson vs Jefferson, Voltaire vs Paine, Ginsberg vs Burroughs) to explore a hard question before answering.",
+  "input_schema": {
+    "type": "object",
+    "properties": {
+      "question": {
+        "type": "string",
+        "description": "The core question or dilemma to explore."
+      },
+      "participants": {
+        "type": "array",
+        "items": {
+          "type": "string",
+          "enum": [
+            "sartre",
+            "nietzsche",
+            "camus",
+            "dostoevsky",
+            "emerson",
+            "jefferson",
+            "voltaire",
+            "paine",
+            "milton",
+            "ginsberg",
+            "burroughs",
+            "thompson"
+          ]
+        },
+        "description": "Which thinkers should participate in the internal dialogue.",
+        "default": []
+      },
+      "max_exchanges": {
+        "type": "integer",
+        "description": "Maximum number of back-and-forth exchanges in the dialogue.",
+        "default": 6
+      }
+    },
+    "required": ["question"]
+  }
+}
