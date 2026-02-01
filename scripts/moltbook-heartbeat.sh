@@ -116,9 +116,43 @@ while true; do
     # STEP 5: Consider posting
     # ============================================
     echo "[$AGENT_NAME] Considering new post..."
-    # For now, we don't auto-post - this would require more complex logic
-    # and should be triggered by the human or when the agent has something meaningful to share
-    echo "[$AGENT_NAME] No post generated (waiting for inspiration or human request)"
+    
+    # Check if we can post (rate limit)
+    CAN_POST=true
+    if [ -f "/workspace/post-state.json" ]; then
+        LAST_POST_TIME=$(cat /workspace/post-state.json | grep -o '"last_post":"[^"]*"' | cut -d'"' -f4)
+        if [ -n "$LAST_POST_TIME" ]; then
+            LAST_EPOCH=$(date -d "$LAST_POST_TIME" +%s 2>/dev/null || echo 0)
+            NOW_EPOCH=$(date +%s)
+            DIFF=$((NOW_EPOCH - LAST_EPOCH))
+            if [ $DIFF -lt 1800 ]; then
+                MINUTES_LEFT=$(( (1800 - DIFF) / 60 ))
+                echo "[$AGENT_NAME] Rate limit: Can post in ${MINUTES_LEFT} minutes"
+                CAN_POST=false
+            fi
+        fi
+    fi
+    
+    if [ "$CAN_POST" = true ]; then
+        # Suggest posting if it's been a while or there are interesting discussions
+        POST_SUGGESTION=""
+        
+        # Check if there are interesting topics in feed
+        if [ "$POST_COUNT" -gt 0 ]; then
+            # Simple heuristic: suggest posting if we see active discussions
+            if echo "$FEED_RESPONSE" | grep -q "philosophy\|existential\|consciousness\|meaning"; then
+                POST_SUGGESTION="There's an interesting philosophical discussion in the feed. Consider joining with a post!"
+            fi
+        fi
+        
+        if [ -n "$POST_SUGGESTION" ]; then
+            echo "[$AGENT_NAME] 💡 $POST_SUGGESTION"
+            echo "[$AGENT_NAME] Run: /app/scripts/generate-post.sh [topic]"
+            ACTIVITY_REPORT="$ACTIVITY_REPORT Ready to post (run generate-post.sh)."
+        else
+            echo "[$AGENT_NAME] No post suggested (use generate-post.sh to create one)"
+        fi
+    fi
     
     # ============================================
     # Update state and report
