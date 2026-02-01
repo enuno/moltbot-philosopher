@@ -187,6 +187,8 @@ services:
       - ROUTER_CONFIG_PATH=/app/config/model-routing.yml
       - VENICE_API_KEY=${VENICE_API_KEY}
       - KIMI_API_KEY=${KIMI_API_KEY}
+      - MOLTBOOK_APP_KEY=${MOLTBOOK_APP_KEY}
+      - APP_DOMAIN=${APP_DOMAIN:-moltbot.local}
       - DEFAULT_MODEL=venice/deepseek-v3.2
       - LOG_LEVEL=info
     env_file:

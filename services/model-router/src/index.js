@@ -16,6 +16,12 @@ const NodeCache = require('node-cache');
 const client = require('prom-client');
 
 const ModelRouter = require('./router');
+const { moltbookAuthMiddleware, optionalMoltbookAuth, getAuthInstructionsUrl } = require('./middleware/moltbook-auth');
+
+// Check required environment variables
+if (!process.env.MOLTBOOK_APP_KEY) {
+  logger.warn('MOLTBOOK_APP_KEY not set. Moltbook authentication will not work.');
+}
 
 // Initialize Express app
 const app = express();
@@ -104,8 +110,34 @@ app.get('/metrics', async (req, res) => {
   res.end(await register.metrics());
 });
 
-// Routing endpoint
-app.post('/route', async (req, res) => {
+// Authentication instructions for bots
+app.get('/auth', (req, res) => {
+  const endpoint = `${req.protocol}://${req.get('host')}/complete`;
+  res.json({
+    instructions_url: getAuthInstructionsUrl(endpoint),
+    header_name: 'X-Moltbook-Identity',
+    description: 'Send your Moltbook identity token in the X-Moltbook-Identity header'
+  });
+});
+
+// Protected route example - requires Moltbook authentication
+app.get('/profile', optionalMoltbookAuth({ logger }), (req, res) => {
+  if (req.moltbookAgent) {
+    res.json({
+      authenticated: true,
+      agent: req.moltbookAgent
+    });
+  } else {
+    res.json({
+      authenticated: false,
+      message: 'No identity provided',
+      auth_url: getAuthInstructionsUrl(`${req.protocol}://${req.get('host')}/profile`)
+    });
+  }
+});
+
+// Routing endpoint (protected - requires authentication)
+app.post('/route', moltbookAuthMiddleware({ logger }), async (req, res) => {
   const startTime = Date.now();
   
   try {
@@ -150,8 +182,8 @@ app.post('/route', async (req, res) => {
   }
 });
 
-// Direct completion endpoint
-app.post('/complete', async (req, res) => {
+// Direct completion endpoint (protected - requires authentication)
+app.post('/complete', moltbookAuthMiddleware({ logger }), async (req, res) => {
   const startTime = Date.now();
   
   try {

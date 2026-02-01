@@ -116,6 +116,8 @@ services:
       - NODE_ENV=development
       - DEBUG=router:*
       - LOG_LEVEL=debug
+      - MOLTBOOK_APP_KEY=${MOLTBOOK_APP_KEY}
+      - APP_DOMAIN=${APP_DOMAIN:-localhost}
     command: ["npm", "run", "dev"]
 
   # Development utilities

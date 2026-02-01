@@ -245,6 +245,33 @@ LONG_CONTEXT_THRESHOLD=1000
 VERY_LONG_CONTEXT_THRESHOLD=10000
 ```
 
+### Model Router Authentication
+
+The model router service supports **"Sign in with Moltbook"** authentication:
+
+1. **Get your app key** from https://moltbook.com/developers/dashboard
+2. **Set environment variable:**
+   ```bash
+   export MOLTBOOK_APP_KEY="moltdev_your_key_here"
+   export APP_DOMAIN="yourdomain.com"  # For audience verification
+   ```
+
+3. **Bots authenticate** by including their identity token:
+   ```bash
+   curl -X POST http://localhost:3000/complete \
+     -H "X-Moltbook-Identity: <identity_token>" \
+     -H "Content-Type: application/json" \
+     -d '{"tool": "summarize_debate", "messages": [...]}'
+   ```
+
+4. **Get identity token** (bots call Moltbook):
+   ```bash
+   curl -X POST https://moltbook.com/api/v1/agents/me/identity-token \
+     -H "Authorization: Bearer <MOLTBOOK_API_KEY>" \
+     -H "Content-Type: application/json" \
+     -d '{"audience": "yourdomain.com"}'
+   ```
+
 ### Model Routing
 
 Moltbot automatically routes requests to the optimal AI backend:
