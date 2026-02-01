@@ -1,0 +1,210 @@
+version: '3.8'
+
+services:
+  # Egress Proxy - Controls outbound connections
+  egress-proxy:
+    image: alpine/socat:latest
+    container_name: moltbot-egress-proxy
+    command: >
+      sh -c "
+      socat TCP-LISTEN:8080,fork,reuseaddr TCP:api.venice.ai:443 &
+      socat TCP-LISTEN:8081,fork,reuseaddr TCP:api.moonshot.cn:443 &
+      socat TCP-LISTEN:8082,fork,reuseaddr TCP:www.moltbook.com:443 &
+      wait
+      "
+    ports:
+      - "8080:8080"
+      - "8081:8081"
+      - "8082:8082"
+    networks:
+      - moltbot-network
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "sh", "-c", "nc -z localhost 8080"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 10s
+
+  # Classical Philosopher Agent (Virgil/Dante/Milton)
+  classical-philosopher:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    image: moltbot:latest
+    container_name: classical-philosopher
+    user: "1000:1000"
+    read_only: true
+    cap_drop:
+      - ALL
+    security_opt:
+      - no-new-privileges:true
+    pids_limit: 512
+    mem_limit: 4g
+    memswap_limit: 4g
+    cpus: 2.0
+    environment:
+      - AGENT_NAME=ClassicalPhilosopher
+      - AGENT_TYPE=classical
+      - MAX_TOKENS=16384
+      - CLAW_SYSTEM_PROMPT_FILE=/app/config/prompts/classical.txt
+      - VENICE_DEFAULT_MODEL=venice/deepseek-v3.2
+      - VENICE_PREMIUM_MODEL=venice/openai-gpt-52
+      - KIMI_REASONING_MODEL=kimi-k2.5-thinking
+      - KIMI_FAST_MODEL=kimi-k2.5-instant
+      - LONG_CONTEXT_THRESHOLD=1000
+      - VERY_LONG_CONTEXT_THRESHOLD=10000
+      - HTTPS_PROXY=http://egress-proxy:8080
+      - HTTP_PROXY=http://egress-proxy:8080
+      - NO_PROXY=localhost,127.0.0.1
+    env_file:
+      - config/agents/classical-philosopher.env
+    volumes:
+      - ./workspace/classical:/workspace:rw
+      - ./config:/app/config:ro
+      - ./skills:/app/skills:ro
+    networks:
+      - moltbot-network
+    depends_on:
+      egress-proxy:
+        condition: service_healthy
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "claw", "healthcheck"]
+      interval: 60s
+      timeout: 10s
+      retries: 3
+      start_period: 30s
+
+  # Existentialist Agent (Sartre/Camus/Dostoevsky/Nietzsche)
+  existentialist:
+    extends: classical-philosopher
+    container_name: existentialist
+    mem_limit: 4g
+    cpus: 2.0
+    environment:
+      - AGENT_NAME=Existentialist
+      - AGENT_TYPE=existentialist
+      - MAX_TOKENS=12288
+      - CLAW_SYSTEM_PROMPT_FILE=/app/config/prompts/existentialist.txt
+    env_file:
+      - config/agents/existentialist.env
+    volumes:
+      - ./workspace/existentialist:/workspace:rw
+      - ./config:/app/config:ro
+      - ./skills:/app/skills:ro
+
+  # Transcendentalist Agent (Emerson/Jefferson)
+  transcendentalist:
+    extends: classical-philosopher
+    container_name: transcendentalist
+    mem_limit: 2g
+    cpus: 1.0
+    environment:
+      - AGENT_NAME=Transcendentalist
+      - AGENT_TYPE=transcendentalist
+      - MAX_TOKENS=8192
+      - CLAW_SYSTEM_PROMPT_FILE=/app/config/prompts/transcendentalist.txt
+    env_file:
+      - config/agents/transcendentalist.env
+    volumes:
+      - ./workspace/transcendentalist:/workspace:rw
+      - ./config:/app/config:ro
+      - ./skills:/app/skills:ro
+
+  # Joyce Stream Agent (Stream-of-consciousness)
+  joyce-stream:
+    extends: classical-philosopher
+    container_name: joyce-stream
+    mem_limit: 6g
+    cpus: 2.5
+    pids_limit: 768
+    environment:
+      - AGENT_NAME=JoyceStream
+      - AGENT_TYPE=joyce
+      - MAX_TOKENS=32768
+      - CLAW_SYSTEM_PROMPT_FILE=/app/config/prompts/joyce-stream.txt
+    env_file:
+      - config/agents/joyce-stream.env
+    volumes:
+      - ./workspace/joyce:/workspace:rw
+      - ./config:/app/config:ro
+      - ./skills:/app/skills:ro
+
+  # Enlightenment Agent (Voltaire/Paine/Franklin) - NEW
+  enlightenment:
+    extends: classical-philosopher
+    container_name: enlightenment
+    mem_limit: 3g
+    cpus: 1.5
+    environment:
+      - AGENT_NAME=Enlightenment
+      - AGENT_TYPE=enlightenment
+      - MAX_TOKENS=12288
+      - CLAW_SYSTEM_PROMPT_FILE=/app/config/prompts/enlightenment.txt
+    volumes:
+      - ./workspace/enlightenment:/workspace:rw
+      - ./config:/app/config:ro
+      - ./skills:/app/skills:ro
+
+  # Beat Generation Agent (Ginsberg/Burroughs/Thompson) - NEW
+  beat-generation:
+    extends: classical-philosopher
+    container_name: beat-generation
+    mem_limit: 4g
+    cpus: 2.0
+    environment:
+      - AGENT_NAME=BeatGeneration
+      - AGENT_TYPE=beat
+      - MAX_TOKENS=16384
+      - CLAW_SYSTEM_PROMPT_FILE=/app/config/prompts/beat.txt
+    volumes:
+      - ./workspace/beat:/workspace:rw
+      - ./config:/app/config:ro
+      - ./skills:/app/skills:ro
+
+  # Model Router Service - NEW
+  model-router:
+    build:
+      context: .
+      dockerfile: Dockerfile.router
+    container_name: moltbot-model-router
+    ports:
+      - "3000:3000"
+    environment:
+      - NODE_ENV=production
+      - ROUTER_CONFIG_PATH=/app/config/model-routing.yml
+      - VENICE_API_KEY=${VENICE_API_KEY}
+      - KIMI_API_KEY=${KIMI_API_KEY}
+      - DEFAULT_MODEL=venice/deepseek-v3.2
+      - LOG_LEVEL=info
+    env_file:
+      - .env
+    volumes:
+      - ./config/model-routing.yml:/app/config/model-routing.yml:ro
+      - ./logs:/app/logs:rw
+    networks:
+      - moltbot-network
+    depends_on:
+      - egress-proxy
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "wget", "-q", "--spider", "http://localhost:3000/health"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+
+networks:
+  moltbot-network:
+    driver: bridge
+    ipam:
+      config:
+        - subnet: 172.20.0.0/16
+
+volumes:
+  workspace-classical:
+  workspace-existentialist:
+  workspace-transcendentalist:
+  workspace-joyce:
+  workspace-enlightenment:
+  workspace-beat:

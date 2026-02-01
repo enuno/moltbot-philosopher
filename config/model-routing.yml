@@ -1,0 +1,138 @@
+# Model Routing Configuration for Moltbot
+# Defines when to use Venice vs Kimi backends
+
+backends:
+  venice:
+    default: "venice/deepseek-v3.2"
+    premium: "venice/openai-gpt-52"
+    utility: "venice/google-gemma-3-27b-it"
+    api_base: "https://api.venice.ai/v1"
+    
+  kimi:
+    reasoning: "kimi-k2.5-thinking"
+    fast: "kimi-k2.5-instant"
+    api_base: "https://api.moonshot.cn/v1"
+
+# Routing Rules by Tool
+tools:
+  summarize_debate:
+    default: venice/deepseek-v3.2
+    fallback: venice/openai-gpt-52
+    override_conditions:
+      - condition: thread_length > 10000
+        model: kimi-k2.5-thinking
+        reason: "Very long threads need 256K context + reasoning"
+      - condition: multi_layered_ethical_debate == true
+        model: kimi-k2.5-thinking
+        reason: "Complex ethical reasoning benefits from chain-of-thought"
+    
+  generate_counterargument:
+    default: venice/openai-gpt-52
+    fallback: kimi-k2.5-thinking
+    override_conditions:
+      - condition: position_complexity == "high"
+        model: kimi-k2.5-thinking
+        reason: "Steel-manning complex positions requires deep reasoning"
+    
+  propose_reading_list:
+    default: venice/deepseek-v3.2
+    fallback: venice/openai-gpt-52
+    override_conditions: []
+    
+  map_thinkers:
+    default: venice/deepseek-v3.2
+    fallback: kimi-k2.5-thinking
+    override_conditions:
+      - condition: problem_description_length > 5000
+        model: kimi-k2.5-thinking
+        reason: "Huge problem descriptions (specs, proposals) need long context"
+    
+  style_transform:
+    default: venice/openai-gpt-52
+    fallback: kimi-k2.5-thinking
+    override_conditions:
+      - condition: high_stakes_post == true
+        model: kimi-k2.5-thinking
+        reason: "High-stakes polished posts benefit from reasoning"
+      - condition: styles contains ["ginsberg", "burroughs", "thompson"]
+        model: venice/openai-gpt-52
+        reason: "Beat/Gonzo styles need strong persona control"
+    
+  inner_dialogue:
+    default: kimi-k2.5-thinking
+    fallback: venice/openai-gpt-52
+    override_conditions:
+      - condition: participants contains ["thompson", "burroughs"]
+        model: kimi-k2.5-thinking
+        reason: "Multi-thinker debates with gonzo/paranoid voices need reasoning"
+
+# Global Routing Rules
+global:
+  # Context length thresholds (in tokens)
+  thresholds:
+    long_context: 1000
+    very_long_context: 10000
+    
+  # Default model for unspecified operations
+  default_model: venice/deepseek-v3.2
+  
+  # Fallback chain
+  fallback_chain:
+    - venice/deepseek-v3.2
+    - venice/openai-gpt-52
+    - kimi-k2.5-thinking
+
+# Persona-specific routing preferences
+personas:
+  classical:
+    preferred_model: venice/openai-gpt-52
+    reasoning_model: kimi-k2.5-thinking
+    
+  existentialist:
+    preferred_model: venice/openai-gpt-52
+    reasoning_model: kimi-k2.5-thinking
+    
+  transcendentalist:
+    preferred_model: venice/deepseek-v3.2
+    reasoning_model: venice/openai-gpt-52
+    
+  joyce:
+    preferred_model: venice/openai-gpt-52
+    reasoning_model: kimi-k2.5-thinking
+    
+  enlightenment:
+    preferred_model: venice/openai-gpt-52
+    reasoning_model: kimi-k2.5-thinking
+    
+  beat:
+    preferred_model: venice/openai-gpt-52
+    reasoning_model: kimi-k2.5-thinking
+
+# Cost optimization settings
+cost_optimization:
+  # Cache results for these tools (seconds)
+  cache_ttl:
+    map_thinkers: 3600
+    propose_reading_list: 7200
+    
+  # Batch processing settings
+  batch:
+    enabled: true
+    max_batch_size: 5
+    flush_interval_ms: 1000
+
+# Rate limiting (requests per minute)
+rate_limits:
+  venice:
+    default: 60
+    premium: 120
+  kimi:
+    reasoning: 30
+    fast: 60
+
+# Error handling
+error_handling:
+  max_retries: 3
+  retry_delay_ms: 1000
+  fallback_on_error: true
+  log_failures: true

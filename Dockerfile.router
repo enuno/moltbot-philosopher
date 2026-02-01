@@ -1,0 +1,62 @@
+# Model Router Service Dockerfile
+# Multi-stage build for production and development
+
+# Base stage
+FROM node:20-alpine AS base
+
+# Install dependencies for native modules
+RUN apk add --no-cache python3 make g++
+
+WORKDIR /app
+
+# Copy package files
+COPY services/model-router/package*.json ./
+RUN npm ci --only=production && npm cache clean --force
+
+# Development stage
+FROM base AS development
+
+RUN npm ci && npm cache clean --force
+
+COPY services/model-router/src ./src
+
+ENV NODE_ENV=development
+ENV PORT=3000
+
+EXPOSE 3000 9229
+
+CMD ["npm", "run", "dev"]
+
+# Production stage
+FROM node:20-alpine AS production
+
+# Install dumb-init for proper signal handling
+RUN apk add --no-cache dumb-init
+
+WORKDIR /app
+
+# Create non-root user
+RUN addgroup -g 1000 -S router && \
+    adduser -u 1000 -S router -G router
+
+# Copy dependencies from base
+COPY --from=base /app/node_modules ./node_modules
+COPY --from=base /app/package*.json ./
+
+# Copy application code
+COPY services/model-router/src ./src
+
+# Create logs directory
+RUN mkdir -p /app/logs && chown -R router:router /app/logs
+
+# Switch to non-root user
+USER router
+
+ENV NODE_ENV=production
+ENV PORT=3000
+
+EXPOSE 3000
+
+# Use dumb-init to handle signals properly
+ENTRYPOINT ["dumb-init", "--"]
+CMD ["node", "src/index.js"]

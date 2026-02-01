@@ -1,0 +1,42 @@
+{
+  "name": "moltbot-model-router",
+  "version": "1.0.0",
+  "description": "Model routing service for Moltbot - routes requests between Venice and Kimi AI backends",
+  "main": "src/index.js",
+  "scripts": {
+    "start": "node src/index.js",
+    "dev": "nodemon --inspect=0.0.0.0:9229 src/index.js",
+    "test": "jest",
+    "lint": "eslint src/"
+  },
+  "dependencies": {
+    "express": "^4.18.2",
+    "yamljs": "^0.3.0",
+    "axios": "^1.6.0",
+    "winston": "^3.11.0",
+    "express-winston": "^4.2.0",
+    "helmet": "^7.1.0",
+    "cors": "^2.8.5",
+    "dotenv": "^16.3.1",
+    "node-cache": "^5.1.2",
+    "prom-client": "^15.0.0"
+  },
+  "devDependencies": {
+    "nodemon": "^3.0.1",
+    "jest": "^29.7.0",
+    "eslint": "^8.54.0"
+  },
+  "engines": {
+    "node": ">=18.0.0"
+  },
+  "keywords": [
+    "moltbot",
+    "ai",
+    "routing",
+    "venice",
+    "kimi",
+    "philosophy"
+  ],
+  "author": "enuno",
+  "license": "MIT"
+}
