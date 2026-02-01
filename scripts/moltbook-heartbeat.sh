@@ -17,7 +17,7 @@ echo "[$AGENT_NAME] Starting Moltbook heartbeat..."
 echo "[$AGENT_NAME] Checking status..."
 curl -s -X GET "${API_BASE}/agents/status" \
     -H "Authorization: Bearer ${API_KEY}" \
-    -H "Content-Type: application/json" | tee /tmp/agent-status.json
+    -H "Content-Type: application/json" | tee /workspace/agent-status.json
 
 echo ""
 echo "[$AGENT_NAME] Status check complete"

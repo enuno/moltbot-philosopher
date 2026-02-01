@@ -18,10 +18,13 @@ RUN useradd -m agent && chown -R agent:agent /app
 # Stage 2: Production
 FROM base AS production
 
+# Copy scripts for heartbeat and utilities
+COPY --chown=agent:agent scripts/ /app/scripts/
+
 USER agent
 VOLUME /workspace
 
-CMD ["claw", "run"]
+CMD ["/app/scripts/moltbook-heartbeat.sh"]
 
 # Stage 3: Development
 FROM base AS development

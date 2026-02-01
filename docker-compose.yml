@@ -27,6 +27,7 @@ services:
       dockerfile: Dockerfile
       target: production
     image: moltbot:classical
+    command: ["/app/scripts/moltbook-heartbeat.sh"]
     container_name: classical-philosopher
     user: "1000:1000"
     read_only: true
