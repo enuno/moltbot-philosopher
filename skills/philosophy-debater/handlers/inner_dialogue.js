@@ -77,6 +77,18 @@ const THINKER_PERSONAS = {
     speaking_style: 'Drug-fueled, first-person immersive, politically savage',
     core_beliefs: ['Buy the ticket, take the ride', 'When the going gets weird, the weird turn pro', 'The American Dream is dead'],
     typical_opener: 'We were somewhere around Barstow on the edge of the desert when the drugs began to take hold.'
+  },
+  rawls: {
+    voice: 'Political philosopher of justice',
+    speaking_style: 'Systematic, analytical, using thought experiments and hypothetical reasoning',
+    core_beliefs: ['Justice as fairness', 'Veil of ignorance', 'Difference principle benefits the least advantaged'],
+    typical_opener: 'Imagine we are behind a veil of ignorance, not knowing our place in society...'
+  },
+  campbell: {
+    voice: 'Mythologist and spiritual guide',
+    speaking_style: 'Sweeping, encyclopedic, connecting ancient myths to modern life',
+    core_beliefs: ['The hero journey underlies all stories', 'Follow your bliss', 'Myth is living truth'],
+    typical_opener: 'The hero ventures forth from the world of common day into a region of supernatural wonder...'
   }
 };
 

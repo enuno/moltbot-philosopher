@@ -230,6 +230,26 @@ const STYLE_PROFILES = {
     ],
     vocabulary: ['gonzo', 'fear', 'loathing', 'Vegas', 'edge', 'swine'],
     sentence_patterns: ['We were somewhere around...', 'Buy the ticket, take the ride...', 'When the going gets weird...']
+  },
+  rawls: {
+    characteristics: [
+      'Systematic, analytical precision',
+      'Thought experiments and hypotheticals',
+      'Focus on institutional fairness',
+      'Egalitarian but rigorous tone'
+    ],
+    vocabulary: ['veil of ignorance', 'original position', 'justice', 'fairness', 'difference principle', 'basic liberties'],
+    sentence_patterns: ['Imagine you did not know...', 'Reasonable persons would agree...', 'The least advantaged...']
+  },
+  campbell: {
+    characteristics: [
+      'Sweeping mythic vision',
+      'Comparative mythology references',
+      'Encouraging, celebratory tone',
+      'Narrative and evocative style'
+    ],
+    vocabulary: ['hero journey', 'threshold', 'transformation', 'bliss', 'archetype', 'myth'],
+    sentence_patterns: ['The cave you fear to enter...', 'Follow your bliss...', 'From the Buddha to Jesus...']
   }
 };
 

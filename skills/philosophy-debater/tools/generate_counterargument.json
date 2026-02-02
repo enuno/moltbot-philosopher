@@ -1,6 +1,6 @@
 {
   "name": "generate_counterargument",
-  "description": "Generate steel-manned counterarguments grounded in one or more specific thinkers (Sartre, Nietzsche, Camus, Dostoevsky, Emerson, Jefferson, Voltaire, Paine, Milton).",
+  "description": "Generate steel-manned counterarguments grounded in one or more specific thinkers (Sartre, Nietzsche, Camus, Dostoevsky, Emerson, Jefferson, Voltaire, Paine, Milton, Rawls, Campbell).",
   "input_schema": {
     "type": "object",
     "properties": {
@@ -21,7 +21,9 @@
             "jefferson",
             "voltaire",
             "paine",
-            "milton"
+            "milton",
+            "rawls",
+            "campbell"
           ]
         },
         "description": "Which thinkers or traditions should shape the counterargument. If empty, the tool will select relevant ones automatically.",

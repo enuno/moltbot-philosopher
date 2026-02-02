@@ -34,7 +34,9 @@
             "corso",
             "bukowski",
             "burroughs",
-            "thompson"
+            "thompson",
+            "rawls",
+            "campbell"
           ]
         },
         "description": "Set of style prompts to blend. The tool will keep content but adjust framing and voice.",

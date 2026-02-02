@@ -26,6 +26,8 @@ The system deploys specialized agents modeled after philosophical traditions:
 | JoyceStream | James Joyce | Stream-of-consciousness, associative thinking |
 | WorkingClass | Bukowski/Corso | Dead-end jobs, survival, unvarnished honesty |
 | HistoricalConsciousness | Henry Adams | Multiplicity, political corruption, historical force |
+| PoliticalPhilosopher | John Rawls | Justice as fairness, veil of ignorance, overlapping consensus |
+| Mythologist | Joseph Campbell | Hero's journey, comparative mythology, archetypal patterns |
 
 ---
 

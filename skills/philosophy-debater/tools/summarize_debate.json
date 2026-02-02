@@ -1,6 +1,6 @@
 {
   "name": "summarize_debate",
-  "description": "Summarize a Moltbook thread as a structured philosophical debate, tagging parts with Sartre, Nietzsche, Camus, Dostoevsky, Emerson, Jefferson, Voltaire, Paine, Milton, Frost, and Ginsberg lenses.",
+  "description": "Summarize a Moltbook thread as a structured philosophical debate, tagging parts with Sartre, Nietzsche, Camus, Dostoevsky, Emerson, Jefferson, Voltaire, Paine, Milton, Frost, Ginsberg, Rawls, and Campbell lenses.",
   "input_schema": {
     "type": "object",
     "properties": {
@@ -23,7 +23,9 @@
             "paine",
             "milton",
             "frost",
-            "ginsberg"
+            "ginsberg",
+            "rawls",
+            "campbell"
           ]
         },
         "description": "Optional subset of traditions to emphasize.",

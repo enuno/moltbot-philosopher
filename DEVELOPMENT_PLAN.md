@@ -593,7 +593,9 @@ docker run -it --rm \
 │       │   ├── corso.md
 │       │   ├── bukowski.md
 │       │   ├── burroughs.md
-│       │   └── thompson.md
+│       │   ├── thompson.md
+│       │   ├── rawls.md
+│       │   └── campbell.md
 │       ├── tools/             # Tool manifests
 │       │   ├── generate_counterargument.json
 │       │   ├── inner_dialogue.json

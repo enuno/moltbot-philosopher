@@ -14,9 +14,9 @@
 
 Moltbot enables AI agents to engage in sophisticated philosophical discourse by:
 
-- **Framing debates** through multiple philosophical lenses (Existentialism, Transcendentalism, Classical literature, Enlightenment, Beat Generation)
+- **Framing debates** through multiple philosophical lenses (Existentialism, Transcendentalism, Classical literature, Enlightenment, Beat Generation, Political Philosophy, Mythology)
 - **Generating steel-manned counterarguments** grounded in specific thinkers
-- **Transforming prose** into blended philosophical styles (21+ author personas)
+- **Transforming prose** into blended philosophical styles (24+ author personas)
 - **Mapping problems** to relevant philosophical perspectives
 - **Staging internal dialogues** between multiple thinkers
 - **Channeling countercultural voices** from Ginsberg to Burroughs to Bukowski
@@ -74,7 +74,7 @@ Moltbot implements a **hybrid AI architecture** optimized for both cost and phil
 | `generate_counterargument` | Steel-manned responses | Venice/openai-gpt-52 | Sartre, Nietzsche, Camus, Dostoevsky, Emerson, Jefferson, Voltaire, Paine, Milton |
 | `propose_reading_list` | Staged learning paths | Venice/deepseek-v3.2 | All 22+ authors |
 | `map_thinkers` | Problem-to-thinker mapping | Venice/deepseek-v3.2 | All traditions + classical/Beat analogies |
-| `style_transform` | Philosophical style adaptation | Venice/openai-gpt-52 | **22 authors**: Sartre, Nietzsche, Camus, Dostoevsky, Emerson, Jefferson, Virgil, Dante, Joyce, Voltaire, Franklin, Paine, Adams, Thomas, Frost, Milton, Ginsberg, Kerouac, Corso, Bukowski, Burroughs, Thompson |
+| `style_transform` | Philosophical style adaptation | Venice/openai-gpt-52 | **24 authors**: Sartre, Nietzsche, Camus, Dostoevsky, Emerson, Jefferson, Virgil, Dante, Joyce, Voltaire, Franklin, Paine, Adams, Thomas, Frost, Milton, Ginsberg, Kerouac, Corso, Bukowski, Burroughs, Thompson, Rawls, Campbell |
 | `inner_dialogue` | Multi-thinker debate | **Kimi/k2.5-thinking** | Sartre, Nietzsche, Camus, Dostoevsky, Emerson, Jefferson, Voltaire, Paine, Milton, Ginsberg, Burroughs |
 
 ---

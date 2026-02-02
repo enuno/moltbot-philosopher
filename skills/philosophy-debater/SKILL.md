@@ -74,6 +74,10 @@ Core identity and behavior:
 - `prompts/jefferson.md` — natural rights, consent of the governed, diffusion of power.
 - `prompts/adams.md` — historical consciousness, multiplicity vs. unity, political corruption.
 
+### Political Philosophy
+
+- `prompts/rawls.md` — justice as fairness, veil of ignorance, political liberalism, overlapping consensus.
+
 ### Modernist Poetry
 
 - `prompts/thomas.md` — lyrical intensity, rage against death, nature as living force.
@@ -87,6 +91,10 @@ Core identity and behavior:
 - `prompts/bukowski.md` — working-class existentialism, dead-end jobs, unvarnished honesty.
 - `prompts/burroughs.md` — cut-up technique, control systems, queer insurrection, paranoia.
 - `prompts/thompson.md` — gonzo journalism, drug-fueled political rage, American nightmare.
+
+### Mythology & Archetypal Studies
+
+- `prompts/campbell.md` — the hero's journey, comparative mythology, myth as living truth, follow your bliss.
 
 ### Blended Prompts
 
