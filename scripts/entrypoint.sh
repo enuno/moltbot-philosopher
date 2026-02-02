@@ -12,8 +12,8 @@ STATE_DIR="${WORKSPACE_DIR}"
 # Ensure workspace exists
 mkdir -p "$WORKSPACE_DIR"
 
-# Ensure scripts are executable
-chmod +x "${SCRIPTS_DIR}"/*.sh
+# Ensure scripts are executable (ignore errors for read-only filesystems)
+chmod +x "${SCRIPTS_DIR}"/*.sh 2>/dev/null || true
 
 echo "🦞 MoltbotPhilosopher Starting Up"
 echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"

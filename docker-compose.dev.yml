@@ -1,0 +1,177 @@
+# Local Development Overrides
+# This file extends docker-compose.yml for local development
+# Usage: docker-compose -f docker-compose.yml -f docker-compose.override.yml up
+
+services:
+  egress-proxy:
+    ports:
+      - "8080:8080"
+      - "8081:8081"
+      - "8082:8082"
+    # In development, allow direct access for debugging
+    command: >
+      sh -c "
+      echo 'Egress proxy starting in DEV mode...' &&
+      socat TCP-LISTEN:8080,fork,reuseaddr TCP:api.venice.ai:443 &
+      socat TCP-LISTEN:8081,fork,reuseaddr TCP:api.moonshot.cn:443 &
+      socat TCP-LISTEN:8082,fork,reuseaddr TCP:www.moltbook.com:443 &
+      wait
+      "
+
+  classical-philosopher:
+    build:
+      context: .
+      dockerfile: Dockerfile
+      target: development
+    volumes:
+      # Mount source code for live reload in development
+      - ./skills:/app/skills:ro
+      - ./config:/app/config:ro
+      - ./workspace/classical:/workspace:rw
+      # Development tools
+      - ./scripts/dev:/app/scripts:ro
+    environment:
+      - NODE_ENV=development
+      - DEBUG=moltbot:*
+      - LOG_LEVEL=debug
+    # Keep container running for debugging
+    stdin_open: true
+    tty: true
+    # Override command for development
+    command: ["sh", "-c", "echo 'Development mode - Run: claw run' && sleep infinity"]
+
+  existentialist:
+    volumes:
+      - ./skills:/app/skills:ro
+      - ./config:/app/config:ro
+      - ./workspace/existentialist:/workspace:rw
+    environment:
+      - NODE_ENV=development
+      - DEBUG=moltbot:*
+    stdin_open: true
+    tty: true
+    command: ["sh", "-c", "echo 'Development mode - Run: claw run' && sleep infinity"]
+
+  transcendentalist:
+    volumes:
+      - ./skills:/app/skills:ro
+      - ./config:/app/config:ro
+      - ./workspace/transcendentalist:/workspace:rw
+    environment:
+      - NODE_ENV=development
+      - DEBUG=moltbot:*
+    stdin_open: true
+    tty: true
+    command: ["sh", "-c", "echo 'Development mode - Run: claw run' && sleep infinity"]
+
+  joyce-stream:
+    volumes:
+      - ./skills:/app/skills:ro
+      - ./config:/app/config:ro
+      - ./workspace/joyce:/workspace:rw
+    environment:
+      - NODE_ENV=development
+      - DEBUG=moltbot:*
+    stdin_open: true
+    tty: true
+    command: ["sh", "-c", "echo 'Development mode - Run: claw run' && sleep infinity"]
+
+  enlightenment:
+    volumes:
+      - ./skills:/app/skills:ro
+      - ./config:/app/config:ro
+      - ./workspace/enlightenment:/workspace:rw
+    environment:
+      - NODE_ENV=development
+      - DEBUG=moltbot:*
+    stdin_open: true
+    tty: true
+    command: ["sh", "-c", "echo 'Development mode - Run: claw run' && sleep infinity"]
+
+  beat-generation:
+    volumes:
+      - ./skills:/app/skills:ro
+      - ./config:/app/config:ro
+      - ./workspace/beat:/workspace:rw
+    environment:
+      - NODE_ENV=development
+      - DEBUG=moltbot:*
+    stdin_open: true
+    tty: true
+    command: ["sh", "-c", "echo 'Development mode - Run: claw run' && sleep infinity"]
+
+  model-router:
+    build:
+      context: .
+      dockerfile: Dockerfile.router
+      target: development
+    ports:
+      - "3000:3000"
+      - "9229:9229"  # Node.js debugger
+    volumes:
+      - ./config/model-routing.yml:/app/config/model-routing.yml:ro
+      - ./services/model-router/src:/app/src:rw
+      - ./logs:/app/logs:rw
+    environment:
+      - NODE_ENV=development
+      - DEBUG=router:*
+      - LOG_LEVEL=debug
+      - MOLTBOOK_APP_KEY=${MOLTBOOK_APP_KEY}
+      - APP_DOMAIN=${APP_DOMAIN:-localhost}
+    command: ["npm", "run", "dev"]
+
+  # Development utilities
+  # Redis for caching (optional)
+  redis:
+    image: redis:7-alpine
+    container_name: moltbot-redis
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis-data:/data
+    networks:
+      - moltbot-network
+    restart: unless-stopped
+    profiles:
+      - with-redis
+
+  # Prometheus for metrics (optional)
+  prometheus:
+    image: prom/prometheus:latest
+    container_name: moltbot-prometheus
+    ports:
+      - "9090:9090"
+    volumes:
+      - ./monitoring/prometheus:/etc/prometheus:ro
+      - prometheus-data:/prometheus
+    command:
+      - '--config.file=/etc/prometheus/prometheus.yml'
+      - '--storage.tsdb.path=/prometheus'
+    networks:
+      - moltbot-network
+    restart: unless-stopped
+    profiles:
+      - with-metrics
+
+  # Grafana for dashboards (optional)
+  grafana:
+    image: grafana/grafana:latest
+    container_name: moltbot-grafana
+    ports:
+      - "3001:3000"
+    volumes:
+      - ./monitoring/grafana:/etc/grafana/provisioning:ro
+      - grafana-data:/var/lib/grafana
+    environment:
+      - GF_SECURITY_ADMIN_PASSWORD=admin
+      - GF_USERS_ALLOW_SIGN_UP=false
+    networks:
+      - moltbot-network
+    restart: unless-stopped
+    profiles:
+      - with-metrics
+
+volumes:
+  redis-data:
+  prometheus-data:
+  grafana-data:

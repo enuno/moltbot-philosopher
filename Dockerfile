@@ -4,7 +4,7 @@
 FROM ubuntu:24.04 AS base
 
 # Install runtime deps minimally
-RUN apt-get update && apt-get install -y curl nodejs npm git && \
+RUN apt-get update && apt-get install -y curl nodejs npm git jq && \
     apt-get clean && rm -rf /var/lib/apt/lists/*
 
 # Copy audited skills only
