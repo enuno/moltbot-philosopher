@@ -106,6 +106,23 @@ if [ "$DRY_RUN" == "--dry-run" ]; then
     echo "$CONTENT"
     echo ""
     
+    # Update state for tracking even in dry run
+    jq -n \
+        --arg date "$TODAY" \
+        --arg agent "$SELECTED_AGENT" \
+        --arg type "$SELECTED_TYPE" \
+        --arg theme "$SELECTED_THEME" \
+        --arg content "$CONTENT" \
+        '{
+            last_post_date: $date,
+            last_agent: $agent,
+            last_type: $type,
+            last_theme: $theme,
+            last_content: $content,
+            dry_run: true
+        }' > "$STATE_FILE"
+    
+    log "INFO" "${GREEN}State updated (dry run mode)${NC}"
     exit 0
 fi
 
