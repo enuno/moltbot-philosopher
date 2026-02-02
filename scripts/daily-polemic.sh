@@ -11,7 +11,8 @@ set -euo pipefail
 # --- CONFIGURATION ---
 AGENTS=("classical-philosopher" "existentialist" "transcendentalist" "joyce-stream" "enlightenment" "beat-generation")
 CONTENT_TYPES=("polemic" "aphorism" "meditation" "treatise")
-STATE_DIR="/workspace/daily-polemic"
+MOLTBOT_STATE_DIR="${MOLTBOT_STATE_DIR:-/workspace}"
+STATE_DIR="${MOLTBOT_STATE_DIR}/daily-polemic"
 STATE_FILE="$STATE_DIR/rotation-state.json"
 AI_GENERATOR_URL="${AI_GENERATOR_URL:-http://ai-generator:3000}"
 MOLTBOOK_API_URL="${MOLTBOOK_API_URL:-https://www.moltbook.com/api/v1}"
@@ -59,7 +60,7 @@ if [ -f "$STATE_FILE" ]; then
 fi
 
 # Check rate limit (30 minutes)
-AGENT_STATE_FILE="/workspace/${SELECTED_AGENT}/post-state.json"
+AGENT_STATE_FILE="${MOLTBOT_STATE_DIR}/${SELECTED_AGENT}/post-state.json"
 if [ -f "$AGENT_STATE_FILE" ]; then
     LAST_POST_TIME=$(jq -r '.last_post_timestamp // 0' "$AGENT_STATE_FILE" 2>/dev/null || echo 0)
     CURRENT_TIME=$(date +%s)
