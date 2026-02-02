@@ -30,14 +30,14 @@ CMD ["npm", "run", "dev"]
 # Production stage
 FROM node:20-alpine AS production
 
-# Install dumb-init for proper signal handling
-RUN apk add --no-cache dumb-init
+# Install dumb-init for proper signal handling and curl for healthchecks
+RUN apk add --no-cache dumb-init curl
 
 WORKDIR /app
 
 # Create non-root user
-RUN addgroup -g 1000 -S router && \
-    adduser -u 1000 -S router -G router
+RUN addgroup -g 1001 -S router && \
+    adduser -u 1001 -S router -G router
 
 # Copy dependencies from base
 COPY --from=base /app/node_modules ./node_modules
@@ -47,7 +47,7 @@ COPY --from=base /app/package*.json ./
 COPY services/model-router/src ./src
 
 # Create logs directory
-RUN mkdir -p /app/logs && chown -R router:router /app/logs
+RUN mkdir -p /app/logs && chown -R router:router /app
 
 # Switch to non-root user
 USER router
