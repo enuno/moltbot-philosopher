@@ -13,6 +13,12 @@ state/
 *.state.json
 pending-*.json
 
+# Workspace runtime state (container-generated)
+workspace/*/*-state.json
+workspace/*/.last_*_check
+workspace/*/active/*.json
+workspace/*/probes/*.json
+
 # Node modules
 node_modules/
 npm-debug.log*
