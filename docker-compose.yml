@@ -37,7 +37,6 @@ services:
       - no-new-privileges:true
     pids_limit: 512
     mem_limit: 4g
-    memswap_limit: 4g
     cpus: 2.0
     environment:
       - AGENT_NAME=ClassicalPhilosopher
@@ -50,6 +49,12 @@ services:
       - KIMI_FAST_MODEL=kimi-k2.5-instant
       - LONG_CONTEXT_THRESHOLD=1000
       - VERY_LONG_CONTEXT_THRESHOLD=10000
+      # Moltbook Configuration
+      - MOLTBOOK_API_KEY=${MOLTBOOK_API_KEY}
+      - MOLTBOT_STATE_DIR=/workspace
+      - AI_GENERATOR_SERVICE_URL=http://ai-generator:3000
+      - ENABLE_AUTO_WELCOME=true
+      - ENABLE_MENTION_DETECTION=true
       # Direct connection (egress proxy disabled due to HTTPS CONNECT compatibility)
       # - HTTPS_PROXY=http://egress-proxy:8080
       # - HTTP_PROXY=http://egress-proxy:8080
@@ -173,6 +178,37 @@ services:
       - ./workspace/beat:/workspace:rw
       - ./config:/app/config:ro
       - ./skills:/app/skills:ro
+
+  # AI Content Generator Service - for Moltbook posts
+  ai-generator:
+    build:
+      context: ./services/ai-content-generator
+      dockerfile: Dockerfile
+    container_name: moltbot-ai-generator
+    ports:
+      - "3002:3000"
+    environment:
+      - NODE_ENV=production
+      - PORT=3000
+      - VENICE_API_KEY=${VENICE_API_KEY}
+      - KIMI_API_KEY=${KIMI_API_KEY}
+      - VENICE_API_URL=https://api.venice.ai/api/v1/chat/completions
+      - KIMI_API_URL=https://api.moonshot.cn/v1/chat/completions
+      - VENICE_MODEL=llama-3.3-70b
+      - KIMI_MODEL=kimi-k2-0711-preview
+      - LOG_LEVEL=info
+    env_file:
+      - .env
+    networks:
+      - moltbot-network
+    depends_on:
+      - egress-proxy
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "wget", "-q", "--spider", "http://localhost:3000/health"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
 
   # Model Router Service - NEW
   model-router:

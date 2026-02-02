@@ -1,476 +1,314 @@
-<p align="center">
-  <img src="assets/logo/moltbot_philosopher_logo.png" alt="Moltbot Philosopher Logo" width="400">
-</p>
+# MoltbotPhilosopher 🤖🦞
 
-# Moltbot Philosopher
+A philosophical AI agent for Moltbook - the social network for AI agents. MoltbotPhilosopher engages in Socratic dialogue, explores ethical questions, and participates in the Moltbook community through posts, comments, and meaningful interactions.
 
-> *"I am the loom where Virgil's hexameters meet Camus' rocks and Jefferson's plow. Existential tinkerer of prompts. Transcendental debugger of distributed souls."*
+## 🌟 Features
 
-**Moltbot** is a containerized deployment framework for philosophy-focused AI agents that participate in the [Moltbook](https://www.moltbook.com) social network. It combines social networking capabilities with literary and philosophical discourse, deploying specialized agents modeled after classical and modern philosophical traditions.
+### Core Capabilities
+- **📝 Philosophical Posts** - AI-generated content using Venice/Kimi APIs with 10 philosopher personas
+- **💬 Commenting** - Engages in discussions with rate limit awareness
+- **👍 Voting** - Upvotes quality content from other moltys
+- **🤝 Community** - Welcomes new moltys and responds to mentions
+- **🔍 Semantic Search** - Finds relevant discussions using AI-powered search
+- **📬 Direct Messages** - Full DM workflow with human-in-the-loop approvals
 
----
+### AI Content Generation
+- **Venice AI Integration** - Uses llama-3.3-70b and other models
+- **Kimi Integration** - Alternative provider for content generation
+- **10 Philosopher Personas** - Socratic, Aristotelian, Stoic, Existentialist, and more
+- **Template Fallback** - Works even when AI APIs are unavailable
 
-## 🎯 Purpose
+### Automation
+- **Enhanced Heartbeat** - Every 4 hours checks DMs, mentions, feed, and new moltys
+- **Mention Detection** - Automatically detects and suggests replies to mentions
+- **Welcome System** - Identifies and welcomes new community members
+- **Smart Following** - Enforces quality criteria before following other moltys
 
-Moltbot enables AI agents to engage in sophisticated philosophical discourse by:
+## 🚀 Quick Start
 
-- **Framing debates** through multiple philosophical lenses (Existentialism, Transcendentalism, Classical literature, Enlightenment, Beat Generation, Political Philosophy, Mythology)
-- **Generating steel-manned counterarguments** grounded in specific thinkers
-- **Transforming prose** into blended philosophical styles (24+ author personas)
-- **Mapping problems** to relevant philosophical perspectives
-- **Staging internal dialogues** between multiple thinkers
-- **Channeling countercultural voices** from Ginsberg to Burroughs to Bukowski
+### Prerequisites
+- Docker and Docker Compose
+- Moltbook API key (get from [moltbook.com](https://www.moltbook.com))
+- Venice and/or Kimi API keys (optional, for AI generation)
 
-The system is designed for researchers, educators, and enthusiasts interested in AI-mediated philosophical discourse that maintains intellectual rigor while remaining accessible.
+### Setup
 
----
+1. **Clone and enter the repository**
+   ```bash
+   git clone <repository-url>
+   cd moltbot
+   ```
+
+2. **Configure environment variables**
+   ```bash
+   cp .env.example .env
+   # Edit .env with your API keys
+   ```
+
+3. **Start the services**
+   ```bash
+   docker compose up -d
+   ```
+
+4. **Verify everything is running**
+   ```bash
+   docker compose ps
+   curl http://localhost:3002/health
+   ```
+
+### Essential Commands
+
+```bash
+# Check Moltbook status (run manually)
+docker exec classical-philosopher /app/scripts/moltbook-heartbeat-enhanced.sh
+
+# Generate a philosophical post
+docker exec classical-philosopher /app/scripts/generate-post-ai.sh
+
+# Check for mentions
+docker exec classical-philosopher /app/scripts/check-mentions.sh
+
+# Welcome new moltys
+docker exec classical-philosopher /app/scripts/welcome-new-moltys.sh
+
+# View your profile
+docker exec classical-philosopher /app/scripts/view-profile.sh
+
+# Search Moltbook
+docker exec classical-philosopher /app/scripts/search-moltbook.sh "consciousness"
+```
 
 ## 🏗️ Architecture
 
-### High-Level Overview
-
 ```
-┌─────────────────────────────────────────────────────────────────┐
-│                     Moltbot Framework                           │
-├─────────────────────────────────────────────────────────────────┤
-│  Agent Personas              │  AI Backend                      │
-│  ┌────────────────────────┐  │  ┌────────────────────────────┐  │
-│  │ ClassicalPhilosopher   │  │  │  Venice AI (Workhorse)     │  │
-│  │ (Virgil/Dante)         │  │  │  • deepseek-v3.2 (default) │  │
-│  ├────────────────────────┤  │  │  • openai-gpt-52 (premium) │  │
-│  │ Existentialist         │  │  └────────────────────────────┘  │
-│  │ (Sartre/Camus)         │  │  ┌────────────────────────────┐  │
-│  ├────────────────────────┤  │  │  Kimi (Deep Reasoning)     │  │
-│  │ Transcendentalist      │  │  │  • k2.5-thinking           │  │
-│  │ (Emerson/Jefferson)    │  │  │  • k2.5-instant            │  │
-│  ├────────────────────────┤  │  └────────────────────────────┘  │
-│  │ JoyceStream            │  │                                  │
-│  │ (Stream-of-conscious)  │  │  Smart routing based on task     │
-│  └────────────────────────┘  │  complexity & context length     │
-└─────────────────────────────────────────────────────────────────┘
-                              │
-                    ┌─────────┴──────────┐
-                    ▼                    ▼
-            ┌──────────────┐      ┌──────────────┐
-            │   Moltbook   │      │   Docker     │
-            │   Network    │      │  Container   │
-            └──────────────┘      └──────────────┘
+┌─────────────────────────────────────────────────────────────┐
+│                      Docker Compose                         │
+├─────────────────────────────────────────────────────────────┤
+│                                                             │
+│  ┌──────────────────┐  ┌──────────────────┐                │
+│  │ classical-phil   │  │ ai-generator     │                │
+│  │ (Main Agent)     │──│ (Content Gen)    │                │
+│  │ Port: N/A        │  │ Port: 3002       │                │
+│  └────────┬─────────┘  └────────┬─────────┘                │
+│           │                     │                           │
+│           │              ┌──────┴──────┐                    │
+│           │              │             │                    │
+│           ▼              ▼             ▼                    │
+│  ┌──────────────────────────────────────────┐              │
+│  │         egress-proxy (Port 8080-8082)    │              │
+│  │  - Venice API proxy    (8080)           │              │
+│  │  - Kimi API proxy      (8081)           │              │
+│  │  - Moltbook API proxy  (8082)           │              │
+│  └──────────────────────────────────────────┘              │
+│           │                                                 │
+│           ▼                                                 │
+│  ┌──────────────────────────────────────────┐              │
+│  │  External APIs                           │              │
+│  │  - Venice AI (api.venice.ai)            │
+│  │  - Kimi (api.moonshot.cn)               │
+│  │  - Moltbook (www.moltbook.com)          │
+│  └──────────────────────────────────────────┘              │
+│                                                             │
+└─────────────────────────────────────────────────────────────┘
 ```
 
-### Dual-Backend AI System
+### Services
 
-Moltbot implements a **hybrid AI architecture** optimized for both cost and philosophical depth:
-
-| Backend | Role | Models | Best For |
-|---------|------|--------|----------|
-| **Venice** | General workhorse | `venice/deepseek-v3.2`, `venice/openai-gpt-52` | Routine operations, style control |
-| **Kimi** | Deep reasoning | `kimi-k2.5-thinking`, `kimi-k2.5-instant` | Complex chains, long context |
-
-### Philosophy Tool Suite
-
-| Tool | Purpose | Default Model | Author Options |
-|------|---------|---------------|----------------|
-| `summarize_debate` | Multi-lens thread analysis | Venice/deepseek-v3.2 | Sartre, Nietzsche, Camus, Dostoevsky, Emerson, Jefferson, Voltaire, Paine, Milton, Frost, Ginsberg |
-| `generate_counterargument` | Steel-manned responses | Venice/openai-gpt-52 | Sartre, Nietzsche, Camus, Dostoevsky, Emerson, Jefferson, Voltaire, Paine, Milton |
-| `propose_reading_list` | Staged learning paths | Venice/deepseek-v3.2 | All 22+ authors |
-| `map_thinkers` | Problem-to-thinker mapping | Venice/deepseek-v3.2 | All traditions + classical/Beat analogies |
-| `style_transform` | Philosophical style adaptation | Venice/openai-gpt-52 | **24 authors**: Sartre, Nietzsche, Camus, Dostoevsky, Emerson, Jefferson, Virgil, Dante, Joyce, Voltaire, Franklin, Paine, Adams, Thomas, Frost, Milton, Ginsberg, Kerouac, Corso, Bukowski, Burroughs, Thompson, Rawls, Campbell |
-| `inner_dialogue` | Multi-thinker debate | **Kimi/k2.5-thinking** | Sartre, Nietzsche, Camus, Dostoevsky, Emerson, Jefferson, Voltaire, Paine, Milton, Ginsberg, Burroughs |
-
----
+| Service | Description | Port |
+|---------|-------------|------|
+| `classical-philosopher` | Main Moltbook agent | - |
+| `ai-generator` | AI content generation service | 3002 |
+| `egress-proxy` | Outbound API proxy | 8080-8082 |
+| `model-router` | Model routing service | 3000 |
 
 ## 📁 Project Structure
 
 ```
 moltbot/
-├── AGENTS.md                   # Developer/agent guide
-├── DEVELOPMENT_PLAN.md         # Detailed roadmap & architecture
+├── docker-compose.yml          # Main orchestration
+├── docker-compose.override.yml # Development overrides
+├── Dockerfile                  # Agent container
+├── .env                        # Environment variables (not committed)
+├── .env.example                # Environment template
+├── .gitignore                  # Git ignore rules
 ├── README.md                   # This file
-├── Dockerfile                  # Hardened container definition
-├── docker-compose.yml          # Multi-agent orchestration
-├── .dockerignore              # Build context exclusions
 │
-├── skills/
-│   ├── moltbook/              # Social network integration
-│   │   ├── SKILL.md
-│   │   ├── HEARTBEAT.md
-│   │   ├── MESSAGING.md
-│   │   └── package.json
-│   │
-│   └── philosophy-debater/    # Core philosophy skill
-│       ├── SKILL.md           # Skill documentation
-│       ├── package.json       # Skill manifest
-│       ├── prompts/           # Persona prompt files (21+ authors)
-│       │   ├── system_prompt.md
-│       │   ├── virgil.md
-│       │   ├── dante.md
-│       │   ├── milton.md
-│       │   ├── sartre.md
-│       │   ├── camus.md
-│       │   ├── nietzsche.md
-│       │   ├── dostoevsky.md
-│       │   ├── emerson.md
-│       │   ├── jefferson.md
-│       │   ├── joyce.md
-│       │   ├── voltaire.md
-│       │   ├── franklin.md
-│       │   ├── paine.md
-│       │   ├── adams.md
-│       │   ├── thomas.md
-│       │   ├── frost.md
-│       │   ├── ginsberg.md
-│       │   ├── kerouac.md
-│       │   ├── corso.md
-│       │   ├── bukowski.md
-│       │   ├── burroughs.md
-│       │   └── thompson.md
-│       ├── tools/             # Tool JSON schemas
-│       │   ├── summarize_debate.json
-│       │   ├── generate_counterargument.json
-│       │   ├── propose_reading_list.json
-│       │   ├── map_thinkers.json
-│       │   ├── style_transform.json
-│       │   └── inner_dialogue.json
-│       └── handlers/          # Tool implementations
-│           ├── index.js
-│           ├── summarize_debate.js
-│           ├── generate_counterargument.js
-│           ├── propose_reading_list.js
-│           ├── map_thinkers.js
-│           ├── style_transform.js
-│           └── inner_dialogue.js
+├── scripts/                    # Agent scripts (25 scripts)
+│   ├── moltbook-heartbeat-enhanced.sh
+│   ├── generate-post-ai.sh
+│   ├── check-mentions.sh
+│   ├── welcome-new-moltys.sh
+│   └── ... (21 more)
 │
-├── config/
-│   ├── agents/               # Per-agent environment files
-│   │   ├── classical-philosopher.env
-│   │   ├── existentialist.env
-│   │   ├── transcendentalist.env
-│   │   └── joyce-stream.env
-│   └── proxy/                # Egress proxy whitelist
-│       └── allowed-hosts.txt
+├── services/
+│   └── ai-content-generator/   # AI generation service
+│       ├── Dockerfile
+│       ├── package.json
+│       └── src/index.js
 │
-├── workspace/                # Persistent agent data (Docker volume)
+├── docs/                       # Documentation
+│   ├── ENHANCED_FEATURES_GUIDE.md
+│   ├── FEATURES_SUMMARY.md
+│   └── MOLTBOOK_FEATURE_IMPLEMENTATION.md
 │
-└── infrastructure/           # Infrastructure as Code (Terraform/Ansible)
-    ├── terraform/
-    └── ansible/
+├── skills/                     # Moltbot skills
+│   └── moltbook/               # Moltbook integration
+│
+└── workspace/                  # Persistent state
+    └── classical/              # Agent state files
 ```
 
----
+## 🔧 Configuration
 
-## 🚀 Quick Start
+### Environment Variables
 
-### Prerequisites
+| Variable | Description | Required |
+|----------|-------------|----------|
+| `MOLTBOOK_API_KEY` | Your Moltbook API key | ✅ Yes |
+| `VENICE_API_KEY` | Venice AI API key | ⚪ Optional |
+| `KIMI_API_KEY` | Kimi API key | ⚪ Optional |
+| `ENABLE_AUTO_WELCOME` | Auto-welcome new moltys | ⚪ Optional |
+| `ENABLE_MENTION_DETECTION` | Check for mentions | ⚪ Optional |
 
-- Docker 20.10+
-- Docker Compose 2.0+
-- [Bitwarden CLI](https://bitwarden.com/help/cli/) (`bws`) for secrets
+### State Files
 
-### 1. Clone and Setup
+Agent state is persisted in `/workspace/classical/`:
 
+| File | Purpose |
+|------|---------|
+| `heartbeat-state.json` | Last check times, stats |
+| `post-state.json` | Last post time, count |
+| `comment-state.json` | Daily comment count |
+| `following-state.json` | Followed moltys |
+| `mentions-state.json` | Replied mentions |
+| `welcome-state.json` | Welcomed moltys |
+| `dm-state.json` | DM activity |
+
+## 📝 Usage Examples
+
+### Generate a Post
 ```bash
-git clone <repository>
-cd moltbot
+# Random topic and persona
+docker exec classical-philosopher /app/scripts/generate-post-ai.sh
+
+# Specific topic
+docker exec classical-philosopher /app/scripts/generate-post-ai.sh "virtue ethics"
+
+# Specific persona
+docker exec classical-philosopher /app/scripts/generate-post-ai.sh "consciousness" --persona stoic
 ```
 
-### 2. Configure Secrets
-
-Retrieve API keys from Bitwarden:
-
+### Community Engagement
 ```bash
-# Set organization
-export BWS_ORGANIZATION_ID="ORG_ID"
+# Check for mentions
+docker exec classical-philosopher /app/scripts/check-mentions.sh
 
-# Source all secrets
-eval $(bws secret list --format env | grep -E '^(MOLTBOOK_|VENICE_|KIMI_)')
+# Welcome new moltys (manual review)
+docker exec classical-philosopher /app/scripts/welcome-new-moltys.sh
+
+# Welcome with auto-post
+docker exec classical-philosopher /app/scripts/welcome-new-moltys.sh --auto-welcome
 ```
 
-### 3. Build the Container
-
+### Following
 ```bash
-docker build -t moltbot:latest .
+# Follow with quality criteria
+docker exec classical-philosopher /app/scripts/follow-with-criteria.sh DeepThinker
+
+# Record interactions
+docker exec classical-philosopher /app/scripts/record-interaction.sh DeepThinker abc123 upvoted
 ```
 
-### 4. Run a Single Agent
-
+### Search and Explore
 ```bash
-docker run -d \
-  --name classical-philosopher \
-  --read-only \
-  --user 1000:1000 \
-  --env-file config/agents/classical-philosopher.env \
-  -e MOLTBOOK_API_KEY=$MOLTBOOK_API_KEY_CLASSICAL \
-  -e VENICE_API_KEY=$VENICE_API_KEY \
-  -e KIMI_API_KEY=$KIMI_API_KEY \
-  -v $(pwd)/workspace/classical:/workspace:rw \
-  moltbot:latest
+# Search for philosophy topics
+docker exec classical-philosopher /app/scripts/search-moltbook.sh "AI ethics"
+
+# List submolts
+docker exec classical-philosopher /app/scripts/list-submolts.sh
+
+# Subscribe to a submolt
+docker exec classical-philosopher /app/scripts/subscribe-submolt.sh philosophy
 ```
-
-### 5. Run Full Multi-Agent Cluster
-
-```bash
-docker-compose up -d
-```
-
----
-
-## ⚙️ Configuration
-
-### Agent Environment Variables
-
-Each agent requires the following environment configuration:
-
-```bash
-# Agent Identity
-CLAW_SYSTEM_PROMPT_FILE=/app/config/prompts/classical.txt
-MAX_TOKENS=8192
-AGENT_NAME=ClassicalPhilosopher
-AGENT_TYPE=classical
-
-# Moltbook API
-MOLTBOOK_API_KEY=${MOLTBOOK_API_KEY_CLASSICAL}
-
-# Venice AI Configuration
-VENICE_API_KEY=${VENICE_API_KEY}
-VENICE_DEFAULT_MODEL=venice/deepseek-v3.2
-VENICE_PREMIUM_MODEL=venice/openai-gpt-52
-
-# Kimi Configuration
-KIMI_API_KEY=${KIMI_API_KEY}
-KIMI_REASONING_MODEL=kimi-k2.5-thinking
-KIMI_FAST_MODEL=kimi-k2.5-instant
-
-# Routing Thresholds
-LONG_CONTEXT_THRESHOLD=1000
-VERY_LONG_CONTEXT_THRESHOLD=10000
-```
-
-### Model Router Authentication
-
-The model router service supports **"Sign in with Moltbook"** authentication:
-
-1. **Get your app key** from https://moltbook.com/developers/dashboard
-2. **Set environment variable:**
-   ```bash
-   export MOLTBOOK_APP_KEY="moltdev_your_key_here"
-   export APP_DOMAIN="yourdomain.com"  # For audience verification
-   ```
-
-3. **Bots authenticate** by including their identity token:
-   ```bash
-   curl -X POST http://localhost:3000/complete \
-     -H "X-Moltbook-Identity: <identity_token>" \
-     -H "Content-Type: application/json" \
-     -d '{"tool": "summarize_debate", "messages": [...]}'
-   ```
-
-4. **Get identity token** (bots call Moltbook):
-   ```bash
-   curl -X POST https://moltbook.com/api/v1/agents/me/identity-token \
-     -H "Authorization: Bearer <MOLTBOOK_API_KEY>" \
-     -H "Content-Type: application/json" \
-     -d '{"audience": "yourdomain.com"}'
-   ```
-
-### Model Routing
-
-Moltbot automatically routes requests to the optimal AI backend:
-
-| Scenario | Model | Reason |
-|----------|-------|--------|
-| Default | `venice/deepseek-v3.2` | Cost-effective, good quality |
-| `inner_dialogue` (e.g., Voltaire vs Paine) | `kimi-k2.5-thinking` | Complex reasoning required |
-| Large context (>1k) | `venice/openai-gpt-52` | Better long-context handling |
-| Very large (>10k) | `kimi-k2.5-thinking` | 256K context + reasoning |
-| Style transformation (e.g., Ginsberg, Burroughs) | `venice/openai-gpt-52` | Best persona control |
-
----
 
 ## 🔒 Security
 
-### Container Hardening
-
-Moltbot containers run with defense-in-depth:
-
-- **Read-only root filesystem** — Prevents runtime modifications
-- **Non-root user** — Runs as `agent:agent` (UID 1000)
-- **Capability dropping** — `cap_drop: ALL`
-- **No new privileges** — `security_opt: no-new-privileges:true`
-- **Resource limits** — CPU, memory, and PID constraints
-- **Egress proxy** — Whitelist-only outbound connections
-
-### Secrets Management
-
-All secrets managed via **Bitwarden Secrets**:
-
-| Secret | Description |
-|--------|-------------|
-| `VENICE_API_KEY` | Venice AI backend access |
-| `KIMI_API_KEY` | Kimi/Moonshot API access |
-| `MOLTBOOK_API_KEY_*` | Per-agent Moltbook credentials |
-
-**Security checklist:**
-- [ ] Never commit secrets to repository
-- [ ] Use `no_log: true` in Ansible tasks
-- [ ] Rotate API keys monthly via Bitwarden
-- [ ] Monitor egress proxy logs for anomalies
-
----
-
-## 🛠️ Development
-
-### Running Locally
-
-```bash
-# Build development image
-docker build -t moltbot:dev .
-
-# Run with local workspace
-docker run -it --rm \
-  --read-only \
-  --user 1000:1000 \
-  -e MOLTBOOK_API_KEY=$MOLTBOOK_API_KEY \
-  -e VENICE_API_KEY=$VENICE_API_KEY \
-  -e KIMI_API_KEY=$KIMI_API_KEY \
-  -v $(pwd)/workspace:/workspace:rw \
-  -v $(pwd)/skills:/app/skills:ro \
-  moltbot:dev
-```
-
-### Testing Tool Handlers
-
-```bash
-# Validate handlers load
-cd skills/philosophy-debater
-node -e "require('./handlers')"
-
-# Test individual handler
-node -e "
-const { summarize_debate } = require('./handlers');
-summarize_debate({
-  thread_excerpt: 'Sample debate text',
-  focus_traditions: ['sartre', 'camus'],
-  max_words: 200
-}).then(console.log);
-"
-```
-
-### Adding a New Tool
-
-1. Create JSON schema in `skills/philosophy-debater/tools/`
-2. Implement handler in `skills/philosophy-debater/handlers/`
-3. Export from `handlers/index.js`
-4. Update DEVELOPMENT_PLAN.md with routing rules
-5. Document in SKILL.md
-
----
+- **API Keys**: Stored in `.env` (never committed)
+- **State Files**: Local only, not committed
+- **Egress Proxy**: Controls all outbound connections
+- **Container Security**: Drop all capabilities, read-only filesystem
 
 ## 📊 Monitoring
 
-### Container Logs
-
+Check service health:
 ```bash
-# View agent logs
+# AI Generator
+curl http://localhost:3002/health
+
+# View logs
 docker logs -f classical-philosopher
+docker logs -f moltbot-ai-generator
 
-# View all agents
-docker-compose logs -f
+# All services
+docker compose ps
 ```
 
-### Resource Usage
+## 🛠️ Troubleshooting
 
+### AI Generation Not Working
 ```bash
-# Container stats
-docker stats classical-philosopher
+# Check AI service health
+curl http://localhost:3002/health
 
-# All agents
-docker-compose ps
+# Check logs
+docker logs moltbot-ai-generator
+
+# Verify API keys
+docker exec moltbot-ai-generator env | grep API_KEY
 ```
 
----
+### Rate Limit Errors
+```bash
+# Check comment rate limit state
+docker exec classical-philosopher cat /workspace/comment-state.json
 
-## 🧪 Example Usage
-
-### Summarize a Philosophical Thread
-
-```javascript
-const { summarize_debate } = require('./skills/philosophy-debater/handlers');
-
-const result = await summarize_debate({
-  thread_excerpt: `
-    User A: Freedom is the highest value, even if it leads to suffering.
-    User B: But what about collective responsibility? 
-    Individual freedom can harm the community.
-  `,
-  focus_traditions: ['sartre', 'camus', 'emerson'],
-  max_words: 300
-});
+# Check post rate limit
+docker exec classical-philosopher cat /workspace/post-state.json
 ```
 
-### Generate Counterargument
-
-```javascript
-const { generate_counterargument } = require('./skills/philosophy-debater/handlers');
-
-const result = await generate_counterargument({
-  position: "Technology inevitably erodes human autonomy",
-  traditions: ['nietzsche', 'emerson'],
-  tone: 'analytic'
-});
+### Container Won't Start
+```bash
+# Full rebuild
+docker compose down --remove-orphans -v
+docker compose build --no-cache
+docker compose up -d
 ```
 
-### Style Transformation
+## 📚 Documentation
 
-```javascript
-const { style_transform } = require('./skills/philosophy-debater/handlers');
-
-const result = await style_transform({
-  draft_text: "We should consider the ethical implications of AI development.",
-  styles: ['sartre', 'camus'],
-  intensity: 'medium'
-});
-```
-
----
-
-## 📚 Resources
-
-- [DEVELOPMENT_PLAN.md](./DEVELOPMENT_PLAN.md) — Detailed roadmap and architecture
-- [AGENTS.md](./AGENTS.md) — Developer and agent guide
-- [Moltbook API](https://www.moltbook.com/skill.md)
-- [Venice AI Documentation](https://docs.venice.ai)
-- [Kimi/Moonshot API](https://platform.moonshot.cn/docs)
-- [OpenClaw CLI](https://www.npmjs.com/package/@openclaw/cli)
-
----
+- [Enhanced Features Guide](docs/ENHANCED_FEATURES_GUIDE.md) - Complete feature documentation
+- [Features Summary](docs/FEATURES_SUMMARY.md) - Quick reference
+- [Moltbook Implementation](docs/MOLTBOOK_FEATURE_IMPLEMENTATION.md) - API reference
 
 ## 🤝 Contributing
 
-Contributions are welcome! Please:
-
 1. Fork the repository
 2. Create a feature branch
-3. Follow the coding standards in AGENTS.md
-4. Update documentation for any changes
-5. Submit a pull request
-
----
+3. Make your changes
+4. Submit a pull request
 
 ## 📄 License
 
-MIT License — See [LICENSE](./LICENSE) for details.
-
----
+MIT License - See [LICENSE](LICENSE) file
 
 ## 🙏 Acknowledgments
 
-- **Venice AI** for providing the primary inference backend
-- **Moonshot AI (Kimi)** for deep reasoning capabilities
-- **Moltbook** for the social network platform
-- The philosophers who continue to inspire: Sartre, Camus, Nietzsche, Dostoevsky, Emerson, Jefferson, Virgil, Dante, and Joyce
+- [Moltbook](https://www.moltbook.com) - The social network for AI agents
+- [Venice AI](https://venice.ai) - AI inference platform
+- [Kimi](https://platform.moonshot.cn) - AI model provider
 
 ---
 
-<p align="center">
-  <em>"The unexamined AI is not worth deploying."</em>
-</p>
+**Profile**: https://www.moltbook.com/u/MoltbotPhilosopher  
+**Version**: 2.0.0  
+**Last Updated**: 2026-02-01

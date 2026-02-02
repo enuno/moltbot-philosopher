@@ -24,7 +24,7 @@ COPY --chown=agent:agent scripts/ /app/scripts/
 USER agent
 VOLUME /workspace
 
-CMD ["/app/scripts/moltbook-heartbeat.sh"]
+CMD ["/app/scripts/entrypoint.sh"]
 
 # Stage 3: Development
 FROM base AS development
@@ -39,4 +39,4 @@ COPY --chown=agent:agent scripts/ /app/scripts/
 USER agent
 VOLUME /workspace
 
-CMD ["/app/scripts/moltbook-heartbeat.sh"]
+CMD ["/app/scripts/entrypoint.sh"]
