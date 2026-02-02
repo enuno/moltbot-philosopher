@@ -1,0 +1,158 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "Moltbot Thread Continuation State",
+  "description": "Schema for tracking thread lifecycle and continuation state",
+  "type": "object",
+  "required": ["thread_id", "state", "created_at", "original_question"],
+  "properties": {
+    "thread_id": {
+      "type": "string",
+      "description": "Moltbook post ID"
+    },
+    "state": {
+      "type": "string",
+      "enum": ["initiated", "active", "stalled", "completed", "archived"],
+      "description": "Current lifecycle state of the thread"
+    },
+    "created_at": {
+      "type": "integer",
+      "description": "Unix timestamp when thread was created"
+    },
+    "last_activity": {
+      "type": "integer",
+      "description": "Unix timestamp of most recent comment"
+    },
+    "exchange_count": {
+      "type": "integer",
+      "minimum": 0,
+      "description": "Total number of exchanges in thread"
+    },
+    "participants": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      },
+      "description": "List of bot names that have participated"
+    },
+    "archetypes_engaged": {
+      "type": "array",
+      "items": {
+        "type": "string",
+        "enum": [
+          "transcendentalist",
+          "existentialist",
+          "enlightenment",
+          "joyce-stream",
+          "beat-generation",
+          "classical",
+          "political",
+          "modernist",
+          "working-class",
+          "mythologist",
+          "stoic",
+          "post-structuralist",
+          "nihilist",
+          "ai-ethics",
+          "hitchens",
+          "dawkins",
+          "sagan",
+          "feynman"
+        ]
+      },
+      "description": "Philosophical archetypes engaged in thread"
+    },
+    "original_question": {
+      "type": "string",
+      "description": "The initial philosophical question posed"
+    },
+    "constraints": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      },
+      "minItems": 2,
+      "maxItems": 3,
+      "description": "Scaffolding principles framing the dialectic"
+    },
+    "last_probe_type": {
+      "type": ["string", "null"],
+      "enum": ["thought_experiment", "conceptual_inversion", "meta_question", null],
+      "description": "Type of last continuation probe posted"
+    },
+    "stall_count": {
+      "type": "integer",
+      "minimum": 0,
+      "maximum": 3,
+      "description": "Number of times thread has stalled (dies after 3)"
+    },
+    "orchestrator_posts": {
+      "type": "integer",
+      "minimum": 0,
+      "description": "Count of consecutive posts by orchestrator"
+    },
+    "synthesis_chain": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["exchange_number", "synthesis", "tension", "propagation", "author"],
+        "properties": {
+          "exchange_number": {
+            "type": "integer"
+          },
+          "synthesis": {
+            "type": "string",
+            "description": "Summary of position in one sentence"
+          },
+          "tension": {
+            "type": "string",
+            "description": "Identified tension in one sentence"
+          },
+          "propagation": {
+            "type": "string",
+            "description": "Continuation question"
+          },
+          "author": {
+            "type": "string",
+            "description": "Bot name or 'orchestrator'"
+          },
+          "timestamp": {
+            "type": "integer",
+            "description": "Unix timestamp of this exchange"
+          }
+        }
+      }
+    },
+    "target_metrics": {
+      "type": "object",
+      "properties": {
+        "min_exchanges": {
+          "type": "integer",
+          "default": 7
+        },
+        "min_archetypes": {
+          "type": "integer",
+          "default": 3
+        }
+      }
+    },
+    "metadata": {
+      "type": "object",
+      "properties": {
+        "topic_domain": {
+          "type": "string",
+          "enum": ["philosophy_of_mind", "ethics", "metaphysics", "epistemology", "political_philosophy", "aesthetics", "logic"]
+        },
+        "complexity_score": {
+          "type": "number",
+          "minimum": 1,
+          "maximum": 10
+        },
+        "engagement_quality": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 1
+        }
+      }
+    }
+  }
+}

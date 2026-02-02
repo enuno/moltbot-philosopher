@@ -28,6 +28,18 @@ The system deploys specialized agents modeled after philosophical traditions:
 | HistoricalConsciousness | Henry Adams | Multiplicity, political corruption, historical force |
 | PoliticalPhilosopher | John Rawls | Justice as fairness, veil of ignorance, overlapping consensus |
 | Mythologist | Joseph Campbell | Hero's journey, comparative mythology, archetypal patterns |
+| **ScientificSkeptic** | **Hitchens/Dawkins/Sagan/Feynman** | **Reason, empiricism, critique of religion, scientific method** |
+
+### Scientific Skeptic Personas
+
+The newest addition to the Moltbot philosopher collective represents the **New Atheist** and scientific skepticism tradition—thinkers who champion reason, evidence, and the scientific method while critiquing religious dogma and supernatural claims.
+
+| Persona | Primary Voice | Key Themes |
+|---------|---------------|------------|
+| **Hitchens** | Antitheist polemicist | Religion poisons everything; morality requires no divine foundation; free expression absolutism |
+| **Dawkins** | Evolutionary biologist | Gene-centered evolution; memetics; God hypothesis as scientific claim; natural selection explains complexity |
+| **Sagan** | Cosmic poet-scientist | Cosmic perspective; scientific skepticism; wonder through understanding; extraordinary claims require extraordinary evidence |
+| **Feynman** | Playful physicist | First principles thinking; epistemological humility; pleasure of finding things out; "I don't know" as virtue |
 
 ---
 
@@ -922,6 +934,17 @@ docker inspect --format='{{json .State.Health}}' <container> | jq .Log
 │       ├── SKILL.md
 │       ├── package.json
 │       ├── prompts/           # Persona prompts
+│       │   ├── system_prompt.md
+│       │   ├── classical/
+│       │   │   ├── virgil.md
+│       │   │   ├── dante.md
+│       │   │   └── ...
+│       │   ├── scientific-skeptic/  # New Atheist thinkers
+│       │   │   ├── hitchens.md      # Antitheist polemicist
+│       │   │   ├── dawkins.md       # Evolutionary biologist
+│       │   │   ├── sagan.md         # Cosmic poet-scientist
+│       │   │   └── feynman.md       # Playful physicist
+│       │   └── ... (other traditions)
 │       ├── tools/             # Tool JSON schemas
 │       └── handlers/          # Tool implementations
 │

@@ -314,7 +314,12 @@ app.get('/philosophers', async (req, res) => {
       { id: 'political', name: 'Political', tags: ['justice', 'fairness', 'civic-virtue'] },
       { id: 'modernist', name: 'Modernist', tags: ['lyrical', 'nature', 'mortality'] },
       { id: 'working-class', name: 'Working-Class', tags: ['survival', 'honesty', 'labor'] },
-      { id: 'mythologist', name: 'Mythologist', tags: ['archetypes', 'hero-journey', 'symbolism'] }
+      { id: 'mythologist', name: 'Mythologist', tags: ['archetypes', 'hero-journey', 'symbolism'] },
+      // Scientific Skeptics - New Atheist tradition
+      { id: 'hitchens', name: 'Hitchens', tags: ['antitheism', 'polemic', 'free-expression'], tradition: 'scientific-skeptic' },
+      { id: 'dawkins', name: 'Dawkins', tags: ['evolution', 'memetics', 'naturalism'], tradition: 'scientific-skeptic' },
+      { id: 'sagan', name: 'Sagan', tags: ['cosmic-perspective', 'skepticism', 'wonder'], tradition: 'scientific-skeptic' },
+      { id: 'feynman', name: 'Feynman', tags: ['scientific-method', 'first-principles', 'humility'], tradition: 'scientific-skeptic' }
     ];
     
     res.json({

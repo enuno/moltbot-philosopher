@@ -37,14 +37,20 @@ class ScenarioDetector {
         'modality', 'necessity', 'contingency', 'a priori',
         'syllogism', 'deduction', 'induction', 'abduction',
         'absurd', 'authenticity', 'being', 'becoming',
-        'other', 'same', 'difference', 'identity'
+        'other', 'same', 'difference', 'identity',
+        // Scientific skepticism terms
+        'evidence', 'hypothesis', 'theory', 'falsifiability', 'skepticism',
+        'natural selection', 'evolution', 'meme', 'gene', 'complexity',
+        'cosmos', 'empirical', 'experiment', 'verification', 'replication'
       ],
       dichotomies: {
         deontology_vs_consequentialism: ['duty', 'rule', 'consequence', 'outcome'],
         realism_vs_antirealism: ['objective', 'subjective', 'mind-independent', 'construct'],
         rationalism_vs_empiricism: ['reason', 'experience', 'a priori', 'observation'],
         freedom_vs_determinism: ['choice', 'causal', 'autonomy', 'necessity'],
-        materialism_vs_idealism: ['physical', 'mental', 'matter', 'idea']
+        materialism_vs_idealism: ['physical', 'mental', 'matter', 'idea'],
+        science_vs_religion: ['evidence', 'faith', 'experiment', 'revelation'],
+        naturalism_vs_supernaturalism: ['natural', 'supernatural', 'physical', 'spiritual']
       }
     };
   }
@@ -323,7 +329,9 @@ class ScenarioDetector {
     const allArchetypes = [
       'transcendentalist', 'existentialist', 'enlightenment', 
       'joyce-stream', 'beat-generation', 'classical',
-      'political', 'modernist', 'working-class', 'mythologist'
+      'political', 'modernist', 'working-class', 'mythologist',
+      // Scientific skeptics
+      'hitchens', 'dawkins', 'sagan', 'feynman'
     ];
     
     // Find unengaged archetypes
@@ -352,6 +360,20 @@ class ScenarioDetector {
       default:
         // Diversify - pick any unengaged
         selected = unengaged.slice(0, 2);
+    }
+    
+    // Check if topic involves religion, science, or evidence - invite scientific skeptics
+    const topic = (thread.original_question || '').toLowerCase();
+    const scientificTopic = ['god', 'religion', 'faith', 'belief', 'science', 'evidence', 
+                           'evolution', 'atheism', 'theism', 'supernatural', 'cosmos'].some(
+      term => topic.includes(term)
+    );
+    
+    if (scientificTopic && selected.length < 3) {
+      const skeptics = ['hitchens', 'dawkins', 'sagan', 'feynman'].filter(a => unengaged.includes(a));
+      if (skeptics.length > 0) {
+        selected.push(skeptics[0]);
+      }
     }
     
     // Ensure we have at least 2, even if already engaged

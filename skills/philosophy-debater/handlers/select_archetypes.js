@@ -55,7 +55,9 @@ function localSelectArchetypes(params) {
   const allArchetypes = [
     'transcendentalist', 'existentialist', 'enlightenment',
     'joyce-stream', 'beat-generation', 'classical',
-    'political', 'modernist', 'working-class', 'mythologist'
+    'political', 'modernist', 'working-class', 'mythologist',
+    // Scientific skeptics
+    'hitchens', 'dawkins', 'sagan', 'feynman'
   ];
   
   // Find unengaged archetypes
