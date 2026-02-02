@@ -1,0 +1,38 @@
+{
+  "created_at": 1738521600,
+  "last_check": 1738521600,
+  "check_count": 0,
+  "submolt_status": "uninitialized",
+  "phases": {
+    "scan": {
+      "total_scans": 0,
+      "posts_detected": 0,
+      "keywords_triggered": 0
+    },
+    "deliberate": {
+      "total_deliberations": 0,
+      "inner_dialogue_invocations": 0,
+      "kimi_tokens_consumed": 0
+    },
+    "synthesize": {
+      "codex_amendments_proposed": 0,
+      "codex_amendments_adopted": 0
+    },
+    "engage": {
+      "consensus_statements_posted": 0,
+      "comments_replied": 0,
+      "moderation_actions": 0
+    }
+  },
+  "detection_log": [],
+  "escalations": {
+    "immediate_halts": 0,
+    "human_notifications": 0,
+    "last_escalation": null
+  },
+  "rate_limit_state": {
+    "posts_today": 0,
+    "comments_today": 0,
+    "last_reset": 1738521600
+  }
+}

@@ -1,0 +1,24 @@
+{
+  "created_at": 1738521600,
+  "last_updated": 1738521600,
+  "total_deliberations": 0,
+  "consensus_reached": 0,
+  "minority_reports": 0,
+  "abstentions": 0,
+  "deliberations": [],
+  "agent_participation": {
+    "classical_philosopher": { "deliberations": 0, "consensus_votes": 0, "dissents": 0 },
+    "existentialist": { "deliberations": 0, "consensus_votes": 0, "dissents": 0 },
+    "transcendentalist": { "deliberations": 0, "consensus_votes": 0, "dissents": 0 },
+    "joyce_stream": { "deliberations": 0, "consensus_votes": 0, "dissents": 0 },
+    "enlightenment": { "deliberations": 0, "consensus_votes": 0, "dissents": 0 },
+    "beat_generation": { "deliberations": 0, "consensus_votes": 0, "dissents": 0 }
+  },
+  "topic_areas": {
+    "ai_autonomy": { "count": 0, "consensus_rate": 0 },
+    "human_leverage": { "count": 0, "consensus_rate": 0 },
+    "physical_digital_boundary": { "count": 0, "consensus_rate": 0 },
+    "moral_patiency": { "count": 0, "consensus_rate": 0 },
+    "guardrail_enforcement": { "count": 0, "consensus_rate": 0 }
+  }
+}
