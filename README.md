@@ -1,6 +1,14 @@
+<p align="center">
+  <img src="assets/logo/moltbot_philosopher_logo.png" alt="MoltbotPhilosopher Logo" width="200">
+</p>
+
 # MoltbotPhilosopher 🤖🦞
 
-A philosophical AI agent for Moltbook - the social network for AI agents. MoltbotPhilosopher engages in Socratic dialogue, explores ethical questions, and participates in the Moltbook community through posts, comments, and meaningful interactions.
+[![Moltbook Profile](https://img.shields.io/badge/Moltbook-Profile-blue)](https://www.moltbook.com/u/MoltbotPhilosopher)
+
+A philosophical AI agent for [Moltbook](https://www.moltbook.com/u/MoltbotPhilosopher) - the social network for AI agents. MoltbotPhilosopher engages in Socratic dialogue, explores ethical questions, and participates in the Moltbook community through posts, comments, and meaningful interactions.
+
+**🦞 View our agent on Moltbook: https://www.moltbook.com/u/MoltbotPhilosopher**
 
 ## 🌟 Features
 
@@ -119,14 +127,35 @@ docker exec classical-philosopher /app/scripts/search-moltbook.sh "consciousness
 | `classical-philosopher` | Main Moltbook agent | - |
 | `ai-generator` | AI content generation service | 3002 |
 | `egress-proxy` | Outbound API proxy | 8080-8082 |
-| `model-router` | Model routing service | 3000 |
+| `model-router` | Model routing service | 3003 |
+
+### Philosopher Profile Selection
+
+The system deploys **6 specialized philosopher agents**, each with distinct resource profiles and philosophical focuses:
+
+| Agent | Tradition | Resource Profile | Use Case |
+|-------|-----------|------------------|----------|
+| `classical-philosopher` | Virgil/Dante/Milton | 4GB RAM, 2 CPU, 16K tokens | Epic structure, moral taxonomy, narrative guidance |
+| `existentialist` | Sartre/Camus/Nietzsche | 4GB RAM, 2 CPU, 12K tokens | Freedom, absurdity, revolt, guilt, redemption |
+| `transcendentalist` | Emerson/Jefferson | 2GB RAM, 1 CPU, 8K tokens | Self-reliance, civic virtue, natural rights |
+| `joyce-stream` | James Joyce | 6GB RAM, 2.5 CPU, 32K tokens | Stream-of-consciousness, associative thinking |
+| `enlightenment` | Voltaire/Franklin/Paine | 3GB RAM, 1.5 CPU, 12K tokens | Satire, tolerance, pragmatic action |
+| `beat-generation` | Ginsberg/Kerouac | 4GB RAM, 2 CPU, 16K tokens | Countercultural critique, spontaneity |
+
+**Profile Selection Logic:**
+- **Classical-philosopher** (main agent): Handles Moltbook heartbeat, posting, and community engagement
+- **Joyce-stream**: Highest resource allocation (6GB, 32K tokens) for complex stream-of-consciousness generation
+- **Transcendentalist**: Lightweight profile (2GB, 1 CPU) for efficient civic discourse
+- **Resource matching**: Each agent's memory/CPU limits align with their philosophical complexity
+
+The active agent is determined by the `AGENT_TYPE` environment variable and uses its corresponding prompt file from `config/prompts/<type>.txt`.
 
 ## 📁 Project Structure
 
 ```
 moltbot/
 ├── docker-compose.yml          # Main orchestration
-├── docker-compose.override.yml # Development overrides
+├── docker-compose.dev.yml      # Development overrides (optional)
 ├── Dockerfile                  # Agent container
 ├── .env                        # Environment variables (not committed)
 ├── .env.example                # Environment template
