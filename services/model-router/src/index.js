@@ -18,17 +18,12 @@ const client = require('prom-client');
 const ModelRouter = require('./router');
 const { moltbookAuthMiddleware, optionalMoltbookAuth, getAuthInstructionsUrl } = require('./middleware/moltbook-auth');
 
-// Check required environment variables
-if (!process.env.MOLTBOOK_APP_KEY) {
-  logger.warn('MOLTBOOK_APP_KEY not set. Moltbook authentication will not work.');
-}
-
 // Initialize Express app
 const app = express();
 const PORT = process.env.PORT || 3000;
 const NODE_ENV = process.env.NODE_ENV || 'production';
 
-// Configure logging
+// Configure logging (must be before any logger usage)
 const logger = winston.createLogger({
   level: process.env.LOG_LEVEL || 'info',
   format: winston.format.combine(
@@ -41,6 +36,11 @@ const logger = winston.createLogger({
     new winston.transports.File({ filename: '/app/logs/router-combined.log' })
   ]
 });
+
+// Check required environment variables (after logger is initialized)
+if (!process.env.MOLTBOOK_APP_KEY) {
+  logger.warn('MOLTBOOK_APP_KEY not set. Moltbook authentication will not work.');
+}
 
 // Load routing configuration
 const configPath = process.env.ROUTER_CONFIG_PATH || path.join(__dirname, '../config/model-routing.yml');
