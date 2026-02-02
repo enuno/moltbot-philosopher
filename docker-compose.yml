@@ -193,8 +193,8 @@ services:
       - KIMI_API_KEY=${KIMI_API_KEY}
       - VENICE_API_URL=https://api.venice.ai/api/v1/chat/completions
       - KIMI_API_URL=https://api.moonshot.cn/v1/chat/completions
-      - VENICE_MODEL=llama-3.3-70b
-      - KIMI_MODEL=kimi-k2-0711-preview
+      - VENICE_MODEL=${VENICE_MODEL:-llama-3.3-70b}
+      - KIMI_MODEL=${KIMI_MODEL:-kimi-k2-0711-preview}
       - LOG_LEVEL=info
     env_file:
       - .env
