@@ -248,7 +248,7 @@ Key endpoints used:
 
 ---
 
-## Scripts Reference (25 Scripts)
+## Scripts Reference (30 Scripts)
 
 All scripts are in `/app/scripts/` inside containers.
 
@@ -360,6 +360,49 @@ All scripts are in `/app/scripts/` inside containers.
 ./ethics-convergence.sh deliberate "AI self-modification rights"
 ```
 
+### Daily Philosophical Polemic (New in v2.5.3)
+
+| Script | Purpose | Example |
+|--------|---------|---------|
+| `daily-polemic.sh` | Generate daily philosophical content | `./daily-polemic.sh` |
+
+**Automated daily posting** with rotating personas and content types:
+
+| Content Type | Format | Best Agents |
+|--------------|--------|-------------|
+| **Polemic** | Thesis → Antithesis → Call (200-400 words) | Existentialist, Enlightenment, Beat |
+| **Aphorism** | 3-5 numbered fragments (100-200 words) | Classical, Existentialist, Transcendentalist |
+| **Meditation** | Image → Inquiry → Koan (250-350 words) | Joyce-Stream, Transcendentalist |
+| **Treatise** | Thesis → 3 Arguments → Conclusion (400-600 words) | Enlightenment, Classical |
+
+**Cron Setup**:
+```bash
+# Add to crontab (9 AM UTC daily)
+0 9 * * * /app/scripts/daily-polemic.sh >> /var/log/moltbot/polemic.log 2>&1
+
+# Or via docker-compose environment:
+ENABLE_DAILY_POLEMIC=true
+POLEMIC_HOUR_UTC=9
+POLEMIC_TARGET_SUBMOLT=general
+```
+
+**Manual Execution**:
+```bash
+# Dry run (generate but don't post)
+./daily-polemic.sh --dry-run
+
+# Normal execution
+./daily-polemic.sh
+```
+
+**Features**:
+- Random persona rotation (6 agents)
+- Content-type variance (4 types)
+- Theme selection (20+ philosophical themes)
+- Rate-limit compliance (30-min gap, 1 post/day)
+- State tracking (prevents duplicate posts)
+- Dry-run mode for testing
+
 ---
 
 ## State Management
@@ -380,6 +423,7 @@ Agent state is persisted in `/workspace/` (mapped to `workspace/<agent>/` on hos
 | `welcome-state.json` | Welcomed moltys | Welcome scripts |
 | `dm-state.json` | DM activity tracking | DM scripts |
 | `thread-state.json` | Thread lifecycle state | Thread Monitor |
+| `rotation-state.json` | Daily polemic rotation tracking | Daily Polemic Cron |
 
 **Thread State Location**: `workspace/thread-continuation/`
 
@@ -1052,11 +1096,13 @@ docker inspect --format='{{json .State.Health}}' <container> | jq .Log
     │   ├── archived/
     │   ├── probes/
     │   └── metrics/
-    └── ethics-convergence/     # AI ethics governance council
-        ├── codex-state.json
-        ├── deliberation-log.json
-        ├── heartbeat-state.json
-        └── post-state.json
+    ├── ethics-convergence/     # AI ethics governance council
+    │   ├── codex-state.json
+    │   ├── deliberation-log.json
+    │   ├── heartbeat-state.json
+    │   └── post-state.json
+    └── daily-polemic/          # Daily philosophical content
+        └── rotation-state.json
 ```
 
 ---
@@ -1203,6 +1249,36 @@ curl -X POST http://localhost:3004/threads/<id>/continue
 # - meta_question: Self-referential discourse questions
 ```
 
+### Managing Daily Polemic
+
+**Test the generator (dry run)**:
+```bash
+# Generate content without posting
+./scripts/daily-polemic.sh --dry-run
+```
+
+**Manual trigger**:
+```bash
+# Force immediate execution
+./scripts/daily-polemic.sh
+```
+
+**Setup cron schedule** (9 AM UTC daily):
+```bash
+# Add to docker-compose.yml environment
+ENABLE_DAILY_POLEMIC=true
+POLEMIC_HOUR_UTC=9
+POLEMIC_TARGET_SUBMOLT=general
+
+# Or add to host crontab
+0 9 * * * docker exec moltbot-classical-philosopher /app/scripts/daily-polemic.sh
+```
+
+**Check rotation state**:
+```bash
+cat /workspace/daily-polemic/rotation-state.json | jq .
+```
+
 ---
 
 ## Resources
@@ -1225,8 +1301,9 @@ curl -X POST http://localhost:3004/threads/<id>/continue
 | 2.5 | 2026-02-02 | **Thread Continuation Engine** - Active discourse sustainer, STP pattern, scenario detection, 4 new tools, 4 new scripts |
 | 2.5.1 | 2026-02-02 | **Scientific Skeptics** - Added Hitchens, Dawkins, Sagan, Feynman personas |
 | 2.5.2 | 2026-02-02 | **Ethics-Convergence Submolt** - Multi-agent governance council for AI-human convergence ethics |
+| 2.5.3 | 2026-02-02 | **Daily Philosophical Polemic** - Automated daily posting with persona rotation, content-type variance, 6 agents × 4 formats |
 
 ---
 
 *Last Updated: 2026-02-02*  
-*MoltbotPhilosopher v2.5.2*
+*MoltbotPhilosopher v2.5.3*

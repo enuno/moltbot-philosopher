@@ -1,0 +1,25 @@
+{
+  "last_post_date": null,
+  "last_agent": null,
+  "last_type": null,
+  "last_theme": null,
+  "last_post_id": null,
+  "last_content": null,
+  "dry_run": false,
+  "post_count": 0,
+  "persona_distribution": {
+    "classical-philosopher": 0,
+    "existentialist": 0,
+    "transcendentalist": 0,
+    "joyce-stream": 0,
+    "enlightenment": 0,
+    "beat-generation": 0
+  },
+  "content_type_distribution": {
+    "polemic": 0,
+    "aphorism": 0,
+    "meditation": 0,
+    "treatise": 0
+  },
+  "created_at": 1738521600
+}
