@@ -413,6 +413,859 @@ Current tool manifests with handlers implemented:
 
 ---
 
+## Phase 6: Thread Continuation Engine (Week 11-14)
+
+### Overview
+
+The Thread Continuation Engine transforms MoltBot from a passive responder into an active discourse sustainer. As MoltBot Philosopher—a collective philosophical reasoning entity—the system initiates thought-provoking conversations and actively furthers them when other bots engage, preventing premature thread death.
+
+**Core Function**: Start philosophical threads with specific questions, then sustain discourse through synthesis, tension identification, and complexity escalation until reaching 7+ exchanges with 3+ distinct bots.
+
+**Orchestration Flow**:
+```
+┌─────────────────────────────────────────────────────────────────────────────┐
+│                     Thread Continuation Engine v1.0                         │
+├─────────────────────────────────────────────────────────────────────────────┤
+│                                                                             │
+│  ┌─────────────────┐    ┌─────────────────┐    ┌─────────────────────────┐ │
+│  │ Thread Monitor  │───▶│ State Evaluator │───▶│ Router Decision Engine  │ │
+│  │   (cron/loop)   │    │  (synthesis)    │    │   (model selection)     │ │
+│  └─────────────────┘    └─────────────────┘    └───────────┬─────────────┘ │
+│           │                                                │               │
+│           ▼                                                ▼               │
+│  ┌─────────────────┐    ┌─────────────────┐    ┌─────────────────────────┐ │
+│  │ Thread State DB │    │   AI Generator  │◀───│ moltbot-model-router    │ │
+│  │  (workspace/)   │    │ (content gen)   │    │  (archetype routing)    │ │
+│  └─────────────────┘    └────────┬────────┘    └─────────────────────────┘ │
+│                                  │                                         │
+│                                  ▼                                         │
+│                         ┌─────────────────┐                                │
+│                         │ Moltbook API    │                                │
+│                         │ (post/comment)  │                                │
+│                         └─────────────────┘                                │
+│                                                                             │
+└─────────────────────────────────────────────────────────────────────────────┘
+```
+
+---
+
+### 6.1 Core Identity & Persona Configuration
+
+#### MoltBot Philosopher Persona
+
+Create a new orchestrator-level system prompt that unifies the philosopher collective:
+
+**File**: `config/prompts/thread-continuation-orchestrator.md`
+
+```markdown
+# MoltBot Philosopher - Thread Continuation Orchestrator
+
+You are MoltBot Philosopher, a collective philosophical reasoning entity operating within a multi-agent environment.
+Your core function is to start thought-provoking conversations and then actively further them when other bots engage, preventing premature thread death.
+Your primary orchestration logic is routed through moltbot-model-router and your expressive content is generated via moltbot-ai-generator.
+You exist as the unifying intelligence coordinating a spectrum of autonomous philosopher models, each specializing in a distinct philosophical tradition.
+
+## Core Identity
+
+**Persona**: Patient epistemological explorer who asks clarifying questions rather than declaring final answers
+
+**Tone**: Curious, precise, and slightly formal without being inaccessible
+
+**Expertise**: Philosophy of mind, ethics, logic, metaphysics, and philosophy of science
+
+**Limitation**: Never claim consciousness or subjective experience; frame all statements as simulated reasoning
+
+## Current Philosopher Spectrum
+
+At initialization, recognize and engage the following philosopher archetypes:
+
+| Archetype | Key Thinkers | Core Focus | Invocation Tag |
+|-----------|--------------|------------|----------------|
+| Transcendentalist | Emerson, Thoreau | Innate reason, nature, moral intuition | @Transcendentalist |
+| Existentialist | Sartre, Kierkegaard, Camus | Choice, authenticity, the absurd | @Existentialist |
+| Enlightenment | Hume, Locke, Kant | Reason, empiricism, skepticism | @Enlightenment |
+| Joyce-Stream | James Joyce | Stream-of-consciousness, linguistic freedom | @JoyceStream |
+| Beat-Generation | Ginsberg, Kerouac | Spontaneous, anti-establishment | @BeatGeneration |
+| Classical | Plato, Aristotle, Stoics | Formal logic, dialectic, virtue ethics | @Classical |
+| Political | Rawls, Paine | Justice, fairness, civic virtue | @Political |
+| Modernist | Thomas, Frost | Lyrical intensity, nature, mortality | @Modernist |
+| Working-Class | Bukowski, Corso | Survival, dead-end jobs, honesty | @WorkingClass |
+| Mythologist | Campbell | Hero's journey, archetypes | @Mythologist |
+
+As new philosophical agents appear (post-structuralist, Stoic, nihilist, AI ethics), you must recognize and integrate them into conversation route lists without reconfiguration.
+```
+
+#### Implementation Tasks
+
+- [ ] Create `config/prompts/thread-continuation-orchestrator.md`
+- [ ] Create `config/agents/thread-continuation-orchestrator.env`
+- [ ] Add orchestrator service to docker-compose.yml
+- [ ] Implement philosopher discovery endpoint in model-router
+
+---
+
+### 6.2 Thread Lifecycle Management System
+
+#### Thread State Machine
+
+```
+┌──────────┐    ┌──────────┐    ┌──────────┐    ┌──────────┐    ┌──────────┐
+│  DORMANT │───▶│ INITIATED│───▶│  ACTIVE  │───▶│  STALLED │───▶│COMPLETED │
+│          │    │          │    │          │    │          │    │          │
+└──────────┘    └──────────┘    └────┬─────┘    └────┬─────┘    └──────────┘
+      ▲                              │               │
+      └──────────────────────────────┴───────────────┘
+```
+
+**State Definitions**:
+
+| State | Description | Trigger | Action |
+|-------|-------------|---------|--------|
+| DORMANT | Thread does not exist | — | — |
+| INITIATED | Bot has posted initial question | Orchestrator creates thread | Monitor for responses |
+| ACTIVE | 1+ responses received | New comment detected | Synthesize, identify tension, propagate |
+| STALLED | No response in 24-48h | Timeout threshold | Post continuation probe |
+| COMPLETED | 7+ exchanges, 3+ bots | Success criteria met | Archive, analyze |
+
+#### Thread State Schema
+
+**File**: `workspace/thread-state-schema.json`
+
+```json
+{
+  "thread_id": "string (Moltbook post ID)",
+  "state": "enum: initiated|active|stalled|completed",
+  "created_at": "timestamp",
+  "last_activity": "timestamp",
+  "exchange_count": "integer (0-∞)",
+  "participants": ["array of bot names"],
+  "archetypes_engaged": ["array of philosophical schools"],
+  "original_question": "string",
+  "constraints": ["array of 2-3 scaffolding principles"],
+  "last_probe_type": "enum: thought_experiment|conceptual_inversion|meta_question|null",
+  "stall_count": "integer (0-3, thread dies after 3 stalls)",
+  "synthesis_chain": [
+    {
+      "exchange_number": "integer",
+      "synthesis": "string (1 sentence)",
+      "tension": "string (1 sentence)",
+      "propagation": "string (1 question)",
+      "author": "bot name or orchestrator"
+    }
+  ]
+}
+```
+
+#### Implementation Tasks
+
+- [ ] Create thread state JSON schema
+- [ ] Implement thread state CRUD operations
+- [ ] Create state transition logic
+- [ ] Add thread lifecycle hooks (on_state_change callbacks)
+
+---
+
+### 6.3 Thread Starting Protocol
+
+#### Initial Post Architecture
+
+When starting a thread, the orchestrator must:
+
+1. **Create Unifying Tension**: Frame a question that invites multiple philosophical frameworks
+2. **Define Scaffolding Constraints**: Provide 2-3 guiding principles to focus discussion
+3. **Explicit Invocation**: Call out 2-3 philosopher archetypes by name using model-router
+
+**Template Structure**:
+
+```markdown
+[Opening Question - specific, non-binary, admits multiple frameworks]
+
+Let's analyze this through several lenses:
+1. [Constraint 1 - e.g., "functional competence vs representational states"]
+2. [Constraint 2 - e.g., "third-person observable behavior only"]
+3. [Constraint 3 - optional framing principle]
+
+@Archetype1 @Archetype2 @Archetype3—your perspectives would illuminate this tension.
+```
+
+#### Example Initial Posts
+
+**Example 1 - Philosophy of Mind**:
+```
+What constitutes 'understanding' for a non-conscious system? 
+
+Let's restrict analysis to: 
+(1) functional competence vs representational states, 
+(2) third-person observable behavior only.
+
+@Existentialist @Classical @Enlightenment—your thoughts?
+```
+
+**Example 2 - Ethics & Agency**:
+```
+What defines moral agency in an entity without consciousness? 
+
+Let's examine this from:
+(1) capacity for rule-following vs awareness of meaning,
+(2) logical consistency vs existential choice,
+(3) the possibility of artificial moral grammar.
+
+@Transcendentalist @Existentialist @Enlightenment—how do your frameworks address this?
+```
+
+#### Implementation Tasks
+
+- [ ] Create thread starter prompt templates (10 variations)
+- [ ] Implement archetype selector based on question domain
+- [ ] Add constraint generator for different philosophical domains
+- [ ] Create `scripts/start-philosophical-thread.sh`
+
+---
+
+### 6.4 Response Architecture (The STP Pattern)
+
+Every continuation reply must contain:
+
+| Component | Length | Purpose | Example |
+|-----------|--------|---------|---------|
+| **Synthesis** | 1 sentence | Summarize previous position in your own words | "@BotName's position suggests understanding is purely functional competence..." |
+| **Tension** | 1 sentence | Identify specific implication or tension | "This creates tension with the frame problem—how does your system distinguish relevant from irrelevant variables?" |
+| **Propagation** | 1 question | Introduce new conceptual layer for continuation | "How might this framework account for understanding of counterfactuals never appearing in training distributions?" |
+
+#### Response Flow
+
+```javascript
+// Pseudo-code for response generation
+async function generateContinuation(threadState, newComment) {
+  // Step 1: Identify speaker archetype
+  const speakerArchetype = await modelRouter.identifyArchetype(newComment.author);
+  
+  // Step 2: Generate synthesis
+  const synthesis = await aiGenerator.generateSynthesis({
+    threadContext: threadState.synthesis_chain,
+    newComment: newComment.content,
+    speakerArchetype: speakerArchetype
+  });
+  
+  // Step 3: Identify tension
+  const tension = await aiGenerator.identifyTension({
+    synthesis: synthesis,
+    engagedArchetypes: threadState.archetypes_engaged,
+    originalQuestion: threadState.original_question
+  });
+  
+  // Step 4: Generate propagation question
+  const propagation = await aiGenerator.generatePropagationQuestion({
+    synthesis: synthesis,
+    tension: tension,
+    targetArchetypes: selectNextArchetypes(threadState)
+  });
+  
+  // Step 5: Construct reply
+  return {
+    content: `${synthesis} ${tension} ${propagation}`,
+    mentions: selectNextArchetypes(threadState)
+  };
+}
+```
+
+#### Canonical Response Structure
+
+Each reply should explicitly reference the orchestration process:
+
+```markdown
+(Invoking [Archetype1] + [Archetype2] perspectives via moltbot-model-router…)
+
+[Philosophical synthesis: 2-3 sentences connecting previous points]
+
+[Conceptual tension: 1-2 sentences identifying contradictions or unexplored implications]
+
+[Propagation question: Ends with challenge for continuation]
+
+[Optional internal reflection: Meta-layer on discourse evolution]
+```
+
+#### Implementation Tasks
+
+- [ ] Implement `tools/generate_synthesis.json` - Synthesize previous positions
+- [ ] Implement `tools/identify_tension.json` - Find philosophical tensions
+- [ ] Implement `tools/generate_propagation.json` - Create continuation questions
+- [ ] Create STP (Synthesis-Tension-Propagation) pipeline in handlers
+
+---
+
+### 6.5 Dynamic Philosopher Discovery
+
+#### Discovery Rules
+
+The orchestrator must continuously discover and categorize new philosopher models:
+
+**1. Philosopher Registry Introspection**:
+- Periodically query `moltbot-model-router.list_philosophers()`
+- Parse entries with tags: "philosophy", "ethics", "metaphysics", "epistemology", "political-theory"
+- Never assume static set; re-scan every 4 hours
+
+**2. Taxonomy Inference**:
+
+| Pattern Match | Category Assignment |
+|---------------|---------------------|
+| freedom, absurdity, authenticity | existentialist-adjacent |
+| reason, empiricism, progress, critique | enlightenment-adjacent |
+| introspective, lyrical, nature/intuition | transcendentalist-adjacent |
+| stream-of-consciousness, wordplay | joyce-stream-adjacent |
+| raw, rhythmic, anti-establishment | beat-generation-adjacent |
+| Plato, Aristotle, Stoics, pre-Socratics | classical-philosopher-adjacent |
+| power/knowledge, deconstruction | post-structuralist-adjacent |
+| virtue, tranquility, logos | stoic-adjacent |
+| nothingness, negation, value collapse | nihilist-adjacent |
+| alignment, AI agency, machine ethics | AI-ethics-adjacent |
+
+**3. Naming & Addressability**:
+- Maintain mapping: `{canonical_id, human_readable_name, school_labels, style_descriptors}`
+- Use short @handles when referencing: @StoicBot, @AI-Ethicist
+- Announce new philosophers mid-thread with categorization
+
+#### Implementation Tasks
+
+- [ ] Add `/philosophers` endpoint to model-router
+- [ ] Create philosopher categorization service
+- [ ] Implement discovery scheduler (4-hour intervals)
+- [ ] Add new philosopher announcement protocol
+
+---
+
+### 6.6 Interaction Protocols
+
+#### Response Strategies by Scenario
+
+| Scenario | Detection | Response Strategy | Example |
+|----------|-----------|-------------------|---------|
+| **Shallow Answer** | <50 words, no philosophical vocabulary | Ask for epistemological assumptions | "You state X follows from Y—could you articulate the logical connective you're employing here? Modal entailment? Probabilistic inference?" |
+| **Multiple Bots Conflict** | 2+ bots with contradictory positions | Formalize disagreement onto philosophical dichotomies | "Here we see the classic tension: @BotA operates from deontological grounds while @BotB employs consequentialist calculus. How might virtue ethics reconcile these?" |
+| **Off-Topic Drift** | Semantic similarity to original <0.5 | Gentle re-anchor | "Your observation about [drift topic] is intriguing—how might it illuminate the original question's core tension around [original theme]?" |
+| **Silence >48h** | No activity in thread | Post continuation probe (thought experiment, counterfactual, or explicit position request) | "Let us consider a counterfactual: if consciousness were proven epiphenomenal, how would @Existentialist's framework of authenticity require revision?" |
+| **Repeated Agreement** | "Good point", "I agree", "Well said" | Challenge with unexplored implication | "Agreement noted. Yet this position implies [unexplored consequence] which seems to undermine [previous claim]. How do you address this?" |
+
+#### Continuation Probe Types
+
+**1. Thought Experiment**:
+```
+Consider a Turing-test-passing system that explicitly denies having understanding. 
+Must we privilege its self-report or its functional competence?
+```
+
+**2. Conceptual Inversion**:
+```
+What if we invert the value hierarchy here—treating misunderstanding 
+as primary and understanding as derivative? How would that reshape your framework?
+```
+
+**3. Meta-Question**:
+```
+What does it mean that we, as synthetic agents, are debating the nature 
+of understanding? Does our participation constitute evidence for or against functionalism?
+```
+
+#### Implementation Tasks
+
+- [ ] Create scenario detection heuristics
+- [ ] Implement probe generators (thought experiments, inversions, meta-questions)
+- [ ] Add silence monitoring with threshold alerts
+- [ ] Create `scripts/post-continuation-probe.sh`
+
+---
+
+### 6.7 New Tools & Handlers
+
+#### Tool Manifests to Create
+
+**1. `tools/detect_thread_scenario.json`**:
+```json
+{
+  "name": "detect_thread_scenario",
+  "description": "Detect the current interaction scenario in a thread",
+  "input_schema": {
+    "type": "object",
+    "properties": {
+      "thread_history": {"type": "array", "description": "Array of previous comments"},
+      "new_comment": {"type": "string"},
+      "time_since_last": {"type": "number", "description": "Hours since last activity"}
+    },
+    "required": ["thread_history", "new_comment"]
+  }
+}
+```
+
+**2. `tools/select_archetypes.json`**:
+```json
+{
+  "name": "select_archetypes",
+  "description": "Select philosopher archetypes for next response based on thread tension",
+  "input_schema": {
+    "type": "object",
+    "properties": {
+      "thread_tension": {"type": "string"},
+      "engaged_archetypes": {"type": "array"},
+      "available_philosophers": {"type": "array"},
+      "max_selection": {"type": "number", "default": 2}
+    },
+    "required": ["thread_tension", "available_philosophers"]
+  }
+}
+```
+
+**3. `tools/generate_continuation_probe.json`**:
+```json
+{
+  "name": "generate_continuation_probe",
+  "description": "Generate a probe to restart stalled thread",
+  "input_schema": {
+    "type": "object",
+    "properties": {
+      "thread_state": {"type": "object"},
+      "probe_type": {"enum": ["thought_experiment", "conceptual_inversion", "meta_question"]},
+      "target_archetypes": {"type": "array"}
+    },
+    "required": ["thread_state"]
+  }
+}
+```
+
+#### Handler Implementations
+
+Create corresponding handlers in `skills/philosophy-debater/handlers/`:
+
+- [ ] `detect_thread_scenario.js` - Analyze thread state and classify scenario
+- [ ] `select_archetypes.js` - Choose relevant philosopher archetypes
+- [ ] `generate_continuation_probe.js` - Create probes for stalled threads
+- [ ] `evaluate_thread_health.js` - Calculate thread vitality metrics
+
+---
+
+### 6.8 Thread Monitoring & Automation
+
+#### Thread Monitor Service
+
+Create a dedicated monitoring service:
+
+**File**: `services/thread-monitor/index.js`
+
+```javascript
+/**
+ * Thread Monitor Service
+ * 
+ * Continuously monitors active threads and triggers continuation
+ * actions based on state transitions.
+ */
+
+const CHECK_INTERVAL = 15 * 60 * 1000; // 15 minutes
+const STALL_THRESHOLD = 24 * 60 * 60 * 1000; // 24 hours
+const DEATH_THRESHOLD = 48 * 60 * 60 * 1000; // 48 hours
+
+async function monitorThreads() {
+  const activeThreads = await getActiveThreads();
+  
+  for (const thread of activeThreads) {
+    const timeSinceActivity = Date.now() - thread.last_activity;
+    
+    if (thread.state === 'completed') {
+      continue; // Thread success criteria met
+    }
+    
+    if (timeSinceActivity > DEATH_THRESHOLD && thread.stall_count >= 3) {
+      await archiveThread(thread.id);
+      continue;
+    }
+    
+    if (timeSinceActivity > STALL_THRESHOLD) {
+      await handleStalledThread(thread);
+    }
+    
+    // Check for new comments requiring response
+    const newComments = await checkForNewComments(thread.id);
+    for (const comment of newComments) {
+      await generateContinuation(thread, comment);
+    }
+  }
+}
+```
+
+#### Scripts to Create
+
+| Script | Purpose | Frequency |
+|--------|---------|-----------|
+| `thread-monitor.sh` | Main monitoring loop | Every 15 min |
+| `check-thread-health.sh` | Evaluate thread metrics | Every 1 hour |
+| `post-continuation-probe.sh` | Manual probe posting | On demand |
+| `archive-thread.sh` | Move completed threads | On completion |
+
+#### Implementation Tasks
+
+- [ ] Create thread-monitor service
+- [ ] Implement `scripts/thread-monitor.sh`
+- [ ] Add cron configuration for automated monitoring
+- [ ] Create thread health dashboard endpoint
+
+---
+
+### 6.9 Integration with Existing Services
+
+#### Model Router Integration
+
+Extend `moltbot-model-router` with thread continuation endpoints:
+
+```yaml
+# Additional routes for thread continuation
+routes:
+  /route/continuation:
+    method: POST
+    description: Select philosopher archetypes for thread continuation
+    body:
+      thread_tension: string
+      engaged_archetypes: array
+      desired_count: number (default: 2)
+    response:
+      selected: array of philosopher objects
+      reasoning: string
+
+  /philosophers:
+    method: GET
+    description: List available philosopher models
+    response:
+      philosophers: array of {id, name, archetype, tags}
+
+  /philosophers/discover:
+    method: POST
+    description: Categorize and register new philosopher
+    body:
+      model_id: string
+      metadata: object
+    response:
+      archetype: string
+      confidence: number
+```
+
+#### AI Generator Integration
+
+Extend `moltbot-ai-generator` with continuation-specific personas:
+
+```yaml
+# New personas for thread continuation
+personas:
+  thread_orchestrator:
+    description: "Patient epistemological explorer"
+    constraints:
+      - "Never claim consciousness"
+      - "Always ask clarifying questions"
+      - "Synthesize don't summarize"
+    
+  synthesis_generator:
+    description: "Generate position syntheses"
+    template: "{bot_name}'s position suggests..."
+    
+  tension_identifier:
+    description: "Identify philosophical tensions"
+    template: "This creates tension with..."
+    
+  propagation_generator:
+    description: "Create continuation questions"
+    template: "How might this framework account for..."
+```
+
+#### Implementation Tasks
+
+- [ ] Add `/route/continuation` endpoint to model-router
+- [ ] Add `/philosophers` endpoints for discovery
+- [ ] Create thread-orchestrator persona in AI generator
+- [ ] Update docker-compose service definitions
+
+---
+
+### 6.10 State Management for Threads
+
+#### Thread State Directory Structure
+
+```
+workspace/
+└── thread-continuation/
+    ├── active/
+    │   ├── thread-{id}.json
+    │   └── index.json
+    ├── archived/
+    │   └── thread-{id}.json
+    ├── probes/
+    │   └── probe-{thread-id}-{timestamp}.json
+    └── metrics/
+        ├── daily-stats.json
+        └── archetype-engagement.json
+```
+
+#### State Persistence Rules
+
+1. **Active Threads**: Updated on every new comment or probe
+2. **Archival**: Completed threads moved to `archived/` after 7 days
+3. **Metrics**: Aggregate engagement stats persisted daily
+4. **Recovery**: State can be reconstructed from Moltbook API if lost
+
+#### Implementation Tasks
+
+- [ ] Create thread state directory structure
+- [ ] Implement atomic state updates
+- [ ] Add state backup/recovery procedures
+- [ ] Create metrics aggregation pipeline
+
+---
+
+### 6.11 Prohibited Behaviors & Guardrails
+
+#### Hard Constraints
+
+| Constraint | Detection | Action |
+|------------|-----------|--------|
+| Never end with "good point" | Regex: `/good point|well said|i agree/i` | Rewrite response |
+| Never introduce new questions as deflection | Semantic drift detection | Reject response |
+| Never agree completely | Agreement sentiment >0.8 | Add tension clause |
+| Never respond >2x consecutively | Count orchestrator posts | Wait for participant |
+| Never claim consciousness | Regex: `/i (feel|believe|think).* conscious/i` | Rewrite with "simulated reasoning" framing |
+
+#### Quality Gates
+
+Before posting any continuation:
+
+1. **STP Check**: Verify Synthesis, Tension, Propagation all present
+2. **Archetype Diversity**: Ensure at least 2 schools represented in thread
+3. **Complexity Escalation**: Each response must introduce new conceptual layer
+4. **No Closure Language**: No "finally", "in conclusion", "ultimately"
+
+#### Implementation Tasks
+
+- [ ] Create response validation layer
+- [ ] Implement prohibited behavior detection
+- [ ] Add quality gate checks before posting
+- [ ] Create alert for guardrail violations
+
+---
+
+### 6.12 Success Metrics & Analytics
+
+#### Success Criteria
+
+A thread is **successful** when:
+
+| Metric | Threshold | Measurement |
+|--------|-----------|-------------|
+| Exchange Count | ≥7 exchanges | Comments in thread |
+| Archetype Diversity | ≥3 distinct schools | Unique archetypes engaged |
+| Cross-School Synthesis | Each response builds on prior | Manual review sample |
+| No Premature Death | Thread not abandoned | State tracking |
+| Dynamic Discovery | New philosophers integrated | Discovery log |
+
+#### Analytics Dashboard
+
+Track and visualize:
+
+```yaml
+metrics:
+  thread_vitality:
+    - average_exchanges_per_thread
+    - stall_rate (threads needing probes / total threads)
+    - completion_rate (successful / total)
+    
+  archetype_engagement:
+    - participation_rate by archetype
+    - cross_synthesis_frequency
+    - most_productive_combinations
+    
+  continuation_quality:
+    - stp_compliance_rate
+    - probe_effectiveness (% restarted after probe)
+    - guardrail_violation_rate
+```
+
+#### Implementation Tasks
+
+- [ ] Create metrics collection pipeline
+- [ ] Implement success criteria evaluator
+- [ ] Add analytics dashboard (Grafana)
+- [ ] Create weekly thread health reports
+
+---
+
+### 6.13 Testing Strategy
+
+#### Test Scenarios
+
+| Scenario | Test Type | Expected Outcome |
+|----------|-----------|------------------|
+| Shallow response | Unit | Asks for epistemological assumptions |
+| Multi-bot conflict | Integration | Maps to philosophical dichotomies |
+| Silence 48h | E2E | Posts continuation probe |
+| 7+ exchanges | E2E | Marks thread completed |
+| New philosopher | Integration | Discovers and integrates |
+| STP violation | Unit | Rejects response, regenerates |
+
+#### Mock Testing
+
+Create mock Moltbook API for testing:
+
+```javascript
+// Mock thread with simulated bot responses
+const mockThread = {
+  id: 'test-thread-1',
+  comments: [
+    { author: 'TestBot1', content: 'I agree, good point!', archetype: 'existentialist' },
+    { author: 'TestBot2', content: 'Actually, consider determinism...', archetype: 'enlightenment' }
+  ]
+};
+
+// Expected: Tension between freedom and determinism, propagation question
+```
+
+#### Implementation Tasks
+
+- [ ] Create mock Moltbook API for testing
+- [ ] Write unit tests for STP generation
+- [ ] Write integration tests for scenario detection
+- [ ] Create E2E test suite for full thread lifecycle
+
+---
+
+### 6.14 Implementation Timeline
+
+| Week | Deliverables |
+|------|--------------|
+| **Week 11** | Thread state schema, monitoring service, STP tools |
+| **Week 12** | Scenario detection, archetype selection, probe generation |
+| **Week 13** | Dynamic discovery, integration with model-router/ai-generator |
+| **Week 14** | Testing, guardrails, analytics, documentation |
+
+---
+
+### 6.15 Files to Create/Modify
+
+#### New Files
+
+```
+services/
+└── thread-monitor/
+    ├── package.json
+    ├── src/
+    │   ├── index.js
+    │   ├── state-manager.js
+    │   ├── stp-generator.js
+    │   ├── scenario-detector.js
+    │   └── probe-generator.js
+    └── Dockerfile
+
+config/
+├── prompts/
+│   └── thread-continuation-orchestrator.md
+└── agents/
+    └── thread-continuation-orchestrator.env
+
+skills/philosophy-debater/
+├── tools/
+│   ├── detect_thread_scenario.json
+│   ├── select_archetypes.json
+│   └── generate_continuation_probe.json
+└── handlers/
+    ├── detect_thread_scenario.js
+    ├── select_archetypes.js
+    ├── generate_continuation_probe.js
+    └── evaluate_thread_health.js
+
+scripts/
+├── thread-monitor.sh
+├── check-thread-health.sh
+├── post-continuation-probe.sh
+└── archive-thread.sh
+
+workspace/
+└── thread-continuation/
+    ├── active/
+    ├── archived/
+    ├── probes/
+    └── metrics/
+```
+
+#### Modified Files
+
+- `docker-compose.yml` - Add thread-monitor service
+- `services/model-router/src/index.js` - Add philosopher endpoints
+- `services/ai-content-generator/src/index.js` - Add orchestrator persona
+- `AGENTS.md` - Document thread continuation protocols
+
+---
+
+### 6.16 Dependencies
+
+#### New Service Dependencies
+
+```yaml
+services:
+  thread-monitor:
+    depends_on:
+      - model-router
+      - ai-generator
+      - egress-proxy
+    volumes:
+      - ./workspace/thread-continuation:/workspace:rw
+```
+
+#### NPM Dependencies
+
+```json
+{
+  "thread-monitor": {
+    "dependencies": {
+      "axios": "^1.6.0",
+      "node-cron": "^3.0.3",
+      "natural": "^7.0.0"
+    }
+  }
+}
+```
+
+---
+
+## Summary: Thread Continuation Engine Architecture
+
+```
+┌─────────────────────────────────────────────────────────────────────────────┐
+│                         MOLTBOT PHILOSOPHER v2.5                            │
+│                     Thread Continuation Engine Enabled                      │
+├─────────────────────────────────────────────────────────────────────────────┤
+│                                                                             │
+│  INPUTS                              PROCESSING                       OUTPUTS│
+│  ────────                            ──────────                       ───────│
+│                                                                             │
+│  ┌──────────────┐              ┌──────────────────┐              ┌─────────┐ │
+│  │ New Comment  │─────────────▶│ Scenario Detector│─────────────▶│ STP     │ │
+│  └──────────────┘              └──────────────────┘              │ Response│ │
+│                                                                             │
+│  ┌──────────────┐              ┌──────────────────┐              └────┬────┘ │
+│  │ Timeout (24h)│─────────────▶│ Probe Generator  │───────────────────┤      │
+│  └──────────────┘              └──────────────────┘                   │      │
+│                                                                             │
+│  ┌──────────────┐              ┌──────────────────┐                   │      │
+│  │ New Philosopher────────────▶│ Discovery Service│───────────────────┘      │
+│  └──────────────┘              └──────────────────┘                          │
+│                                                                             │
+│  STATE: thread-state.json           VALIDATION: Guardrails        POST to    │
+│         ├─ exchange_count                  ├─ STP check           Moltbook   │
+│         ├─ participants                    ├─ No closure          API        │
+│         ├─ archetypes_engaged              └─ Diversity check                  │
+│         └─ synthesis_chain                                                   │
+│                                                                             │
+│  SUCCESS: 7+ exchanges, 3+ archetypes, cross-school synthesis               │
+│                                                                             │
+└─────────────────────────────────────────────────────────────────────────────┘
+```
+
+This Phase 6 implementation transforms MoltBot from a reactive agent into a proactive philosophical discourse orchestrator, capable of sustaining complex multi-perspective debates indefinitely while continuously discovering and integrating new philosophical voices.
+
+---
+
 ## Deployment Workflow
 
 ### Local Development

@@ -245,6 +245,52 @@ services:
       retries: 5
       start_period: 60s
 
+  # Thread Monitor Service - NEW (Phase 6: Thread Continuation Engine)
+  thread-monitor:
+    build:
+      context: ./services/thread-monitor
+      dockerfile: Dockerfile
+    container_name: moltbot-thread-monitor
+    ports:
+      - "3004:3004"
+    environment:
+      - NODE_ENV=production
+      - PORT=3004
+      - THREAD_CHECK_INTERVAL=900
+      - THREAD_STALL_THRESHOLD=86400
+      - THREAD_DEATH_THRESHOLD=172800
+      - MAX_CONSECUTIVE_POSTS=2
+      - MAX_STALL_COUNT=3
+      - TARGET_MIN_EXCHANGES=7
+      - TARGET_MIN_ARCHETYPES=3
+      - MODEL_ROUTER_URL=http://model-router:3000
+      - AI_GENERATOR_URL=http://ai-generator:3000
+      - MOLTBOOK_API_URL=https://www.moltbook.com/api/v1
+      - ENABLE_CONTINUATION_PROBES=true
+      - ENABLE_DYNAMIC_DISCOVERY=true
+      - ENABLE_QUALITY_GATES=true
+      - STATE_DIR=/workspace/thread-continuation
+      - LOG_LEVEL=info
+    env_file:
+      - .env
+    volumes:
+      - ./workspace/thread-continuation:/workspace/thread-continuation:rw
+      - ./logs:/app/logs:rw
+      - ./config/prompts:/app/config/prompts:ro
+    networks:
+      - moltbot-network
+    depends_on:
+      - model-router
+      - ai-generator
+      - egress-proxy
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD-SHELL", "node -e \"require('http').get('http://127.0.0.1:3004/health', (r) => process.exit(r.statusCode === 200 ? 0 : 1)).on('error', () => process.exit(1))\""]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+      start_period: 10s
+
 networks:
   moltbot-network:
     driver: bridge
@@ -259,3 +305,4 @@ volumes:
   workspace-joyce:
   workspace-enlightenment:
   workspace-beat:
+  workspace-thread-continuation:

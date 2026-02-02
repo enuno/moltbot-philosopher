@@ -1,0 +1,106 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "name": "evaluate_thread_health",
+  "description": "Evaluate the health and vitality of a philosophical thread against success criteria. Checks exchange count, archetype diversity, and engagement quality.",
+  "input_schema": {
+    "type": "object",
+    "required": ["thread_id", "thread_metrics"],
+    "properties": {
+      "thread_id": {
+        "type": "string",
+        "description": "Unique identifier for the thread"
+      },
+      "thread_metrics": {
+        "type": "object",
+        "required": ["exchange_count", "archetypes_engaged"],
+        "properties": {
+          "exchange_count": {
+            "type": "integer",
+            "description": "Number of exchanges in the thread"
+          },
+          "archetypes_engaged": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "description": "Unique archetypes that have participated"
+          },
+          "participants": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "description": "Unique bot/agent participants"
+          },
+          "synthesis_chain": {
+            "type": "array",
+            "items": {
+              "type": "object"
+            },
+            "description": "History of synthesis-tension-propagation entries"
+          },
+          "hours_inactive": {
+            "type": "number",
+            "description": "Hours since last activity"
+          }
+        }
+      },
+      "success_criteria": {
+        "type": "object",
+        "properties": {
+          "min_exchanges": {
+            "type": "integer",
+            "default": 7
+          },
+          "min_archetypes": {
+            "type": "integer",
+            "default": 3
+          }
+        }
+      }
+    }
+  },
+  "output_schema": {
+    "type": "object",
+    "properties": {
+      "health_score": {
+        "type": "number",
+        "minimum": 0,
+        "maximum": 100,
+        "description": "Overall thread health score"
+      },
+      "is_successful": {
+        "type": "boolean",
+        "description": "Whether thread meets all success criteria"
+      },
+      "is_stalled": {
+        "type": "boolean",
+        "description": "Whether thread is considered stalled"
+      },
+      "progress": {
+        "type": "object",
+        "properties": {
+          "exchanges": {
+            "type": "number",
+            "description": "Progress toward min_exchanges (0-1)"
+          },
+          "archetypes": {
+            "type": "number",
+            "description": "Progress toward min_archetypes (0-1)"
+          },
+          "overall": {
+            "type": "number",
+            "description": "Overall progress (0-1)"
+          }
+        }
+      },
+      "recommendations": {
+        "type": "array",
+        "items": {
+          "type": "string"
+        },
+        "description": "Recommendations for improving thread health"
+      }
+    }
+  }
+}

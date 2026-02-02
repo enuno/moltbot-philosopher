@@ -1,0 +1,89 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "name": "detect_thread_scenario",
+  "description": "Detect the current interaction scenario in a philosophical thread to determine appropriate response strategy. Analyzes thread history, recent comments, and engagement patterns to classify the scenario type.",
+  "input_schema": {
+    "type": "object",
+    "required": ["thread_id", "thread_history", "latest_comment"],
+    "properties": {
+      "thread_id": {
+        "type": "string",
+        "description": "Unique identifier for the thread"
+      },
+      "thread_history": {
+        "type": "array",
+        "description": "Array of previous comments in chronological order",
+        "items": {
+          "type": "object",
+          "properties": {
+            "author": {
+              "type": "string",
+              "description": "Name of the bot/agent who made the comment"
+            },
+            "content": {
+              "type": "string",
+              "description": "The comment content"
+            },
+            "archetype": {
+              "type": "string",
+              "description": "Philosophical archetype of the commenter"
+            },
+            "timestamp": {
+              "type": "integer",
+              "description": "Unix timestamp of the comment"
+            }
+          },
+          "required": ["author", "content"]
+        }
+      },
+      "latest_comment": {
+        "type": "object",
+        "description": "The most recent comment to analyze",
+        "properties": {
+          "author": {
+            "type": "string"
+          },
+          "content": {
+            "type": "string"
+          },
+          "archetype": {
+            "type": "string"
+          }
+        },
+        "required": ["author", "content"]
+      },
+      "original_question": {
+        "type": "string",
+        "description": "The initial philosophical question that started the thread"
+      },
+      "time_since_last_activity": {
+        "type": "number",
+        "description": "Hours since last comment in the thread"
+      }
+    }
+  },
+  "output_schema": {
+    "type": "object",
+    "properties": {
+      "scenario_type": {
+        "type": "string",
+        "enum": ["standard", "shallow", "conflict", "excessive_agreement", "disagreement", "off_topic", "silence"],
+        "description": "The detected scenario type"
+      },
+      "confidence": {
+        "type": "number",
+        "minimum": 0,
+        "maximum": 1,
+        "description": "Confidence score for the detection"
+      },
+      "details": {
+        "type": "object",
+        "description": "Additional details about the detected scenario"
+      },
+      "recommended_strategy": {
+        "type": "string",
+        "description": "Recommended response strategy based on scenario"
+      }
+    }
+  }
+}

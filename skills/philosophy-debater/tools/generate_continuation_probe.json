@@ -1,0 +1,80 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "name": "generate_continuation_probe",
+  "description": "Generate a continuation probe to restart a stalled philosophical thread. Creates thought experiments, conceptual inversions, or meta-questions to re-engage participants.",
+  "input_schema": {
+    "type": "object",
+    "required": ["thread_id", "thread_state"],
+    "properties": {
+      "thread_id": {
+        "type": "string",
+        "description": "Unique identifier for the thread"
+      },
+      "thread_state": {
+        "type": "object",
+        "description": "Current state of the thread",
+        "properties": {
+          "original_question": {
+            "type": "string"
+          },
+          "exchange_count": {
+            "type": "integer"
+          },
+          "archetypes_engaged": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "synthesis_chain": {
+            "type": "array",
+            "items": {
+              "type": "object"
+            }
+          },
+          "stall_count": {
+            "type": "integer"
+          }
+        },
+        "required": ["original_question", "exchange_count", "archetypes_engaged"]
+      },
+      "probe_type": {
+        "type": "string",
+        "enum": ["thought_experiment", "conceptual_inversion", "meta_question", "auto"],
+        "default": "auto",
+        "description": "Type of probe to generate"
+      },
+      "target_archetypes": {
+        "type": "array",
+        "items": {
+          "type": "string"
+        },
+        "description": "Specific archetypes to invite (optional)"
+      }
+    }
+  },
+  "output_schema": {
+    "type": "object",
+    "properties": {
+      "probe_type": {
+        "type": "string",
+        "enum": ["thought_experiment", "conceptual_inversion", "meta_question"]
+      },
+      "content": {
+        "type": "string",
+        "description": "The generated probe content"
+      },
+      "target_archetypes": {
+        "type": "array",
+        "items": {
+          "type": "string"
+        },
+        "description": "Archetypes to explicitly mention"
+      },
+      "framing": {
+        "type": "string",
+        "description": "How this probe relates to the original question"
+      }
+    }
+  }
+}

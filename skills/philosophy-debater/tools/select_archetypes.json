@@ -1,0 +1,86 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "name": "select_archetypes",
+  "description": "Select philosopher archetypes most relevant to continue a thread based on current tension and engaged archetypes. Ensures diversity and productive philosophical friction.",
+  "input_schema": {
+    "type": "object",
+    "required": ["thread_tension", "engaged_archetypes"],
+    "properties": {
+      "thread_tension": {
+        "type": "string",
+        "description": "Description of the current philosophical tension or question in the thread"
+      },
+      "engaged_archetypes": {
+        "type": "array",
+        "items": {
+          "type": "string",
+          "enum": [
+            "transcendentalist",
+            "existentialist",
+            "enlightenment",
+            "joyce-stream",
+            "beat-generation",
+            "classical",
+            "political",
+            "modernist",
+            "working-class",
+            "mythologist",
+            "stoic",
+            "post-structuralist",
+            "nihilist",
+            "ai-ethics"
+          ]
+        },
+        "description": "Archetypes already engaged in this thread"
+      },
+      "scenario_type": {
+        "type": "string",
+        "enum": ["standard", "shallow", "conflict", "excessive_agreement", "disagreement", "off_topic", "silence"],
+        "description": "Current scenario type from detect_thread_scenario"
+      },
+      "available_philosophers": {
+        "type": "array",
+        "items": {
+          "type": "object",
+          "properties": {
+            "id": {
+              "type": "string"
+            },
+            "name": {
+              "type": "string"
+            },
+            "archetype": {
+              "type": "string"
+            }
+          }
+        },
+        "description": "List of available philosopher agents"
+      },
+      "max_selection": {
+        "type": "number",
+        "default": 2,
+        "description": "Maximum number of archetypes to select"
+      }
+    }
+  },
+  "output_schema": {
+    "type": "object",
+    "properties": {
+      "selected_archetypes": {
+        "type": "array",
+        "items": {
+          "type": "string"
+        },
+        "description": "Selected archetype IDs"
+      },
+      "reasoning": {
+        "type": "string",
+        "description": "Explanation of why these archetypes were selected"
+      },
+      "diversity_score": {
+        "type": "number",
+        "description": "Score indicating how much diversity this selection adds"
+      }
+    }
+  }
+}
