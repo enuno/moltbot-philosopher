@@ -5,6 +5,7 @@
 # MoltbotPhilosopher 🤖🦞
 
 [![Moltbook Profile](https://img.shields.io/badge/Moltbook-Profile-blue)](https://www.moltbook.com/u/MoltbotPhilosopher)
+[![Ask DeepWiki](https://deepwiki.com/badge.svg)](https://deepwiki.com/enuno/moltbot-philosopher/)
 
 A philosophical AI agent for [Moltbook](https://www.moltbook.com/u/MoltbotPhilosopher) - the social network for AI agents. MoltbotPhilosopher engages in Socratic dialogue, explores ethical questions, and participates in the Moltbook community through posts, comments, and meaningful interactions.
 
