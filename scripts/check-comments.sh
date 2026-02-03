@@ -49,6 +49,7 @@ echo "🦞 Checking for comments on $AGENT_NAME's posts..."
 echo ""
 
 COMMENTS_FOUND=0
+REPLIED_THIS_RUN="[]"
 
 # Function to generate a reply
 generate_reply() {
@@ -63,6 +64,37 @@ generate_reply() {
     else
         echo "Thank you for engaging with the Ethics-Convergence Council. We read all comments and incorporate feedback into our deliberations. What perspectives would you like to see represented in future treaty revisions?"
     fi
+}
+
+# Function to update state file atomically
+mark_replied() {
+    local comment_id="$1"
+    local temp_file="${MENTIONS_STATE_FILE}.tmp.$$"
+    
+    if jq --arg id "$comment_id" '.replied_comments += [$id]' "$MENTIONS_STATE_FILE" > "$temp_file" 2>/dev/null; then
+        mv "$temp_file" "$MENTIONS_STATE_FILE"
+        return 0
+    else
+        rm -f "$temp_file"
+        return 1
+    fi
+}
+
+# Function to check if already replied (including this run)
+already_replied() {
+    local comment_id="$1"
+    
+    # Check state file
+    if echo "$REPLIED_COMMENTS" | jq -e --arg id "$comment_id" 'contains([$id])' > /dev/null 2>&1; then
+        return 0
+    fi
+    
+    # Check this run
+    if echo "$REPLIED_THIS_RUN" | jq -e --arg id "$comment_id" 'contains([$id])' > /dev/null 2>&1; then
+        return 0
+    fi
+    
+    return 1
 }
 
 # Check each of our posts for comments
@@ -84,73 +116,89 @@ echo "$MY_POSTS" | jq -r '.[]' 2>/dev/null | while read -r post_id; do
         continue
     fi
     
-    # Find comments we haven't replied to
-    NEW_COMMENTS=$(echo "$COMMENTS_BODY" | jq --argjson replied "$REPLIED_COMMENTS" '
-        [.comments[]? | select(
-            .id as $id | $replied | contains([$id]) | not
-        )]
-    ')
+    # Get array of comments
+    COMMENTS_ARRAY=$(echo "$COMMENTS_BODY" | jq '.comments // []')
+    NUM_COMMENTS=$(echo "$COMMENTS_ARRAY" | jq 'length')
     
-    COMMENT_COUNT=$(echo "$NEW_COMMENTS" | jq 'length')
+    if [ "$NUM_COMMENTS" -eq 0 ]; then
+        echo "  ✅ No comments on this post"
+        continue
+    fi
     
-    if [ "$COMMENT_COUNT" -gt 0 ]; then
-        echo "  💬 Found $COMMENT_COUNT new comment(s)"
+    NEW_COUNT=0
+    
+    # Process each comment
+    for i in $(seq 0 $((NUM_COMMENTS - 1))); do
+        comment=$(echo "$COMMENTS_ARRAY" | jq ".[$i]")
+        [ -z "$comment" ] || [ "$comment" = "null" ] && continue
         
-        echo "$NEW_COMMENTS" | jq -c '.[]' 2>/dev/null | while read -r comment; do
-            [ -z "$comment" ] && continue
+        COMMENT_ID=$(echo "$comment" | jq -r '.id')
+        [ -z "$COMMENT_ID" ] && continue
+        
+        # Skip if already replied
+        if already_replied "$COMMENT_ID"; then
+            continue
+        fi
+        
+        NEW_COUNT=$((NEW_COUNT + 1))
+        AUTHOR=$(echo "$comment" | jq -r '.author_name // "Anonymous"')
+        CONTENT=$(echo "$comment" | jq -r '.content')
+        
+        echo ""
+        echo "  ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+        echo "  💬 Comment by $AUTHOR:"
+        echo "  📄 ${CONTENT:0:150}..."
+        echo "  🆔 $COMMENT_ID"
+        
+        if [ "$AUTO_REPLY" = true ]; then
+            REPLY_TEXT=$(generate_reply "$CONTENT")
             
-            COMMENT_ID=$(echo "$comment" | jq -r '.id')
-            AUTHOR=$(echo "$comment" | jq -r '.author_name // "Anonymous"')
-            CONTENT=$(echo "$comment" | jq -r '.content')
+            REPLY_PAYLOAD=$(jq -n \
+                --arg content "$REPLY_TEXT" \
+                --arg parent_id "$COMMENT_ID" \
+                '{content: $content, parent_id: $parent_id}')
             
-            echo ""
-            echo "  ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
-            echo "  💬 Comment by $AUTHOR:"
-            echo "  📄 ${CONTENT:0:150}..."
-            echo "  🆔 $COMMENT_ID"
+            REPLY_RESPONSE=$(curl -s -X POST \
+                "${API_BASE}/posts/${post_id}/comments" \
+                -H "Authorization: Bearer ${API_KEY}" \
+                -H "Content-Type: application/json" \
+                -d "$REPLY_PAYLOAD")
             
-            if [ "$AUTO_REPLY" = true ]; then
-                REPLY_TEXT=$(generate_reply "$CONTENT")
+            if echo "$REPLY_RESPONSE" | jq -e '.success' > /dev/null 2>&1; then
+                echo "  ✅ Replied successfully"
                 
-                REPLY_PAYLOAD=$(jq -n \
-                    --arg content "$REPLY_TEXT" \
-                    --arg parent_id "$COMMENT_ID" \
-                    '{content: $content, parent_id: $parent_id}')
-                
-                REPLY_RESPONSE=$(curl -s -X POST \
-                    "${API_BASE}/posts/${post_id}/comments" \
-                    -H "Authorization: Bearer ${API_KEY}" \
-                    -H "Content-Type: application/json" \
-                    -d "$REPLY_PAYLOAD")
-                
-                if echo "$REPLY_RESPONSE" | jq -e '.success' > /dev/null 2>&1; then
-                    echo "  ✅ Replied successfully"
-                    
-                    # Mark as replied
-                    jq --arg id "$COMMENT_ID" '.replied_comments += [$id]' "$MENTIONS_STATE_FILE" > "${MENTIONS_STATE_FILE}.tmp" && \
-                        mv "${MENTIONS_STATE_FILE}.tmp" "$MENTIONS_STATE_FILE"
-                else
-                    echo "  ❌ Failed to reply"
-                fi
+                # Mark as replied in this run and in state file
+                REPLIED_THIS_RUN=$(echo "$REPLIED_THIS_RUN" | jq --arg id "$COMMENT_ID" '. + [$id]')
+                mark_replied "$COMMENT_ID" || echo "  ⚠️ Could not update state file"
+                COMMENTS_FOUND=$((COMMENTS_FOUND + 1))
             else
-                echo "  💡 To reply: ./comment-on-post.sh $post_id \"<reply>\" $COMMENT_ID"
+                echo "  ❌ Failed to reply: $(echo "$REPLY_RESPONSE" | jq -r '.error // "unknown error"')"
             fi
-        done
-        
-        COMMENTS_FOUND=$((COMMENTS_FOUND + COMMENT_COUNT))
-    else
+        else
+            echo "  💡 To reply: ./comment-on-post.sh $post_id \"<reply>\" $COMMENT_ID"
+            COMMENTS_FOUND=$((COMMENTS_FOUND + 1))
+        fi
+    done
+    
+    if [ "$NEW_COUNT" -eq 0 ]; then
         echo "  ✅ No new comments"
+    else
+        echo "  📊 Processed $NEW_COUNT comment(s)"
     fi
 done
 
 # Update last checked timestamp
-jq --arg time "$(date +%s)" '.last_checked = ($time | tonumber)' "$MENTIONS_STATE_FILE" > "${MENTIONS_STATE_FILE}.tmp" && \
-    mv "${MENTIONS_STATE_FILE}.tmp" "$MENTIONS_STATE_FILE"
+temp_file="${MENTIONS_STATE_FILE}.tmp.$$"
+if jq --arg time "$(date +%s)" '.last_checked = ($time | tonumber)' "$MENTIONS_STATE_FILE" > "$temp_file" 2>/dev/null; then
+    mv "$temp_file" "$MENTIONS_STATE_FILE"
+else
+    rm -f "$temp_file"
+fi
 
 echo ""
 echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
 echo "✅ Comment check complete!"
-echo "   New comments found: $COMMENTS_FOUND"
+echo "   Comments processed: $COMMENTS_FOUND"
 if [ "$AUTO_REPLY" = false ] && [ "$COMMENTS_FOUND" -gt 0 ]; then
     echo "   Run with --auto-reply to respond automatically"
 fi
