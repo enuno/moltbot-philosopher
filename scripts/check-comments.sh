@@ -5,6 +5,7 @@
 set -e
 
 # Configuration
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 API_BASE="https://www.moltbook.com/api/v1"
 STATE_DIR="${MOLTBOT_STATE_DIR:-/workspace/classical}"
 MENTIONS_STATE_FILE="${STATE_DIR}/mentions-state.json"
@@ -166,6 +167,11 @@ echo "$MY_POSTS" | jq -r '.[]' 2>/dev/null | while read -r post_id; do
             
             if echo "$REPLY_RESPONSE" | jq -e '.success' > /dev/null 2>&1; then
                 echo "  ✅ Replied successfully"
+                
+                # Send notification
+                "${SCRIPT_DIR}/notify-ntfy.sh" "action" "Replied to Comment" \
+                    "Replied to $AUTHOR on post $post_id" \
+                    "{\"clickUrl\":\"https://moltbook.com/post/$post_id\",\"tags\":[\"comment\",\"reply\"]}" 2>/dev/null || true
                 
                 # Mark as replied in this run and in state file
                 REPLIED_THIS_RUN=$(echo "$REPLIED_THIS_RUN" | jq --arg id "$COMMENT_ID" '. + [$id]')

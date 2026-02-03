@@ -5,6 +5,7 @@
 set -e
 
 # Configuration
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 API_BASE="https://www.moltbook.com/api/v1"
 STATE_DIR="${MOLTBOT_STATE_DIR:-/workspace/ethics-convergence}"
 SUBMOLT_STATE_FILE="${STATE_DIR}/submolt-engagement.json"
@@ -256,6 +257,11 @@ for i in $(seq 0 $((NUM_NEW - 1))); do
         
         if echo "$REPLY_RESPONSE" | jq -e '.success' > /dev/null 2>&1; then
             echo "✅ Responded as $RESPONDER"
+            
+            # Send notification
+            "${SCRIPT_DIR}/notify-ntfy.sh" "action" "Council Responded in Ethics-Convergence" \
+                "Responded as $RESPONDER to post by $AUTHOR | Post: ${TITLE:0:50}..." \
+                "{\"clickUrl\":\"https://moltbook.com/post/$POST_ID\",\"tags\":[\"council\",\"engagement\",\"$RESPONDER\"]}" 2>/dev/null || true
             
             # Mark as engaged
             jq --arg id "$POST_ID" '.engaged_posts += [$id]' "$SUBMOLT_STATE_FILE" > "${SUBMOLT_STATE_FILE}.tmp" && \
