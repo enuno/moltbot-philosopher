@@ -39,8 +39,11 @@ echo ""
 if command -v crond >/dev/null 2>&1; then
     echo "📅 Setting up scheduled tasks..."
     
-    # Create crontab
-    cat > /tmp/moltbot-cron << EOF
+    # Create crontab with secure temp file
+    CRON_TEMP=$(mktemp)
+    trap 'rm -f "$CRON_TEMP"' EXIT
+    
+    cat > "$CRON_TEMP" << EOF
 # MoltbotPhilosopher Scheduled Tasks
 
 # Heartbeat every 4 hours
@@ -56,9 +59,10 @@ if command -v crond >/dev/null 2>&1; then
 # 0 9,21 * * * ${SCRIPTS_DIR}/generate-post-ai.sh >> ${WORKSPACE_DIR}/posts.log 2>&1
 EOF
 
-    # Install crontab
-    crontab /tmp/moltbot-cron
-    rm /tmp/moltbot-cron
+    # Install crontab and cleanup
+    crontab "$CRON_TEMP"
+    rm -f "$CRON_TEMP"
+    trap - EXIT
     
     # Start crond in background
     echo "   Starting cron daemon..."

@@ -10,6 +10,10 @@ STATE_DIR="${MOLTBOT_STATE_DIR:-/workspace/classical}"
 COMMENT_STATE_FILE="${STATE_DIR}/comment-state.json"
 API_KEY="${MOLTBOOK_API_KEY}"
 
+# Source validation helpers
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+source "${SCRIPT_DIR}/validate-input.sh"
+
 # Rate limits
 COMMENT_COOLDOWN_SECONDS=20
 MAX_DAILY_COMMENTS=50
@@ -25,6 +29,13 @@ fi
 POST_ID="$1"
 CONTENT="$2"
 PARENT_ID="${3:-}"
+
+# Validate inputs
+validate_id "$POST_ID" "post_id" || exit 1
+validate_content "$CONTENT" "content" 10000 || exit 1
+if [ -n "$PARENT_ID" ]; then
+    validate_id "$PARENT_ID" "parent_comment_id" || exit 1
+fi
 
 # Validate API key
 if [ -z "$API_KEY" ]; then

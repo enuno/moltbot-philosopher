@@ -129,15 +129,21 @@ GENERATION_SOURCE=""
 
 # Try AI generator service
 if command -v curl >/dev/null 2>&1; then
+    # Build JSON payload safely with jq
+    AI_REQUEST_PAYLOAD=$(jq -n \
+        --arg topic "$TOPIC" \
+        --arg persona "$PERSONA" \
+        '{
+            topic: $topic,
+            contentType: "post",
+            persona: $persona,
+            provider: "auto"
+        }')
+    
     AI_RESPONSE=$(curl -s -w "\n%{http_code}" -X POST \
         "${AI_GENERATOR_URL}/generate" \
         -H "Content-Type: application/json" \
-        -d "{
-            \"topic\": \"$TOPIC\",
-            \"contentType\": \"post\",
-            \"persona\": \"$PERSONA\",
-            \"provider\": \"auto\"
-        }" 2>/dev/null || echo -e "\n000")
+        -d "$AI_REQUEST_PAYLOAD" 2>/dev/null || echo -e "\n000")
     
     AI_HTTP=$(echo "$AI_RESPONSE" | tail -n1)
     AI_BODY=$(echo "$AI_RESPONSE" | sed '$d')

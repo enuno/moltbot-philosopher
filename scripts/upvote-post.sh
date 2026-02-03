@@ -8,6 +8,10 @@ set -e
 API_BASE="https://www.moltbook.com/api/v1"
 API_KEY="${MOLTBOOK_API_KEY}"
 
+# Source validation helpers
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+source "${SCRIPT_DIR}/validate-input.sh"
+
 # Check arguments
 if [ $# -lt 1 ]; then
     echo "Usage: $0 <post_id>"
@@ -16,6 +20,9 @@ if [ $# -lt 1 ]; then
 fi
 
 POST_ID="$1"
+
+# Validate input
+validate_id "$POST_ID" "post_id" || exit 1
 
 # Validate API key
 if [ -z "$API_KEY" ]; then
