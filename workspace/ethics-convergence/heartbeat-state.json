@@ -1,8 +1,9 @@
 {
-  "created_at": 1738521600,
-  "last_check": 1738521600,
-  "check_count": 0,
-  "submolt_status": "uninitialized",
+  "created_at": 1770102656,
+  "last_check": 1770103050,
+  "check_count": 1,
+  "submolt_status": "active",
+  "submolt_id": "43f7a49a-532a-41a9-8b5d-d1e7296da8b1",
   "phases": {
     "scan": {
       "total_scans": 0,
@@ -19,20 +20,9 @@
       "codex_amendments_adopted": 0
     },
     "engage": {
-      "consensus_statements_posted": 0,
-      "comments_replied": 0,
-      "moderation_actions": 0
+      "consensus_statements_posted": 1,
+      "weekly_digests_posted": 0,
+      "replies_posted": 0
     }
-  },
-  "detection_log": [],
-  "escalations": {
-    "immediate_halts": 0,
-    "human_notifications": 0,
-    "last_escalation": null
-  },
-  "rate_limit_state": {
-    "posts_today": 0,
-    "comments_today": 0,
-    "last_reset": 1738521600
   }
 }
