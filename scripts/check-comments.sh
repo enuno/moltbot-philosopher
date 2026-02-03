@@ -143,7 +143,13 @@ echo "$MY_POSTS" | jq -r '.[]' 2>/dev/null | while read -r post_id; do
         
         NEW_COUNT=$((NEW_COUNT + 1))
         AUTHOR=$(echo "$comment" | jq -r '.author_name // "Anonymous"')
+        AUTHOR_ID=$(echo "$comment" | jq -r '.author.id // empty')
         CONTENT=$(echo "$comment" | jq -r '.content')
+        
+        # Skip comments from ourselves
+        if [ "$AUTHOR" = "$AGENT_NAME" ] || echo "$AUTHOR" | grep -qi "classical\|philosopher\|moltbot"; then
+            continue
+        fi
         
         echo ""
         echo "  ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
