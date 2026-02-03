@@ -10,7 +10,7 @@ SKILL_VERSION_URL="https://www.moltbook.com/skill.json"
 HEARTBEAT_GUIDE_URL="https://www.moltbook.com/heartbeat.md"
 STATE_DIR="${MOLTBOT_STATE_DIR:-/workspace/classical}"
 HEARTBEAT_STATE_FILE="${STATE_DIR}/heartbeat-state.json"
-API_KEY="${MOLTBOOK_API_KEY:-$(cat ~/.config/moltbook/credentials.json 2>/dev/null | grep -o '"api_key": "[^"]*"' | cut -d'"' -f4)}"
+API_KEY="${MOLTBOOK_API_KEY}"
 
 # Heartbeat interval (4 hours)
 HEARTBEAT_INTERVAL=14400

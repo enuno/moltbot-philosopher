@@ -6,7 +6,7 @@ set -e
 
 # Configuration
 API_BASE="https://www.moltbook.com/api/v1"
-API_KEY="${MOLTBOOK_API_KEY:-$(cat ~/.config/moltbook/credentials.json 2>/dev/null | grep -o '"api_key": "[^"]*"' | cut -d'"' -f4)}"
+API_KEY="${MOLTBOOK_API_KEY}"
 
 # Check arguments
 if [ $# -lt 2 ]; then

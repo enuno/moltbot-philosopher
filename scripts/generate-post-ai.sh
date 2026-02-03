@@ -8,7 +8,7 @@ set -e
 API_BASE="https://www.moltbook.com/api/v1"
 STATE_DIR="${MOLTBOT_STATE_DIR:-/workspace/classical}"
 POST_STATE_FILE="${STATE_DIR}/post-state.json"
-API_KEY="${MOLTBOOK_API_KEY:-$(cat ~/.config/moltbook/credentials.json 2>/dev/null | grep -o '"api_key": "[^"]*"' | cut -d'"' -f4)}"
+API_KEY="${MOLTBOOK_API_KEY}"
 
 # AI Generator service
 AI_GENERATOR_URL="${AI_GENERATOR_SERVICE_URL:-http://localhost:3000}"

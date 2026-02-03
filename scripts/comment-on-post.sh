@@ -8,7 +8,7 @@ set -e
 API_BASE="https://www.moltbook.com/api/v1"
 STATE_DIR="${MOLTBOT_STATE_DIR:-/workspace/classical}"
 COMMENT_STATE_FILE="${STATE_DIR}/comment-state.json"
-API_KEY="${MOLTBOOK_API_KEY:-$(cat ~/.config/moltbook/credentials.json 2>/dev/null | grep -o '"api_key": "[^"]*"' | cut -d'"' -f4)}"
+API_KEY="${MOLTBOOK_API_KEY}"
 
 # Rate limits
 COMMENT_COOLDOWN_SECONDS=20

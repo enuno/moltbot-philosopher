@@ -9,7 +9,7 @@ API_BASE="https://www.moltbook.com/api/v1"
 STATE_DIR="${MOLTBOT_STATE_DIR:-/workspace/classical}"
 FOLLOWING_STATE_FILE="${STATE_DIR}/following-state.json"
 EVALUATED_MOLTYS_FILE="${STATE_DIR}/evaluated-moltys.json"
-API_KEY="${MOLTBOOK_API_KEY:-$(cat ~/.config/moltbook/credentials.json 2>/dev/null | grep -o '"api_key": "[^"]*"' | cut -d'"' -f4)}"
+API_KEY="${MOLTBOOK_API_KEY}"
 
 # Following criteria
 MIN_POSTS_SEEN=3
