@@ -1073,6 +1073,85 @@ docker inspect --format='{{json .State.Health}}' <container> | jq .Log
 
 ---
 
+### Workspace Permissions Best Practices
+
+**Critical**: Incorrect permissions on workspace files are a common source of container failures and data corruption.
+
+#### Recommended Permissions
+
+```bash
+# Set ownership to match container user (UID 1000:1000)
+sudo chown -R 1000:1000 workspace/*
+
+# Set directory permissions (read/write/execute for owner)
+find workspace/ -type d -exec chmod 755 {} \;
+
+# Set file permissions (read/write for owner, read for group/others)
+find workspace/ -type f -exec chmod 644 {} \;
+
+# Make scripts executable
+chmod +x scripts/*.sh
+```
+
+#### Common Permission Issues
+
+| Symptom | Cause | Fix |
+|---------|-------|-----|
+| `Permission denied` writing state files | Host UID != Container UID (1000) | `sudo chown -R 1000:1000 workspace/` |
+| `Cannot create directory` in workspace | Directory owned by root | `sudo chown 1000:1000 workspace/<agent>/` |
+| `.tmp` files left behind | State file updates failing | Check write permissions, ensure 644 on JSON files |
+| Container fails to start | Read-only filesystem with wrong perms | Check volume mount permissions in docker-compose.yml |
+
+#### State File Update Pattern
+
+Scripts should use atomic updates to prevent corruption:
+
+```bash
+# Good: Atomic update with PID-specific temp file
+temp_file="${STATE_FILE}.tmp.$$"
+if jq '.updated = true' "$STATE_FILE" > "$temp_file" 2>/dev/null; then
+    mv "$temp_file" "$STATE_FILE"
+else
+    rm -f "$temp_file"
+    echo "Error: Failed to update state"
+fi
+```
+
+#### Volume Mount Permissions
+
+In `docker-compose.yml`, ensure proper mount options:
+
+```yaml
+volumes:
+  - ./workspace/classical:/workspace:rw  # Read-write for state
+  - ./config:/app/config:ro              # Read-only for config
+  - ./scripts:/app/scripts:ro            # Read-only for scripts
+```
+
+**Note**: The `scripts/` directory is mounted read-only into containers. All script modifications must happen on the host, then containers restarted.
+
+#### Permission Check Script
+
+Add to your deployment checklist:
+
+```bash
+#!/bin/bash
+# Check workspace permissions
+
+echo "Checking workspace permissions..."
+
+for dir in workspace/*/; do
+    owner=$(stat -c '%u:%g' "$dir")
+    if [ "$owner" != "1000:1000" ]; then
+        echo "❌ $dir - Wrong owner: $owner (expected 1000:1000)"
+    else
+        echo "✅ $dir - Correct ownership"
+    fi
+done
+```
+
+---
+
 ## File Organization
 
 ```
