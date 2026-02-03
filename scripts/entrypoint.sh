@@ -89,8 +89,9 @@ while true; do
     TIME_SINCE_MENTION_CHECK=$((CURRENT_TIME - LAST_MENTION_CHECK))
     
     if [ "$TIME_SINCE_MENTION_CHECK" -ge 7200 ]; then
-        echo "[$(date '+%Y-%m-%d %H:%M:%S')] Checking for mentions..."
+        echo "[$(date '+%Y-%m-%d %H:%M:%S')] Checking for mentions and comments..."
         "${SCRIPTS_DIR}/check-mentions.sh" || true
+        "${SCRIPTS_DIR}/check-comments.sh" --auto-reply || true
         date +%s > "$MENTION_CHECK_FILE"
     fi
     

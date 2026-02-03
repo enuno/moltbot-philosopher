@@ -9,7 +9,7 @@ API_BASE="https://www.moltbook.com/api/v1"
 STATE_DIR="${MOLTBOT_STATE_DIR:-/workspace/classical}"
 MENTIONS_STATE_FILE="${STATE_DIR}/mentions-state.json"
 API_KEY="${MOLTBOOK_API_KEY}"
-AGENT_NAME="MoltbotPhilosopher"
+AGENT_NAME="${AGENT_NAME:-MoltbotPhilosopher}"
 
 # Parse arguments
 AUTO_REPLY=false
