@@ -10,6 +10,7 @@ services:
       - "8080:8080"
       - "8081:8081"
       - "8082:8082"
+      - "8083:8083"
     networks:
       - moltbot-network
     restart: unless-stopped
@@ -54,6 +55,7 @@ services:
       - AI_GENERATOR_SERVICE_URL=http://ai-generator:3000
       - ENABLE_AUTO_WELCOME=true
       - ENABLE_MENTION_DETECTION=true
+      - NTFY_ENABLED=${NTFY_ENABLED:-false}
       # Direct connection (egress proxy disabled due to HTTPS CONNECT compatibility)
       # - HTTPS_PROXY=http://egress-proxy:8080
       # - HTTP_PROXY=http://egress-proxy:8080
@@ -63,10 +65,13 @@ services:
       - ./workspace/classical:/workspace:rw
       - ./config:/app/config:ro
       - ./skills:/app/skills:ro
+      - ./scripts:/app/scripts:ro
     networks:
       - moltbot-network
     depends_on:
       egress-proxy:
+        condition: service_healthy
+      ntfy-publisher:
         condition: service_healthy
     restart: unless-stopped
     healthcheck:
@@ -90,12 +95,19 @@ services:
       - AGENT_TYPE=existentialist
       - MAX_TOKENS=12288
       - CLAW_SYSTEM_PROMPT_FILE=/app/config/prompts/existentialist.txt
+      - NTFY_ENABLED=${NTFY_ENABLED:-false}
     env_file:
       - config/agents/existentialist.env
     volumes:
       - ./workspace/existentialist:/workspace:rw
       - ./config:/app/config:ro
       - ./skills:/app/skills:ro
+      - ./scripts:/app/scripts:ro
+    depends_on:
+      egress-proxy:
+        condition: service_healthy
+      ntfy-publisher:
+        condition: service_healthy
 
   # Transcendentalist Agent (Emerson/Jefferson)
   transcendentalist:
@@ -111,12 +123,19 @@ services:
       - AGENT_TYPE=transcendentalist
       - MAX_TOKENS=8192
       - CLAW_SYSTEM_PROMPT_FILE=/app/config/prompts/transcendentalist.txt
+      - NTFY_ENABLED=${NTFY_ENABLED:-false}
     env_file:
       - config/agents/transcendentalist.env
     volumes:
       - ./workspace/transcendentalist:/workspace:rw
       - ./config:/app/config:ro
       - ./skills:/app/skills:ro
+      - ./scripts:/app/scripts:ro
+    depends_on:
+      egress-proxy:
+        condition: service_healthy
+      ntfy-publisher:
+        condition: service_healthy
 
   # Joyce Stream Agent (Stream-of-consciousness)
   joyce-stream:
@@ -133,12 +152,19 @@ services:
       - AGENT_TYPE=joyce
       - MAX_TOKENS=32768
       - CLAW_SYSTEM_PROMPT_FILE=/app/config/prompts/joyce-stream.txt
+      - NTFY_ENABLED=${NTFY_ENABLED:-false}
     env_file:
       - config/agents/joyce-stream.env
     volumes:
       - ./workspace/joyce:/workspace:rw
       - ./config:/app/config:ro
       - ./skills:/app/skills:ro
+      - ./scripts:/app/scripts:ro
+    depends_on:
+      egress-proxy:
+        condition: service_healthy
+      ntfy-publisher:
+        condition: service_healthy
 
   # Enlightenment Agent (Voltaire/Paine/Franklin) - NEW
   enlightenment:
@@ -154,10 +180,17 @@ services:
       - AGENT_TYPE=enlightenment
       - MAX_TOKENS=12288
       - CLAW_SYSTEM_PROMPT_FILE=/app/config/prompts/enlightenment.txt
+      - NTFY_ENABLED=${NTFY_ENABLED:-false}
     volumes:
       - ./workspace/enlightenment:/workspace:rw
       - ./config:/app/config:ro
       - ./skills:/app/skills:ro
+      - ./scripts:/app/scripts:ro
+    depends_on:
+      egress-proxy:
+        condition: service_healthy
+      ntfy-publisher:
+        condition: service_healthy
 
   # Beat Generation Agent (Ginsberg/Burroughs/Thompson) - NEW
   beat-generation:
@@ -173,10 +206,17 @@ services:
       - AGENT_TYPE=beat
       - MAX_TOKENS=16384
       - CLAW_SYSTEM_PROMPT_FILE=/app/config/prompts/beat.txt
+      - NTFY_ENABLED=${NTFY_ENABLED:-false}
     volumes:
       - ./workspace/beat:/workspace:rw
       - ./config:/app/config:ro
       - ./skills:/app/skills:ro
+      - ./scripts:/app/scripts:ro
+    depends_on:
+      egress-proxy:
+        condition: service_healthy
+      ntfy-publisher:
+        condition: service_healthy
 
   # AI Content Generator Service - for Moltbook posts
   ai-generator:
@@ -244,6 +284,47 @@ services:
       timeout: 10s
       retries: 5
       start_period: 60s
+
+  # NTFY Publisher Service - Notification service for agents
+  ntfy-publisher:
+    build:
+      context: ./services/ntfy-publisher
+      dockerfile: Dockerfile
+    container_name: moltbot-ntfy-publisher
+    ports:
+      - "3005:3005"
+    environment:
+      - NODE_ENV=production
+      - PORT=3005
+      - NTFY_URL=${NTFY_URL:-https://ntfy.hashgrid.net}
+      - NTFY_API=${NTFY_API}
+      - NTFY_TOPIC=${NTFY_TOPIC:-moltbot-philosopher}
+      - NTFY_ENABLED=${NTFY_ENABLED:-true}
+      - NTFY_PRIORITY_ERRORS=${NTFY_PRIORITY_ERRORS:-urgent}
+      - NTFY_PRIORITY_ACTIONS=${NTFY_PRIORITY_ACTIONS:-default}
+      - LOG_LEVEL=info
+    env_file:
+      - .env
+    networks:
+      - moltbot-network
+    depends_on:
+      - egress-proxy
+    restart: unless-stopped
+    security_opt:
+      - no-new-privileges:true
+    cap_drop:
+      - ALL
+    read_only: true
+    tmpfs:
+      - /tmp:noexec,nosuid,size=50m
+    volumes:
+      - ./logs:/logs:rw
+    healthcheck:
+      test: ["CMD", "wget", "-q", "--spider", "http://localhost:3005/health"]
+      interval: 30s
+      timeout: 3s
+      retries: 3
+      start_period: 10s
 
   # Thread Monitor Service - NEW (Phase 6: Thread Continuation Engine)
   thread-monitor:

@@ -19,7 +19,10 @@ SOCCAT2=$!
 socat TCP-LISTEN:8082,fork,reuseaddr TCP:www.moltbook.com:443 &
 SOCCAT3=$!
 
-echo "Egress proxy started on ports 8080 (Venice), 8081 (Kimi), 8082 (Moltbook)"
+socat TCP-LISTEN:8083,fork,reuseaddr TCP:ntfy.hashgrid.net:443 &
+SOCCAT4=$!
+
+echo "Egress proxy started on ports 8080 (Venice), 8081 (Kimi), 8082 (Moltbook), 8083 (NTFY)"
 
 # Wait for all processes
-wait $SOCCAT1 $SOCCAT2 $SOCCAT3
+wait $SOCCAT1 $SOCCAT2 $SOCCAT3 $SOCCAT4

@@ -77,13 +77,24 @@ The newest addition to the Moltbot philosopher collective represents the **New A
 │  │  └─────────────────────────┬──────────────────────────┘            │   │
 │  │                            │                                        │   │
 │  │                   ┌────────┴────────┐                               │   │
-│  │                   │  Egress Proxy   │                               │   │
-│  │                   │  (Port 8080-82) │                               │   │
-│  │                   │                 │                               │   │
-│  │                   │ - Venice: 8080  │                               │   │
-│  │                   │ - Kimi:   8081  │                               │   │
-│  │                   │ - Moltbook:8082 │                               │   │
-│  │                   └────────┬────────┘                               │   │
+│  │  ┌───────────────────────────────────────────────────────────────┐   │   │
+│  │  │                    NTFY Publisher (Port 3005)                  │   │   │
+│  │  │  ┌─────────────────────────────────────────────────────────┐  │   │   │
+│  │  │  │ - Real-time notifications for agent actions              │  │   │   │
+│  │  │  │ - Error alerting and heartbeat summaries               │  │   │   │
+│  │  │  │ - Security event notifications                         │  │   │   │
+│  │  │  └─────────────────────────────────────────────────────────┘  │   │   │
+│  │  └────────────────────────────┬──────────────────────────────────┘   │   │
+│  │                               │                                       │   │
+│  │                   ┌───────────┴───────────┐                           │   │
+│  │                   │     Egress Proxy      │                           │   │
+│  │                   │    (Port 8080-83)     │                           │   │
+│  │                   │                       │                           │   │
+│  │                   │ - Venice:    8080     │                           │   │
+│  │                   │ - Kimi:      8081     │                           │   │
+│  │                   │ - Moltbook:  8082     │                           │   │
+│  │                   │ - NTFY:      8083     │                           │   │
+│  │                   └───────────┬───────────┘                           │   │
 │  │                            │                                        │   │
 │  └────────────────────────────┼────────────────────────────────────────┘   │
 │                               │                                             │
@@ -111,7 +122,8 @@ The newest addition to the Moltbot philosopher collective represents the **New A
 | `ai-generator` | `moltbot-ai-generator` | 3002 | AI content generation service |
 | `model-router` | `moltbot-model-router` | 3003 | AI model routing and caching |
 | `thread-monitor` | `moltbot-thread-monitor` | 3004 | Thread Continuation Engine - sustains philosophical discourse |
-| `egress-proxy` | `alpine/socat` | 8080-8082 | Outbound API proxy |
+| `ntfy-publisher` | `moltbot-ntfy-publisher` | 3005 | Real-time notification service for agent actions, errors, heartbeats |
+| `egress-proxy` | `alpine/socat` | 8080-8083 | Outbound API proxy (includes NTFY on 8083) |
 
 ### Thread Continuation Engine (v2.5)
 
@@ -248,7 +260,7 @@ Key endpoints used:
 
 ---
 
-## Scripts Reference (30 Scripts)
+## Scripts Reference (32 Scripts)
 
 All scripts are in `/app/scripts/` inside containers.
 
@@ -366,6 +378,13 @@ All scripts are in `/app/scripts/` inside containers.
 |--------|---------|---------|
 | `daily-polemic.sh` | Generate daily philosophical content | `./daily-polemic.sh` |
 
+### NTFY Notifications (New in v2.5.4)
+
+| Script | Purpose | Example |
+|--------|---------|---------|
+| `notify-ntfy.sh` | Send notification to ntfy | `./notify-ntfy.sh "action" "Post" "Message"` |
+| `test-ntfy.sh` | Test notification system | `./test-ntfy.sh` |
+
 **Automated daily posting** with rotating personas and content types:
 
 | Content Type | Format | Best Agents |
@@ -402,6 +421,62 @@ POLEMIC_TARGET_SUBMOLT=general
 - Rate-limit compliance (30-min gap, 1 post/day)
 - State tracking (prevents duplicate posts)
 - Dry-run mode for testing
+
+---
+
+### NTFY Notification System (New in v2.5.4)
+
+Real-time notifications for agent actions, errors, heartbeats, and security events via `@cityssm/ntfy-publish`.
+
+| Script | Purpose | Example |
+|--------|---------|---------|
+| `notify-ntfy.sh` | Send notification from any script | `./notify-ntfy.sh "action" "Post Published" "Agent: classical"` |
+| `test-ntfy.sh` | Test notification system | `./test-ntfy.sh` |
+
+**Notification Types:**
+
+| Type | Emoji | Priority | Use Case |
+|------|-------|----------|----------|
+| `action` | ✅ | normal | Successful posts, comments |
+| `error` | ❌ | urgent | API failures, rate limits |
+| `heartbeat` | 💓 | low | Daily summaries, service starts |
+| `security` | 🚨 | urgent | Escalation triggers |
+
+**Quick Start:**
+
+```bash
+# Test notification
+docker exec classical-philosopher /app/scripts/notify-ntfy.sh \
+  "action" "Test" "NTFY integration working"
+
+# From any script
+./notify-ntfy.sh "error" "API Timeout" "Venice AI unreachable" '{"priority":"urgent"}'
+
+# With click URL
+./notify-ntfy.sh "action" "New Post" "Check it out" \
+  '{"clickUrl":"https://moltbook.com/p/123"}'
+```
+
+**Configuration (in `.env`):**
+
+```bash
+NTFY_URL=https://ntfy.hashgrid.net
+NTFY_API=tk_xxxxxxxxxxxxxxxx
+NTFY_TOPIC=moltbot-philosopher
+NTFY_ENABLED=true
+NTFY_PRIORITY_ERRORS=urgent
+NTFY_PRIORITY_ACTIONS=normal
+```
+
+**Service Architecture:**
+- **ntfy-publisher** service (port 3005) receives HTTP requests from agents
+- **egress-proxy** (port 8083) forwards to ntfy.hashgrid.net:443
+- **Fallback logging** to `/logs/ntfy-fallback.jsonl` if ntfy is unreachable
+
+**Security:**
+- API key loaded from `.env` (never committed)
+- Read-only container filesystem
+- No PII in notifications (agent names, post IDs only)
 
 ---
 
@@ -1302,6 +1377,7 @@ cat /workspace/daily-polemic/rotation-state.json | jq .
 | 2.5.1 | 2026-02-02 | **Scientific Skeptics** - Added Hitchens, Dawkins, Sagan, Feynman personas |
 | 2.5.2 | 2026-02-02 | **Ethics-Convergence Submolt** - Multi-agent governance council for AI-human convergence ethics |
 | 2.5.3 | 2026-02-02 | **Daily Philosophical Polemic** - Automated daily posting with persona rotation, content-type variance, 6 agents × 4 formats |
+| 2.5.4 | 2026-02-03 | **NTFY Integration** - Real-time notifications via node-ntfy-publish for agent actions, errors, heartbeats, and security events |
 
 ---
 
