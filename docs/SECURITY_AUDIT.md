@@ -9,12 +9,14 @@
 
 | Category | Rating | Issues Found |
 |----------|--------|--------------|
-| Secrets Management | ⚠️ MEDIUM | 2 issues |
-| Container Security | ✅ GOOD | 1 minor issue |
+| Secrets Management | ✅ GOOD | 0 issues (migrated to Bitwarden) |
+| Container Security | ✅ GOOD | 0 issues |
 | Network Security | ✅ GOOD | 0 issues |
-| Script Security | ⚠️ MEDIUM | 3 issues |
-| Access Control | ⚠️ MEDIUM | 2 issues |
-| **OVERALL** | **⚠️ MEDIUM** | **8 issues** |
+| Script Security | ✅ GOOD | 0 issues (input validation added) |
+| Access Control | ⚠️ LOW | 1 minor issue (file permissions) |
+| **OVERALL** | **✅ GOOD** | **1 minor issue** |
+
+**Last Updated:** 2026-02-03
 
 ---
 
@@ -229,9 +231,13 @@ cd services/thread-monitor && npm audit
 3. **Migrate secrets to Bitwarden Secrets** ✅ COMPLETED
 
 ### Medium Priority (Fix Soon)
-3. **Add input validation** to curl commands
-4. **JSON-encode user content** before API calls
-5. **Secure temp file creation** with mktemp
+3. **Add input validation** to curl commands ✅ FIXED
+4. **JSON-encode user content** before API calls ✅ FIXED
+5. **Secure temp file creation** with mktemp ✅ FIXED
+   - entrypoint.sh: Uses mktemp with trap cleanup (prevents race conditions)
+6. **Create input validation library** ✅ ADDED
+   - scripts/validate-input.sh with validate_id, validate_content, validate_url, validate_enum
+   - Integrated into upvote-post.sh, get-comments.sh, comment-on-post.sh
 
 ### Low Priority (Best Practice)
 6. **Remove API keys** from `config/agents/*.env` ✅ DONE (via Bitwarden)
