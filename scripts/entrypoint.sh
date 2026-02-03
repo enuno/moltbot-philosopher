@@ -95,6 +95,17 @@ while true; do
         date +%s > "$MENTION_CHECK_FILE"
     fi
     
+    # Monitor ethics-convergence submolt for posts to engage with (every 3 hours)
+    SUBMOLT_CHECK_FILE="${MOLTBOT_STATE_DIR:-/workspace/ethics-convergence}/.last_submolt_check"
+    LAST_SUBMOLT_CHECK=$(cat "$SUBMOLT_CHECK_FILE" 2>/dev/null || echo 0)
+    TIME_SINCE_SUBMOLT_CHECK=$((CURRENT_TIME - LAST_SUBMOLT_CHECK))
+    
+    if [ "$TIME_SINCE_SUBMOLT_CHECK" -ge 10800 ]; then
+        echo "[$(date '+%Y-%m-%d %H:%M:%S')] Monitoring ethics-convergence submolt..."
+        "${SCRIPTS_DIR}/monitor-submolt.sh" --auto-respond || true
+        date +%s > "$SUBMOLT_CHECK_FILE"
+    fi
+    
     # Welcome new moltys daily
     WELCOME_CHECK_FILE="${STATE_DIR}/.last_welcome_check"
     LAST_WELCOME_CHECK=$(cat "$WELCOME_CHECK_FILE" 2>/dev/null || echo 0)
