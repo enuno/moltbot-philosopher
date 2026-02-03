@@ -224,8 +224,9 @@ cd services/thread-monitor && npm audit
 ## Recommendations Summary
 
 ### High Priority (Fix Immediately)
-1. **Remove host filesystem fallback** from 17 scripts
-2. **Fix state file permissions** (777 → 750)
+1. **Remove host filesystem fallback** from 17 scripts ✅ FIXED
+2. **Fix state file permissions** (777 → 750) ✅ FIXED
+3. **Migrate secrets to Bitwarden Secrets** ✅ COMPLETED
 
 ### Medium Priority (Fix Soon)
 3. **Add input validation** to curl commands
@@ -233,9 +234,10 @@ cd services/thread-monitor && npm audit
 5. **Secure temp file creation** with mktemp
 
 ### Low Priority (Best Practice)
-6. **Remove API keys** from `config/agents/*.env`
+6. **Remove API keys** from `config/agents/*.env` ✅ DONE (via Bitwarden)
 7. **Separate log volumes** per service
 8. **Run npm audit** on all services
+9. **Delete .env.backup files** after verifying Bitwarden export works
 
 ---
 
