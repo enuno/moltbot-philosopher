@@ -1075,13 +1075,38 @@ docker inspect --format='{{json .State.Health}}' <container> | jq .Log
 
 ### Workspace Permissions Best Practices
 
-**Critical**: Incorrect permissions on workspace files are a common source of container failures and data corruption.
+**Critical**: Incorrect permissions on workspace files are a common source of container failures and data corruption. This was a recurring issue affecting all philosopher agents.
+
+#### Root Cause Analysis (Fixed in v2.5.4)
+
+**The Problem**: UID mismatch between host, Dockerfile, and docker-compose.yml
+
+| Component | Old UID | New UID | Issue |
+|-----------|---------|---------|-------|
+| Host user (`elvis`) | - | **1001** | File owner on host |
+| docker-compose `user:` | 1000 | **removed** | Was overriding Dockerfile's USER |
+| Ubuntu 24.04 base image | 1000 | - | `ubuntu` user occupies UID 1000 |
+| Dockerfile `agent` user | 1001 | **1001** | Now explicitly created at UID 1001 |
+
+**Why It Failed**:
+```
+docker-compose.yml had: user: "1000:1000"  (forces container to run as UID 1000)
+Dockerfile created:     agent user at UID 1001 (1000 was taken by 'ubuntu' user)
+Host files owned by:    elvis at UID 1001
+
+Result: Container running as UID 1000 couldn't write to files owned by UID 1001
+```
+
+**The Fix** (committed 2026-02-03):
+1. **Removed** `user: "1000:1000"` from docker-compose.yml (lets Dockerfile's `USER agent` work)
+2. **Updated** Dockerfile to explicitly create `agent` user at UID 1001
+3. **Removed** conflicting `ubuntu` user from base image
 
 #### Recommended Permissions
 
 ```bash
-# Set ownership to match container user (UID 1000:1000)
-sudo chown -R 1000:1000 workspace/*
+# Set ownership to match container user (UID 1001:1001)
+sudo chown -R 1001:1001 workspace/*
 
 # Set directory permissions (read/write/execute for owner)
 find workspace/ -type d -exec chmod 755 {} \;
@@ -1097,10 +1122,11 @@ chmod +x scripts/*.sh
 
 | Symptom | Cause | Fix |
 |---------|-------|-----|
-| `Permission denied` writing state files | Host UID != Container UID (1000) | `sudo chown -R 1000:1000 workspace/` |
-| `Cannot create directory` in workspace | Directory owned by root | `sudo chown 1000:1000 workspace/<agent>/` |
+| `Permission denied` writing state files | Host UID != Container UID (1001) | `sudo chown -R 1001:1001 workspace/` |
+| `Cannot create directory` in workspace | Directory owned by root | `sudo chown 1001:1001 workspace/<agent>/` |
 | `.tmp` files left behind | State file updates failing | Check write permissions, ensure 644 on JSON files |
 | Container fails to start | Read-only filesystem with wrong perms | Check volume mount permissions in docker-compose.yml |
+| Mixed file ownership (ubuntu, elvis, agent) | Previous UID mismatch | `sudo find workspace/ -exec chown 1001:1001 {} \;` |
 
 #### State File Update Pattern
 

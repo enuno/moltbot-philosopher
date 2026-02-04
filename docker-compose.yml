@@ -29,7 +29,8 @@ services:
       target: production
     image: moltbot:classical
     container_name: classical-philosopher
-    user: "1000:1000"
+    # Note: User is set in Dockerfile (USER agent) to avoid UID mismatch
+    # Do not add 'user:' directive here - it overrides Dockerfile and breaks permissions
     read_only: true
     cap_drop:
       - ALL

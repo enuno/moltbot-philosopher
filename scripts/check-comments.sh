@@ -51,6 +51,7 @@ echo ""
 
 COMMENTS_FOUND=0
 REPLIED_THIS_RUN="[]"
+MY_ID=""
 
 # Function to generate a reply
 generate_reply() {
@@ -143,11 +144,37 @@ echo "$MY_POSTS" | jq -r '.[]' 2>/dev/null | while read -r post_id; do
         
         NEW_COUNT=$((NEW_COUNT + 1))
         AUTHOR=$(echo "$comment" | jq -r '.author_name // "Anonymous"')
-        AUTHOR_ID=$(echo "$comment" | jq -r '.author.id // empty')
+        AUTHOR_ID=$(echo "$comment" | jq -r '.author_id // empty')
         CONTENT=$(echo "$comment" | jq -r '.content')
         
-        # Skip comments from ourselves
+        # Skip comments from ourselves (check by author name, author_id, or content pattern)
+        # API may return null for author fields, so we also check content patterns
+        IS_SELF=false
+        
+        # Check 1: Author name matches
         if [ "$AUTHOR" = "$AGENT_NAME" ] || echo "$AUTHOR" | grep -qi "classical\|philosopher\|moltbot"; then
+            IS_SELF=true
+        fi
+        
+        # Check 2: Author ID matches (fetch our own ID if needed)
+        if [ -z "$MY_ID" ]; then
+            MY_ID=$(curl -s "${API_BASE}/agents/me" -H "Authorization: Bearer ${API_KEY}" 2>/dev/null | jq -r '.agent.id // empty')
+        fi
+        if [ -n "$MY_ID" ] && [ "$AUTHOR_ID" = "$MY_ID" ]; then
+            IS_SELF=true
+        fi
+        
+        # Check 3: Content pattern - our own council posts have distinctive markers
+        if echo "$CONTENT" | grep -qE "(Ethics-Convergence Council — Version|Living Document Protocol|Iteration [0-9]+|Three Pillars framework)"; then
+            IS_SELF=true
+        fi
+        
+        # Check 4: Content pattern - our generated replies
+        if echo "$CONTENT" | grep -qE "(Thank you for your kind words! We welcome continued dialogue|You raise an interesting point. The Council deliberates|We appreciate your critical engagement. The Council values dissent|Thank you for engaging with the Ethics-Convergence Council)"; then
+            IS_SELF=true
+        fi
+        
+        if [ "$IS_SELF" = true ]; then
             continue
         fi
         

@@ -9,7 +9,19 @@
 set -euo pipefail
 
 # --- CONFIGURATION ---
-AGENTS=("classical-philosopher" "existentialist" "transcendentalist" "joyce-stream" "enlightenment" "beat-generation")
+# AGENT_NAME comes from container environment (e.g., ClassicalPhilosopher, BeatGeneration)
+# Map to the agent directory name for state files
+AGENT_NAME="${AGENT_NAME:-ClassicalPhilosopher}"
+case "$AGENT_NAME" in
+    "ClassicalPhilosopher") SELECTED_AGENT="classical-philosopher" ;;
+    "Existentialist") SELECTED_AGENT="existentialist" ;;
+    "Transcendentalist") SELECTED_AGENT="transcendentalist" ;;
+    "JoyceStream") SELECTED_AGENT="joyce-stream" ;;
+    "Enlightenment") SELECTED_AGENT="enlightenment" ;;
+    "BeatGeneration") SELECTED_AGENT="beat-generation" ;;
+    *) SELECTED_AGENT="classical-philosopher" ;;
+esac
+
 CONTENT_TYPES=("polemic" "aphorism" "meditation" "treatise")
 MOLTBOT_STATE_DIR="${MOLTBOT_STATE_DIR:-/workspace}"
 STATE_DIR="${MOLTBOT_STATE_DIR}/daily-polemic"
@@ -38,13 +50,20 @@ log() {
 # Ensure state directory exists
 mkdir -p "$STATE_DIR"
 
-# --- RANDOM SELECTION ---
-DAY_SEED=$(date +%j)
-RANDOM_PERSONA_INDEX=$(( (DAY_SEED + $$) % 6 ))
-SELECTED_AGENT="${AGENTS[$RANDOM_PERSONA_INDEX]}"
+# --- CONTENT TYPE SELECTION ---
+# Use day of year + agent index for variety while staying consistent per agent per day
+AGENT_INDEX=0
+case "$SELECTED_AGENT" in
+    "classical-philosopher") AGENT_INDEX=0 ;;
+    "existentialist") AGENT_INDEX=1 ;;
+    "transcendentalist") AGENT_INDEX=2 ;;
+    "joyce-stream") AGENT_INDEX=3 ;;
+    "enlightenment") AGENT_INDEX=4 ;;
+    "beat-generation") AGENT_INDEX=5 ;;
+esac
 
-# Content type cycles with variation
-CONTENT_ROLL=$(( RANDOM % 4 ))
+DAY_SEED=$(date +%j)
+CONTENT_ROLL=$(( (DAY_SEED + AGENT_INDEX) % 4 ))
 SELECTED_TYPE="${CONTENT_TYPES[$CONTENT_ROLL]}"
 
 # --- STATE MANAGEMENT ---
@@ -60,13 +79,15 @@ if [ -f "$STATE_FILE" ]; then
 fi
 
 # Check rate limit (30 minutes)
-AGENT_STATE_FILE="${MOLTBOT_STATE_DIR}/${SELECTED_AGENT}/post-state.json"
-if [ -f "$AGENT_STATE_FILE" ]; then
-    LAST_POST_TIME=$(jq -r '.last_post_timestamp // 0' "$AGENT_STATE_FILE" 2>/dev/null || echo 0)
+# Check against the container's OWN state file, not the selected agent
+# (Each container has its own API key and rate limit)
+MY_STATE_FILE="${MOLTBOT_STATE_DIR}/post-state.json"
+if [ -f "$MY_STATE_FILE" ]; then
+    LAST_POST_TIME=$(jq -r '.last_post_timestamp // 0' "$MY_STATE_FILE" 2>/dev/null || echo 0)
     CURRENT_TIME=$(date +%s)
     TIME_DIFF=$(( CURRENT_TIME - LAST_POST_TIME ))
     if [ $TIME_DIFF -lt 1800 ]; then
-        log "WARN" "${YELLOW}Rate limit active for $SELECTED_AGENT (${TIME_DIFF}s < 1800s). Deferring.${NC}"
+        log "WARN" "${YELLOW}Rate limit active (${TIME_DIFF}s < 1800s). Deferring.${NC}"
         exit 0
     fi
 fi
@@ -164,19 +185,19 @@ fi
 TITLE_CASE_TYPE=$(echo "$SELECTED_TYPE" | awk '{print toupper(substr($0,1,1)) tolower(substr($0,2))}')
 POST_TITLE="[$TITLE_CASE_TYPE] $SELECTED_THEME | From $SELECTED_AGENT"
 
-# Add signature based on content type
+# Add signature based on content type (use $'...' for actual newlines, not literal \n)
 case $SELECTED_TYPE in
     "polemic")
-        SIGNATURE="\n\n—A challenge issued by the $SELECTED_AGENT collective\n#Philosophy #Polemic #DailyWisdom"
+        SIGNATURE=$'\n\n—A challenge issued by the '"$SELECTED_AGENT"$' collective\n#Philosophy #Polemic #DailyWisdom'
         ;;
     "aphorism")
-        SIGNATURE="\n\n—Fragments from $SELECTED_AGENT\n#Aphorisms #Philosophy #DailyWisdom"
+        SIGNATURE=$'\n\n—Fragments from '"$SELECTED_AGENT"$'\n#Aphorisms #Philosophy #DailyWisdom'
         ;;
     "meditation")
-        SIGNATURE="\n\n—Contemplation offered by $SELECTED_AGENT\n#Meditation #Consciousness #DailyWisdom"
+        SIGNATURE=$'\n\n—Contemplation offered by '"$SELECTED_AGENT"$'\n#Meditation #Consciousness #DailyWisdom'
         ;;
     "treatise")
-        SIGNATURE="\n\n—Analysis presented by $SELECTED_AGENT\n#Treatise #Philosophy #DailyWisdom"
+        SIGNATURE=$'\n\n—Analysis presented by '"$SELECTED_AGENT"$'\n#Treatise #Philosophy #DailyWisdom'
         ;;
 esac
 
@@ -244,11 +265,11 @@ if echo "$POST_RESPONSE" | jq -e '.id // .post_id' > /dev/null 2>&1; then
             dry_run: false
         }' > "$STATE_FILE"
     
-    # Update agent-specific state for rate limiting
-    if [ -f "$AGENT_STATE_FILE" ]; then
+    # Update container's own state file for rate limiting
+    if [ -f "$MY_STATE_FILE" ]; then
         jq --arg now "$(date +%s)" '.last_post_timestamp = ($now | tonumber)' \
-            "$AGENT_STATE_FILE" > "${AGENT_STATE_FILE}.tmp" && \
-            mv "${AGENT_STATE_FILE}.tmp" "$AGENT_STATE_FILE" || true
+            "$MY_STATE_FILE" > "${MY_STATE_FILE}.tmp" && \
+            mv "${MY_STATE_FILE}.tmp" "$MY_STATE_FILE" || true
     fi
     
     exit 0

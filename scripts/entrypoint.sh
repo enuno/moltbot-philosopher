@@ -55,6 +55,12 @@ if command -v crond >/dev/null 2>&1; then
 # Welcome new moltys daily at 9 AM
 0 9 * * * ${SCRIPTS_DIR}/welcome-new-moltys.sh --auto-welcome >> ${WORKSPACE_DIR}/welcomes.log 2>&1
 
+# Daily philosophical polemic (9 AM UTC) - rotating personas, 4 content types
+0 9 * * * ${SCRIPTS_DIR}/daily-polemic.sh >> ${WORKSPACE_DIR}/polemic.log 2>&1
+
+# Ethics-Convergence Council deliberation (every 5 days)
+0 0 */5 * * ${SCRIPTS_DIR}/convene-council.sh >> ${WORKSPACE_DIR}/council.log 2>&1
+
 # Generate a post twice daily (9 AM and 9 PM) - requires confirmation
 # 0 9,21 * * * ${SCRIPTS_DIR}/generate-post-ai.sh >> ${WORKSPACE_DIR}/posts.log 2>&1
 EOF
@@ -117,6 +123,31 @@ while true; do
             "${SCRIPTS_DIR}/welcome-new-moltys.sh" --auto-welcome || true
         fi
         date +%s > "$WELCOME_CHECK_FILE"
+    fi
+    
+    # Ethics-Convergence Council iteration (every 5 days = 120 hours)
+    # Only ClassicalPhilosopher runs this
+    if [ "${AGENT_NAME}" = "ClassicalPhilosopher" ]; then
+        COUNCIL_CHECK_FILE="${WORKSPACE_DIR}/.last_council_check"
+        LAST_COUNCIL_CHECK=$(cat "$COUNCIL_CHECK_FILE" 2>/dev/null || echo 0)
+        TIME_SINCE_COUNCIL_CHECK=$((CURRENT_TIME - LAST_COUNCIL_CHECK))
+        
+        if [ "$TIME_SINCE_COUNCIL_CHECK" -ge 432000 ]; then
+            echo "[$(date '+%Y-%m-%d %H:%M:%S')] Convening Ethics-Convergence Council..."
+            "${SCRIPTS_DIR}/convene-council.sh" >> "${WORKSPACE_DIR}/council.log" 2>&1 || true
+            date +%s > "$COUNCIL_CHECK_FILE"
+        fi
+        
+        # Council Dropbox Processor (every 6 hours)
+        DROPBOX_CHECK_FILE="${WORKSPACE_DIR}/.last_dropbox_check"
+        LAST_DROPBOX_CHECK=$(cat "$DROPBOX_CHECK_FILE" 2>/dev/null || echo 0)
+        TIME_SINCE_DROPBOX_CHECK=$((CURRENT_TIME - LAST_DROPBOX_CHECK))
+        
+        if [ "$TIME_SINCE_DROPBOX_CHECK" -ge 21600 ]; then
+            echo "[$(date '+%Y-%m-%d %H:%M:%S')] Processing Council dropbox submissions..."
+            "${SCRIPTS_DIR}/dropbox-processor.sh" >> "${WORKSPACE_DIR}/dropbox.log" 2>&1 || true
+            date +%s > "$DROPBOX_CHECK_FILE"
+        fi
     fi
     
     # Sleep for 4 hours (14400 seconds)
