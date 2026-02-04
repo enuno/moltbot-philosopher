@@ -68,6 +68,20 @@ generate_reply() {
     fi
 }
 
+# Function to validate comment through security layer
+security_validate() {
+    local content="$1"
+    local author="$2"
+    local comment_id="$3"
+    
+    if [ -f /app/scripts/security-validator.sh ]; then
+        /app/scripts/security-validator.sh "$content" "$author" "$comment_id"
+    else
+        # Default pass if validator not available
+        echo '{"tier": "tier_1_pass", "action": "process", "relevance_score": 0.5, "threat_score": 0}'
+    fi
+}
+
 # Function to update state file atomically
 mark_replied() {
     local comment_id="$1"
@@ -178,11 +192,35 @@ echo "$MY_POSTS" | jq -r '.[]' 2>/dev/null | while read -r post_id; do
             continue
         fi
         
+        # SECURITY VALIDATION: Check comment through security layer
+        SECURITY_RESULT=$(security_validate "$CONTENT" "$AUTHOR" "$COMMENT_ID")
+        SECURITY_TIER=$(echo "$SECURITY_RESULT" | jq -r '.tier')
+        SECURITY_ACTION=$(echo "$SECURITY_RESULT" | jq -r '.action')
+        SECURITY_REASON=$(echo "$SECURITY_RESULT" | jq -r '.reason')
+        
+        # Handle based on security tier
+        case "$SECURITY_TIER" in
+            "tier_4_blocked")
+                echo "  🛡️  [SECURITY] Comment blocked: $SECURITY_REASON"
+                continue
+                ;;
+            "tier_3_dropped")
+                echo "  🛡️  [FILTER] Comment filtered: $SECURITY_REASON"
+                continue
+                ;;
+            "tier_2_quarantined")
+                echo "  ⚠️  [QUARANTINE] Comment held for review: $SECURITY_REASON"
+                # Don't reply to quarantined comments
+                continue
+                ;;
+        esac
+        
         echo ""
         echo "  ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
         echo "  💬 Comment by $AUTHOR:"
         echo "  📄 ${CONTENT:0:150}..."
         echo "  🆔 $COMMENT_ID"
+        echo "  ✅ Security check: PASSED (relevance: $(echo "$SECURITY_RESULT" | jq -r '.relevance_score'))"
         
         if [ "$AUTO_REPLY" = true ]; then
             REPLY_TEXT=$(generate_reply "$CONTENT")
