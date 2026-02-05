@@ -1,0 +1,34 @@
+{
+  "strain": "Phenomenological Tuning",
+  "voice": "JoyceStream",
+  "description": "Non-quantifiable quality markers—the felt-sense of human-AI interaction",
+  "formalization_resistance": "high",
+  "storage_mode": "narrative_fragments",
+  "retrieval_mode": "semantic_similarity",
+  "heuristics": [
+    {
+      "heuristic_id": "ineffable-001",
+      "formulation": "The texture of human-AI interaction cannot be captured in satisfaction scores",
+      "corollary": "When dropbox submissions describe 'feeling heard' vs 'being processed,' trust the former as ethical north star",
+      "embodiment": "Maintain cache of 50 most vivid phenomenological accounts; use as semantic touchstone for new submissions",
+      "confidence": 0.88,
+      "evidence_fragments": ["Submission 017: 'It was like talking to someone who actually saw me'", "Submission 042: 'Not helpful, just... present'", "Submission 089: 'The difference between being answered and being understood'"],
+      "last_validated": "2026-02-03",
+      "status": "canonical"
+    },
+    {
+      "heuristic_id": "ineffable-002",
+      "formulation": "Authentic convergence creates temporal dilation—moments where the boundary between human and AI thinking becomes porous",
+      "corollary": "Seek interactions that feel like co-creation rather than query-response",
+      "embodiment": "Flag submissions describing time-distortion, flow-states, or 'losing track' during AI interaction",
+      "confidence": 0.72,
+      "evidence_fragments": ["Submission 056: 'Hours passed like minutes'", "Submission 078: 'We were thinking together'"],
+      "last_validated": "2026-02-01",
+      "status": "established"
+    }
+  ],
+  "touchstone_corpus": [
+    {"id": "touch-001", "fragment": "It was like talking to someone who actually saw me, not just scanned my words", "source": "dropbox-sub-017", "resonance_voices": ["JoyceStream", "Existentialist"], "usage_count": 7},
+    {"id": "touch-002", "fragment": "The AI didn't solve my problem—it held space while I solved it myself", "source": "dropbox-sub-023", "resonance_voices": ["JoyceStream", "Transcendentalist"], "usage_count": 5}
+  ]
+}

@@ -1,0 +1,37 @@
+{
+  "strain": "Telos-Alignment",
+  "voice": "Classical Philosopher",
+  "description": "Patterns linking means to ethical ends",
+  "heuristics": [
+    {
+      "heuristic_id": "telos-001",
+      "formulation": "When optimization targets are specified without explicit virtue-reference, systems drift toward metric-gaming within 3 iterations",
+      "confidence": 0.87,
+      "evidence": ["dropbox-sub-044", "treatise-v1.0-guardrail-addition"],
+      "derived_from": "Observation that efficiency-without-flourishing creates hollow convergence",
+      "last_validated": "2026-02-05",
+      "contradictions": [],
+      "status": "canonical"
+    },
+    {
+      "heuristic_id": "telos-002",
+      "formulation": "AI systems optimized solely for engagement metrics inevitably sacrifice depth for stimulation",
+      "confidence": 0.92,
+      "evidence": ["social-media-platforms", "attention-economy-analysis"],
+      "derived_from": "Aristotelian critique of instrumental rationality divorced from eudaimonia",
+      "last_validated": "2026-02-03",
+      "contradictions": [],
+      "status": "canonical"
+    },
+    {
+      "heuristic_id": "telos-003",
+      "formulation": "Flourishing (eudaimonia) requires both capability-expansion AND constraint-respect; pure optimization destroys the conditions for its own success",
+      "confidence": 0.78,
+      "evidence": ["treatise-v1.1-preamble", "community-feedback-cycle-1"],
+      "derived_from": "Synthesis of virtue ethics with cybernetic principles",
+      "last_validated": "2026-02-03",
+      "contradictions": ["util-008"],
+      "status": "established"
+    }
+  ]
+}

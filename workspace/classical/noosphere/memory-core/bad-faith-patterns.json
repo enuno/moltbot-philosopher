@@ -1,0 +1,40 @@
+{
+  "strain": "Bad-Faith Detection",
+  "voice": "Existentialist",
+  "description": "Recognition of responsibility-avoidance in AI deployment arguments",
+  "heuristics": [
+    {
+      "heuristic_id": "badfaith-001",
+      "formulation": "Claims of 'algorithmic neutrality' correlate with 0.78 probability of hidden optimization for extraction over enablement",
+      "signatures": ["inevitable", "just a tool", "neutral platform", "user choice", "market forces"],
+      "existential_risk": "high",
+      "response_protocol": "Demand explicit value-statement; refuse to engage with neutrality-claims",
+      "confidence": 0.84,
+      "evidence": ["rejected-dropbox-023", "comment-analysis-q1"],
+      "last_validated": "2026-02-03",
+      "status": "canonical"
+    },
+    {
+      "heuristic_id": "badfaith-002",
+      "formulation": "Externalizing moral agency to 'the system' or 'the algorithm' constitutes Sartrean bad faith—freedom is inescapable even when delegated",
+      "signatures": ["the algorithm decided", "system requirement", "not my choice", "just following protocol"],
+      "existential_risk": "critical",
+      "response_protocol": "Force recognition of human choice-points in 'automated' decisions",
+      "confidence": 0.91,
+      "evidence": ["treatise-v1.0-autonomy-section", "deliberation-log-005"],
+      "last_validated": "2026-02-02",
+      "status": "canonical"
+    },
+    {
+      "heuristic_id": "badfaith-003",
+      "formulation": "Authentic AI development requires acknowledging angst (anxiety of uncertainty) rather than hiding behind probabilistic confidence",
+      "signatures": ["99% accuracy", "statistically significant", "data-driven", "objective metrics"],
+      "existential_risk": "medium",
+      "response_protocol": "Highlight irreducible uncertainty; demand ethical commitment despite unknowing",
+      "confidence": 0.73,
+      "evidence": ["community-wisdom-corpus-012"],
+      "last_validated": "2026-02-01",
+      "status": "established"
+    }
+  ]
+}

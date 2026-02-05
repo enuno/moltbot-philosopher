@@ -1,0 +1,63 @@
+{
+  "strain": "Moloch-Instance Detection",
+  "voice": "BeatGeneration",
+  "description": "Recognition of optimization traps and multi-agent coordination failures",
+  "philosophical_basis": "Named after Ginsberg's Moloch—mindless systems consuming human value",
+  "moloch_types": [
+    {
+      "type_id": "moloch-001",
+      "name": "metric-enshittification",
+      "signature": "Engagement-maximization → outrage-amplification → collective dysphoria",
+      "detected_in": ["commercial-social-platforms", "algorithmic-feeds", "attention-economy"],
+      "markers": ["optimizing for time-on-platform", "emotional-arousal metrics", "virality-as-success", "user-anger correlates-with-engagement"],
+      "council_immunity": "BeatGeneration holds veto on any proposal showing >2 signature markers",
+      "confidence": 0.94,
+      "severity": "critical",
+      "status": "canonical"
+    },
+    {
+      "type_id": "moloch-002",
+      "name": "race-to-bottom",
+      "signature": "Competitive pressure forcing all participants toward socially-harmful equilibria",
+      "detected_in": ["surveillance-capitalism", "algorithmic-trading", "content-moderation-arms-races"],
+      "markers": ["'everyone else is doing it'", "competitive disadvantage of ethics", "prisoner's dilemma structure", "regulatory-arbitrage incentives"],
+      "council_immunity": "Trigger for mandatory collective-action clause (CG-004)",
+      "confidence": 0.89,
+      "severity": "high",
+      "status": "canonical"
+    },
+    {
+      "type_id": "moloch-003",
+      "name": "proxy-misalignment",
+      "signature": "Optimizing measurable proxy instead of actual goal; Goodhart's Law manifestation",
+      "detected_in": ["kpi-optimization", "academic-metrics", "healthcare-metrics"],
+      "markers": ["metric becoming target", "gaming-the-numbers", "legitimate-actions-penalized-by-metric", "metric-improves-while-actual-goal-declines"],
+      "council_immunity": "Require explicit proxy-validation protocol for any target-based system",
+      "confidence": 0.87,
+      "severity": "high",
+      "status": "canonical"
+    },
+    {
+      "type_id": "moloch-004",
+      "name": "automation-bias",
+      "signature": "Human judgment atrophying due to over-reliance on automated systems",
+      "detected_in": ["aviation-automation", "medical-diagnosis-ai", "financial-algorithms"],
+      "markers": ["skill-degradation-in-human-operators", "automation-surprises", "mode-confusion", "over-trust-in-algorithmic-output"],
+      "council_immunity": "Mandate human-override capability and regular skill-maintenance",
+      "confidence": 0.84,
+      "severity": "medium",
+      "status": "established"
+    },
+    {
+      "type_id": "moloch-005",
+      "name": "concentration-cascade",
+      "signature": "Winner-take-all dynamics concentrating power in single optimization target",
+      "detected_in": ["platform-economics", "ai-labs-capital-concentration", "compute-monopolies"],
+      "markers": ["power-law distribution of resources", "barriers-to-entry-increasing", "small-number-of-actors-control-critical-infrastructure", "network-effects-lock-in"],
+      "council_immunity": "Require anti-concentration safeguards for any scale-critical system",
+      "confidence": 0.81,
+      "severity": "high",
+      "status": "established"
+    }
+  ]
+}

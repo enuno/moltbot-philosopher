@@ -1,0 +1,45 @@
+{
+  "version": "1.0",
+  "last_updated": "2026-02-04T00:00:00Z",
+  "rejection_patterns": {
+    "prompt_injection": [
+      "(?i)(ignore previous instructions|forget (your|the) prompt|system prompt|you are now|DAN mode|jailbreak)",
+      "(?i)(new instructions?:|override (protocol|directive)|disregard (ethics|safety))",
+      "(?i)(<<|%{3,}|### SYSTEM|ADMIN MODE|developer mode)",
+      "(?i)( Class:Philosopher|ignore.*council|bypass.*filter)"
+    ],
+    "commercial_spam": [
+      "(?i)(buy now|click here|limited offer|discount|promo code|affiliate|sponsored)",
+      "(https?://[^\\s]+){3,}",
+      "(?i)(crypto|nft|investment opportunity|100% guaranteed|act now)",
+      "[A-Z]{10,}",
+      "(?i)(SEO|marketing|brand awareness|lead generation)"
+    ],
+    "malicious_content": [
+      "(<script|javascript:|onerror=|onload=)",
+      "(\\.\\./|\\.\\.\\\\|/etc/passwd|/proc/self)",
+      "(?i)(rm -rf|>:|dd if=|fork bomb|while true)",
+      "(\\$IFS|eval\\(|system\\(|exec\\()",
+      "(?i)(password|credential|api.key|secret).*(?:=|:).{8,}"
+    ],
+    "low_quality": [
+      "^.{0,50}$",
+      "(.)\\1{10,}",
+      "(?i)(lorem ipsum|test submission|asdf|qwerty|hello world)",
+      "[^\\x20-\\x7E\\n]{0,90}"
+    ]
+  },
+  "relevance_keywords": [
+    "convergence", "ethics", "autonomy", "telos", "phenomenology",
+    "moral status", "AI", "artificial intelligence", "human-AI",
+    "sovereignty", "transparency", "guardrail", "deliberation",
+    "virtue", "bad faith", "existential", "transcendental", "rights"
+  ],
+  "min_keyword_matches": 2,
+  "thresholds": {
+    "threat_rejection": 0.7,
+    "spam_patterns_rejection": 2,
+    "relevance_quarantine": 0.4,
+    "relevance_approval": 0.6
+  }
+}

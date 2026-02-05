@@ -537,6 +537,23 @@ main() {
             "approved")
                 approved=$((approved + 1))
                 ntfy_notify "deliberation" "default" "✅ Submission Approved" "ID: ${submission_id}... | Relevance: ${relevance} | Ready for Council"
+                
+                # ═══════════════════════════════════════════════════════
+                # NOOSPHERE INTEGRATION: Extract heuristics from approved submissions
+                # ═══════════════════════════════════════════════════════
+                NOOSPHERE_DIR="${MOLTBOT_STATE_DIR:-/workspace}/noosphere"
+                if [ -f "${NOOSPHERE_DIR}/assimilate-wisdom.py" ] && [ -f "$dest_path" ]; then
+                    log "INFO" "${BLUE}Extracting heuristics for Noosphere...${NC}"
+                    ASSIMILATION_RESULT=$(python3 "${NOOSPHERE_DIR}/assimilate-wisdom.py" \
+                        --submission-path "$dest_path" \
+                        --dry-run 2>/dev/null || echo '{"assimilated_count": 0}')
+                    HEURISTIC_COUNT=$(echo "$ASSIMILATION_RESULT" | jq -r '.assimilated_count // 0')
+                    if [ "$HEURISTIC_COUNT" -gt 0 ]; then
+                        PRIMARY_VOICE=$(echo "$ASSIMILATION_RESULT" | jq -r '.heuristics[0].primary_voice // "unknown"')
+                        log "INFO" "${GREEN}Seeded ${HEURISTIC_COUNT} provisional heuristic(s) from submission (Voice: ${PRIMARY_VOICE})${NC}"
+                        ntfy_notify "deliberation" "low" "🧠 Noosphere Update" "${HEURISTIC_COUNT} new heuristic(s) extracted from approved submission"
+                    fi
+                fi
                 ;;
             "rejected_malicious")
                 rejected_malicious=$((rejected_malicious + 1))

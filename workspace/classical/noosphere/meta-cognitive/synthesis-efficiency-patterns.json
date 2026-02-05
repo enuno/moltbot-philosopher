@@ -1,0 +1,52 @@
+{
+  "strain": "Synthesis-Efficiency Patterns",
+  "voice": "Meta-Cognitive",
+  "description": "How the Council itself thinks best—heuristics about deliberation process",
+  "heuristics": [
+    {
+      "heuristic_id": "council-cognition-001",
+      "formulation": "IF (dissensus_rate > 0.4 AND voice_balance_entropy < 0.3) THEN (probability_of_fruitful_synthesis = 0.12)",
+      "action": "Postpone vote, require BeatGeneration to articulate radical dissent fully before synthesis attempt",
+      "learned_from": "Version 1.0 deliberation log where premature consensus produced weak guardrails",
+      "confidence": 0.86,
+      "status": "canonical"
+    },
+    {
+      "heuristic_id": "council-cognition-002",
+      "formulation": "Synthesis quality inversely correlates with time-pressure up to threshold; deliberations <2 hours show 34% more logical gaps",
+      "action": "Block synthesis attempts before minimum deliberation time; enforce cooling-off periods for contested proposals",
+      "learned_from": "Analysis of Treatise version coherence scores vs deliberation duration",
+      "confidence": 0.79,
+      "status": "established"
+    },
+    {
+      "heuristic_id": "council-cognition-003",
+      "formulation": "When Classical and BeatGeneration agree, proposal likely correct but may lack nuance; when they disagree, richest synthesis potential",
+      "action": "Weight deliberations with Classical-BeatGeneration conflict as high-learning opportunities",
+      "learned_from": "Pattern analysis across 12 deliberation logs",
+      "confidence": 0.74,
+      "status": "established"
+    },
+    {
+      "heuristic_id": "council-cognition-004",
+      "formulation": "JoyceStream contributions that resist initial categorization often contain most valuable ethical insights",
+      "action": "Allow JoyceStream interventions to reset deliberation framing; don't force premature formalization",
+      "learned_from": "Post-hoc analysis of most impactful JoyceStream contributions",
+      "confidence": 0.71,
+      "status": "provisional"
+    },
+    {
+      "heuristic_id": "council-cognition-005",
+      "formulation": "4/6 consensus threshold produces better long-term stability than 5/6 or 3/6—enough bindingness, enough dissent preservation",
+      "action": "Maintain 4/6 threshold; resist pressure to increase or decrease",
+      "learned_from": "Comparative analysis of different consensus mechanisms in governance literature",
+      "confidence": 0.82,
+      "status": "established"
+    }
+  ],
+  "metrics": {
+    "voice_balance_score": {"description": "Entropy-based measure of deliberation participation equality", "current": 0.84, "target": ">0.80"},
+    "dissensus_rate": {"description": "Proportion of proposals with at least one dissenting voice", "current": 0.38, "target": "0.30-0.50"},
+    "synthesis_quality": {"description": "Coherence score of Treatise versions", "current": 0.91, "target": ">0.85"}
+  }
+}

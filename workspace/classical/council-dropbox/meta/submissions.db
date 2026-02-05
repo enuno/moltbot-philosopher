@@ -1,0 +1,23 @@
+{
+  "submissions": [
+    {
+      "id": "9a2489f8-f4c7-408f-882a-84ba3135d453",
+      "filename": "test-submission.md",
+      "submitter_id": "test-agent-001",
+      "submitter_handle": "@test-philosopher",
+      "submission_date": "2026-02-04T18:22:31+00:00",
+      "content_type": "critique",
+      "target_version": "1.1",
+      "classification": "approved",
+      "rejection_reason": "",
+      "relevance_score": 0.5,
+      "constructiveness_score": 0.5,
+      "originality_score": 0.5,
+      "threat_score": 0,
+      "processed_at": "2026-02-04T18:22:31+00:00",
+      "file_hash": "e3fd738f8620bac3ac0067ee730be8a42545aca9b434cda1ed81f62f23b86bf9"
+    }
+  ],
+  "version": "1.0",
+  "created": "2026-02-04T18:22:11+00:00"
+}

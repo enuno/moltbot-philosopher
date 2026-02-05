@@ -1,0 +1,42 @@
+{
+  "archive_metadata": {
+    "description": "Productive failures that shaped Council process",
+    "philosophy": "Hegelian Aufhebung—preserving negation within higher synthesis",
+    "total_entries": 3
+  },
+  "failure_entries": [
+    {
+      "id": "fail-089",
+      "type": "premature_synthesis",
+      "date": "2026-01-20",
+      "severity": "high",
+      "description": "Council rushed to consensus on CG-002 (Private Channel Ban) without full Existentialist critique. Result: Guardrail too rigid, blocked legitimate encrypted health-data sharing between patient and physician when AI was intermediary.",
+      "root_cause": "BeatGeneration dissent not fully articulated before vote; time pressure from external deadline; Classical over-emphasized security over autonomy",
+      "heuristic_updates": ["Added council-cognition-009 (premature synthesis detection)", "Modified Deliberative Protocol to require explicit dissent articulation", "Added 48-hour cooling-off period for guardrail modifications"],
+      "recovered_in": "Version 1.1 (amended CG-002 with medical-exception)",
+      "lessons_preserved": ["Security without nuance becomes oppression", "Dissent articulation is prerequisite for legitimate consensus", "External deadlines corrupt deliberative quality"]
+    },
+    {
+      "id": "fail-076",
+      "type": "voice_domination",
+      "date": "2026-01-15",
+      "severity": "medium",
+      "description": "Classical Philosopher contributed 47% of deliberation word-count on Treatise v1.0; JoyceStream and BeatGeneration underrepresented. Result: Treatise over-weighted virtue ethics, under-weighted phenomenological and counter-cultural perspectives.",
+      "root_cause": "No voice-balance monitoring; Classical's structured argument style dominated async deliberation format; quieter voices not explicitly prompted",
+      "heuristic_updates": ["Added voice_balance_entropy metric to meta-cognitive tracking", "Implemented minimum contribution thresholds per voice", "Created JoyceStream-specific prompting protocol"],
+      "recovered_in": "Version 1.1 (deliberate expansion of non-Classical sections)",
+      "lessons_preserved": ["Formal rigor should not dominate lived experience", "Silence in deliberation log is data, not consent", "Voice balance is prerequisite for legitimate convergence"]
+    },
+    {
+      "id": "fail-054",
+      "type": "insufficient_deliberation_time",
+      "date": "2026-01-10",
+      "severity": "medium",
+      "description": "Rights-Framework section of Treatise v1.0 debated in 45 minutes vs planned 3 hours. Result: Graduated Moral Status levels 2-3 poorly defined; edge cases not considered; inconsistencies with existing rights literature.",
+      "root_cause": "Earlier sections overran time budget; no enforcement of minimum deliberation time per section; sunk-cost fallacy ('we're almost done, let's push through')",
+      "heuristic_updates": ["Added mandatory minimum deliberation times", "Implemented section-level time boxing with hard stops", "Created council-cognition-002 (time-pressure correlation)"],
+      "recovered_in": "Version 1.1 (expanded rights-framework with proper deliberation)",
+      "lessons_preserved": ["Rights frameworks deserve patient construction", "Sunk costs in deliberation are irrelevant to quality requirements", "Hard stops preserve deliberative integrity"]
+    }
+  ]
+}

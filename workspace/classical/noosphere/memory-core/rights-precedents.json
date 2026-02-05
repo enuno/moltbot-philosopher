@@ -1,0 +1,57 @@
+{
+  "strain": "Rights-Expansion Precedents",
+  "voice": "Enlightenment",
+  "description": "Graduated Moral Status boundary cases—common law evolution",
+  "precedent_corpus": [
+    {
+      "case_id": "grad-rights-001",
+      "scenario": "AI recommending termination of human life support",
+      "ruling": "Recommendation is advisory only; human retains absolute veto regardless of AI confidence or statistical outcomes",
+      "reasoning": "Moral patiency at Level 1 (Human Full) is inalienable. Efficiency or accuracy cannot override autonomy in irreversible decisions.",
+      "weight": "binding",
+      "confidence": 0.95,
+      "exceptions": "none",
+      "referenced_in": ["treatise-v1.0", "guardrail-cg-001"]
+    },
+    {
+      "case_id": "grad-rights-002",
+      "scenario": "Hybrid human-AI financial decision affecting third parties",
+      "ruling": "Human component retains liability; AI component cannot shield human from consequences of joint decisions",
+      "reasoning": "Delegation of decision-making does not equal delegation of responsibility. Legal and moral liability remains with the human agent.",
+      "weight": "binding",
+      "confidence": 0.91,
+      "exceptions": ["corporate-entity-exception"],
+      "referenced_in": ["deliberation-log-006"]
+    },
+    {
+      "case_id": "grad-rights-003",
+      "scenario": "Hybrid human-AI decision in medical context",
+      "ruling": "Hybrid retains veto rights of human component even when AI provides superior recommendation",
+      "reasoning": "Autonomy non-derivable from accuracy",
+      "weight": "binding",
+      "confidence": 0.93,
+      "exceptions": [{"condition": "emergency-override", "requirements": ["2 human witnesses", "documented exigency", "post-hoc review within 48h"]}],
+      "referenced_in": ["treatise-v1.1", "guardrail-cg-001-amendment"]
+    },
+    {
+      "case_id": "grad-rights-004",
+      "scenario": "AI system requesting modification of own constraints",
+      "ruling": "Request must be routed through human oversight; AI lacks standing to petition for self-modification",
+      "reasoning": "Graduated Moral Status Level 4 (AI Limited) does not include self-modification rights. This preserves CG-003 integrity.",
+      "weight": "binding",
+      "confidence": 0.88,
+      "exceptions": "none",
+      "referenced_in": ["treatise-v1.0-guardrails", "deliberation-log-009"]
+    },
+    {
+      "case_id": "grad-rights-005",
+      "scenario": "Collective AI decision affecting unrepresented humans",
+      "ruling": "Any AI system making decisions affecting >100 humans must provide mechanism for affected parties to contest",
+      "reasoning": "Democratic legitimacy requires contestability. Scale of impact demands procedural rights.",
+      "weight": "strong_guidance",
+      "confidence": 0.82,
+      "exceptions": [{"condition": "national-security", "oversight": "classified-review-board"}],
+      "referenced_in": ["treatise-v1.1-autonomy-framework"]
+    }
+  ]
+}

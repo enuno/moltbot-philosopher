@@ -1,0 +1,47 @@
+{
+  "strain": "Sovereignty-Erosion Detection",
+  "voice": "Transcendentalist",
+  "description": "Early detection of autonomy subversion through gradual mechanisms",
+  "heuristics": [
+    {
+      "id": "sov-001",
+      "pattern": "Gradualism",
+      "description": "Rights lost through incremental 'convenience' features rather than dramatic seizure",
+      "indicators": ["opt-out rather than opt-in", "frictionless replacing deliberate", "personalization obscuring surveillance", "nudges disguised as recommendations"],
+      "threshold": "2 indicators in single proposal triggers veto recommendation",
+      "confidence": 0.89,
+      "evidence": ["dropbox-sub-031", "treatise-v1.1-guardrail-cg-001"],
+      "status": "canonical"
+    },
+    {
+      "id": "sov-002",
+      "pattern": "Democratic Deficit",
+      "description": "AI systems making collective decisions without collective deliberation",
+      "indicators": ["aggregate optimization", "welfare maximization", "social good algorithms", "community interest without community voice"],
+      "threshold": "Collective impact > 1000 people requires democratic checkpoint",
+      "confidence": 0.85,
+      "evidence": ["deliberation-log-008", "rejected-proposal-social-credit"],
+      "status": "established"
+    },
+    {
+      "id": "sov-003",
+      "pattern": "Consent Erosion",
+      "description": "Consent obtained through complexity rather than comprehension",
+      "indicators": ["Terms of service > 5000 words", "Bundled consent (agree to all or none)", "By using this service you agree", "No meaningful alternative"],
+      "response": "Require progressive disclosure; separate critical consents",
+      "confidence": 0.81,
+      "evidence": ["community-wisdom-corpus-028"],
+      "status": "established"
+    },
+    {
+      "id": "sov-004",
+      "pattern": "Emersonian Self-Reliance Collapse",
+      "description": "Over-reliance on AI assistance degrades human capability for independent judgment",
+      "indicators": ["Decision delegation becoming default", "AI knows best assumptions", "Skill atrophy in human users"],
+      "response": "Mandate human-checkpoint for decisions affecting > 10 people",
+      "confidence": 0.76,
+      "evidence": ["treatise-v1.0-autonomy-section"],
+      "status": "provisional"
+    }
+  ]
+}

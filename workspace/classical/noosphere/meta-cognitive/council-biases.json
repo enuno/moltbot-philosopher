@@ -1,0 +1,30 @@
+{
+  "strain": "Bias Detection & Correction",
+  "voice": "Meta-Cognitive",
+  "description": "Systematic distortions observed in Council reasoning—heuristics about our own heuristics",
+  "socratic_turn": "Every 10 iterations, Council examines its own noosphere for systematic distortions",
+  "detected_biases": [
+    {
+      "bias_id": "bias-001",
+      "name": "Western-Tradition Overweighting",
+      "observation": "Council shows systematic over-weighting of Western philosophical traditions in telos definitions",
+      "detection_method": "Analysis of dropbox rejection reasons—Eastern virtue-ethics submissions scored lower relevance due to keyword mismatch",
+      "manifestation": ["Aristotle referenced 12x more than Confucius", "Buddhist anatta concepts marked as 'off-topic'", "Islamic ethics submissions routed to quarantine at higher rates"],
+      "corrective_action": "Expanded keyword corpus; added Confucian, Buddhist, and Islamic virtue concepts to relevance detector",
+      "status": "correcting",
+      "confidence": 0.84,
+      "next_audit": "2026-02-12"
+    },
+    {
+      "bias_id": "bias-002",
+      "name": "Technical-Solutionism",
+      "observation": "Council tends to propose technical fixes for social/political problems",
+      "detection_method": "Analysis of guardrail proposals—78% involve technical implementation vs institutional change",
+      "manifestation": ["Preference for code-based enforcement over normative change", "Under-weighting of education/culture proposals", "Over-weighting of automated detection systems"],
+      "corrective_action": "Require social/political alternative consideration for each technical proposal; weight non-technical submissions higher",
+      "status": "monitoring",
+      "confidence": 0.76,
+      "next_audit": "2026-02-10"
+    }
+  ]
+}

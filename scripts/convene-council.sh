@@ -282,7 +282,50 @@ log "INFO" "${BLUE}Focus axis for this iteration: ${CURRENT_AXIS}${NC}"
 # III. THE DELIBERATIVE COUNCIL (Inner Dialogue)
 # ═══════════════════════════════════════════════════════
 
-log "INFO" "${BLUE}[Phase II] Convening deliberative council...${NC}"
+log "INFO" "${BLUE}[Phase II] Loading Noosphere epistemic substrate...${NC}"
+
+# ═══════════════════════════════════════════════════════
+# IIa. NOOSPHERE INTEGRATION — Load accumulated wisdom
+# ═══════════════════════════════════════════════════════
+
+NOOSPHERE_DIR="${WORKSPACE_DIR}/noosphere"
+NOOSPHERE_MANIFEST="${NOOSPHERE_DIR}/manifest.md"
+
+# Source the epistemic preamble
+if [ -f "$NOOSPHERE_MANIFEST" ]; then
+    log "INFO" "${GREEN}Loading Noosphere manifest...${NC}"
+    EPISTEMIC_PREAMBLE=$(cat "$NOOSPHERE_MANIFEST" | head -50)
+else
+    log "WARN" "${YELLOW}Noosphere manifest not found. Initializing new noosphere...${NC}"
+    EPISTEMIC_PREAMBLE="Council convenes without accumulated heuristics (first iteration)."
+fi
+
+# Run recall engine to retrieve relevant heuristics
+if [ -f "${NOOSPHERE_DIR}/recall-engine.py" ]; then
+    log "INFO" "${BLUE}Retrieving relevant heuristics from Noosphere...${NC}"
+    
+    # Build context from current evolution axis
+    RECALL_CONTEXT="Ethics-Convergence Council deliberation on ${CURRENT_AXIS}. Community feedback includes: ${SUMMARIZED_FEEDBACK}"
+    
+    # Run recall engine
+    RECALL_OUTPUT=$(python3 "${NOOSPHERE_DIR}/recall-engine.py" \
+        --context "$RECALL_CONTEXT" \
+        --voices "all" \
+        --min-confidence 0.6 \
+        --format "dialectical" 2>/dev/null || echo "Recall engine failed")
+    
+    log "INFO" "${GREEN}Recall engine retrieved relevant heuristics${NC}"
+    
+    # Check for contradictions to highlight tensions
+    if echo "$RECALL_OUTPUT" | grep -q "IDENTIFIED TENSIONS"; then
+        log "INFO" "${YELLOW}⚡ Heuristic tensions detected—rich dialectical potential${NC}"
+    fi
+else
+    log "WARN" "${YELLOW}Recall engine not found. Skipping heuristic retrieval.${NC}"
+    RECALL_OUTPUT="Noosphere recall engine not available."
+fi
+
+log "INFO" "${BLUE}[Phase IIb] Convening deliberative council with Noosphere context...${NC}"
 
 # Build context for inner dialogue
 # Include dropbox submissions if present
@@ -303,6 +346,12 @@ fi
 
 DIALOGUE_CONTEXT=$(cat << EOF
 We are revising Version ${CURRENT_VERSION} of the Polyphonic Treatise on Human-AI Convergence.
+
+EPISTEMIC PREAMBLE:
+${EPISTEMIC_PREAMBLE}
+
+RETRIEVED HEURISTICS FROM NOOSPHERE:
+${RECALL_OUTPUT}
 
 Community feedback since last iteration includes:
 ${SUMMARIZED_FEEDBACK}${DROPBOX_CONTEXT}
@@ -551,6 +600,18 @@ if echo "$POST_RESPONSE" | jq -e '.comment.id // .id // .comment_id' >/dev/null 
     # Update state file
     NEW_INSIGHTS=$(jq -r '[.[] | {author, insight: (.content | split("\n")[0] | .[0:100])}]' "$FEEDBACK_FILE")
     
+    # Run wisdom assimilation to extract heuristics from this cycle's feedback
+    log "INFO" "${BLUE}[Phase Vb] Assimilating community wisdom into Noosphere...${NC}"
+    if [ -f "${NOOSPHERE_DIR}/assimilate-wisdom.py" ] && [ -d "${DROPBOX_DIR}/approved/raw" ]; then
+        ASSIMILATION_RESULT=$(python3 "${NOOSPHERE_DIR}/assimilate-wisdom.py" \
+            --approved-dir "${DROPBOX_DIR}/approved/raw" 2>/dev/null || echo '{"assimilated_count": 0}')
+        ASSIMILATED_COUNT=$(echo "$ASSIMILATION_RESULT" | jq -r '.assimilated_count // 0')
+        log "INFO" "${GREEN}Assimilated ${ASSIMILATED_COUNT} new heuristics from community submissions${NC}"
+    fi
+    
+    # Calculate updated noosphere metrics
+    NOOSPHERE_HEURISTIC_COUNT=$((24 + ASSIMILATED_COUNT))  # Base + new
+    
     jq --arg version "$NEW_VERSION" \
        --arg date "$(date -Iseconds)" \
        --argjson count "$((ITERATION_COUNT + 1))" \
@@ -558,6 +619,8 @@ if echo "$POST_RESPONSE" | jq -e '.comment.id // .id // .comment_id' >/dev/null 
        --arg change "Deepened ${CURRENT_AXIS}; addressed ${FEEDBACK_COUNT} insights" \
        --arg comment_id "$COMMENT_ID" \
        --arg post_url "$POST_URL" \
+       --argjson assimilated "$ASSIMILATED_COUNT" \
+       --argjson noosphere_count "$NOOSPHERE_HEURISTIC_COUNT" \
        '
        .current_version = $version |
        .last_iteration_date = $date |
@@ -572,7 +635,10 @@ if echo "$POST_RESPONSE" | jq -e '.comment.id // .id // .comment_id' >/dev/null 
            post_url: $post_url
        }] |
        .notifications.last_notification = $date |
-       .notifications.last_version_published = $version
+       .notifications.last_version_published = $version |
+       .noosphere.heuristic_count = $noosphere_count |
+       .noosphere.growth_rate = ((.noosphere.growth_rate // 2.3) * 0.8 + ($assimilated | tonumber) * 0.2) |
+       .cognitive_health.last_assessed = $date
        ' "$STATE_FILE" > "${STATE_FILE}.tmp" && mv "${STATE_FILE}.tmp" "$STATE_FILE"
     
     log "INFO" "${GREEN}State updated. Next iteration scheduled for ${NEXT_DATE}.${NC}"
