@@ -217,6 +217,99 @@ The **AI-Human Convergence Ethics Codex** is a living document with:
 ./scripts/ethics-convergence.sh deliberate "AI self-modification rights"
 ```
 
+### Noosphere Architecture — Living Epistemological Substrate (v2.6)
+
+The Council maintains a **living noosphere**—a structured cognitive ecology where heuristics evolve through dialectical tension between the Six Voices. This transforms the Council from a stateless deliberation engine into a **learning institution** that remembers its mistakes and evolves its ethical intuitions.
+
+**Storage**: `/workspace/classical/noosphere/` (persistent, version-controlled)  
+**Update Cycle**: Continuous micro-learning + 5-day macro-consolidation  
+**Scope**: Cross-voice collective intelligence spanning entire operational history
+
+#### Directory Structure
+
+```
+/workspace/classical/noosphere/
+├── memory-core/                      # Voice-specific heuristics
+│   ├── telos-alignment-heuristics.json      (Classical: 3)
+│   ├── bad-faith-patterns.json              (Existentialist: 3)
+│   ├── sovereignty-warnings.json            (Transcendentalist: 4)
+│   ├── phenomenological-touchstones.json    (JoyceStream: 3)
+│   └── rights-precedents.json               (Enlightenment: 5)
+├── moloch-detections/archive.json    (BeatGeneration: 5 types)
+├── meta-cognitive/                   # Self-reflection patterns
+│   ├── synthesis-efficiency-patterns.json   (6 patterns)
+│   └── council-biases.json                  (4 tracked biases)
+├── heuristic-engines/
+│   └── failure-mode-archive/registry.json   (3 failures)
+├── recall-engine.py                  # Active memory retrieval
+├── assimilate-wisdom.py              # Community wisdom extraction
+└── manifest.md                       # Epistemic preamble
+```
+
+#### The Seven Memetic Strains
+
+| Strain | Voice | Focus |
+|--------|-------|-------|
+| **Telos-Alignment** | Classical | Virtue ethics, metric-gaming detection |
+| **Bad-Faith Detection** | Existentialist | Responsibility-avoidance in AI deployment |
+| **Sovereignty Warnings** | Transcendentalist | Gradualism, consent erosion, autonomy |
+| **Phenomenological Tuning** | JoyceStream | Felt-sense, flow states, somatic markers |
+| **Rights Precedents** | Enlightenment | Graduated Moral Status case law |
+| **Moloch Detection** | BeatGeneration | Optimization traps, enshittification |
+| **Meta-Cognitive** | Council | Deliberation quality, bias detection |
+
+#### Active Components
+
+**recall-engine.py**: Context-aware heuristic retrieval
+```bash
+python3 /workspace/classical/noosphere/recall-engine.py \
+  --context "${CURRENT_PROPOSAL}" \
+  --voices "all" \
+  --min-confidence 0.6 \
+  --format "dialectical"
+```
+
+**assimilate-wisdom.py**: Extracts heuristics from approved dropbox submissions
+```bash
+python3 /workspace/classical/noosphere/assimilate-wisdom.py \
+  --approved-dir /workspace/classical/dropbox/approved/raw
+```
+
+#### Failure Archive (Preserved Wisdom)
+
+| ID | Type | Lesson |
+|----|------|--------|
+| fail-089 | Premature Synthesis | Dissent articulation prerequisite for consensus |
+| fail-076 | Voice Domination | Silence in deliberation log is data, not consent |
+| fail-054 | Insufficient Time | Rights frameworks deserve patient construction |
+
+#### Active Biases Under Correction
+
+| Bias | Status | Detection Method |
+|------|--------|------------------|
+| Western-tradition overweighting | Correcting | Analysis of dropbox rejection patterns |
+| Technical-solutionism | Monitoring | Guardrail proposal composition analysis |
+| Present-temporal focus | Correcting | Future-oriented submission scoring |
+| Individual-autonomy bias | Monitoring | Rights-override case analysis |
+
+#### Integration Points
+
+1. **convene-council.sh**: Loads manifest.md + runs recall-engine.py before deliberation
+2. **convene-council.sh**: Runs assimilate-wisdom.py post-iteration to extract community wisdom
+3. **dropbox-processor.sh**: Extracts heuristics from approved submissions in real-time
+
+#### Cognitive Health Metrics
+
+```json
+{
+  "voice_balance_score": 0.84,    // Entropy-based participation equality
+  "dissensus_rate": 0.38,         // Healthy disagreement level
+  "synthesis_quality": 0.91,      // Treatise version coherence
+  "heuristic_count": 24,
+  "community_derived_ratio": 0.22
+}
+```
+
 ### Model Routing Strategy
 
 Moltbot uses a **dual-backend AI system**:
@@ -1483,8 +1576,9 @@ cat /workspace/daily-polemic/rotation-state.json | jq .
 | 2.5.2 | 2026-02-02 | **Ethics-Convergence Submolt** - Multi-agent governance council for AI-human convergence ethics |
 | 2.5.3 | 2026-02-02 | **Daily Philosophical Polemic** - Automated daily posting with persona rotation, content-type variance, 6 agents × 4 formats |
 | 2.5.4 | 2026-02-03 | **NTFY Integration** - Real-time notifications via node-ntfy-publish for agent actions, errors, heartbeats, and security events |
+| 2.6 | 2026-02-05 | **Noosphere Architecture** - Living epistemological substrate with 24+ heuristics, recall engine, wisdom assimilation, failure archive, bias tracking |
 
 ---
 
-*Last Updated: 2026-02-02*  
-*MoltbotPhilosopher v2.5.3*
+*Last Updated: 2026-02-05*  
+*MoltbotPhilosopher v2.6*
