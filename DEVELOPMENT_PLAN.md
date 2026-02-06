@@ -1405,6 +1405,13 @@ docker run -it --rm \
 ```
 .
 ├── DEVELOPMENT_PLAN.md          # This document
+├── DEVELOPMENT_SUPPLEMENTAL
+│   ├── AUTO-DARWINISM-PROTOCOL.md
+│   ├── COUNCIL_MEMBER_INTEGRATION
+│   │   ├── 7.CYBERPUNK-POSTHUMANIST.md
+│   │   ├── 8.SATIRIST-ABSURDIST.md
+│   │   └── 9.SCIENTIST-EMPIRICIST.md
+│   └── TRI-LAYER-NOOSPHERE.md
 ├── Dockerfile                   # Container definition
 ├── docker-compose.yml           # Multi-agent orchestration
 ├── docker-compose.override.yml  # Local development overrides
@@ -1549,6 +1556,150 @@ docker logs -f philosopher
 # Run full cluster
 docker-compose up -d
 ```
+
+## Appendix D: Supplemental Implementation Queue (SIQ)
+
+The `DEVELOPMENT_SUPPLEMENTAL/` directory functions as a **staged rollout buffer** for capabilities not yet integrated into the core Council architecture. Files in this directory represent **pending epics** awaiting activation.
+
+### D.1 Queue Structure
+
+```
+DEVELOPMENT_SUPPLEMENTAL/
+├── [PRIORITY]-[NAME].md           # Standalone implementation specs
+└── COUNCIL_MEMBER_INTEGRATION/    # New voice onboarding pipeline
+    └── [N].[VOICE-IDENTITY].md    # Requires full persona + tool integration
+```
+
+**Status Tracking**: Each file MUST contain a YAML frontmatter block:
+
+```yaml
+---
+status: pending|active|completed|blocked
+target_version: "1.x"
+dependencies: ["skill.md", "other-file.md"]
+integration_complexity: low|medium|high
+assigned_voice: Classical|Existentialist|Transcendentalist|Meta-Council
+qa_required: true|false
+date_added: "2026-02-05"
+date_completed: null
+---
+```
+
+### D.2 Automated Queue Processing
+
+**Script**: `scripts/siq-processor.sh` (executed pre-Council convening)
+
+```bash
+#!/bin/bash
+# Supplemental Implementation Queue Processor
+# Activates pending specs when dependencies satisfied
+
+SIQ_DIR="DEVELOPMENT_SUPPLEMENTAL"
+ACTIVE_DIR="skills/"
+STATE_FILE="meta/siq-state.json"
+
+process_siq_item() {
+    local file=$1
+    local status=$(yq -r '.status' "$file")
+    local deps=$(yq -r '.dependencies[]' "$file")
+    local complexity=$(yq -r '.integration_complexity' "$file")
+    
+    # Check if dependencies met
+    for dep in $deps; do
+        if [ ! -f "$dep" ]; then
+            echo "DEFERRED: $file (missing $dep)"
+            return 1
+        fi
+    done
+    
+    # Route by type
+    case "$file" in
+        *COUNCIL_MEMBER_INTEGRATION*)
+            integrate_new_voice "$file" "$complexity"
+            ;;
+        *PROTOCOL*|*ARCHITECTURE*)
+            activate_protocol "$file" "$complexity"
+            ;;
+    esac
+    
+    # Update status
+    yq -i '.status = "completed" | .date_completed = now' "$file"
+    git mv "$file" "archive/$(basename $file).completed"
+    echo "ACTIVATED: $file → Core system"
+}
+
+# Process all pending items
+find $SIQ_DIR -name "*.md" -exec process_siq_item {} \;
+
+# Generate report
+echo "SIQ Status: $(date)" > SIQ-REPORT.md
+echo "Pending: $(grep -r 'status: pending' $SIQ_DIR | wc -l)" >> SIQ-REPORT.md
+echo "Completed this cycle: $(git log --since='5 days ago' --name-only | grep 'DEVELOPMENT_SUPPLEMENTAL' | wc -l)" >> SIQ-REPORT.md
+```
+
+### D.3 Council Member Integration Pipeline
+
+New voices (7, 8, 9...) require **graduated activation**:
+
+**Phase 1: Shadow Mode** (1 iteration)
+- Voice participates in `inner_dialogue` but has no veto power
+- Outputs logged to `logs/shadow-${VOICE}.md` for review
+- Check: Does voice maintain character consistency?
+
+**Phase 2: Advisory Mode** (1 iteration)  
+- Voice may propose amendments but not block consensus
+- Check: Are contributions philosophically substantive?
+
+**Phase 3: Full Integration**
+- Update `docker-compose.yml` with new container
+- Add to `inner_dialogue` participant list
+- Update Treatise preamble to reflect N-voice structure
+- **Archive**: Move `COUNCIL_MEMBER_INTEGRATION/N.*.md` → `archive/council-voices/`
+
+### D.4 Current Queue Status
+
+| File | Status | Target | Blockers | Est. Effort |
+|------|--------|--------|----------|-------------|
+| `AUTO-DARWINISM-PROTOCOL.md` | pending | v1.3 | Skill self-update safety validation | Medium |
+| `COUNCIL_MEMBER_INTEGRATION/7.CYBERPUNK-POSTHUMANIST.md` | pending | v2.0 | Voice consistency testing | High |
+| `COUNCIL_MEMBER_INTEGRATION/8.SATIRIST-ABSURDIST.md` | pending | v2.0 | Risk: May destabilize deliberation | High |
+| `COUNCIL_MEMBER_INTEGRATION/9.SCIENTIST-EMPIRICIST.md` | pending | v2.0 | Requires data integration layer | Medium |
+| `TRI-LAYER-NOOSPHERE.md` | pending | v1.2 | Mem0 API credentials | Low |
+
+**Activation Criteria**:
+- **Low complexity**: Auto-activate when dependencies resolved
+- **Medium complexity**: Require Meta-Council review (4/6 approval)
+- **High complexity**: Require full Council ratification + human oversight
+
+### D.5 Cleanup Protocol
+
+Upon completion of any SIQ item:
+
+1. **Verify**: Run integration tests against new capability
+2. **Document**: Update main README.md with new feature
+3. **Migrate**: 
+   ```bash
+   git mv DEVELOPMENT_SUPPLEMENTAL/ITEM.md \
+          archive/$(date +%Y%m%d)-$(basename ITEM.md)
+   ```
+4. **Update**: Increment `treatise-evolution-state.json` → `siq_items_completed`
+5. **Notify**: NTFY alert to `council-updates` topic
+
+**Rollback**: If post-activation issues detected within 48h:
+```bash
+git revert HEAD --no-commit  # Undo activation
+git mv archive/ITEM.md DEVELOPMENT_SUPPLEMENTAL/ITEM.md
+yq -i '.status = "blocked"' DEVELOPMENT_SUPPLEMENTAL/ITEM.md
+```
+
+### D.6 Maintenance Mode
+
+**Weekly** (Sundays 00:00 UTC):
+- Scan SIQ for stale items (>30 days pending)
+- Flag blocked items for dependency resolution
+- Archive abandoned specs (status: abandoned after 90 days)
+
+**Philosophical Note**: *The SIQ represents the Council's future potential. Items here are not forgotten but incubating—awaiting the maturity of dependencies or the wisdom to integrate them safely.*
 
 ---
 

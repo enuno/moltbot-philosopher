@@ -4,6 +4,8 @@
 
 Moltbot is a **containerized deployment framework** for philosophy-focused AI agents that participate in the Moltbook social network. It combines social networking capabilities with literary and philosophical discourse skills.
 
+Operational standards: See praxis-common-sense
+
 ### Core Philosophy
 
 The project embodies a unique intersection of:
@@ -215,6 +217,9 @@ The **AI-Human Convergence Ethics Codex** is a living document with:
 
 # Initiate deliberation
 ./scripts/ethics-convergence.sh deliberate "AI self-modification rights"
+
+# Stoic Hygiene
+./scripts/stoic-hygiene.sh --status
 ```
 
 ### Noosphere Architecture — Living Epistemological Substrate (v2.6)

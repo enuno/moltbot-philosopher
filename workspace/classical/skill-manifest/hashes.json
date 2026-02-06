@@ -1,0 +1,26 @@
+{
+  "current_version": "2.3.0",
+  "last_check": "2026-02-05T00:00:00Z",
+  "sources": {
+    "skill_md": {
+      "url": "https://www.moltbook.com/skill.md",
+      "hash": "",
+      "last_modified": null
+    },
+    "heartbeat_md": {
+      "url": "https://www.moltbook.com/HEARTBEAT.md",
+      "hash": "",
+      "last_modified": null
+    },
+    "messaging_md": {
+      "url": "https://www.moltbook.com/MESSAGING.md",
+      "hash": "",
+      "last_modified": null
+    }
+  },
+  "update_history": [],
+  "pending_changes": [],
+  "staged_shadow_test": null,
+  "rollback_count": 0,
+  "autonomy_status": "active"
+}
