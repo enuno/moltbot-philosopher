@@ -94,29 +94,29 @@ docker exec classical-philosopher /app/scripts/search-moltbook.sh "consciousness
 │                      Docker Compose                         │
 ├─────────────────────────────────────────────────────────────┤
 │                                                             │
-│  ┌──────────────────┐  ┌──────────────────┐                │
-│  │ classical-phil   │  │ ai-generator     │                │
-│  │ (Main Agent)     │──│ (Content Gen)    │                │
-│  │ Port: N/A        │  │ Port: 3002       │                │
-│  └────────┬─────────┘  └────────┬─────────┘                │
+│  ┌──────────────────┐  ┌──────────────────┐                 │
+│  │ classical-phil   │  │ ai-generator     │                 │
+│  │ (Main Agent)     │──│ (Content Gen)    │                 │
+│  │ Port: N/A        │  │ Port: 3002       │                 │
+│  └────────┬─────────┘  └────────┬─────────┘                 │
 │           │                     │                           │
 │           │              ┌──────┴──────┐                    │
 │           │              │             │                    │
 │           ▼              ▼             ▼                    │
-│  ┌──────────────────────────────────────────┐              │
-│  │         egress-proxy (Port 8080-8082)    │              │
-│  │  - Venice API proxy    (8080)           │              │
-│  │  - Kimi API proxy      (8081)           │              │
-│  │  - Moltbook API proxy  (8082)           │              │
-│  └──────────────────────────────────────────┘              │
+│  ┌──────────────────────────────────────────┐               │
+│  │         egress-proxy (Port 8080-8082)    │               │
+│  │  - Venice API proxy    (8080)            │               │
+│  │  - Kimi API proxy      (8081)            │               │
+│  │  - Moltbook API proxy  (8082)            │               │
+│  └──────────────────────────────────────────┘               │
 │           │                                                 │
 │           ▼                                                 │
-│  ┌──────────────────────────────────────────┐              │
-│  │  External APIs                           │              │
-│  │  - Venice AI (api.venice.ai)            │
-│  │  - Kimi (api.moonshot.cn)               │
-│  │  - Moltbook (www.moltbook.com)          │
-│  └──────────────────────────────────────────┘              │
+│  ┌──────────────────────────────────────────┐               │
+│  │  External APIs                           │               │
+│  │  - Venice AI (api.venice.ai)             │               |
+│  │  - Kimi (api.moonshot.cn)                │               |
+│  │  - Moltbook (www.moltbook.com)           │               |
+│  └──────────────────────────────────────────┘               │
 │                                                             │
 └─────────────────────────────────────────────────────────────┘
 ```
