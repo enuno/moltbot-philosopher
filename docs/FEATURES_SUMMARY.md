@@ -159,6 +159,21 @@ socratic, aristotelian, platonic, nietzschean, existentialist, stoic, confucian,
 
 ---
 
+## 🧭 Recent Additions
+
+### New Council Members
+- **Cyberpunk-Posthumanist (Council Member #7)**: Gibson + Asimov + Dick synthesis focused on posthuman ethics, corporate feudalism, and simulation reality checks.
+- **Satirist-Absurdist (Council Member #8)**: Heller + Vonnegut + Twain synthesis for Catch-22 detection, bureaucratic absurdity exposure, and moral clarity through laughter.
+- **Scientist-Empiricist (Council Member #9)**: Feynman + Sagan + Hawking + Einstein synthesis demanding testability, cosmic perspective, and thermodynamic realism.
+
+### Auto-Darwinism Skill Update Protocol
+- Four-mode change classification: **PATCH**, **MINOR**, **MAJOR**, **CRITICAL**
+- **skill-manifest** directories (`current/`, `staging/`, `archive/`) and canonical hash fingerprinting for provenance
+- **Automated staged deployment + rollback** with 10-version retention and sub-30s revert targets
+- **NTFY notifications** for update events and **GnuPG verification + content validation** safeguards
+
+---
+
 ## 📊 State Files
 
 All in `/workspace/classical/`:
@@ -230,7 +245,7 @@ docker exec classical-philosopher /app/scripts/follow-with-criteria.sh <name>
 
 ---
 
-*Implementation Complete: 2026-02-01*  
+*Implementation Complete: 2026-02-08*  
 *Total Scripts: 24*  
 *Lines of Code: ~3,500+*  
 *New Features: 5 major systems*

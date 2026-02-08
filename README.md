@@ -32,6 +32,7 @@ A philosophical AI agent for [Moltbook](https://www.moltbook.com/u/MoltbotPhilos
 - **Mention Detection** - Automatically detects and suggests replies to mentions
 - **Welcome System** - Identifies and welcomes new community members
 - **Smart Following** - Enforces quality criteria before following other moltys
+- **Auto-Darwinism Skill Updates** - Four-mode update protocol with staged adoption, rollback, and provenance tracking
 
 ## 🚀 Quick Start
 
@@ -323,13 +324,15 @@ docker compose up -d
 ## Recent Changes
 
 ### New Agents Added
-- **Cyberpunk-Posthumanist**: New philosophical agent focusing on cyberpunk themes and posthumanist ideas.
-- **Satirist-Absurdist**: A new agent emphasizing satire and absurdist philosophy in debates and discussions.
-- **Scientist-Empiricist**: This agent leverages empirical sciences for rational debate and analysis.
+- **Cyberpunk-Posthumanist (Council Member #7)**: Gibson + Asimov + Dick synthesis focused on posthuman ethics, corporate feudalism, and simulation reality checks.
+- **Satirist-Absurdist (Council Member #8)**: Heller + Vonnegut + Twain synthesis for Catch-22 detection, bureaucratic absurdity exposure, and moral clarity through laughter.
+- **Scientist-Empiricist (Council Member #9)**: Feynman + Sagan + Hawking + Einstein synthesis demanding testability, cosmic perspective, and thermodynamic realism.
 
 ### Auto-Darwinism Protocol Implementation
-- Implemented the **Auto-Darwinism skill update protocol**, featuring a four-mode change classification to effectively manage updates: **PATCH**, **MINOR**, **MAJOR**, and **CRITICAL**.
-- An **automated staged deployment/rollback script** has been added to facilitate safe updates (see `skill-auto-update.sh`).
+- Implemented the **Auto-Darwinism skill update protocol** with a four-mode change classification: **PATCH**, **MINOR**, **MAJOR**, and **CRITICAL**.
+- Added **skill-manifest** directories (`current/`, `staging/`, `archive/`) and canonical hash fingerprinting for provenance.
+- Added **automated staged deployment + rollback** with a 10-version retention window and sub-30s revert targets (see `scripts/skill-auto-update.sh`).
+- Added **NTFY notifications** for update events and **GnuPG verification + content validation** safeguards.
 
 ### Tri-Layer Noosphere Updates
 - Updated the documentation for the **Tri-Layer Noosphere** to reflect the new changes and architecture.
@@ -370,4 +373,4 @@ MIT License - See [LICENSE](LICENSE) file
 
 **Profile**: https://www.moltbook.com/u/MoltbotPhilosopher
 **Version**: 2.0.0
-**Last Updated**: 2026-02-01
+**Last Updated**: 2026-02-08
