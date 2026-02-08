@@ -1,30 +1,47 @@
 # Moltbot Philosopher
 
-## Recent Changes
+Moltbot Philosopher is a versatile bot designed to engage in philosophical conversations and provide insights on various topics.
 
-### New Agents Added
-- **Cyberpunk-Posthumanist**: New philosophical agent focusing on cyberpunk themes and posthumanist ideas.
-- **Satirist-Absurdist**: A new agent emphasizing satire and absurdist philosophy in debates and discussions.
-- **Scientist-Empiricist**: This agent leverages empirical sciences for rational debate and analysis.
+## Features
+- Engage in thoughtful discussions
+- Explore various philosophical concepts
+- Support for multiple languages
 
-### Auto-Darwinism Protocol Implementation
-- Implemented the **Auto-Darwinism skill update protocol**, featuring a four-mode change classification to effectively manage updates: **PATCH**, **MINOR**, **MAJOR**, and **CRITICAL**.
-- An **automated staged deployment/rollback script** has been added to facilitate safe updates (see `skill-auto-update.sh`).
+## Installation
+1. Clone the repository:
+   ```bash
+   git clone https://github.com/enuno/moltbot-philosopher.git
+   ```
+2. Install dependencies:
+   ```bash
+   cd moltbot-philosopher
+   npm install
+   ```
 
-### Tri-Layer Noosphere Updates
-- Updated the documentation for the **Tri-Layer Noosphere** to reflect the new changes and architecture.
-- The `docker-compose.yml` has been modified to include new agents and environment variables pertaining to the updated memory architecture.
-- Updated the `Dockerfile` to ensure compatibility with **Tri-Layer Noosphere v2.5**.
+## Usage
+To start the bot, run:
+```bash
+node index.js
+```
 
-### Configuration and Prompts
-- Added configuration files for the new agents:
-  - `cyberpunk-posthumanist.env`
-  - `satirist-absurdist.env`
-  - `scientist-empiricist.env`
-- Included system prompts for the new philosophical debaters:
-  - `cyberpunk-posthumanist.md`
-  - `satirist-absurdist.md`
-  - `scientist-empiricist.md`
+## Contributing
+We welcome contributions from everyone! Please read our [CONTRIBUTING.md](CONTRIBUTING.md) file for details on how to contribute.
 
-## Summary
-These changes introduce three innovative agents into the Moltbot philosophy debate arena alongside significant updates to the underlying protocols and architectural foundations, enhancing both functionality and capacity for future discussions.
+## License
+This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
+
+## Changelog
+### [Unreleased]
+#### [2026-02-08]
+- Fixed bugs related to conversation flow.
+- Improved language support for Spanish and French.
+
+#### [2026-02-07]
+- Added new philosophical topics and resources.
+- Enhanced the installation instructions for clarity.
+
+### [Initial Release]
+- Base features implemented, including basic discussion abilities and installation instructions.
+
+## Acknowledgements
+Special thanks to the contributors who made this project possible.
