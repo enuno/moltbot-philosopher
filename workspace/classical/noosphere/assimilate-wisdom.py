@@ -6,12 +6,11 @@ Community Wisdom Assimilation Pipeline - Extracts heuristics from approved dropb
 import argparse
 import hashlib
 import json
-import os
 import re
 import sys
 from datetime import datetime
 from pathlib import Path
-from typing import Dict, List, Optional
+from typing import Any, Dict, List, Optional
 
 NOOSPHERE_DIR = Path("/workspace/classical/noosphere")
 DROPBOX_DIR = Path("/workspace/classical/dropbox")
@@ -91,7 +90,7 @@ def load_submission(path: Path) -> Optional[Dict]:
                                 value.strip().strip('"').strip("'")
                             )
                     body = parts[2].strip()
-                except:
+                except (ValueError, IndexError):
                     body = content
 
         return {
@@ -163,7 +162,7 @@ def consistent_with_treatise(principle: str) -> bool:
 
 def validate_against_heuristic_corpus(
     principle: str, heuristic_corpus: List[Dict]
-) -> Dict[str, any]:
+) -> Dict[str, Any]:
     """Check if principle contradicts or duplicates existing heuristics.
 
     Returns validation dict with:
@@ -199,8 +198,9 @@ def validate_against_heuristic_corpus(
                 )
 
         # Check explicit contradictions field
-        if h.get("heuristic_id") in principle_lower:
-            validation["contradicts"].append(h.get("heuristic_id"))
+        hid = h.get("heuristic_id")
+        if hid and isinstance(hid, str) and hid in principle_lower:
+            validation["contradicts"].append(hid)
 
     if not validation["is_novel"] and len(validation["similar_to"]) > 0:
         best_match = max(validation["similar_to"], key=lambda x: x["similarity"])
@@ -226,9 +226,9 @@ def save_heuristics_to_memory(
     if not heuristics:
         return True
 
-    output_dir = Path(output_dir or NOOSPHERE_DIR / "memory-core")
-    if not output_dir.exists():
-        print(f"ERROR: Output directory not found: {output_dir}", file=sys.stderr)
+    output_path = Path(output_dir) if output_dir else NOOSPHERE_DIR / "memory-core"
+    if not output_path.exists():
+        print(f"ERROR: Output directory not found: {output_path}", file=sys.stderr)
         return False
 
     # Map voices to files
@@ -255,7 +255,7 @@ def save_heuristics_to_memory(
             print(f"WARNING: No file mapping for voice '{voice}'", file=sys.stderr)
             continue
 
-        file_path = output_dir / voice_files[voice]
+        file_path = output_path / voice_files[voice]
 
         # Load existing heuristics
         try:

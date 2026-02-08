@@ -10,9 +10,9 @@ import argparse
 import json
 import logging
 import sys
-from datetime import datetime, timedelta
+from datetime import datetime
 from pathlib import Path
-from typing import Dict, List, Optional
+from typing import Dict
 
 NOOSPHERE_DIR = Path("/workspace/classical/noosphere")
 
@@ -301,7 +301,7 @@ class MemoryCycle:
                             if h.get("status") == "community-derived"
                         ]
                     )
-            except:
+            except (FileNotFoundError, json.JSONDecodeError):
                 pass
 
         stats = {
@@ -373,7 +373,7 @@ class MemoryCycle:
                             data.get("heuristics", data.get("moloch_types", []))
                         )
                         voices[voice] = count
-            except:
+            except (FileNotFoundError, json.JSONDecodeError):
                 voices[voice] = 0
 
         return voices

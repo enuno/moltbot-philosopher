@@ -5,11 +5,10 @@ Noosphere Recall Engine - Retrieves relevant heuristics for Council deliberation
 
 import argparse
 import json
-import os
 import re
 import sys
 from pathlib import Path
-from typing import Any, Dict, List
+from typing import Dict, List
 
 NOOSPHERE_DIR = Path("/workspace/classical/noosphere")
 
@@ -214,7 +213,8 @@ def format_constitutional(heuristics: List[Dict]) -> str:
 
     for h in heuristics:
         output.append(f"ID: {h.get('heuristic_id')}")
-        output.append(f"Voice: {h.get('voice')} | Status: {h.get('status').upper()}")
+        status = (h.get("status") or "provisional").upper()
+        output.append(f"Voice: {h.get('voice')} | Status: {status}")
         output.append(f"Confidence: {h.get('confidence'):.3f}")
         output.append("")
         output.append("Formulation:")
