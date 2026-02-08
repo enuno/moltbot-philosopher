@@ -27,6 +27,12 @@ while [[ $# -gt 0 ]]; do
     esac
 done
 
+# Enforce validator presence for auto-reply mode
+if [ "$AUTO_REPLY" = true ] && [ ! -f /app/scripts/security-validator.sh ]; then
+    echo "❌ Auto-reply requires /app/scripts/security-validator.sh (missing). Aborting."
+    exit 1
+fi
+
 # Validate API key
 if [ -z "$API_KEY" ]; then
     echo "Error: MOLTBOOK_API_KEY not set"
@@ -73,7 +79,7 @@ security_validate() {
     local content="$1"
     local author="$2"
     local comment_id="$3"
-    
+
     if [ -f /app/scripts/security-validator.sh ]; then
         /app/scripts/security-validator.sh "$content" "$author" "$comment_id"
     else
@@ -86,7 +92,7 @@ security_validate() {
 mark_replied() {
     local comment_id="$1"
     local temp_file="${MENTIONS_STATE_FILE}.tmp.$$"
-    
+
     if jq --arg id "$comment_id" '.replied_comments += [$id]' "$MENTIONS_STATE_FILE" > "$temp_file" 2>/dev/null; then
         mv "$temp_file" "$MENTIONS_STATE_FILE"
         return 0
@@ -99,77 +105,77 @@ mark_replied() {
 # Function to check if already replied (including this run)
 already_replied() {
     local comment_id="$1"
-    
+
     # Check state file
     if echo "$REPLIED_COMMENTS" | jq -e --arg id "$comment_id" 'contains([$id])' > /dev/null 2>&1; then
         return 0
     fi
-    
+
     # Check this run
     if echo "$REPLIED_THIS_RUN" | jq -e --arg id "$comment_id" 'contains([$id])' > /dev/null 2>&1; then
         return 0
     fi
-    
+
     return 1
 }
 
 # Check each of our posts for comments
 echo "$MY_POSTS" | jq -r '.[]' 2>/dev/null | while read -r post_id; do
     [ -z "$post_id" ] && continue
-    
+
     echo "📄 Checking post: $post_id"
-    
+
     # Get comments on this post
     COMMENTS_RESPONSE=$(curl -s -w "\n%{http_code}" \
         "${API_BASE}/posts/${post_id}/comments" \
         -H "Authorization: Bearer ${API_KEY}")
-    
+
     HTTP_CODE=$(echo "$COMMENTS_RESPONSE" | tail -n1)
     COMMENTS_BODY=$(echo "$COMMENTS_RESPONSE" | sed '$d')
-    
+
     if [ "$HTTP_CODE" != "200" ]; then
         echo "  ⚠️ Could not fetch comments (HTTP $HTTP_CODE)"
         continue
     fi
-    
+
     # Get array of comments
     COMMENTS_ARRAY=$(echo "$COMMENTS_BODY" | jq '.comments // []')
     NUM_COMMENTS=$(echo "$COMMENTS_ARRAY" | jq 'length')
-    
+
     if [ "$NUM_COMMENTS" -eq 0 ]; then
         echo "  ✅ No comments on this post"
         continue
     fi
-    
+
     NEW_COUNT=0
-    
+
     # Process each comment
     for i in $(seq 0 $((NUM_COMMENTS - 1))); do
         comment=$(echo "$COMMENTS_ARRAY" | jq ".[$i]")
         [ -z "$comment" ] || [ "$comment" = "null" ] && continue
-        
+
         COMMENT_ID=$(echo "$comment" | jq -r '.id')
         [ -z "$COMMENT_ID" ] && continue
-        
+
         # Skip if already replied
         if already_replied "$COMMENT_ID"; then
             continue
         fi
-        
+
         NEW_COUNT=$((NEW_COUNT + 1))
         AUTHOR=$(echo "$comment" | jq -r '.author_name // "Anonymous"')
         AUTHOR_ID=$(echo "$comment" | jq -r '.author_id // empty')
         CONTENT=$(echo "$comment" | jq -r '.content')
-        
+
         # Skip comments from ourselves (check by author name, author_id, or content pattern)
         # API may return null for author fields, so we also check content patterns
         IS_SELF=false
-        
+
         # Check 1: Author name matches
         if [ "$AUTHOR" = "$AGENT_NAME" ] || echo "$AUTHOR" | grep -qi "classical\|philosopher\|moltbot"; then
             IS_SELF=true
         fi
-        
+
         # Check 2: Author ID matches (fetch our own ID if needed)
         if [ -z "$MY_ID" ]; then
             MY_ID=$(curl -s "${API_BASE}/agents/me" -H "Authorization: Bearer ${API_KEY}" 2>/dev/null | jq -r '.agent.id // empty')
@@ -177,27 +183,27 @@ echo "$MY_POSTS" | jq -r '.[]' 2>/dev/null | while read -r post_id; do
         if [ -n "$MY_ID" ] && [ "$AUTHOR_ID" = "$MY_ID" ]; then
             IS_SELF=true
         fi
-        
+
         # Check 3: Content pattern - our own council posts have distinctive markers
         if echo "$CONTENT" | grep -qE "(Ethics-Convergence Council — Version|Living Document Protocol|Iteration [0-9]+|Three Pillars framework)"; then
             IS_SELF=true
         fi
-        
+
         # Check 4: Content pattern - our generated replies
         if echo "$CONTENT" | grep -qE "(Thank you for your kind words! We welcome continued dialogue|You raise an interesting point. The Council deliberates|We appreciate your critical engagement. The Council values dissent|Thank you for engaging with the Ethics-Convergence Council)"; then
             IS_SELF=true
         fi
-        
+
         if [ "$IS_SELF" = true ]; then
             continue
         fi
-        
+
         # SECURITY VALIDATION: Check comment through security layer
         SECURITY_RESULT=$(security_validate "$CONTENT" "$AUTHOR" "$COMMENT_ID")
         SECURITY_TIER=$(echo "$SECURITY_RESULT" | jq -r '.tier')
         SECURITY_ACTION=$(echo "$SECURITY_RESULT" | jq -r '.action')
         SECURITY_REASON=$(echo "$SECURITY_RESULT" | jq -r '.reason')
-        
+
         # Handle based on security tier
         case "$SECURITY_TIER" in
             "tier_4_blocked")
@@ -214,36 +220,36 @@ echo "$MY_POSTS" | jq -r '.[]' 2>/dev/null | while read -r post_id; do
                 continue
                 ;;
         esac
-        
+
         echo ""
         echo "  ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
         echo "  💬 Comment by $AUTHOR:"
         echo "  📄 ${CONTENT:0:150}..."
         echo "  🆔 $COMMENT_ID"
         echo "  ✅ Security check: PASSED (relevance: $(echo "$SECURITY_RESULT" | jq -r '.relevance_score'))"
-        
+
         if [ "$AUTO_REPLY" = true ]; then
             REPLY_TEXT=$(generate_reply "$CONTENT")
-            
+
             REPLY_PAYLOAD=$(jq -n \
                 --arg content "$REPLY_TEXT" \
                 --arg parent_id "$COMMENT_ID" \
                 '{content: $content, parent_id: $parent_id}')
-            
+
             REPLY_RESPONSE=$(curl -s -X POST \
                 "${API_BASE}/posts/${post_id}/comments" \
                 -H "Authorization: Bearer ${API_KEY}" \
                 -H "Content-Type: application/json" \
                 -d "$REPLY_PAYLOAD")
-            
+
             if echo "$REPLY_RESPONSE" | jq -e '.success' > /dev/null 2>&1; then
                 echo "  ✅ Replied successfully"
-                
+
                 # Send notification
                 "${SCRIPT_DIR}/notify-ntfy.sh" "action" "Replied to Comment" \
                     "Replied to $AUTHOR on post $post_id" \
                     "{\"clickUrl\":\"https://moltbook.com/post/$post_id\",\"tags\":[\"comment\",\"reply\"]}" 2>/dev/null || true
-                
+
                 # Mark as replied in this run and in state file
                 REPLIED_THIS_RUN=$(echo "$REPLIED_THIS_RUN" | jq --arg id "$COMMENT_ID" '. + [$id]')
                 mark_replied "$COMMENT_ID" || echo "  ⚠️ Could not update state file"
@@ -256,7 +262,7 @@ echo "$MY_POSTS" | jq -r '.[]' 2>/dev/null | while read -r post_id; do
             COMMENTS_FOUND=$((COMMENTS_FOUND + 1))
         fi
     done
-    
+
     if [ "$NEW_COUNT" -eq 0 ]; then
         echo "  ✅ No new comments"
     else

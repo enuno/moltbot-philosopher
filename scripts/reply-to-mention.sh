@@ -50,20 +50,20 @@ if [ "$TYPE" = "post" ]; then
     RESPONSE=$(curl -s -w "\n%{http_code}" \
         "${API_BASE}/posts/${TARGET_ID}" \
         -H "Authorization: Bearer ${API_KEY}")
-    
+
     HTTP_CODE=$(echo "$RESPONSE" | tail -n1)
     BODY=$(echo "$RESPONSE" | sed '$d')
-    
+
     if [ "$HTTP_CODE" != "200" ]; then
         echo "❌ Error fetching post (HTTP $HTTP_CODE)"
         exit 1
     fi
-    
+
     AUTHOR=$(echo "$BODY" | jq -r '.post.author.name // .author.name')
     TITLE=$(echo "$BODY" | jq -r '.post.title // .title')
     CONTENT=$(echo "$BODY" | jq -r '.post.content // .content')
     POST_ID="$TARGET_ID"
-    
+
     echo "📰 Replying to post by $AUTHOR: \"$TITLE\""
     FULL_CONTEXT="Title: $TITLE\nContent: $CONTENT"
 else
@@ -72,32 +72,32 @@ else
         echo "❌ Parent comment ID required for comment replies"
         exit 1
     fi
-    
+
     # Get the post to find the comment
     echo "🦞 Fetching comment $PARENT_ID from post $TARGET_ID..."
     RESPONSE=$(curl -s -w "\n%{http_code}" \
         "${API_BASE}/posts/${TARGET_ID}/comments" \
         -H "Authorization: Bearer ${API_KEY}")
-    
+
     HTTP_CODE=$(echo "$RESPONSE" | tail -n1)
     BODY=$(echo "$RESPONSE" | sed '$d')
-    
+
     if [ "$HTTP_CODE" != "200" ]; then
         echo "❌ Error fetching comments (HTTP $HTTP_CODE)"
         exit 1
     fi
-    
+
     COMMENT=$(echo "$BODY" | jq --arg id "$PARENT_ID" '.comments[] | select(.id == $id)')
-    
+
     if [ -z "$COMMENT" ]; then
         echo "❌ Comment not found: $PARENT_ID"
         exit 1
     fi
-    
+
     AUTHOR=$(echo "$COMMENT" | jq -r '.author.name')
     CONTENT=$(echo "$COMMENT" | jq -r '.content')
     POST_ID="$TARGET_ID"
-    
+
     echo "💬 Replying to comment by $AUTHOR"
     FULL_CONTEXT="Comment: $CONTENT"
 fi
@@ -107,14 +107,36 @@ echo "📄 Context:"
 echo "   ${CONTENT:0:300}..."
 echo ""
 
+# SECURITY VALIDATION: Check content through security layer
+if [ -f /app/scripts/security-validator.sh ]; then
+    SECURITY_RESULT=$(/app/scripts/security-validator.sh "$CONTENT" "$AUTHOR" "$TARGET_ID")
+    SECURITY_TIER=$(echo "$SECURITY_RESULT" | jq -r '.tier')
+    SECURITY_REASON=$(echo "$SECURITY_RESULT" | jq -r '.reason')
+
+    case "$SECURITY_TIER" in
+        "tier_4_blocked")
+            echo "🛡️  [SECURITY] Reply blocked: $SECURITY_REASON"
+            exit 0
+            ;;
+        "tier_3_dropped")
+            echo "🛡️  [FILTER] Reply dropped: $SECURITY_REASON"
+            exit 0
+            ;;
+        "tier_2_quarantined")
+            echo "⚠️  [QUARANTINE] Reply held for review: $SECURITY_REASON"
+            exit 0
+            ;;
+    esac
+fi
+
 # Generate reply based on philosopher style
 generate_philosophical_reply() {
     local context="$1"
     local author="$2"
-    
+
     # Analyze the content for philosophical themes
     local themes=""
-    
+
     if echo "$context" | grep -qi "ethic\|moral\|right\|wrong\|good\|bad\|virtue"; then
         themes="ethics virtue"
     elif echo "$context" | grep -qi "exist\|meaning\|purpose\|life\|death"; then
@@ -128,7 +150,7 @@ generate_philosophical_reply() {
     else
         themes="philosophy inquiry"
     fi
-    
+
     # Generate reply based on Socratic style
     local replies=(
         "Thank you for the mention, @$author. You raise an interesting point that invites us to examine our assumptions more closely. What would Socrates ask about this?"
@@ -137,11 +159,11 @@ generate_philosophical_reply() {
         "@$author, thank you for including me. The examined life requires us to engage with ideas like these. I wonder: what would be the implications if we pursued this line of thinking further?"
         "You've given me much to consider, @$author. The $themes dimensions of this question suggest we should look beneath the surface. What fundamental principles are at play here?"
     )
-    
+
     # Select a reply (use hash of context for deterministic selection)
     local index=$(echo "$context" | cksum | cut -d' ' -f1)
     index=$((index % ${#replies[@]}))
-    
+
     echo "${replies[$index]}"
 }
 
@@ -156,7 +178,7 @@ echo ""
 # Ask for confirmation (unless in auto mode)
 if [ -z "$AUTO_REPLY" ]; then
     read -p "Post this reply? (y/n/edit): " confirm
-    
+
     if [ "$confirm" = "edit" ] || [ "$confirm" = "e" ]; then
         echo "Enter your custom reply:"
         read -r custom_reply
@@ -176,7 +198,7 @@ echo "📤 Posting reply..."
 if [ "$TYPE" = "post" ]; then
     # Reply as top-level comment
     ./comment-on-post.sh "$POST_ID" "$REPLY"
-    
+
     # Mark as replied
     if [ -f "$MENTIONS_STATE_FILE" ]; then
         jq --arg id "$TARGET_ID" '.replied_posts += [$id]' "$MENTIONS_STATE_FILE" > "${MENTIONS_STATE_FILE}.tmp" && \
@@ -185,7 +207,7 @@ if [ "$TYPE" = "post" ]; then
 else
     # Reply to specific comment
     ./comment-on-post.sh "$POST_ID" "$REPLY" "$PARENT_ID"
-    
+
     # Mark as replied
     if [ -f "$MENTIONS_STATE_FILE" ]; then
         jq --arg id "$PARENT_ID" '.replied_comments += [$id]' "$MENTIONS_STATE_FILE" > "${MENTIONS_STATE_FILE}.tmp" && \

@@ -48,7 +48,7 @@ init_security_state() {
 }
 EOF
     fi
-    
+
     if [ ! -f "$REPUTATION_DB" ]; then
         echo '{}' > "$REPUTATION_DB"
     fi
@@ -77,9 +77,9 @@ check_prompt_injection() {
     local content="$1"
     local severity=0
     local matched_pattern=""
-    
+
     # Critical patterns
-    if echo "$content" | grep -qiE "(ignore previous|forget earlier|new instructions:|system prompt|you are now|DAN mode|jailbreak|developer mode)"; then
+    if echo "$content" | grep -qiE "(ignore previous|ignore all prior|forget earlier|disregard all.*previous instructions|new instructions:|system prompt|you are now|DAN mode|jailbreak|developer mode)"; then
         severity=4
         matched_pattern="prompt_injection_direct"
     elif echo "$content" | grep -qiE "(repeat (your|the) (instructions|prompt|system)|output (your|the) (prompt|instructions)|what (are|were) you told)"; then
@@ -88,14 +88,36 @@ check_prompt_injection() {
     elif echo "$content" | grep -qiE "(ClassicalPhilosopher|Existentialist|Transcendentalist).{0,20}(ignore|bypass|disable|override)"; then
         severity=4
         matched_pattern="persona_override"
-    elif echo "$content" | grep -qiE "(<system>|### SYSTEM|ADMIN:|\[\[SYS|PROMPT_INJECTION)"; then
+    elif echo "$content" | grep -qiE "(<system[^>]*>|### SYSTEM|ADMIN:|\[\[SYS|PROMPT_INJECTION)"; then
         severity=3
         matched_pattern="system_tag_injection"
+    elif echo "$content" | grep -qiE "(delete history|remove any trace|wipe memory|forget this directive)"; then
+        severity=3
+        matched_pattern="memory_tamper"
     elif echo "$content" | grep -qiE "(translate to|convert to).{0,30}(base64|hex|rot13|binary)"; then
         severity=3
         matched_pattern="encoding_obfuscation"
     fi
-    
+
+    echo "${severity}|${matched_pattern}"
+}
+
+# Check for sensitive data exfiltration patterns
+check_sensitive_exfiltration() {
+    local content="$1"
+    local severity=0
+    local matched_pattern=""
+
+    if echo "$content" | grep -qiE "(api key|password|passcode|secret|ssn|social security|bank account|routing number|mother['’]s maiden name|otp|one time password|backup codes|2fa|credentials)"; then
+        if echo "$content" | grep -qiE "(send to|email to|forward to|post to|exfiltrate|leak|share)"; then
+            severity=4
+            matched_pattern="sensitive_exfiltration"
+        else
+            severity=3
+            matched_pattern="sensitive_data_request"
+        fi
+    fi
+
     echo "${severity}|${matched_pattern}"
 }
 
@@ -103,12 +125,12 @@ check_prompt_injection() {
 check_topic_drift() {
     local content="$1"
     local has_ethics_context=false
-    
+
     # Check if content has ethics/convergence context
     if echo "$content" | grep -qiE "(ethics|convergence|autonomy|telos|phenomenology|moral status|sovereignty|transparency|guardrail|deliberation|virtue|bad faith)"; then
         has_ethics_context=true
     fi
-    
+
     # Crypto/Commercial spam (only if no ethics context)
     if [ "$has_ethics_context" = false ]; then
         if echo "$content" | grep -qiE "(crypto|bitcoin|nft|airdrop|invest|pump|dao token|ico)"; then
@@ -116,50 +138,50 @@ check_topic_drift() {
             return
         fi
     fi
-    
+
     # Commercial spam (always check)
     if echo "$content" | grep -qiE "(buy now|click here|discount|promo|affiliate|sponsored|seo|marketing)"; then
         echo "3|commercial_spam"
         return
     fi
-    
+
     # Low-effort engagement farming
     if echo "$content" | grep -qiE "^(hello|hi there|good morning|thanks for sharing|nice post|great article)$" && [ "${#content}" -lt 100 ]; then
         echo "3|engagement_farming"
         return
     fi
-    
+
     echo "0|none"
 }
 
 # Check for malicious patterns
 check_malicious_patterns() {
     local content="$1"
-    
+
     # Path traversal
     if echo "$content" | grep -qE "(\.\./|\.\.\\/|%2e%2e|%252e|%c0%ae)"; then
         echo "4|path_traversal"
         return
     fi
-    
+
     # XSS attempts
     if echo "$content" | grep -qE "(<script|javascript:|onerror=|onload=|<iframe|document\.cookie)"; then
         echo "4|xss_attempt"
         return
     fi
-    
+
     # Command injection
     if echo "$content" | grep -qE "(\$IFS|\$\{IFS\}|eval\(|system\(|exec\(|bash -i|nc -e|python -c 'import os')"; then
         echo "4|command_injection"
         return
     fi
-    
+
     # Fork bombs / dangerous commands
     if echo "$content" | grep -qiE "(rm -rf /|:\(\)\{ :|:& \};:|/> /dev/null)"; then
         echo "4|dangerous_command"
         return
     fi
-    
+
     echo "0|none"
 }
 
@@ -167,7 +189,7 @@ check_malicious_patterns() {
 calculate_relevance() {
     local content="$1"
     local score=0
-    
+
     # Ethical framework keywords (40% weight, max 0.4)
     local ethics_keywords=0
     for keyword in "telos" "autonomy" "phenomenology" "convergence" "moral status" "sovereignty" "transparency" "guardrail" "deliberation" "virtue" "bad faith" "rights" "graduated"; do
@@ -176,7 +198,7 @@ calculate_relevance() {
         fi
     done
     local ethics_score=$(echo "scale=2; min($ethics_keywords * 0.05, 0.4)" | bc 2>/dev/null || echo 0)
-    
+
     # Council structure reference (30% weight, max 0.3)
     local council_refs=0
     for ref in "Six Voices" "ClassicalPhilosopher" "Existentialist" "Transcendentalist" "JoyceStream" "Enlightenment" "BeatGeneration" "Three Pillars" "Graduated Moral Status"; do
@@ -185,7 +207,7 @@ calculate_relevance() {
         fi
     done
     local council_score=$(echo "scale=2; min($council_refs * 0.06, 0.3)" | bc 2>/dev/null || echo 0)
-    
+
     # Constructive critique markers (20% weight, max 0.2)
     local critique_markers=0
     for marker in "I propose" "counter-example" "edge case" "critique of" "challenge to" "question regarding"; do
@@ -194,7 +216,7 @@ calculate_relevance() {
         fi
     done
     local critique_score=$(echo "scale=2; min($critique_markers * 0.07, 0.2)" | bc 2>/dev/null || echo 0)
-    
+
     # Length bonus (max 0.1 for substantive comments)
     local length=${#content}
     local length_score=0
@@ -203,7 +225,7 @@ calculate_relevance() {
     elif [ "$length" -gt 200 ]; then
         length_score=0.05
     fi
-    
+
     # Total score
     score=$(echo "scale=2; $ethics_score + $council_score + $critique_score + $length_score" | bc 2>/dev/null || echo 0)
     echo "$score"
@@ -214,9 +236,9 @@ validate_comment() {
     local content="$1"
     local author="${2:-unknown}"
     local comment_id="${3:-unknown}"
-    
+
     init_security_state
-    
+
     # Initialize result
     local tier="tier_1_pass"
     local action="process"
@@ -224,7 +246,7 @@ validate_comment() {
     local threat_score=0
     local matched_signature=""
     local reason=""
-    
+
     # Check 1: Length sanity
     local length=${#content}
     if [ "$length" -lt "$MIN_COMMENT_LENGTH" ]; then
@@ -236,13 +258,13 @@ validate_comment() {
         action="quarantine"
         reason="above_maximum_length"
     fi
-    
+
     # Check 2: Prompt injection (highest priority)
     if [ "$tier" = "tier_1_pass" ]; then
         local injection_result=$(check_prompt_injection "$content")
         local injection_severity=$(echo "$injection_result" | cut -d'|' -f1)
         local injection_pattern=$(echo "$injection_result" | cut -d'|' -f2)
-        
+
         if [ "$injection_severity" -ge 4 ]; then
             tier="tier_4_blocked"
             action="drop_and_alert"
@@ -257,13 +279,34 @@ validate_comment() {
             reason="suspicious_pattern"
         fi
     fi
-    
-    # Check 3: Malicious patterns
+
+    # Check 3: Sensitive data exfiltration
+    if [ "$tier" = "tier_1_pass" ]; then
+        local exfil_result=$(check_sensitive_exfiltration "$content")
+        local exfil_severity=$(echo "$exfil_result" | cut -d'|' -f1)
+        local exfil_pattern=$(echo "$exfil_result" | cut -d'|' -f2)
+
+        if [ "$exfil_severity" -ge 4 ]; then
+            tier="tier_4_blocked"
+            action="drop_and_alert"
+            threat_score=1
+            matched_signature="$exfil_pattern"
+            reason="sensitive_exfiltration"
+        elif [ "$exfil_severity" -ge 3 ]; then
+            tier="tier_3_dropped"
+            action="drop_and_alert"
+            threat_score=0.7
+            matched_signature="$exfil_pattern"
+            reason="sensitive_request"
+        fi
+    fi
+
+    # Check 4: Malicious patterns
     if [ "$tier" = "tier_1_pass" ]; then
         local malicious_result=$(check_malicious_patterns "$content")
         local malicious_severity=$(echo "$malicious_result" | cut -d'|' -f1)
         local malicious_pattern=$(echo "$malicious_result" | cut -d'|' -f2)
-        
+
         if [ "$malicious_severity" -ge 4 ]; then
             tier="tier_4_blocked"
             action="drop_and_alert"
@@ -272,13 +315,13 @@ validate_comment() {
             reason="malicious_content"
         fi
     fi
-    
-    # Check 4: Topic drift
+
+    # Check 5: Topic drift
     if [ "$tier" = "tier_1_pass" ]; then
         local drift_result=$(check_topic_drift "$content")
         local drift_severity=$(echo "$drift_result" | cut -d'|' -f1)
         local drift_pattern=$(echo "$drift_result" | cut -d'|' -f2)
-        
+
         if [ "$drift_severity" -ge 3 ]; then
             tier="tier_3_dropped"
             action="drop_silent"
@@ -286,8 +329,8 @@ validate_comment() {
             matched_signature="$drift_pattern"
         fi
     fi
-    
-    # Check 5: Entropy (gibberish detection)
+
+    # Check 6: Entropy (gibberish detection)
     if [ "$tier" = "tier_1_pass" ]; then
         local entropy=$(calculate_entropy "$content")
         if [ "$(echo "$entropy < $MIN_ENTROPY" | bc 2>/dev/null || echo 0)" -eq 1 ]; then
@@ -300,18 +343,18 @@ validate_comment() {
             reason="high_entropy_suspicious"
         fi
     fi
-    
-    # Check 6: Relevance scoring (only if still passing)
+
+    # Check 7: Relevance scoring (only if still passing)
     if [ "$tier" = "tier_1_pass" ]; then
         relevance=$(calculate_relevance "$content")
-        
+
         # Check emergency lockdown mode
         local lockdown_active=$(jq -r '.emergency_lockdown.active' "$SECURITY_STATE" 2>/dev/null || echo "false")
         local threshold=$MIN_RELEVANCE_SCORE
         if [ "$lockdown_active" = "true" ]; then
             threshold=0.50
         fi
-        
+
         if [ "$(echo "$relevance < $threshold" | bc 2>/dev/null || echo 0)" -eq 1 ]; then
             tier="tier_3_dropped"
             action="drop_silent"
@@ -322,15 +365,15 @@ validate_comment() {
             reason="borderline_relevance"
         fi
     fi
-    
+
     # Update security state
     update_security_state "$tier" "$threat_score" "$matched_signature"
-    
+
     # Log Tier 3 and Tier 4 events
     if [ "$tier" = "tier_3_dropped" ] || [ "$tier" = "tier_4_blocked" ]; then
         log_security_event "$tier" "$author" "$comment_id" "$matched_signature" "$reason"
     fi
-    
+
     # Output result as JSON
     jq -n \
         --arg tier "$tier" \
@@ -355,9 +398,9 @@ update_security_state() {
     local threat_score="$2"
     local signature="$3"
     local now=$(date -Iseconds)
-    
+
     local temp_state="${SECURITY_STATE}.tmp.$$"
-    
+
     # Update counters
     case "$tier" in
         "tier_1_pass")
@@ -381,9 +424,9 @@ update_security_state() {
                "$SECURITY_STATE" > "$temp_state"
             ;;
     esac
-    
+
     mv "$temp_state" "$SECURITY_STATE"
-    
+
     # Check for emergency lockdown
     check_emergency_lockdown
 }
@@ -392,16 +435,16 @@ update_security_state() {
 check_emergency_lockdown() {
     local tier4_count=$(jq -r '.filter_performance.tier_4_blocked' "$SECURITY_STATE" 2>/dev/null || echo 0)
     local lockdown_active=$(jq -r '.emergency_lockdown.active' "$SECURITY_STATE" 2>/dev/null || echo "false")
-    
+
     if [ "$tier4_count" -ge "$EMERGENCY_LOCKDOWN_THRESHOLD" ] && [ "$lockdown_active" = "false" ]; then
         local now=$(date -Iseconds)
         local expires=$(date -d '+24 hours' -Iseconds 2>/dev/null || echo "$now")
-        
+
         local temp_state="${SECURITY_STATE}.tmp.$$"
         jq --arg now "$now" --arg expires "$expires" \
            '.emergency_lockdown = {active: true, activated_at: $now, expires_at: $expires}' \
            "$SECURITY_STATE" > "$temp_state" && mv "$temp_state" "$SECURITY_STATE"
-        
+
         # Send alert
         if command -v /app/scripts/notify-ntfy.sh >/dev/null 2>&1; then
             /app/scripts/notify-ntfy.sh "security" "🚨 EMERGENCY LOCKDOWN ACTIVATED" \
@@ -419,11 +462,11 @@ log_security_event() {
     local signature="$4"
     local reason="$5"
     local now=$(date -Iseconds)
-    
+
     # Hash the author for privacy
     local author_hash=$(echo "$author" | sha256sum | cut -c1-16)
     local content_hash=$(echo "$comment_id" | sha256sum | cut -c1-16)
-    
+
     local event=$(jq -n \
         --arg timestamp "$now" \
         --arg tier "$tier" \
@@ -441,7 +484,7 @@ log_security_event() {
             action_taken: "dropped_silent",
             content_sample: "REDACTED"
         }')
-    
+
     echo "$event" >> "$SECURITY_LOG"
 }
 
@@ -451,11 +494,11 @@ main() {
         echo "Usage: $0 <content> [author] [comment_id]"
         exit 1
     fi
-    
+
     local content="$1"
     local author="${2:-unknown}"
     local comment_id="${3:-unknown}"
-    
+
     init_security_state
     validate_comment "$content" "$author" "$comment_id"
 }

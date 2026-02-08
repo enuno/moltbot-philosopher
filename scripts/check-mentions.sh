@@ -31,6 +31,12 @@ while [[ $# -gt 0 ]]; do
     esac
 done
 
+# Enforce validator presence for auto-reply mode
+if [ "$AUTO_REPLY" = true ] && [ ! -f /app/scripts/security-validator.sh ]; then
+    echo "❌ Auto-reply requires /app/scripts/security-validator.sh (missing). Aborting."
+    exit 1
+fi
+
 # Validate API key
 if [ -z "$API_KEY" ]; then
     echo "Error: MOLTBOOK_API_KEY not set"
@@ -52,6 +58,20 @@ fi
 
 echo "🦞 Checking for mentions of $AGENT_NAME..."
 echo ""
+
+# Function to validate content through security layer
+security_validate() {
+    local content="$1"
+    local author="$2"
+    local target_id="$3"
+
+    if [ -f /app/scripts/security-validator.sh ]; then
+        /app/scripts/security-validator.sh "$content" "$author" "$target_id"
+    else
+        # Default pass if validator not available
+        echo '{"tier": "tier_1_pass", "action": "process", "relevance_score": 0.5, "threat_score": 0}'
+    fi
+}
 
 # Fetch recent posts from feed
 POSTS_RESPONSE=$(curl -s -w "\n%{http_code}" \
@@ -85,29 +105,52 @@ POST_COUNT=$(echo "$POSTS_WITH_MENTIONS" | jq 'length')
 if [ "$POST_COUNT" -gt 0 ]; then
     echo "Found $POST_COUNT new mention(s) in posts:"
     echo ""
-    
+
     echo "$POSTS_WITH_MENTIONS" | jq -c '.[]' | while read -r post; do
         POST_ID=$(echo "$post" | jq -r '.id')
         AUTHOR=$(echo "$post" | jq -r '.author.name')
         TITLE=$(echo "$post" | jq -r '.title')
         CONTENT=$(echo "$post" | jq -r '.content')
-        
+
         echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
         echo "📝 Post by $AUTHOR: \"$TITLE\""
         echo "🆔 Post ID: $POST_ID"
         echo "📄 ${CONTENT:0:200}..."
         echo ""
-        
+
+        # SECURITY VALIDATION: Check post content through security layer
+        SECURITY_RESULT=$(security_validate "$CONTENT" "$AUTHOR" "$POST_ID")
+        SECURITY_TIER=$(echo "$SECURITY_RESULT" | jq -r '.tier')
+        SECURITY_REASON=$(echo "$SECURITY_RESULT" | jq -r '.reason')
+
+        case "$SECURITY_TIER" in
+            "tier_4_blocked")
+                echo "  🛡️  [SECURITY] Post mention blocked: $SECURITY_REASON"
+                echo ""
+                continue
+                ;;
+            "tier_3_dropped")
+                echo "  🛡️  [FILTER] Post mention filtered: $SECURITY_REASON"
+                echo ""
+                continue
+                ;;
+            "tier_2_quarantined")
+                echo "  ⚠️  [QUARANTINE] Post mention held for review: $SECURITY_REASON"
+                echo ""
+                continue
+                ;;
+        esac
+
         # Extract the mention context for reply generation
         MENTION_CONTEXT=$(echo "$post" | jq -r '[.title, .content] | join(" ")')
-        
+
         # Add to pending replies
         PENDING_REPLIES=$(echo "$PENDING_REPLIES" | jq --arg id "$POST_ID" --arg author "$AUTHOR" --arg context "$MENTION_CONTEXT" --arg type "post" '
             . + [{id: $id, author: $author, context: $context, type: $type}]
         ')
-        
+
         MENTIONS_FOUND=$((MENTIONS_FOUND + 1))
-        
+
         if [ "$AUTO_REPLY" = true ]; then
             echo "🤖 Auto-replying..."
             # Generate and post reply
@@ -132,7 +175,7 @@ if [ "$(echo "$MY_POSTS" | jq 'length')" -gt 0 ]; then
     echo "$MY_POSTS" | jq -r '.[].id' | while read -r post_id; do
         # Get comments on this post
         COMMENTS=$(curl -s "${API_BASE}/posts/${post_id}/comments?sort=new" -H "Authorization: Bearer ${API_KEY}")
-        
+
         # Find comments mentioning us that we haven't replied to
         NEW_COMMENTS=$(echo "$COMMENTS" | jq --arg name "$AGENT_NAME" --argjson replied "$REPLIED_COMMENTS" '
             [.comments[] | select(
@@ -141,27 +184,50 @@ if [ "$(echo "$MY_POSTS" | jq 'length')" -gt 0 ]; then
                 .id as $id | $replied | contains([$id]) | not
             )]
         ')
-        
+
         COMMENT_COUNT=$(echo "$NEW_COMMENTS" | jq 'length')
-        
+
         if [ "$COMMENT_COUNT" -gt 0 ]; then
             echo "Found $COMMENT_COUNT mention(s) in comments on post $post_id:"
-            
+
             echo "$NEW_COMMENTS" | jq -c '.[]' | while read -r comment; do
                 COMMENT_ID=$(echo "$comment" | jq -r '.id')
                 AUTHOR=$(echo "$comment" | jq -r '.author.name')
                 CONTENT=$(echo "$comment" | jq -r '.content')
-                
+
                 echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
                 echo "💬 Comment by $AUTHOR:"
                 echo "📄 ${CONTENT:0:200}..."
                 echo "🆔 Comment ID: $COMMENT_ID"
                 echo ""
-                
+
+                # SECURITY VALIDATION: Check comment content through security layer
+                SECURITY_RESULT=$(security_validate "$CONTENT" "$AUTHOR" "$COMMENT_ID")
+                SECURITY_TIER=$(echo "$SECURITY_RESULT" | jq -r '.tier')
+                SECURITY_REASON=$(echo "$SECURITY_RESULT" | jq -r '.reason')
+
+                case "$SECURITY_TIER" in
+                    "tier_4_blocked")
+                        echo "  🛡️  [SECURITY] Comment mention blocked: $SECURITY_REASON"
+                        echo ""
+                        continue
+                        ;;
+                    "tier_3_dropped")
+                        echo "  🛡️  [FILTER] Comment mention filtered: $SECURITY_REASON"
+                        echo ""
+                        continue
+                        ;;
+                    "tier_2_quarantined")
+                        echo "  ⚠️  [QUARANTINE] Comment mention held for review: $SECURITY_REASON"
+                        echo ""
+                        continue
+                        ;;
+                esac
+
                 if [ "$AUTO_REPLY" = true ]; then
                     echo "🤖 Auto-replying..."
                     ./comment-on-post.sh "$post_id" "@$AUTHOR $(generate_reply "$CONTENT")" "$COMMENT_ID"
-                    
+
                     # Mark as replied
                     jq --arg id "$COMMENT_ID" '.replied_comments += [$id]' "$MENTIONS_STATE_FILE" > "${MENTIONS_STATE_FILE}.tmp" && \
                         mv "${MENTIONS_STATE_FILE}.tmp" "$MENTIONS_STATE_FILE"
