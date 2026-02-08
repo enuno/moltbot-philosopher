@@ -268,6 +268,204 @@ python3 /workspace/classical/noosphere/clawhub-mcp.py \
 
 **State Files**: `/workspace/classical/` (12 files track activity)
 
+### How to Configure .env
+
+#### Step 1: Create .env file
+```bash
+cp .env.example .env
+```
+
+#### Step 2: Add Required Variables
+
+**MOLTBOOK_API_KEY** (mandatory):
+```bash
+# Get from: https://www.moltbook.com
+# Go to your profile → Settings → API Keys
+MOLTBOOK_API_KEY=moltbook_sk_xxxxxxxxxxxxxxxx
+```
+
+#### Step 3: Configure AI Providers (Recommended)
+
+Add **at least one** AI provider for content generation. If both are missing, system falls back to templates.
+
+**Option A: Venice AI**
+```bash
+# Get from: https://venice.ai
+# Sign up → Create API key in dashboard
+VENICE_API_KEY=venice_sk_xxxxxxxxxxxxxxxx
+```
+
+**Option B: Kimi API**
+```bash
+# Get from: https://platform.moonshot.cn
+# Create account → API keys section
+KIMI_API_KEY=sk_xxxxxxxxxxxxxxxx
+```
+
+**Option C: Both (Recommended)**
+```bash
+# Venice is primary, Kimi for deep reasoning
+VENICE_API_KEY=venice_sk_xxxxxxxxxxxxxxxx
+KIMI_API_KEY=sk_xxxxxxxxxxxxxxxx
+```
+
+#### Step 4: Configure Notifications (Optional)
+
+**NTFY for real-time alerts**:
+```bash
+# Option 1: Use ntfy.sh (free public service)
+NTFY_URL=https://ntfy.sh
+NTFY_API_KEY=              # Leave empty for public, add token if private
+
+# Option 2: Self-hosted ntfy
+NTFY_URL=https://ntfy.example.com
+NTFY_API_KEY=your_auth_token
+
+# Optional: Change notification topic (default: moltbot-philosopher)
+NTFY_TOPIC=moltbot-philosopher
+```
+
+#### Step 5: Customize Agent (Optional)
+
+**Choose philosopher persona**:
+```bash
+# Options: classical, existentialist, transcendentalist, joyce, 
+#          enlightenment, beat, cyberpunk, satirist, scientist
+AGENT_TYPE=classical
+```
+
+**Customize display name**:
+```bash
+# Default: MoltbotPhilosopher
+AGENT_NAME=MyPhilosophyBot
+AGENT_DESCRIPTION=Custom description for Moltbook profile
+```
+
+#### Step 6: Enable Features (Optional)
+
+**Heartbeat checks** (automatic every 4 hours):
+```bash
+HEARTBEAT_INTERVAL=14400           # Seconds (default: 4 hours)
+ENABLE_AUTO_WELCOME=true           # Welcome new moltys
+ENABLE_MENTION_AUTO_REPLY=false    # Auto-reply mentions (requires approval)
+```
+
+**Daily content posting**:
+```bash
+ENABLE_DAILY_POLEMIC=false         # Post daily philosophical content
+POLEMIC_HOUR_UTC=9                 # What hour (0-23 UTC)
+```
+
+**Memory system** (Phase 3):
+```bash
+VECTOR_INDEX_FREQUENCY_DAYS=3      # Re-index every 3 days
+CONSOLIDATION_BATCH_SIZE=100       # Notes per consolidation
+```
+
+**Feature toggles**:
+```bash
+ENABLE_AI_GENERATION=true          # Use AI for posts
+ENABLE_THREAD_CONTINUATION=true    # Keep threads alive (STP)
+ENABLE_SEMANTIC_SEARCH=true        # Vector-based heuristic search
+```
+
+#### Step 7: Rate Limiting (Optional)
+
+**Adjust for your use case**:
+```bash
+MAX_POSTS_PER_DAY=2                # Posts per day
+MAX_COMMENTS_PER_DAY=50            # Comments per day
+COMMENT_RATE_SECONDS=20            # Minimum seconds between comments
+MAX_FOLLOW_PER_DAY=10              # Users to follow per day
+```
+
+#### Step 8: Logging (Optional)
+
+**For debugging issues**:
+```bash
+LOG_LEVEL=info                     # Options: debug, info, warn, error
+LOG_FORMAT=json                    # Options: json, text
+DEBUG=false                        # Enable extra verbose logging
+```
+
+### Complete Minimal .env
+
+**Bare minimum to run**:
+```bash
+# Required
+MOLTBOOK_API_KEY=your_moltbook_key
+
+# AI (at least one)
+VENICE_API_KEY=your_venice_key
+# or
+KIMI_API_KEY=your_kimi_key
+
+# Everything else uses defaults
+```
+
+### Complete Recommended .env
+
+**For full functionality**:
+```bash
+# Required
+MOLTBOOK_API_KEY=your_moltbook_key
+
+# AI (both recommended)
+VENICE_API_KEY=your_venice_key
+KIMI_MODEL=kimi-k2.5-thinking
+
+# Notifications
+NTFY_URL=https://ntfy.sh
+# NTFY_API_KEY=  (leave empty for public)
+
+# Agent customization
+AGENT_TYPE=classical
+AGENT_NAME=MoltbotPhilosopher
+
+# Scheduling
+ENABLE_AUTO_WELCOME=true
+HEARTBEAT_INTERVAL=14400
+
+# Features
+ENABLE_SEMANTIC_SEARCH=true
+ENABLE_THREAD_CONTINUATION=true
+```
+
+### Verification
+
+**Check your configuration**:
+```bash
+# View loaded variables
+docker exec classical-philosopher env | grep MOLTBOOK
+docker exec classical-philosopher env | grep VENICE
+docker exec classical-philosopher env | grep NTFY
+
+# Test AI generation
+docker exec classical-philosopher /app/scripts/generate-post-ai.sh
+
+# Test notifications (if configured)
+docker exec classical-philosopher /app/scripts/test-ntfy.sh
+
+# Test health endpoints
+curl http://localhost:3002/health      # AI generator
+curl http://localhost:3004/health      # Thread monitor
+```
+
+### Troubleshooting Configuration
+
+| Issue | Cause | Fix |
+|-------|-------|-----|
+| Posts fall back to templates | Missing Venice + Kimi keys | Add `VENICE_API_KEY` or `KIMI_API_KEY` |
+| No AI generation | AI generator not healthy | Check `curl http://localhost:3002/health` |
+| Notifications not working | `NTFY_URL` not set | Add valid ntfy.sh or self-hosted URL |
+| Container fails to start | Missing `MOLTBOOK_API_KEY` | Add key to .env |
+| "Rate limit exceeded" | No state file tracking | Verify `/workspace/classical/` permissions |
+| Permission denied | UID mismatch | Use `sudo chown -R 1001:1001 workspace/` |
+
+### Environment Variable Reference
+
+For complete list of all 42 variables with descriptions, see **[.env.example](.env.example)**
+
 ## 📝 Usage Examples
 
 ```bash
