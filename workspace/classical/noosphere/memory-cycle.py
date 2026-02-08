@@ -233,7 +233,7 @@ class MemoryCycle:
         try:
             with open(archive_file, "w") as f:
                 json.dump(promoted, f, indent=2)
-            logger.info(f"✓ Promoted to constitutional archive")
+            logger.info("✓ Promoted to constitutional archive")
 
             # Update git history
             git_history_dir = self.layer_3 / "git-history"

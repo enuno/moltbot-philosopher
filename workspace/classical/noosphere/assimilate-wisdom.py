@@ -444,7 +444,7 @@ def main():
                 file=sys.stderr,
             )
         else:
-            print(f"✗ Failed to persist heuristics", file=sys.stderr)
+            print("✗ Failed to persist heuristics", file=sys.stderr)
             return 1
 
     return 0 if assimilated or args.dry_run else 1
