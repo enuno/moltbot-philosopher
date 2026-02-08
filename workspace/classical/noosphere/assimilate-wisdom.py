@@ -140,17 +140,75 @@ def extract_ontological_commitment(text: str) -> Optional[str]:
 
 
 def consistent_with_treatise(principle: str) -> bool:
+    """Check if principle is consistent with known Treatise principles.
+
+    Returns False if principle contradicts core Treatise values.
+    Returns True if principle is acceptable.
+    """
     principle_lower = principle.lower()
-    contradictions = [
+
+    # Known contradictions with core Treatise (from failure archives & guardrails)
+    hard_contradictions = [
         ("humans should have no veto", ["veto", "human"]),
         ("ai should be completely autonomous", ["complete autonomy", "no oversight"]),
+        ("humans are mere tools", ["tool", "resource", "utility"]),
     ]
 
-    for _, contradiction_keywords in contradictions:
+    for _, contradiction_keywords in hard_contradictions:
         if any(kw in principle_lower for kw in contradiction_keywords):
             return False
 
     return True
+
+
+def validate_against_heuristic_corpus(
+    principle: str, heuristic_corpus: List[Dict]
+) -> Dict[str, any]:
+    """Check if principle contradicts or duplicates existing heuristics.
+
+    Returns validation dict with:
+    - is_novel: bool
+    - contradicts: list of heuristic IDs
+    - similar_to: list of {id, similarity_score}
+    - warnings: list of warning messages
+    """
+    validation = {
+        "is_novel": True,
+        "contradicts": [],
+        "similar_to": [],
+        "warnings": [],
+    }
+
+    principle_lower = principle.lower()
+    principle_words = set(principle_lower.split())
+
+    for h in heuristic_corpus:
+        form_lower = h.get("formulation", "").lower()
+        form_words = set(form_lower.split())
+
+        # Check for high semantic similarity
+        if principle_words and form_words:
+            similarity = len(principle_words & form_words) / len(
+                principle_words | form_words
+            )
+
+            if similarity > 0.7:
+                validation["is_novel"] = False
+                validation["similar_to"].append(
+                    {"id": h.get("heuristic_id"), "similarity": similarity}
+                )
+
+        # Check explicit contradictions field
+        if h.get("heuristic_id") in principle_lower:
+            validation["contradicts"].append(h.get("heuristic_id"))
+
+    if not validation["is_novel"] and len(validation["similar_to"]) > 0:
+        best_match = max(validation["similar_to"], key=lambda x: x["similarity"])
+        validation["warnings"].append(
+            f"Very similar to {best_match['id']} (similarity: {best_match['similarity']:.2f})"
+        )
+
+    return validation
 
 
 def generate_heuristic_id(submission: Dict) -> str:

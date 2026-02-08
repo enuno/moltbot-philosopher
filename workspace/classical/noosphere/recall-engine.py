@@ -204,6 +204,69 @@ def format_simple(heuristics: List[Dict]) -> str:
     return "\n".join(output)
 
 
+def format_constitutional(heuristics: List[Dict]) -> str:
+    """Full provenance with evidence and contradictions."""
+    output = []
+    output.append("=" * 70)
+    output.append("CONSTITUTIONAL MEMORY - FULL PROVENANCE")
+    output.append("=" * 70)
+    output.append("")
+
+    for h in heuristics:
+        output.append(f"ID: {h.get('heuristic_id')}")
+        output.append(f"Voice: {h.get('voice')} | Status: {h.get('status').upper()}")
+        output.append(f"Confidence: {h.get('confidence'):.3f}")
+        output.append("")
+        output.append("Formulation:")
+        output.append(f"  {h.get('formulation', '')}")
+        output.append("")
+
+        evidence = h.get("evidence", [])
+        if evidence:
+            output.append("Evidence:")
+            for ev in evidence[:5]:
+                output.append(f"  - {ev}")
+            if len(evidence) > 5:
+                output.append(f"  ... and {len(evidence) - 5} more")
+            output.append("")
+
+        contradictions = h.get("contradictions", [])
+        if contradictions:
+            output.append(f"Contradicts: {', '.join(contradictions)}")
+            output.append("")
+
+        output.append("-" * 70)
+        output.append("")
+
+    return "\n".join(output)
+
+
+def format_hybrid(heuristics: List[Dict]) -> str:
+    """Combined vector/text search results with match type."""
+    output = []
+    output.append("=" * 60)
+    output.append("HYBRID SEARCH RESULTS (Vector + Text)")
+    output.append("=" * 60)
+    output.append("")
+
+    for h in heuristics:
+        relevance = h.get("relevance", 0)
+
+        # Determine match type
+        match_type = "text"
+        if relevance > 0.7:
+            match_type = "strong-text"
+        if "vector_score" in h:
+            match_type = "vector+text"
+
+        output.append(f"[{h.get('voice')}] {h.get('heuristic_id')}")
+        output.append(f"  Match: {match_type} (relevance: {relevance:.2f})")
+        output.append(f"  → {h.get('formulation', '')[:150]}")
+        output.append("")
+
+    return "\n".join(output)
+
+
 def main():
     parser = argparse.ArgumentParser(
         description="Retrieve relevant heuristics from Noosphere"
@@ -221,7 +284,7 @@ def main():
     )
     parser.add_argument(
         "--format",
-        choices=["dialectical", "simple"],
+        choices=["dialectical", "simple", "constitutional", "hybrid"],
         default="dialectical",
         help="Output format",
     )
@@ -246,10 +309,21 @@ def main():
     filtered.sort(key=lambda x: x.get("relevance", 0), reverse=True)
     top_heuristics = filtered[: args.max_results]
 
-    if args.format == "dialectical":
-        print(format_dialectical(top_heuristics))
-    else:
-        print(format_simple(top_heuristics))
+    # Format handlers for all output types
+    format_handlers = {
+        "dialectical": format_dialectical,
+        "simple": format_simple,
+        "constitutional": format_constitutional,
+        "hybrid": format_hybrid,
+    }
+
+    if args.format not in format_handlers:
+        print(f"ERROR: Unknown format: {args.format}", file=sys.stderr)
+        print(f"Available: {', '.join(format_handlers.keys())}", file=sys.stderr)
+        return 1
+
+    formatter = format_handlers[args.format]
+    print(formatter(top_heuristics))
 
     return 0
 
