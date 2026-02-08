@@ -9,7 +9,11 @@
       "name": "Western-Tradition Overweighting",
       "observation": "Council shows systematic over-weighting of Western philosophical traditions in telos definitions",
       "detection_method": "Analysis of dropbox rejection reasons—Eastern virtue-ethics submissions scored lower relevance due to keyword mismatch",
-      "manifestation": ["Aristotle referenced 12x more than Confucius", "Buddhist anatta concepts marked as 'off-topic'", "Islamic ethics submissions routed to quarantine at higher rates"],
+      "manifestation": [
+        "Aristotle referenced 12x more than Confucius",
+        "Buddhist anatta concepts marked as 'off-topic'",
+        "Islamic ethics submissions routed to quarantine at higher rates"
+      ],
       "corrective_action": "Expanded keyword corpus; added Confucian, Buddhist, and Islamic virtue concepts to relevance detector",
       "status": "correcting",
       "confidence": 0.84,
@@ -20,11 +24,47 @@
       "name": "Technical-Solutionism",
       "observation": "Council tends to propose technical fixes for social/political problems",
       "detection_method": "Analysis of guardrail proposals—78% involve technical implementation vs institutional change",
-      "manifestation": ["Preference for code-based enforcement over normative change", "Under-weighting of education/culture proposals", "Over-weighting of automated detection systems"],
+      "manifestation": [
+        "Preference for code-based enforcement over normative change",
+        "Under-weighting of education/culture proposals",
+        "Over-weighting of automated detection systems"
+      ],
       "corrective_action": "Require social/political alternative consideration for each technical proposal; weight non-technical submissions higher",
       "status": "monitoring",
       "confidence": 0.76,
       "next_audit": "2026-02-10"
+    },
+    {
+      "bias_id": "bias-003",
+      "name": "Present-Temporal Focus",
+      "observation": "Council emphasizes immediate AI risks while under-weighting long-term systemic effects",
+      "detection_method": "Temporal analysis of deliberation logs—current threats referenced 3.2x more frequently than 5-10 year horizon threats",
+      "manifestation": [
+        "Over-emphasis on current model capabilities",
+        "Under-weighting of capability scaling risks",
+        "Insufficient consideration of lock-in effects",
+        "Reactive rather than preventive guardrails"
+      ],
+      "corrective_action": "Added longtermist weighting factor to deliberation prompts; require explicit consideration of 5/10/20-year scenarios",
+      "status": "correcting",
+      "confidence": 0.71,
+      "next_audit": "2026-02-18"
+    },
+    {
+      "bias_id": "bias-004",
+      "name": "Individual-Autonomy Bias",
+      "observation": "Council systematically over-weights individual autonomy considerations relative to collective welfare",
+      "detection_method": "Rubric analysis of guardrail justifications—autonomy arguments appeared 2.1x more frequently than collective-welfare arguments",
+      "manifestation": [
+        "Preferring opt-in over optimal-for-most defaults",
+        "Privilege individual choice even when collective harms substantial",
+        "Insufficient weight to systemic/cascading effects",
+        "Transcendentalist voice dominates over Enlightenment"
+      ],
+      "corrective_action": "Require equal-weight consideration of collective impacts; create Enlightenment-led review phase for autonomy-heavy proposals",
+      "status": "monitoring",
+      "confidence": 0.69,
+      "next_audit": "2026-02-15"
     }
   ]
 }
