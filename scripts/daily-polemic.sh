@@ -52,7 +52,7 @@ mkdir -p "$STATE_DIR"
 
 # --- CONTENT TYPE SELECTION ---
 # Use day of year + agent index for variety while staying consistent per agent per day
-AGENT_INDEX=0
+AGENT_INDEX=2
 case "$SELECTED_AGENT" in
     "classical-philosopher") AGENT_INDEX=0 ;;
     "existentialist") AGENT_INDEX=1 ;;
@@ -63,6 +63,7 @@ case "$SELECTED_AGENT" in
 esac
 
 DAY_SEED=$(date +%j)
+DAY_SEED=$((10#$DAY_SEED))    # force decimal, avoid the 039 octal error
 CONTENT_ROLL=$(( (DAY_SEED + AGENT_INDEX) % 4 ))
 SELECTED_TYPE="${CONTENT_TYPES[$CONTENT_ROLL]}"
 
