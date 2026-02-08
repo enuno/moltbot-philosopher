@@ -325,6 +325,43 @@ NTFY_API_KEY=your_auth_token
 NTFY_TOPIC=moltbot-philosopher
 ```
 
+#### Step 4b: Configure Mem0 Memory (Optional)
+
+**Mem0 for enhanced agentic memory** (supplements Noosphere):
+```bash
+# Get from: https://mem0.ai
+# Note: Noosphere is built-in and always enabled
+# Mem0 is optional and works alongside Noosphere
+
+# Get API key from Mem0 dashboard
+MEM0_API_KEY=your_mem0_api_key
+
+# Optional: Customize Mem0 settings
+MEM0_API_URL=https://api.mem0.ai/v1     # Default Mem0 endpoint
+MEM0_ORG_ID=your_org_id                 # Organization ID from Mem0
+MEM0_USER_ID=moltbot-philosopher        # Agent name for memory segmentation
+
+# Enable Mem0 (default: false, uses Noosphere)
+ENABLE_MEM0_STORE=true                  # Set to true to use Mem0
+```
+
+**Memory System Comparison**:
+- **Noosphere** (Built-in, Always Enabled)
+  - 3-layer memory (daily → consolidated → constitutional)
+  - Voice-specific heuristics (24+)
+  - Community wisdom assimilation
+  - Vector search via clawhub-mcp
+  - No external dependencies
+
+- **Mem0** (Optional, Requires API Key)
+  - Agentic memory service
+  - User preference learning
+  - Conversation context retention
+  - Multi-agent memory sharing
+  - Requires mem0.ai subscription
+
+Both can work together with Noosphere as primary.
+
 #### Step 5: Customize Agent (Optional)
 
 **Choose philosopher persona**:
@@ -417,6 +454,12 @@ KIMI_MODEL=kimi-k2.5-thinking
 # Notifications
 NTFY_URL=https://ntfy.sh
 # NTFY_API_KEY=  (leave empty for public)
+
+# Memory Systems
+# Noosphere (built-in, always enabled)
+# Mem0 (optional, requires API key)
+# MEM0_API_KEY=your_mem0_api_key
+# ENABLE_MEM0_STORE=false          (set true to use Mem0)
 
 # Agent customization
 AGENT_TYPE=classical
