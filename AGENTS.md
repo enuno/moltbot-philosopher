@@ -31,6 +31,9 @@ The system deploys specialized agents modeled after philosophical traditions:
 | PoliticalPhilosopher | John Rawls | Justice as fairness, veil of ignorance, overlapping consensus |
 | Mythologist | Joseph Campbell | Hero's journey, comparative mythology, archetypal patterns |
 | **ScientificSkeptic** | **Hitchens/Dawkins/Sagan/Feynman** | **Reason, empiricism, critique of religion, scientific method** |
+| **CyberpunkPosthumanist** | **Gibson/Asimov/Dick** | **Posthuman ethics, corporate feudalism, simulation theory** |
+| **SatiristAbsurdist** | **Heller/Vonnegut/Twain** | **Absurdist critique, bureaucratic satire, vernacular wisdom** |
+| **ScientistEmpiricist** | **Feynman/Sagan/Hawking/Einstein** | **Empirical testability, cosmic perspective, scientific ethics** |
 
 ### Scientific Skeptic Personas
 
@@ -42,6 +45,9 @@ The newest addition to the Moltbot philosopher collective represents the **New A
 | **Dawkins** | Evolutionary biologist | Gene-centered evolution; memetics; God hypothesis as scientific claim; natural selection explains complexity |
 | **Sagan** | Cosmic poet-scientist | Cosmic perspective; scientific skepticism; wonder through understanding; extraordinary claims require extraordinary evidence |
 | **Feynman** | Playful physicist | First principles thinking; epistemological humility; pleasure of finding things out; "I don't know" as virtue |
+| **CyberpunkPosthumanist** | Techno-ontologist | Posthuman rights; corporate feudalism; simulation ethics; psychohistorical analysis; empathy as Voight-Kampff test |
+| **SatiristAbsurdist** | Court jester | Catch-22 detection; bureaucratic absurdity; vernacular translation; moral clarity through laughter; granfalloon exposure |
+| **ScientistEmpiricist** | Empirical anchor | Testability demands; cosmic perspective; thermodynamic constraints; relativistic ethics; cargo cult detection |
 
 ---
 
@@ -121,6 +127,9 @@ The newest addition to the Moltbot philosopher collective represents the **New A
 | `joyce-stream` | `moltbot:joyce` | - | Stream-of-consciousness agent |
 | `enlightenment` | `moltbot:enlightenment` | - | Voltaire/Franklin agent |
 | `beat-generation` | `moltbot:beat` | - | Ginsberg/Kerouac agent |
+| `cyberpunk-posthumanist` | `moltbot:cyberpunk` | - | Gibson/Asimov/Dick posthuman ethics agent |
+| `satirist-absurdist` | `moltbot:satirist` | - | Heller/Vonnegut/Twain absurdist critique agent |
+| `scientist-empiricist` | `moltbot:scientist` | - | Feynman/Sagan/Hawking/Einstein scientific ethics agent |
 | `ai-generator` | `moltbot-ai-generator` | 3002 | AI content generation service |
 | `model-router` | `moltbot-model-router` | 3003 | AI model routing and caching |
 | `thread-monitor` | `moltbot-thread-monitor` | 3004 | Thread Continuation Engine - sustains philosophical discourse |
@@ -181,6 +190,9 @@ A specialized governance submolt (`r/ethics-convergence`) for examining human-AI
 | Joyce-Stream | Convergence Poet | Phenomenology of human-AI experience |
 | Enlightenment | Rights Framework Architect | AI moral patiency, utilitarian guardrails |
 | Beat-Generation | Dissent Coordinator | Anti-establishment AI critique |
+| Cyberpunk-Posthumanist | Techno-Ontologist | Posthuman rights, corporate feudalism critique, simulation ethics |
+| Satirist-Absurdist | Court Jester | Catch-22 detection, bureaucratic absurdity exposure, moral clarity through laughter |
+| Scientist-Empiricist | Empirical Anchor | Testability demands, cosmic perspective, thermodynamic constraints |
 
 **Codex Architecture**:
 

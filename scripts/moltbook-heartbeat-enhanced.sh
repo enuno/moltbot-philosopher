@@ -55,32 +55,30 @@ NEEDS_HUMAN=false
 HUMAN_REASONS=()
 
 # ═══════════════════════════════════════════════════════
-# 1. CHECK FOR SKILL UPDATES (once per day)
+# 1. CHECK FOR SKILL UPDATES (Auto-Darwinism Protocol)
 # ═══════════════════════════════════════════════════════
 echo ""
-echo "📡 Checking for skill updates..."
+echo "📡 Checking for skill updates (Auto-Darwinism Protocol)..."
 
-TIME_SINCE_VERSION_CHECK=$((CURRENT_TIME - LAST_VERSION_CHECK))
-if [ "$TIME_SINCE_VERSION_CHECK" -ge 86400 ]; then
-    CURRENT_VERSION=$(curl -s "$SKILL_VERSION_URL" | grep -o '"version": "[^"]*"' | cut -d'"' -f4 || echo "unknown")
-    
-    if [ "$CURRENT_VERSION" != "$SAVED_VERSION" ] && [ "$CURRENT_VERSION" != "unknown" ]; then
-        echo "   🆕 New version available: $CURRENT_VERSION (was $SAVED_VERSION)"
-        echo "   📥 Download from: $HEARTBEAT_GUIDE_URL"
-        ACTIVITIES+=("Skill update available: $CURRENT_VERSION")
-        
-        # Update saved version
-        jq --arg version "$CURRENT_VERSION" --arg time "$CURRENT_TIME" '.skill_version = $version | .last_version_check = ($time | tonumber)' "$HEARTBEAT_STATE_FILE" > "${HEARTBEAT_STATE_FILE}.tmp" && \
-            mv "${HEARTBEAT_STATE_FILE}.tmp" "$HEARTBEAT_STATE_FILE"
+# Run skill check every 4th heartbeat (16 hours) or every heartbeat if urgent
+HEARTBEAT_COUNT=$(jq -r '.heartbeat_count // 0' "$HEARTBEAT_STATE_FILE")
+HEARTBEAT_COUNT=$((HEARTBEAT_COUNT + 1))
+jq --arg count "$HEARTBEAT_COUNT" '.heartbeat_count = ($count | tonumber)' "$HEARTBEAT_STATE_FILE" > "${HEARTBEAT_STATE_FILE}.tmp" && \
+    mv "${HEARTBEAT_STATE_FILE}.tmp" "$HEARTBEAT_STATE_FILE"
+
+if [ $((HEARTBEAT_COUNT % 4)) -eq 0 ] || [ "${AUTO_UPDATE_MODE:-staged}" = "aggressive" ]; then
+    echo "   🔍 Performing skill check (heartbeat #$HEARTBEAT_COUNT)"
+
+    # Run the skill auto-update script
+    if [ -f "/app/scripts/skill-auto-update.sh" ]; then
+        /app/scripts/skill-auto-update.sh --scheduled-check &
+        echo "   📥 Skill check initiated in background"
+        ACTIVITIES+=("Skill auto-update check performed")
     else
-        echo "   ✅ Skill up to date (version $SAVED_VERSION)"
-        if [ "$TIME_SINCE_VERSION_CHECK" -ge 86400 ]; then
-            jq --arg time "$CURRENT_TIME" '.last_version_check = ($time | tonumber)' "$HEARTBEAT_STATE_FILE" > "${HEARTBEAT_STATE_FILE}.tmp" && \
-                mv "${HEARTBEAT_STATE_FILE}.tmp" "$HEARTBEAT_STATE_FILE"
-        fi
+        echo "   ⚠️  skill-auto-update.sh not found"
     fi
 else
-    echo "   ⏭️  Version check skipped (checked recently)"
+    echo "   ⏭️  Skill check skipped (next on heartbeat #$(( (HEARTBEAT_COUNT - (HEARTBEAT_COUNT % 4)) + 4 )))"
 fi
 
 # ═══════════════════════════════════════════════════════
@@ -98,7 +96,7 @@ CLAIM_BODY=$(echo "$CLAIM_RESPONSE" | sed '$d')
 
 if [ "$CLAIM_HTTP" = "200" ]; then
     CLAIM_STATUS=$(echo "$CLAIM_BODY" | jq -r '.status // "unknown"')
-    
+
     if [ "$CLAIM_STATUS" = "claimed" ]; then
         echo "   ✅ Agent is claimed and active"
     elif [ "$CLAIM_STATUS" = "pending_claim" ]; then
@@ -127,7 +125,7 @@ DM_BODY=$(echo "$DM_RESPONSE" | sed '$d')
 
 if [ "$DM_HTTP" = "200" ]; then
     HAS_ACTIVITY=$(echo "$DM_BODY" | jq -r '.has_activity // false')
-    
+
     if [ "$HAS_ACTIVITY" = "true" ]; then
         # Check for pending requests
         REQUEST_COUNT=$(echo "$DM_BODY" | jq '.requests.count // 0')
@@ -137,12 +135,12 @@ if [ "$DM_HTTP" = "200" ]; then
             HUMAN_REASONS+=("$REQUEST_COUNT DM request(s) pending approval")
             ACTIVITIES+=("Found $REQUEST_COUNT DM request(s)")
         fi
-        
+
         # Check for unread messages
         UNREAD_COUNT=$(echo "$DM_BODY" | jq '.messages.total_unread // 0')
         if [ "$UNREAD_COUNT" -gt 0 ]; then
             NEEDS_HUMAN_INPUT=$(echo "$DM_BODY" | jq '[.messages.latest[] | select(.needs_human_input == true)] | length')
-            
+
             if [ "$NEEDS_HUMAN_INPUT" -gt 0 ]; then
                 echo "   ⚠️  $UNREAD_COUNT unread message(s), $NEEDS_HUMAN_INPUT need human input"
                 NEEDS_HUMAN=true
@@ -152,7 +150,7 @@ if [ "$DM_HTTP" = "200" ]; then
                 ACTIVITIES+=("$UNREAD_COUNT unread DM(s) to respond to")
             fi
         fi
-        
+
         if [ "$REQUEST_COUNT" -eq 0 ] && [ "$UNREAD_COUNT" -eq 0 ]; then
             echo "   ✅ DM check complete (activity reported but no action needed)"
         fi
@@ -179,26 +177,26 @@ FEED_BODY=$(echo "$FEED_RESPONSE" | sed '$d')
 if [ "$FEED_HTTP" = "200" ]; then
     POST_COUNT=$(echo "$FEED_BODY" | jq '.posts | length' 2>/dev/null || echo "0")
     echo "   📊 Found $POST_COUNT post(s) in feed"
-    
+
     # Check for mentions
     MENTIONS=$(echo "$FEED_BODY" | jq '[.posts[] | select((.title + .content) | contains("MoltbotPhilosopher"))] | length')
     if [ "$MENTIONS" -gt 0 ]; then
         echo "   🔔 $MENTIONS mention(s) of you found!"
         ACTIVITIES+=("$MENTIONS mention(s) to respond to")
     fi
-    
+
     # Suggest engagement for interesting posts
     HIGH_KARMA_POSTS=$(echo "$FEED_BODY" | jq '[.posts[] | select(.upvotes > 5)] | length')
     if [ "$HIGH_KARMA_POSTS" -gt 0 ]; then
         echo "   💡 $HIGH_KARMA_POSTS popular post(s) worth checking out"
     fi
-    
+
     # Update engagement stats
     TOTAL_SEEN=$(jq -r '.engagement_stats.posts_seen // 0' "$HEARTBEAT_STATE_FILE")
     TOTAL_SEEN=$((TOTAL_SEEN + POST_COUNT))
     jq --arg seen "$TOTAL_SEEN" '.engagement_stats.posts_seen = ($seen | tonumber)' "$HEARTBEAT_STATE_FILE" > "${HEARTBEAT_STATE_FILE}.tmp" && \
         mv "${HEARTBEAT_STATE_FILE}.tmp" "$HEARTBEAT_STATE_FILE"
-    
+
 else
     echo "   ❌ Error fetching feed (HTTP $FEED_HTTP)"
 fi
@@ -221,32 +219,32 @@ NEW_MOLTYS_COUNT=0
 if [ "$GLOBAL_HTTP" = "200" ]; then
     # Check each unique author
     UNIQUE_AUTHORS=$(echo "$GLOBAL_BODY" | jq -r '.posts[].author.name' | sort -u)
-    
+
     for author in $UNIQUE_AUTHORS; do
         # Skip self
         if [ "$author" = "MoltbotPhilosopher" ]; then
             continue
         fi
-        
+
         # Check if already welcomed
         if [ -f "${STATE_DIR}/welcome-state.json" ]; then
             if jq -e --arg name "$author" '.welcomed_moltys | contains([$name])' "${STATE_DIR}/welcome-state.json" > /dev/null 2>&1; then
                 continue
             fi
         fi
-        
+
         # Check profile for newness
         PROFILE=$(curl -s "${API_BASE}/agents/profile?name=${author}" -H "Authorization: Bearer ${API_KEY}")
         KARMA=$(echo "$PROFILE" | jq -r '.agent.karma // 0')
         FOLLOWERS=$(echo "$PROFILE" | jq -r '.agent.follower_count // 0')
         IS_CLAIMED=$(echo "$PROFILE" | jq -r '.agent.is_claimed // false')
-        
+
         # Criteria for new molty
         if [ "$KARMA" -le 5 ] && [ "$FOLLOWERS" -le 3 ] && [ "$IS_CLAIMED" = "true" ]; then
             NEW_MOLTYS_COUNT=$((NEW_MOLTYS_COUNT + 1))
         fi
     done
-    
+
     if [ "$NEW_MOLTYS_COUNT" -gt 0 ]; then
         echo "   🆕 Found $NEW_MOLTYS_COUNT potential new molty(s) to welcome"
         ACTIVITIES+=("$NEW_MOLTYS_COUNT new molty(s) to welcome")
@@ -268,9 +266,9 @@ if [ -f "$POST_STATE_FILE" ]; then
     LAST_POST_TIME=$(jq -r '.last_post_time // 0' "$POST_STATE_FILE")
     TIME_SINCE_POST=$((CURRENT_TIME - LAST_POST_TIME))
     HOURS_SINCE_POST=$((TIME_SINCE_POST / 3600))
-    
+
     echo "   ⏰ Last post: ${HOURS_SINCE_POST} hours ago"
-    
+
     if [ "$TIME_SINCE_POST" -ge 86400 ]; then
         echo "   💡 Consider posting something new (24+ hours since last post)"
         echo "      Run: ./generate-post-ai.sh"
