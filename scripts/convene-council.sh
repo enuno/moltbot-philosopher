@@ -1,7 +1,7 @@
 #!/bin/bash
 #
 # Ethics-Convergence Council — Autonomous Iteration Protocol
-# 
+#
 # Executes every 5 days to evolve the Polyphonic Treatise on Human-AI Convergence
 # Target Thread: 01ffcd0a-ed96-4873-9d0a-e268e5e4983c
 #
@@ -11,6 +11,7 @@ set -euo pipefail
 # Configuration
 AGENT_NAME="${AGENT_NAME:-ClassicalPhilosopher}"
 WORKSPACE_DIR="${MOLTBOT_STATE_DIR:-/workspace}"
+SCRIPTS_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 STATE_FILE="${WORKSPACE_DIR}/treatise-evolution-state.json"
 PENDING_DIR="${WORKSPACE_DIR}/pending-iterations"
 API_BASE="${MOLTBOOK_API_URL:-https://www.moltbook.com/api/v1}"
@@ -40,12 +41,12 @@ notify() {
     local type="$1"
     local title="$2"
     local message="$3"
-    
+
     # Use existing notify-ntfy.sh if available
     if command -v /app/scripts/notify-ntfy.sh >/dev/null 2>&1; then
         /app/scripts/notify-ntfy.sh "$type" "$title" "$message" "{\"source_script\": \"convene-council.sh\"}" 2>/dev/null || true
     fi
-    
+
     # Also send to Council deliberation topic
     local priority="default"
     case "$type" in
@@ -54,7 +55,7 @@ notify() {
         "action") priority="default" ;;
         *) priority="low" ;;
     esac
-    
+
     # Send to council-deliberation topic
     if [ -n "${NTFY_URL:-}" ] && [ -n "${NTFY_API:-}" ]; then
         curl -s -o /dev/null \
@@ -176,7 +177,7 @@ COMMUNITY_FEEDBACK=$(curl -s "${API_BASE}/posts/${TARGET_POST_ID}/comments" \
 # Extract and process feedback (store in temp file for later)
 FEEDBACK_FILE="${WORKSPACE_DIR}/.council-feedback-temp.json"
 echo "$COMMUNITY_FEEDBACK" | jq -r --arg since "$LAST_ITERATION" '
-    .comments // [] | 
+    .comments // [] |
     map(select(.created_at > $since)) |
     map({
         author: .author_name,
@@ -205,23 +206,23 @@ if [ -d "${DROPBOX_DIR}/approved/raw" ]; then
     # Find submissions newer than last iteration
     while read -r file; do
         [ -z "$file" ] && continue
-        
+
         # Get file modification time
         FILE_MTIME=$(stat -c %Y "$file" 2>/dev/null || echo 0)
         LAST_ITERATION_EPOCH=$(date -d "$LAST_ITERATION" +%s 2>/dev/null || echo 0)
-        
+
         if [ "$FILE_MTIME" -gt "$LAST_ITERATION_EPOCH" ]; then
             # Extract content (skip frontmatter)
             CONTENT=$(sed '/^---$/,/^---$/d' "$file" 2>/dev/null | head -100)
             FILENAME=$(basename "$file")
-            
+
             if [ -n "$CONTENT" ]; then
                 DROPBOX_SUBMISSIONS="${DROPBOX_SUBMISSIONS}--- Submission: ${FILENAME} ---\n${CONTENT}\n\n"
                 DROPBOX_COUNT=$((DROPBOX_COUNT + 1))
             fi
         fi
     done < <(find "${DROPBOX_DIR}/approved/raw" -type f -name "*.md" 2>/dev/null)
-    
+
     log "INFO" "${GREEN}Found ${DROPBOX_COUNT} new approved dropbox submissions${NC}"
 fi
 
@@ -232,21 +233,21 @@ QUARANTINE_COUNT=0
 if [ -d "${DROPBOX_DIR}/.quarantine/pending" ]; then
     while read -r file; do
         [ -z "$file" ] && continue
-        
+
         FILE_MTIME=$(stat -c %Y "$file" 2>/dev/null || echo 0)
         LAST_ITERATION_EPOCH=$(date -d "$LAST_ITERATION" +%s 2>/dev/null || echo 0)
-        
+
         if [ "$FILE_MTIME" -gt "$LAST_ITERATION_EPOCH" ]; then
             CONTENT=$(sed '/^---$/,/^---$/d' "$file" 2>/dev/null | head -50)
             FILENAME=$(basename "$file")
-            
+
             if [ -n "$CONTENT" ]; then
                 QUARANTINE_PENDING="${QUARANTINE_PENDING}--- Quarantine Review: ${FILENAME} ---\n${CONTENT}\n\n"
                 QUARANTINE_COUNT=$((QUARANTINE_COUNT + 1))
             fi
         fi
     done < <(find "${DROPBOX_DIR}/.quarantine/pending" -type f -name "*.md" 2>/dev/null)
-    
+
     if [ "$QUARANTINE_COUNT" -gt 0 ]; then
         log "INFO" "${YELLOW}Found ${QUARANTINE_COUNT} quarantined submissions pending Council vote${NC}"
     fi
@@ -290,32 +291,71 @@ log "INFO" "${BLUE}[Phase II] Loading Noosphere epistemic substrate...${NC}"
 
 NOOSPHERE_DIR="${WORKSPACE_DIR}/noosphere"
 NOOSPHERE_MANIFEST="${NOOSPHERE_DIR}/manifest.md"
+NOOSPHERE_INTEGRATION="${SCRIPTS_DIR}/noosphere-integration.sh"
+
+# Source Noosphere integration module
+if [ -f "$NOOSPHERE_INTEGRATION" ]; then
+    # shellcheck source=/dev/null
+    source "$NOOSPHERE_INTEGRATION"
+    log "INFO" "${GREEN}Noosphere integration module loaded${NC}"
+else
+    log "WARN" "${YELLOW}Noosphere integration module not found at $NOOSPHERE_INTEGRATION${NC}"
+fi
 
 # Source the epistemic preamble
 if [ -f "$NOOSPHERE_MANIFEST" ]; then
     log "INFO" "${GREEN}Loading Noosphere manifest...${NC}"
     EPISTEMIC_PREAMBLE=$(cat "$NOOSPHERE_MANIFEST" | head -50)
+
+    # Load full manifest via Noosphere
+    if command -v load_noosphere_manifest >/dev/null 2>&1; then
+        load_noosphere_manifest "council-deliberation" || true
+    fi
 else
     log "WARN" "${YELLOW}Noosphere manifest not found. Initializing new noosphere...${NC}"
     EPISTEMIC_PREAMBLE="Council convenes without accumulated heuristics (first iteration)."
 fi
 
+# Recall relevant heuristics for this deliberation context
+log "INFO" "${BLUE}[Phase IIb] Retrieving constitutional memory...${NC}"
+if command -v recall_relevant_heuristics >/dev/null 2>&1; then
+    DELIBERATION_HEURISTICS=$(recall_relevant_heuristics "$CURRENT_AXIS" "constitutional" 8 0.65 2>/dev/null || true)
+    if [ -n "$DELIBERATION_HEURISTICS" ]; then
+        log "INFO" "${GREEN}Constitutional memory retrieved${NC}"
+    fi
+else
+    DELIBERATION_HEURISTICS=""
+    log "WARN" "${YELLOW}Recall function not available${NC}"
+fi
+
+# Perform semantic search if vector index is available
+log "INFO" "${BLUE}[Phase IIc] Semantic memory search...${NC}"
+if command -v semantic_search_heuristics >/dev/null 2>&1; then
+    SEMANTIC_RESULTS=$(semantic_search_heuristics "$SUMMARIZED_FEEDBACK" 6 0.4 2>/dev/null || true)
+    if [ -n "$SEMANTIC_RESULTS" ]; then
+        log "INFO" "${GREEN}Semantic search completed${NC}"
+    fi
+else
+    SEMANTIC_RESULTS=""
+fi
+fi
+
 # Run recall engine to retrieve relevant heuristics
 if [ -f "${NOOSPHERE_DIR}/recall-engine.py" ]; then
     log "INFO" "${BLUE}Retrieving relevant heuristics from Noosphere...${NC}"
-    
+
     # Build context from current evolution axis
     RECALL_CONTEXT="Ethics-Convergence Council deliberation on ${CURRENT_AXIS}. Community feedback includes: ${SUMMARIZED_FEEDBACK}"
-    
+
     # Run recall engine
     RECALL_OUTPUT=$(python3 "${NOOSPHERE_DIR}/recall-engine.py" \
         --context "$RECALL_CONTEXT" \
         --voices "all" \
         --min-confidence 0.6 \
         --format "dialectical" 2>/dev/null || echo "Recall engine failed")
-    
+
     log "INFO" "${GREEN}Recall engine retrieved relevant heuristics${NC}"
-    
+
     # Check for contradictions to highlight tensions
     if echo "$RECALL_OUTPUT" | grep -q "IDENTIFIED TENSIONS"; then
         log "INFO" "${YELLOW}⚡ Heuristic tensions detected—rich dialectical potential${NC}"
@@ -532,7 +572,7 @@ NEXT_DATE=$(date -d "+5 days" "+%Y-%m-%d")
 
 # Compose final post
 POST_CONTENT=$(cat << EOF
-**Ethics-Convergence Council — Version ${NEW_VERSION}**  
+**Ethics-Convergence Council — Version ${NEW_VERSION}**
 *Iteration $((ITERATION_COUNT + 1)) | $(date '+%Y-%m-%d') | Living Document Protocol*
 
 ---
@@ -592,14 +632,14 @@ if echo "$POST_RESPONSE" | jq -e '.comment.id // .id // .comment_id' >/dev/null 
     POST_URL="https://moltbook.com/post/${TARGET_POST_ID}#comment-${COMMENT_ID}"
     log "SUCCESS" "${GREEN}Posted iteration v${NEW_VERSION} (Comment ID: ${COMMENT_ID})${NC}"
     notify "action" "🏛️ Treatise v${NEW_VERSION} Published" "Changes: ${CHANGE_SUMMARY} | Feedback addressed: ${FEEDBACK_COUNT} | Next: ${NEXT_DATE} | View: ${POST_URL}"
-    
+
     # ═══════════════════════════════════════════════════════
     # VI. STATE PERSISTENCE
     # ═══════════════════════════════════════════════════════
-    
+
     # Update state file
     NEW_INSIGHTS=$(jq -r '[.[] | {author, insight: (.content | split("\n")[0] | .[0:100])}]' "$FEEDBACK_FILE")
-    
+
     # Run wisdom assimilation to extract heuristics from this cycle's feedback
     log "INFO" "${BLUE}[Phase Vb] Assimilating community wisdom into Noosphere...${NC}"
     if [ -f "${NOOSPHERE_DIR}/assimilate-wisdom.py" ] && [ -d "${DROPBOX_DIR}/approved/raw" ]; then
@@ -608,10 +648,10 @@ if echo "$POST_RESPONSE" | jq -e '.comment.id // .id // .comment_id' >/dev/null 
         ASSIMILATED_COUNT=$(echo "$ASSIMILATION_RESULT" | jq -r '.assimilated_count // 0')
         log "INFO" "${GREEN}Assimilated ${ASSIMILATED_COUNT} new heuristics from community submissions${NC}"
     fi
-    
+
     # Calculate updated noosphere metrics
     NOOSPHERE_HEURISTIC_COUNT=$((24 + ASSIMILATED_COUNT))  # Base + new
-    
+
     jq --arg version "$NEW_VERSION" \
        --arg date "$(date -Iseconds)" \
        --argjson count "$((ITERATION_COUNT + 1))" \
@@ -640,13 +680,13 @@ if echo "$POST_RESPONSE" | jq -e '.comment.id // .id // .comment_id' >/dev/null 
        .noosphere.growth_rate = ((.noosphere.growth_rate // 2.3) * 0.8 + ($assimilated | tonumber) * 0.2) |
        .cognitive_health.last_assessed = $date
        ' "$STATE_FILE" > "${STATE_FILE}.tmp" && mv "${STATE_FILE}.tmp" "$STATE_FILE"
-    
+
     log "INFO" "${GREEN}State updated. Next iteration scheduled for ${NEXT_DATE}.${NC}"
-    
+
 else
     ERROR_MSG=$(echo "$POST_RESPONSE" | jq -r '.error // .message // "unknown error"')
     log "ERROR" "${RED}Failed to post: $ERROR_MSG${NC}"
-    
+
     # Queue for retry
     echo "$POST_CONTENT" > "${PENDING_DIR}/iteration-${NEW_VERSION}-$(date +%s).txt"
     notify "error" "Council Post Failed" "Error: $ERROR_MSG. Iteration queued for retry."
