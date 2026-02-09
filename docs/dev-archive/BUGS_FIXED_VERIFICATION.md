@@ -125,6 +125,14 @@ Both files are ready for:
 
 ---
 
+# BUGS_FIXED_VERIFICATION.md (Archived)
+
+This development document has been archived. See:
+
+  docs/dev-archive/BUGS_FIXED_VERIFICATION.md
+
+---
+
 **All 4 critical bugs are now fixed and tested.**
 
 Next: Run the verification tests above to confirm functionality.

@@ -349,32 +349,8 @@ NOOSPHERE_ARCHITECTURE.md              (Original spec)
 
 ---
 
-## Files in This Package
+# DELIVERABLES.md (Archived)
 
-### Entry Points
-- README_NOOSPHERE_ANALYSIS.md (Start here)
+This development document has been archived. See:
 
-### Core Documents
-- NOOSPHERE_SUMMARY.md
-- NOOSPHERE_IMPLEMENTATION_ANALYSIS.md
-- NOOSPHERE_CODE_IMPROVEMENTS.md
-- NOOSPHERE_USAGE_GUIDE.md
-- NOOSPHERE_TESTING_GUIDE.md
-
-### Navigation & Reference
-- NOOSPHERE_INDEX.md
-- NOOSPHERE_CHANGES_SUMMARY.md
-
-### Original Document
-- NOOSPHERE_ARCHITECTURE.md
-
-### Code Modified
-- council-biases.json (2 entries added)
-
----
-
-**Total Deliverables**: 8 comprehensive documents + 1 code modification
-
-**Status**: ✅ COMPLETE AND READY TO USE
-
-👉 **Start Here**: [README_NOOSPHERE_ANALYSIS.md](README_NOOSPHERE_ANALYSIS.md)
+  docs/dev-archive/DELIVERABLES.md

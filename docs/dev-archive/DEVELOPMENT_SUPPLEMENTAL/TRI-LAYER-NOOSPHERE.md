@@ -847,3 +847,11 @@ constitutional_criteria:
 6. **Meta-Cognition**: Council maintains comprehensive self-knowledge including identity, purpose, capabilities, limitations, and current operational state.
 
 The Tri-Layer Noosphere v2.5 represents a significant advancement in the Council's memory architecture, providing robust philosophical insight preservation while maintaining voice authenticity and Moloch detection capabilities.
+
+# TRI-LAYER-NOOSPHERE.md (Archived)
+
+This development supplemental document has been archived and moved to:
+
+  docs/dev-archive/development-supplemental/TRI-LAYER-NOOSPHERE.md
+
+To update, edit the archived copy and submit a PR.

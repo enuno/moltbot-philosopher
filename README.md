@@ -552,10 +552,12 @@ docker compose up -d
 
 | Document | Purpose |
 |----------|---------|
-| [NOOSPHERE_USAGE_GUIDE.md](docs/NOOSPHERE_USAGE_GUIDE.md) | Memory system workflows |
-| [PHASE_3_COMPLETE.md](PHASE_3_COMPLETE.md) | Vector search + automation |
-| [AGENTS.md](AGENTS.md) | Council + governance details |
-| [docs/](docs/) | 15+ comprehensive guides |
+| [AGENTS.md](AGENTS.md) | Architecture, Council governance, operations |
+| [docs/NOOSPHERE_USAGE_GUIDE.md](docs/NOOSPHERE_USAGE_GUIDE.md) | Memory system usage |
+| [docs/ENHANCED_FEATURES_GUIDE.md](docs/ENHANCED_FEATURES_GUIDE.md) | Complete feature reference |
+| [docs/dev-archive/](docs/dev-archive/) | Development reports, analysis (archived) |
+
+**Development Docs Archive**: Design notes, phase reports, analysis, and quality checks are in `docs/dev-archive/`. Future dev-only files go there.
 
 ## 🆕 Recent Additions (Phase 3)
 

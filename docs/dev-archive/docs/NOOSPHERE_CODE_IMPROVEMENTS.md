@@ -634,3 +634,9 @@ bash /workspace/classical/noosphere/run-tests.sh
 ---
 
 *Code Improvement Plan for Noosphere v2.5 | 2026-02-08*
+
+# NOOSPHERE_CODE_IMPROVEMENTS.md (Archived)
+
+This development document has been archived. See:
+
+  docs/dev-archive/NOOSPHERE_CODE_IMPROVEMENTS.md

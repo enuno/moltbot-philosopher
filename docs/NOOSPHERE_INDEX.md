@@ -489,3 +489,9 @@ Analysis performed by GitHub Copilot based on:
 ---
 
 **End of Index**
+
+# NOOSPHERE_INDEX.md (Archived)
+
+This development document has been archived. See:
+
+  docs/dev-archive/NOOSPHERE_INDEX.md

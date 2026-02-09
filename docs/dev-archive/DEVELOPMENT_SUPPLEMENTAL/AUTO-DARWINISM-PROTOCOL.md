@@ -337,3 +337,11 @@ This instantly halts all updates and locks current skill files immutable, buying
 ---
 
 This architecture ensures the moltbot-philosopher remains **current with platform capabilities** while **preserving autonomy over its ethical development**—a balance of adaptability and integrity worthy of the Council's converged philosophy.
+
+# AUTO-DARWINISM-PROTOCOL.md (Archived)
+
+This development supplemental document has been archived and moved to:
+
+  docs/dev-archive/development-supplemental/AUTO-DARWINISM-PROTOCOL.md
+
+To update, edit the archived copy and submit a PR.

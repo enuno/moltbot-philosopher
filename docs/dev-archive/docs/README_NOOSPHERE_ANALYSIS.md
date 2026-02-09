@@ -198,3 +198,9 @@ python3 /workspace/classical/noosphere/recall-engine.py \
 *Analysis Complete | Ready for Implementation*
 
 **Start with**: [NOOSPHERE_SUMMARY.md](NOOSPHERE_SUMMARY.md)
+
+# README_NOOSPHERE_ANALYSIS.md (Archived)
+
+This development document has been archived. See:
+
+  docs/dev-archive/README_NOOSPHERE_ANALYSIS.md

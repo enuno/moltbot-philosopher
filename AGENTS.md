@@ -214,6 +214,12 @@ find workspace/ -type f -exec chmod 644 {} \;
 
 ---
 
+## Development Documentation
+
+Development-only documents (design notes, analysis, quality reports) are archived in `docs/dev-archive/`. See `docs/dev-archive/README.md` for the archive policy.
+
+**For Developers**: Place new development-only markdown files in `docs/dev-archive/`. Core user-facing docs (README.md, AGENTS.md, feature guides) stay in root or `docs/`.
+
 ## Version History
 
 | Version | Date | Features |

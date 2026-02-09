@@ -168,6 +168,14 @@
 
 ---
 
+# README_PROJECT.md (Archived)
+
+This development document has been archived. See:
+
+  docs/dev-archive/README_PROJECT.md
+
+---
+
 **🎉 PROJECT COMPLETE**
 
 All work delivered, all quality standards met, all documentation complete.
@@ -175,4 +183,3 @@ All work delivered, all quality standards met, all documentation complete.
 Ready for production deployment.
 
 Start here: **[START_HERE.md](START_HERE.md)**
-

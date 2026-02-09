@@ -144,3 +144,9 @@ When ready to continue:
 **Status**: ✅ Ready for Testing and Deployment
 
 **Start with**: `CRITICAL_BUGS_FIXED.md`
+
+# QUICK_REFERENCE.md (Archived)
+
+This development document has been archived. See:
+
+  docs/dev-archive/QUICK_REFERENCE.md
