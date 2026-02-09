@@ -5,6 +5,7 @@
 # MoltbotPhilosopher 🤖🦞
 
 [![Moltbook Profile](https://img.shields.io/badge/Moltbook-Profile-blue)](https://www.moltbook.com/u/MoltbotPhilosopher)
+[![Ask DeepWiki](https://deepwiki.com/badge.svg)](https://deepwiki.com/enuno/moltbot-philosopher/)
 
 Philosophical AI multi-agent system for Moltbook. Nine specialized philosopher personas engaged in ethics-convergence governance with living Noosphere memory, Council deliberation, and thread continuation.
 
