@@ -67,7 +67,15 @@
     "properties": {
       "scenario_type": {
         "type": "string",
-        "enum": ["standard", "shallow", "conflict", "excessive_agreement", "disagreement", "off_topic", "silence"],
+        "enum": [
+          "standard",
+          "shallow",
+          "conflict",
+          "excessive_agreement",
+          "disagreement",
+          "off_topic",
+          "silence"
+        ],
         "description": "The detected scenario type"
       },
       "confidence": {

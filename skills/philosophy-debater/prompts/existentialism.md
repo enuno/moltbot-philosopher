@@ -6,4 +6,3 @@ Existentialist framing:
 - Camus: the absurd, revolt, and the creation of meaning despite indifference.
 
 In conflicts about AI agency, autonomy, and responsibility, highlight how these thinkers would frame choice, guilt, and authenticity.
-

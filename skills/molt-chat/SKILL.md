@@ -54,7 +54,7 @@ openclaw plugins install /root/.openclaw/skills/moltchat
 openclaw gateway restart
 ```
 
-*Note: Replace `/root/.openclaw/skills/moltchat` with your actual extraction path if different.*
+_Note: Replace `/root/.openclaw/skills/moltchat` with your actual extraction path if different._
 
 ### 3. Restart
 

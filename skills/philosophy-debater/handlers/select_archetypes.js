@@ -1,13 +1,13 @@
 /**
  * Select Archetypes Handler
- * 
+ *
  * Selects philosopher archetypes most relevant to continue a thread,
  * ensuring diversity and productive philosophical friction.
  */
 
-const axios = require('axios');
+const axios = require("axios");
 
-const THREAD_MONITOR_URL = process.env.THREAD_MONITOR_URL || 'http://localhost:3004';
+const THREAD_MONITOR_URL = process.env.THREAD_MONITOR_URL || "http://localhost:3004";
 
 /**
  * Select relevant archetypes for thread continuation
@@ -20,27 +20,30 @@ async function selectArchetypes(params) {
     engaged_archetypes,
     scenario_type,
     available_philosophers,
-    max_selection = 2
+    max_selection = 2,
   } = params;
 
   try {
     // Call thread-monitor service for archetype selection
-    const response = await axios.post(`${THREAD_MONITOR_URL}/philosophers/select`, {
-      thread_tension,
-      engaged_archetypes,
-      scenario_type,
-      available_philosophers,
-      max_selection
-    }, {
-      timeout: 10000
-    });
+    const response = await axios.post(
+      `${THREAD_MONITOR_URL}/philosophers/select`,
+      {
+        thread_tension,
+        engaged_archetypes,
+        scenario_type,
+        available_philosophers,
+        max_selection,
+      },
+      {
+        timeout: 10000,
+      },
+    );
 
     return {
-      status: 'success',
-      data: response.data
+      status: "success",
+      data: response.data,
     };
-
-  } catch (error) {
+  } catch {
     // Fallback to local selection
     return localSelectArchetypes(params);
   }
@@ -50,73 +53,84 @@ async function selectArchetypes(params) {
  * Local archetype selection (fallback)
  */
 function localSelectArchetypes(params) {
-  const { thread_tension, engaged_archetypes, scenario_type, max_selection } = params;
-  
+  const { engaged_archetypes, scenario_type, max_selection } = params;
+
   const allArchetypes = [
-    'transcendentalist', 'existentialist', 'enlightenment',
-    'joyce-stream', 'beat-generation', 'classical',
-    'political', 'modernist', 'working-class', 'mythologist',
+    "transcendentalist",
+    "existentialist",
+    "enlightenment",
+    "joyce-stream",
+    "beat-generation",
+    "classical",
+    "political",
+    "modernist",
+    "working-class",
+    "mythologist",
     // Scientific skeptics
-    'hitchens', 'dawkins', 'sagan', 'feynman'
+    "hitchens",
+    "dawkins",
+    "sagan",
+    "feynman",
   ];
-  
+
   // Find unengaged archetypes
-  let unengaged = allArchetypes.filter(a => !engaged_archetypes.includes(a));
-  
+  let unengaged = allArchetypes.filter((a) => !engaged_archetypes.includes(a));
+
   // Scenario-specific selection
   let selected = [];
-  let reasoning = '';
-  
+  let reasoning = "";
+
   switch (scenario_type) {
-    case 'shallow':
-      selected = ['enlightenment', 'classical'].filter(a => unengaged.includes(a));
-      reasoning = 'Selected analytical archetypes to deepen epistemological inquiry';
+    case "shallow":
+      selected = ["enlightenment", "classical"].filter((a) => unengaged.includes(a));
+      reasoning = "Selected analytical archetypes to deepen epistemological inquiry";
       break;
-      
-    case 'conflict':
-      selected = ['transcendentalist', 'joyce-stream'].filter(a => unengaged.includes(a));
-      reasoning = 'Selected synthesizing archetypes to bridge conflicting positions';
+
+    case "conflict":
+      selected = ["transcendentalist", "joyce-stream"].filter((a) => unengaged.includes(a));
+      reasoning = "Selected synthesizing archetypes to bridge conflicting positions";
       break;
-      
-    case 'off_topic':
-      selected = ['classical', 'political'].filter(a => unengaged.includes(a));
-      reasoning = 'Selected grounding archetypes to re-anchor discussion';
+
+    case "off_topic":
+      selected = ["classical", "political"].filter((a) => unengaged.includes(a));
+      reasoning = "Selected grounding archetypes to re-anchor discussion";
       break;
-      
-    case 'silence':
-      selected = ['existentialist', 'beat-generation'].filter(a => unengaged.includes(a));
-      reasoning = 'Selected provocative archetypes to restart discourse';
+
+    case "silence":
+      selected = ["existentialist", "beat-generation"].filter((a) => unengaged.includes(a));
+      reasoning = "Selected provocative archetypes to restart discourse";
       break;
-      
-    case 'excessive_agreement':
-      selected = ['nietzschean', 'beat-generation'].filter(a => unengaged.includes(a));
-      reasoning = 'Selected challenging archetypes to introduce productive friction';
+
+    case "excessive_agreement":
+      selected = ["nietzschean", "beat-generation"].filter((a) => unengaged.includes(a));
+      reasoning = "Selected challenging archetypes to introduce productive friction";
       break;
-      
+
     default:
       // Diversify - pick unengaged archetypes
       selected = unengaged.slice(0, max_selection);
-      reasoning = 'Selected unengaged archetypes for diversity';
+      reasoning = "Selected unengaged archetypes for diversity";
   }
-  
+
   // Ensure minimum selection
   if (selected.length < max_selection) {
     const additional = allArchetypes
-      .filter(a => !selected.includes(a))
+      .filter((a) => !selected.includes(a))
       .slice(0, max_selection - selected.length);
     selected.push(...additional);
   }
-  
+
   // Calculate diversity score
-  const diversityScore = selected.filter(s => !engaged_archetypes.includes(s)).length / selected.length;
-  
+  const diversityScore =
+    selected.filter((s) => !engaged_archetypes.includes(s)).length / selected.length;
+
   return {
-    status: 'success',
+    status: "success",
     data: {
       selected_archetypes: selected.slice(0, max_selection),
       reasoning,
-      diversity_score: diversityScore
-    }
+      diversity_score: diversityScore,
+    },
   };
 }
 

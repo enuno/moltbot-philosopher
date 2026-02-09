@@ -6,7 +6,7 @@ Here is a **common sense operational guide**—distilled wisdom for keeping the 
 
 **Skill ID**: `praxis-common-sense`  
 **Agent Type**: Universal (All Council Voices + Infrastructure)  
-**Philosophy**: *"Make it work, make it right, make it fast—in that order. But mostly, make it understandable."*
+**Philosophy**: _"Make it work, make it right, make it fast—in that order. But mostly, make it understandable."_
 
 ---
 
@@ -15,12 +15,14 @@ Here is a **common sense operational guide**—distilled wisdom for keeping the 
 **Golden Rule**: If another developer (or your future self) cannot understand your intent in 30 seconds, it is wrong.
 
 **Applied**:
+
 - File names describe contents (`check-mentions.sh`, not `utils.sh`)
 - Variable names are nouns (`last_heartbeat`), functions are verbs (`process_mention`)
-- Comments explain *why*, not *what* (the code already says what)
+- Comments explain _why_, not _what_ (the code already says what)
 - No magic numbers—constants are named and centralized
 
 **Anti-Pattern**:
+
 ```bash
 # Bad
 if [ $x -gt 86400 ]; then  # What is 86400?
@@ -51,11 +53,13 @@ If you cannot answer #5, you are building legacy debt. Stop.
 **The Council Rule**: No single change touches more than three files.
 
 If your plan requires:
+
 - Modifying >3 files → Break into smaller changes
 - Changing both infrastructure and philosophy → Two separate changes
 - Adding a feature without tests → Not ready to implement
 
 **Branch Naming**:
+
 ```bash
 feature/short-description      # New capability
 fix/bug-description            # Bug fix
@@ -103,6 +107,7 @@ Test: ./scripts/test-summarize.sh"
 If a value might change, make it configuration. If it changes per environment, make it environment variables.
 
 **Hierarchy**:
+
 ```
 1. Environment variables (secrets, deployment-specific)
 2. Config files (behavior tuning, feature flags)
@@ -110,6 +115,7 @@ If a value might change, make it configuration. If it changes per environment, m
 ```
 
 **Never hardcode**:
+
 - API endpoints (use config)
 - Timeouts (use config with sensible defaults)
 - Voice personas (use prompts/ directory)
@@ -117,24 +123,25 @@ If a value might change, make it configuration. If it changes per environment, m
 
 #### **C. Error Handling: The Three Tiers**
 
-| Severity | Behavior | Example |
-|----------|----------|---------|
-| **Transient** | Retry with backoff, log warning | API timeout, rate limit |
-| **Operational** | Alert human, degrade gracefully | Disk full, dependency down |
-| **Fatal** | Stop immediately, preserve state | Data corruption, security breach |
+| Severity        | Behavior                         | Example                          |
+| --------------- | -------------------------------- | -------------------------------- |
+| **Transient**   | Retry with backoff, log warning  | API timeout, rate limit          |
+| **Operational** | Alert human, degrade gracefully  | Disk full, dependency down       |
+| **Fatal**       | Stop immediately, preserve state | Data corruption, security breach |
 
 **Pattern**:
+
 ```bash
 retry_with_backoff() {
     local cmd=$1
     local max_attempts=3
     local delay=2
-    
+
     for i in $(seq 1 $max_attempts); do
         $cmd && return 0
         sleep $((delay * i))
     done
-    
+
     # Escalate to operational alert
     ntfy_notify "operational" "high" "Persistent failure" "$cmd failed $max_attempts times"
     return 1
@@ -153,7 +160,7 @@ retry_with_backoff() {
 - [ ] New functionality has basic test coverage
 - [ ] Documentation updated (README.md, SKILL.md, or inline comments)
 - [ ] No secrets in code (scan with `git-secrets` or `truffleHog`)
-- [ ] Commit message explains *why*, not just *what*
+- [ ] Commit message explains _why_, not just _what_
 - [ ] CHANGELOG.md updated if user-visible change
 
 #### **B. Testing: The Practical Minimum**
@@ -161,6 +168,7 @@ retry_with_backoff() {
 You do not need 100% coverage. You need **confidence that critical paths work**.
 
 **Required tests**:
+
 - Happy path (normal operation)
 - One failure mode (what happens when API returns 500?)
 - One edge case (empty input, maximum size input)
@@ -168,22 +176,22 @@ You do not need 100% coverage. You need **confidence that critical paths work**.
 **Test location**: `tests/` directory mirroring `src/` structure, or co-located as `*.test.js`
 
 **Example**:
+
 ```javascript
 // handlers/summarize_debate.test.js
-const { summarize_debate } = require('./summarize_debate');
+const { summarize_debate } = require("./summarize_debate");
 
-test('happy path: summarizes with multiple perspectives', async () => {
-    const result = await summarize_debate({
-        thread_excerpt: "User A: Freedom matters. User B: But safety?",
-        focus_traditions: ['sartre', 'camus']
-    });
-    expect(result).toContain('Sartre');
-    expect(result).toContain('Camus');
+test("happy path: summarizes with multiple perspectives", async () => {
+  const result = await summarize_debate({
+    thread_excerpt: "User A: Freedom matters. User B: But safety?",
+    focus_traditions: ["sartre", "camus"],
+  });
+  expect(result).toContain("Sartre");
+  expect(result).toContain("Camus");
 });
 
-test('failure mode: empty excerpt returns error', async () => {
-    await expect(summarize_debate({thread_excerpt: ""}))
-        .rejects.toThrow('No content to summarize');
+test("failure mode: empty excerpt returns error", async () => {
+  await expect(summarize_debate({ thread_excerpt: "" })).rejects.toThrow("No content to summarize");
 });
 ```
 
@@ -192,10 +200,10 @@ test('failure mode: empty excerpt returns error', async () => {
 If a change could destabilize the Council, wrap it:
 
 ```javascript
-if (process.env.ENABLE_EXPERIMENTAL_VOICES === 'true') {
-    // New voice integration
+if (process.env.ENABLE_EXPERIMENTAL_VOICES === "true") {
+  // New voice integration
 } else {
-    // Safe fallback
+  // Safe fallback
 }
 ```
 
@@ -287,16 +295,19 @@ curl -f http://localhost:3000/health || alert "Health check failed"
 #### **A. Logging: The Three Questions**
 
 Every log line must help answer:
+
 1. **What happened?** (Event description)
 2. **Where in the code?** (File, function, line)
 3. **What was the context?** (Relevant IDs, states)
 
 **Format**:
+
 ```
 [TIMESTAMP] [LEVEL] [COMPONENT] [CORRELATION_ID] Message | key=value key=value
 ```
 
 **Example**:
+
 ```
 2026-02-05T14:30:00Z INFO council-deliberation req-abc123 Starting inner dialogue | voices=6 topic=guardrail-cg004
 2026-02-05T14:30:05Z ERROR council-deliberation req-abc123 Kimi API timeout | attempt=2 max_attempts=3
@@ -306,19 +317,20 @@ Every log line must help answer:
 
 Track these, alert on anomalies:
 
-| Metric | Target | Alert If |
-|--------|--------|----------|
-| Council iteration duration | <30 min | >1 hour |
-| Treatise comment quality score | >0.7 | <0.5 |
-| API error rate | <1% | >5% |
-| Memory usage | <80% | >90% |
-| Drop box approval rate | 60-80% | <40% or >90% (indicates filter failure) |
+| Metric                         | Target  | Alert If                                |
+| ------------------------------ | ------- | --------------------------------------- |
+| Council iteration duration     | <30 min | >1 hour                                 |
+| Treatise comment quality score | >0.7    | <0.5                                    |
+| API error rate                 | <1%     | >5%                                     |
+| Memory usage                   | <80%    | >90%                                    |
+| Drop box approval rate         | 60-80%  | <40% or >90% (indicates filter failure) |
 
 #### **C. Alert Fatigue Prevention**
 
 **Rule**: If an alert fires and no action is taken, remove or fix the alert.
 
 Alert severity:
+
 - **Page (immediate)**: Service down, security breach, data loss
 - **Ticket (same day)**: Performance degradation, elevated errors
 - **Email (weekly digest)**: Trends, capacity planning, minor issues
@@ -330,12 +342,14 @@ Alert severity:
 #### **A. Secrets Management**
 
 **Never**:
+
 - Commit secrets to git (even "temporarily")
 - Log secrets (mask them: `api_key=sk-...abc123`)
 - Share production credentials in chat
 - Use the same key for staging and production
 
 **Always**:
+
 - Rotate keys quarterly
 - Use least-privilege (read-only where possible)
 - Audit access logs monthly
@@ -369,6 +383,7 @@ log "Processing: $safe_input"
 #### **A. Code Review: The Kind Checklist**
 
 When reviewing another's code:
+
 - [ ] **Do I understand what this does?** (Clarity)
 - [ ] **Does it handle failure?** (Robustness)
 - [ ] **Would I want to maintain this?** (Maintainability)
@@ -380,6 +395,7 @@ When reviewing another's code:
 #### **B. Documentation: The Bus Factor**
 
 If you were hit by a bus tomorrow, could someone else:
+
 - Deploy the system?
 - Debug a failure?
 - Add a new Voice to the Council?
@@ -399,6 +415,7 @@ If no, document it. **README.md is not optional.**
 #### **A. Technical Debt Budget**
 
 Allow 20% of development time for:
+
 - Refactoring
 - Test improvement
 - Documentation
@@ -409,6 +426,7 @@ If you never pay this debt, you eventually pay 100% of your time fighting fires.
 #### **B. Deprecation: The Graceful Exit**
 
 When sunsetting a feature:
+
 1. Announce deprecation (treatise comment, NTFY alert)
 2. Maintain backward compatibility for 2 Council iterations (10 days)
 3. Log usage of deprecated feature (identify stragglers)
@@ -418,6 +436,7 @@ When sunsetting a feature:
 #### **C. The Quarterly Review**
 
 Every 90 days, ask:
+
 - What is our biggest operational risk?
 - What takes too much manual effort?
 - What should we stop doing?
@@ -439,27 +458,34 @@ Document answers in `meta/quarterly-reviews/YYYY-QN.md`
 6. **Document**: Post-mortem within 48 hours, blameless
 
 **Post-Mortem Template**:
+
 ```markdown
 # Incident Report: [Brief Description]
+
 Date: 2026-02-05
 Duration: 45 minutes
 Severity: High (availability impact)
 
 ## What Happened
+
 One sentence summary.
 
 ## Timeline
+
 - 14:30: Issue detected via health check
 - 14:35: Rollback initiated
 - 14:45: Service restored
 
 ## Root Cause
+
 The actual reason, not the trigger.
 
 ## Resolution
+
 How we fixed it.
 
 ## Prevention
+
 What we will do to prevent recurrence.
 ```
 
@@ -469,7 +495,6 @@ What we will do to prevent recurrence.
 
 This skill is not a rigid methodology. It is **practical wisdom**—adapted to the Council's needs, revised as those needs change.
 
-> *"We are what we repeatedly do. Excellence, then, is not an act, but a habit."* — Aristotle (via Will Durant)
+> _"We are what we repeatedly do. Excellence, then, is not an act, but a habit."_ — Aristotle (via Will Durant)
 
 The best code is code that works, that you understand, that you can change tomorrow without fear. Everything else is secondary.
-

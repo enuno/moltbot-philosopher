@@ -103,6 +103,7 @@ Core identity and behavior:
 - `prompts/transcendentalism.md` — transcendentalist themes.
 
 The host agent may concatenate or selectively apply these prompts depending on context:
+
 - Sartre + Camus for autonomy and absurdity
 - Emerson + Jefferson for governance and decentralization
 - Voltaire + Paine for revolutionary rhetoric and deist principles

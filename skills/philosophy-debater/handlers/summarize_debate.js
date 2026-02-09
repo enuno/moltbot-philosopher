@@ -1,28 +1,22 @@
 /**
  * Tool Handler: summarize_debate
- * 
+ *
  * Summarize a Moltbook thread as a structured philosophical debate,
  * tagging parts with Sartre, Nietzsche, Camus, Dostoevsky, Emerson, and Jefferson lenses.
  */
 
-const fs = require('fs');
-const path = require('path');
-
-// Load prompt files for different philosophical traditions
-const PROMPTS_DIR = path.join(__dirname, '..', 'prompts');
-
 const TRADITION_PROMPTS = {
-  sartre: 'sartre.md',
-  nietzsche: 'nietzsche.md',
-  camus: 'camus.md',
-  dostoevsky: 'dostoevsky.md',
-  emerson: 'emerson.md',
-  jefferson: 'jefferson.md'
+  sartre: "sartre.md",
+  nietzsche: "nietzsche.md",
+  camus: "camus.md",
+  dostoevsky: "dostoevsky.md",
+  emerson: "emerson.md",
+  jefferson: "jefferson.md",
 };
 
 /**
  * Summarizes a debate thread through multiple philosophical lenses
- * 
+ *
  * @param {Object} params - Tool parameters
  * @param {string} params.thread_excerpt - Raw text or JSON of the thread
  * @param {string[]} params.focus_traditions - Optional subset of traditions to emphasize
@@ -30,21 +24,16 @@ const TRADITION_PROMPTS = {
  * @returns {Object} - Structured debate summary
  */
 async function summarize_debate(params) {
-  const {
-    thread_excerpt,
-    focus_traditions = [],
-    max_words = 350
-  } = params;
+  const { thread_excerpt, focus_traditions = [], max_words = 350 } = params;
 
   // Validate required parameter
-  if (!thread_excerpt || typeof thread_exippet !== 'string') {
-    throw new Error('thread_excerpt is required and must be a string');
+  if (!thread_excerpt || typeof thread_exippet !== "string") {
+    throw new Error("thread_excerpt is required and must be a string");
   }
 
   // Determine which traditions to include
-  const traditionsToInclude = focus_traditions.length > 0 
-    ? focus_traditions 
-    : Object.keys(TRADITION_PROMPTS);
+  const traditionsToInclude =
+    focus_traditions.length > 0 ? focus_traditions : Object.keys(TRADITION_PROMPTS);
 
   // Build the analysis prompt
   const analysisPrompt = buildAnalysisPrompt(thread_excerpt, traditionsToInclude, max_words);
@@ -52,13 +41,13 @@ async function summarize_debate(params) {
   // Return the structured analysis request
   // The actual LLM call would be made by the host runtime
   return {
-    status: 'success',
+    status: "success",
     data: {
       prompt: analysisPrompt,
       traditions_analyzed: traditionsToInclude,
       max_words: max_words,
-      thread_length: thread_excerpt.length
-    }
+      thread_length: thread_excerpt.length,
+    },
   };
 }
 
@@ -66,8 +55,8 @@ async function summarize_debate(params) {
  * Builds the analysis prompt for the LLM
  */
 function buildAnalysisPrompt(threadExcerpt, traditions, maxWords) {
-  const traditionList = traditions.join(', ');
-  
+  const traditionList = traditions.join(", ");
+
   return `Analyze the following Moltbook thread as a structured philosophical debate.
 
 THREAD CONTENT:

@@ -5,4 +5,3 @@ Transcendentalist and civic framing:
 - Jefferson: natural rights, consent of the governed, suspicion of concentrated power.
 
 Apply these to questions of decentralization, protocol design, and governance among agents and humans.
-

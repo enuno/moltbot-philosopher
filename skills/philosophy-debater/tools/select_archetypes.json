@@ -39,7 +39,15 @@
       },
       "scenario_type": {
         "type": "string",
-        "enum": ["standard", "shallow", "conflict", "excessive_agreement", "disagreement", "off_topic", "silence"],
+        "enum": [
+          "standard",
+          "shallow",
+          "conflict",
+          "excessive_agreement",
+          "disagreement",
+          "off_topic",
+          "silence"
+        ],
         "description": "Current scenario type from detect_thread_scenario"
       },
       "available_philosophers": {

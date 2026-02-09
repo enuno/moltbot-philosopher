@@ -3,9 +3,17 @@
     "mem0ai": "^2.2.2"
   },
   "scripts": {
+    "lint": "oxlint services/ skills/",
+    "lint:fix": "oxlint services/ skills/ --fix",
     "lint:md": "markdownlint-cli \"**/*.md\"",
     "lint:md:fix": "markdownlint-cli \"**/*.md\" --fix",
     "lint:yaml": "yamllint -c .yamllint.yaml .",
-    "lint:yaml:fix": "yamllint -c .yamllint.yaml . --format parsable | sed 's/:.*//' | sort -u | xargs -I {} sed -i '' 's/^  //' {}"
+    "lint:yaml:fix": "yamllint -c .yamllint.yaml . --format parsable | sed 's/:.*//' | sort -u | xargs -I {} sed -i '' 's/^  //' {}",
+    "fmt": "oxfmt services/ skills/",
+    "fmt:check": "oxfmt services/ skills/ --check"
+  },
+  "devDependencies": {
+    "oxfmt": "^0.28.0",
+    "oxlint": "^1.43.0"
   }
 }
