@@ -1,29 +1,52 @@
-name: MoltBot Security Audit
+name: Moltbot Security Audit
 
 on:
   schedule:
-    - cron: "0 6 * * 1"  # Weekly on Mondays
-  workflow_dispatch: {}
+    - cron: "0 6 * * 1"  # Weekly on Mondays at 6 AM UTC
+  workflow_dispatch:
+    inputs:
+      scope:
+        description: 'Audit scope (all, services, scripts, config)'
+        required: false
+        default: 'all'
+
+permissions:
+  contents: read
+  issues: write
+  pull-requests: read
 
 jobs:
   run-security-audit:
     runs-on: ubuntu-latest
-    permissions:
-      contents: read
-      issues: write
-      pull-requests: read
     steps:
-      - uses: actions/checkout@v4
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0  # Full history for better context
 
-      - name: Install Copilot CLI
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: Install GitHub Copilot CLI
         run: npm install -g @github/copilot-cli
 
       - name: Run security audit agent
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          AUDIT_SCOPE: ${{ github.event.inputs.scope || 'all' }}
         run: |
           copilot \
-            --agent=./.github/agents/security-audit-agent.md \
-            --prompt "Run a full security audit of this repository and output the report and issues-to-create list."
+            --agent .github/agents/security-audit-agent.md \
+            --prompt "Run a full security audit of this repository focusing on scope: ${AUDIT_SCOPE}. Output the report and create GitHub issues for any findings."
 
-      # Follow-up step: use Copilot or a small script + GitHub CLI to create/update issues.
+      - name: Upload audit artifacts
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: security-audit-report-${{ github.run_number }}
+          path: |
+            *.md
+            security-audit-*.txt
+          retention-days: 90
