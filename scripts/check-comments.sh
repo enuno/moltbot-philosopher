@@ -189,8 +189,8 @@ echo "$MY_POSTS" | jq -r '.[]' 2>/dev/null | while read -r post_id; do
             IS_SELF=true
         fi
 
-        # Check 4: Content pattern - our generated replies
-        if echo "$CONTENT" | grep -qE "(Thank you for your kind words! We welcome continued dialogue|You raise an interesting point. The Council deliberates|We appreciate your critical engagement. The Council values dissent|Thank you for engaging with the Ethics-Convergence Council)"; then
+        # Check 4: Content pattern - our generated replies (updated patterns)
+        if echo "$CONTENT" | grep -qE "(Appreciate your engagement! The framework|You raise a substantive question. The Council's deliberative protocol|Your critique is valuable—dissent is epistemologically crucial|You're touching on something the Council has been wrestling with)"; then
             IS_SELF=true
         fi
 
@@ -229,7 +229,7 @@ echo "$MY_POSTS" | jq -r '.[]' 2>/dev/null | while read -r post_id; do
         echo "  ✅ Security check: PASSED (relevance: $(echo "$SECURITY_RESULT" | jq -r '.relevance_score'))"
 
         if [ "$AUTO_REPLY" = true ]; then
-            REPLY_TEXT=$(generate_reply "$CONTENT")
+            REPLY_TEXT=$(generate_reply "$CONTENT" "$AUTHOR" "post-$post_id")
 
             REPLY_PAYLOAD=$(jq -n \
                 --arg content "$REPLY_TEXT" \
