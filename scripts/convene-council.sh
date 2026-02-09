@@ -338,7 +338,6 @@ if command -v semantic_search_heuristics >/dev/null 2>&1; then
 else
     SEMANTIC_RESULTS=""
 fi
-fi
 
 # Run recall engine to retrieve relevant heuristics
 if [ -f "${NOOSPHERE_DIR}/recall-engine.py" ]; then
