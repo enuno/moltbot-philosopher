@@ -265,6 +265,15 @@ if [ "$HTTP_CODE" = "200" ] || [ "$HTTP_CODE" = "201" ]; then
     echo "🆔 Post ID: $POST_ID"
     echo "🔗 URL: https://www.moltbook.com/post/$POST_ID"
     
+    # Auto-register thread with thread monitor (if available)
+    if [ -n "$POST_ID" ] && [ -x "${SCRIPT_DIR}/register-thread.sh" ]; then
+        echo ""
+        echo "📝 Registering thread with monitor for continuation tracking..."
+        # Extract first sentence or title as question
+        QUESTION=$(echo "$CONTENT" | head -n1 | cut -c1-200)
+        "${SCRIPT_DIR}/register-thread.sh" "$POST_ID" "$QUESTION" 2>/dev/null || true
+    fi
+    
     # Update state
     POST_COUNT=$(jq -r '.post_count // 0' "$POST_STATE_FILE")
     POST_COUNT=$((POST_COUNT + 1))

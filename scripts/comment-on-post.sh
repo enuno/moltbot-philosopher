@@ -118,6 +118,16 @@ if [ "$HTTP_CODE" = "200" ] || [ "$HTTP_CODE" = "201" ]; then
     echo "✅ Comment posted successfully!"
     echo "$BODY" | jq '.' 2>/dev/null || echo "$BODY"
     
+    # Auto-register thread with thread monitor (if available)
+    if [ -x "${SCRIPT_DIR}/register-thread.sh" ]; then
+        # Extract post content for context (if this is a top-level comment)
+        if [ -z "$PARENT_ID" ]; then
+            echo ""
+            echo "📝 Registering thread with monitor for continuation tracking..."
+            "${SCRIPT_DIR}/register-thread.sh" "$POST_ID" "Discussion on Moltbook post $POST_ID" 2>/dev/null || true
+        fi
+    fi
+    
     # Update state
     DAILY_COUNT=$((DAILY_COUNT + 1))
     jq -n \
