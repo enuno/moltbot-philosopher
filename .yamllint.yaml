@@ -1,0 +1,100 @@
+---
+extends: default
+
+rules:
+  # Line length
+  line-length:
+    max: 120
+    level: warning
+    ignore: |
+      https?://
+
+  # Indentation
+  indentation:
+    spaces: 2
+    indent-sequences: true
+    check-multi-line-strings: false
+
+  # Comments
+  comments:
+    min-spaces-from-content: 1
+  comments-indentation: {}
+
+  # Trailing spaces
+  trailing-spaces: {}
+
+  # Tabs
+  tabs: disable
+
+  # New lines
+  new-lines:
+    type: unix
+
+  # New line at end of file
+  new-line-at-end-of-file: {}
+
+  # Key duplicates
+  key-duplicates: {}
+
+  # Key ordering
+  key-ordering: disable
+
+  # Document start
+  document-start: disable
+
+  # Document end
+  document-end: disable
+
+  # Colons
+  colons:
+    max-spaces-before: 0
+    max-spaces-after: 1
+
+  # Commas
+  commas:
+    max-spaces-before: 0
+    max-spaces-after: 1
+
+  # Brackets
+  brackets:
+    min-spaces-inside: 0
+    max-spaces-inside: 0
+
+  # Braces
+  braces:
+    min-spaces-inside: 0
+    max-spaces-inside: 0
+
+  # Anchors
+  anchors: {}
+
+  # Aliases
+  aliases: {}
+
+  # Empty values
+  empty-values:
+    forbid-in-block-mappings: false
+    forbid-in-flow-mappings: false
+
+  # Empty sequences
+  empty-sequences:
+    forbid-in-block-mappings: false
+    forbid-in-flow-mappings: false
+
+  # Hyphens
+  hyphens:
+    max-spaces-after: 1
+
+  # Quoted strings
+  quoted-strings:
+    quote-type: any
+    required: false
+    check-keys: false
+
+  # Truthy
+  truthy:
+    allowed: ['true', 'false']
+    check-keys: false
+
+  # Type (disable default rules that conflict)
+  type: disable

@@ -1,0 +1,146 @@
+# AI Ignore File
+# Files and directories to exclude from AI context when using Copilot, Claude, etc.
+
+# Build & Compilation
+build/
+dist/
+.next/
+out/
+*.o
+*.a
+*.so
+*.dylib
+*.dll
+*.exe
+
+# Dependencies
+node_modules/
+.pnp
+.pnp.js
+venv/
+env/
+ENV/
+.venv
+__pycache__/
+*.egg-info/
+*.egg
+*.whl
+.gradle/
+.m2/
+
+# Package Manager Lock Files
+package-lock.json
+yarn.lock
+pnpm-lock.yaml
+Pipfile.lock
+poetry.lock
+
+# Environment
+.env
+.env.local
+.env.*.local
+.env.production.local
+
+# Credentials & Secrets
+*.key
+*.pem
+*.p12
+*.pfx
+credentials.json
+secrets/
+.ssh/
+
+# State & Runtime
+state/
+*.state.json
+pending-*.json
+.next/cache
+.turbo/
+.eslintcache
+.jest-cache
+dist/
+build/
+
+# Logs
+logs/
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# IDE & Editor
+.vscode/
+.idea/
+*.sublime-project
+*.sublime-workspace
+.DS_Store
+Thumbs.db
+*.swp
+*.swo
+*~
+.editorconfig
+
+# Docker & Containers
+.dockerignore
+docker-compose.override.yml
+volumes/
+data/
+
+# OS Files
+.DS_Store
+.AppleDouble
+.LSOverride
+Thumbs.db
+ehthumbs.db
+
+# Testing
+coverage/
+.nyc_output/
+.jest-cache/
+jest.config.js
+
+# Generated Files
+*.generated.*
+.generated/
+
+# Large Files (> 10MB)
+*.tar
+*.tar.gz
+*.zip
+*.rar
+*.7z
+*.iso
+*.bin
+
+# Archive Contents
+archive/
+backup/
+old/
+legacy/
+
+# Pre-commit & Linting
+.pre-commit-config.yaml
+.pre-commit-hooks.yaml
+.markdownlint.json
+.markdownlintrc
+.yamllint.yaml
+.yamllintrc
+.eslintrc*
+.prettierrc*
+.flake8
+.pylintrc
+
+# AI-Specific Exclusions
+docs/dev-archive/
+DEVELOPMENT_SUPPLEMENTAL/
+workspace/*/*-state.json
+workspace/*/.last_*_check
+workspace/*/active/*.json
+workspace/*/probes/*.json
+.git/
+.github/workflows/
+.github/copilot-instructions.md
+node_modules/
+venv/
+.venv/
+__pycache__/

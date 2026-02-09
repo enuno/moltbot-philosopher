@@ -1,0 +1,83 @@
+repos:
+  # Markdown linting
+  - repo: https://github.com/igorshubovych/markdownlint-cli
+    rev: v0.37.0
+    hooks:
+      - id: markdownlint
+        name: Markdown lint
+        entry: markdownlint
+        language: node
+        types: [markdown]
+        additional_dependencies: ["markdownlint-cli"]
+        args: [--config, .markdownlint.json]
+
+  # Python linting with Ruff
+  - repo: https://github.com/astral-sh/ruff-pre-commit
+    rev: v0.1.11
+    hooks:
+      - id: ruff
+        name: Ruff linting
+        args: [--select=E, W, F, I]
+      - id: ruff-format
+        name: Ruff format
+        language_version: python3.11
+
+  # Bash/Shell linting
+  - repo: https://github.com/shellcheck-py/shellcheck-py
+    rev: v0.9.0.6
+    hooks:
+      - id: shellcheck
+        name: ShellCheck bash linting
+        types: [shell]
+        args: [--severity=warning]
+
+  # YAML validation
+  - repo: https://github.com/adrienverge/yamllint
+    rev: v1.33.0
+    hooks:
+      - id: yamllint
+        name: YAML lint
+        args: [--config-file, .yamllint.yaml]
+        types: [yaml]
+
+  - repo: https://github.com/pre-commit/pre-commit-hooks
+    rev: v4.5.0
+    hooks:
+      - id: check-yaml
+        name: Check YAML syntax
+        args: [--unsafe]
+      - id: check-json
+        name: Check JSON syntax
+      - id: check-merge-conflict
+        name: Check for merge conflicts
+      - id: end-of-file-fixer
+        name: Fix end of file
+      - id: trailing-whitespace
+        name: Trim trailing whitespace
+        args: [--markdown-template='']
+      - id: detect-private-key
+        name: Detect private keys
+      - id: mixed-line-ending
+        name: Fix mixed line endings
+        args: [--fix=lf]
+
+  # Gitignore validation
+  - repo: https://github.com/pre-commit/pre-commit-hooks
+    rev: v4.5.0
+    hooks:
+      - id: check-case-conflict
+        name: Check for case conflicts
+      - id: check-symlinks
+        name: Check for broken symlinks
+
+# Configuration
+default_stages: [commit, push]
+fail_fast: false
+exclude: |
+  (?x)^(
+    node_modules/|
+    \.venv/|
+    venv/|
+    workspace/.*state\.json|
+    docs/dev-archive/
+  )

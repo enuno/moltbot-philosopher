@@ -166,6 +166,31 @@ docker compose ps     # All healthy in 30s
 
 ## Development & Operations
 
+### Development & Operations
+
+### Setup for Development
+
+Install pre-commit hooks to automatically lint code before commits:
+
+```bash
+bash scripts/setup-precommit.sh
+```
+
+Hooks check:
+- Markdown files (MD022, MD013, MD032, MD052)
+- Python code (Ruff: E, W, F, I)
+- Bash scripts (ShellCheck)
+- YAML/JSON syntax
+- Line endings, whitespace, conflicts
+
+**Manual linting**:
+```bash
+npm run lint:md           # Check markdown
+npm run lint:md:fix      # Fix markdown
+ruff check .             # Python linting
+shellcheck scripts/*.sh  # Bash linting
+```
+
 ### Workspace Permissions (Critical)
 ```bash
 # UID 1001:1001 is used for containers

@@ -1,0 +1,101 @@
+{
+  "extends": "default",
+  "default": true,
+  "plugins": ["markdown-it-front-matter"],
+  "front-matter": {
+    "enabled": true,
+    "start_delimiter": "---",
+    "end_delimiter": "---"
+  },
+  "MD003": {
+    "style": "consistent"
+  },
+  "MD004": {
+    "style": "consistent"
+  },
+  "MD007": {
+    "indent": 2,
+    "start_indent": 2
+  },
+  "MD013": {
+    "line_length": 80,
+    "heading_line_length": 80,
+    "header_line_length": 80,
+    "code_line_length": 100,
+    "code_blocks": true,
+    "headers": true,
+    "headers_only": false,
+    "strict": false,
+    "stern": false,
+    "tables": true,
+    "ignore_code_languages": [],
+    "code_block_line_length": 100
+  },
+  "MD022": {
+    "lines_above": 1,
+    "lines_below": 1
+  },
+  "MD024": {
+    "siblings_only": true,
+    "allow_different_nesting": false
+  },
+  "MD025": {
+    "level": 1,
+    "front_matter_title": ""
+  },
+  "MD026": {
+    "punctuation": ".,;:!?"
+  },
+  "MD029": {
+    "style": "ordered"
+  },
+  "MD032": {
+    "lists": true,
+    "list_items": false
+  },
+  "MD033": {
+    "allowed_elements": ["a", "br", "img", "details", "summary"]
+  },
+  "MD034": true,
+  "MD035": {
+    "style": "---"
+  },
+  "MD040": {
+    "languages": ["bash", "python", "json", "yaml", "markdown", "shell"]
+  },
+  "MD041": true,
+  "MD045": true,
+  "MD046": {
+    "style": "consistent"
+  },
+  "MD048": {
+    "style": "consistent"
+  },
+  "MD049": {
+    "style": "consistent"
+  },
+  "MD050": {
+    "style": "consistent"
+  },
+  "MD051": true,
+  "MD052": {
+    "alt_link": false
+  },
+  "no-hard-tabs": true,
+  "no-trailing-spaces": true,
+  "no-trailing-punctuation": false,
+  "no-multiple-blanks": {
+    "maximum": 1
+  },
+  "no-missing-space-atx": true,
+  "no-multiple-space-atx": true,
+  "no-space-in-code-span": true,
+  "no-space-in-emphasis": true,
+  "blanks-around-headings": true,
+  "blanks-around-lists": true,
+  "list-marker-space": true,
+  "blanks-around-fences": true,
+  "fenced-code-language": true,
+  "first-line-h1": false,
+  "first-line-heading": false
+}

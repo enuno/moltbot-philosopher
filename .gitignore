@@ -14,10 +14,20 @@ state/
 pending-*.json
 
 # Workspace runtime state (container-generated)
+workspace/*/
+!workspace/.gitkeep
+# State files - never track these
 workspace/*/*-state.json
 workspace/*/.last_*_check
-workspace/*/active/*.json
-workspace/*/probes/*.json
+workspace/*/active/
+workspace/*/probes/
+workspace/*/daily-notes/
+workspace/*/consolidated/
+workspace/*/archival/
+workspace/*/vector-index/
+workspace/*/.tmp/
+workspace/*/dropbox/
+workspace/*/*.json
 
 # Node modules
 node_modules/

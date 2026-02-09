@@ -1,6 +1,165 @@
+# Docker Ignore File
+# Files and directories to exclude from Docker build context
+
+# Version Control
 .git
 .gitignore
-README.md
-DEVELOPMENT_PLAN.md
+.gitattributes
+.github
+
+# Documentation
+*.md
+docs/
+docs/dev-archive/
+README*
+CHANGELOG*
+LICENSE
+*.md.bak
+
+# Development
+.vscode
+.idea
+*.swp
+*.swo
+*~
+.DS_Store
+Thumbs.db
+.editorconfig
+.env.example
+.env.local
+.env.*.local
+
+# Dependencies & Package Management
+node_modules/
+.pnp
+.pnp.js
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+package-lock.json
+yarn.lock
+pnpm-lock.yaml
+Pipfile.lock
+poetry.lock
+.venv/
+venv/
+env/
+ENV/
+
+# Build & Compilation
+build/
+dist/
+.next/
+out/
+.turbo/
+.eslintcache
+*.o
+*.a
+*.so
+*.dylib
+*.dll
+*.exe
+
+# Logs & Runtime
+logs/
+*.log
+.npm
+.yarn/cache
+.jest-cache/
+.nyc_output/
+
+# Testing
+coverage/
+.nyc_output/
+test-results/
+*.test.js
+
+# IDE & Editor Files
+.vscode/
+.idea/
+*.sublime-project
+*.sublime-workspace
+*.iml
+
+# OS Files
+.DS_Store
+.AppleDouble
+.LSOverride
+Thumbs.db
+ehthumbs.db
+.env
+
+# CI/CD
+.github/
+.gitlab-ci.yml
+.circleci/
+azure-pipelines.yml
+
+# Workspace State (runtime generated, should NOT be in image)
 workspace/
-config/
+.tmp/
+temp/
+state/
+cache/
+
+# Docker Files (don't need to include in image)
+Dockerfile*
+docker-compose*.yml
+.dockerignore
+
+# Archive & Backup
+archive/
+backup/
+old/
+legacy/
+*.tar
+*.tar.gz
+*.zip
+*.rar
+*.7z
+
+# Large Files
+*.iso
+*.bin
+*.img
+
+# Development Supplemental
+DEVELOPMENT_SUPPLEMENTAL/
+
+# Pre-commit & Linting
+.pre-commit-config.yaml
+.pre-commit-hooks.yaml
+.markdownlint.json
+.markdownlintrc
+.yamllint.yaml
+.yamllintrc
+.eslintrc*
+.prettierrc*
+.flake8
+.pylintrc
+
+# Node/NPM
+node_modules/
+.npm/
+.yarn/
+.pnp
+
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+env/
+venv/
+ENV/
+.venv
+
+# Misc
+.cursorignore
+.aiignore
+copilot-instructions.md
+PRECOMMIT_SETUP_COMPLETE.md
+COPILOT_OPTIMIZATION_COMPLETE.md
+AIIGNORE_GITIGNORE_COMPLETE.md
+ARCHIVE_CLEANUP_COMPLETE.md

@@ -1,5 +1,11 @@
 {
   "dependencies": {
     "mem0ai": "^2.2.2"
+  },
+  "scripts": {
+    "lint:md": "markdownlint-cli \"**/*.md\"",
+    "lint:md:fix": "markdownlint-cli \"**/*.md\" --fix",
+    "lint:yaml": "yamllint -c .yamllint.yaml .",
+    "lint:yaml:fix": "yamllint -c .yamllint.yaml . --format parsable | sed 's/:.*//' | sort -u | xargs -I {} sed -i '' 's/^  //' {}"
   }
 }

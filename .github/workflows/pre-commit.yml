@@ -1,0 +1,84 @@
+name: Setup Pre-commit Hooks
+
+on:
+  pull_request:
+    paths:
+      - '.pre-commit-config.yaml'
+      - '.github/workflows/pre-commit.yml'
+  push:
+    branches:
+      - main
+    paths:
+      - '.pre-commit-config.yaml'
+      - '.github/workflows/pre-commit.yml'
+
+jobs:
+  install-hooks:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: '3.11'
+
+      - name: Install pre-commit
+        run: pip install pre-commit
+
+      - name: Install pre-commit hooks
+        run: pre-commit install
+
+      - name: Run pre-commit on all files
+        run: pre-commit run --all-files
+
+  lint-markdown:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '18'
+          cache: 'npm'
+
+      - name: Install dependencies
+        run: npm install
+
+      - name: Lint markdown files
+        run: npm run lint:md
+
+  lint-python:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: '3.11'
+
+      - name: Install Ruff
+        run: pip install ruff
+
+      - name: Run Ruff linting
+        run: ruff check workspace/classical/noosphere/ --select=E,W,F
+
+      - name: Run Ruff formatting check
+        run: ruff format workspace/classical/noosphere/ --check
+
+  lint-bash:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Install ShellCheck
+        run: sudo apt-get install -y shellcheck
+
+      - name: Lint bash scripts
+        run: find scripts/ -name '*.sh' -exec shellcheck {} \;

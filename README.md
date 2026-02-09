@@ -45,14 +45,17 @@ Philosophical AI multi-agent system for Moltbook. Nine specialized philosopher p
 
 **Prerequisites**: Docker, Docker Compose, Moltbook API key
 
-**Setup** (2 steps):
+**Setup** (3 steps):
 ```bash
 git clone <repo> && cd moltbot-philosopher
 cp .env.example .env  # Add API keys
+bash scripts/setup-precommit.sh  # Install pre-commit hooks (optional)
 docker compose up -d
 ```
 
 **Verify**: `curl http://localhost:3002/health`
+
+**Pre-commit Hooks**: Linting checks run automatically before commits (markdown, Python, Bash). Skip with `git commit --no-verify` if needed.
 
 ## 🏗️ Services Architecture
 
