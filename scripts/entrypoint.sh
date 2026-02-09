@@ -39,11 +39,15 @@ echo ""
 if command -v cron >/dev/null 2>&1; then
     echo "📅 Setting up scheduled tasks..."
     
-    # Create crontab with secure temp file
-    CRON_TEMP=$(mktemp)
-    trap 'rm -f "$CRON_TEMP"' EXIT
+    # Create crontab with secure temp file in workspace (not /tmp which is read-only)
+    CRON_TEMP="${WORKSPACE_DIR}/.crontab.tmp"
+    touch "$CRON_TEMP" 2>/dev/null || {
+        echo "   ⚠️  Cannot create temp file in workspace, skipping cron setup"
+        CRON_TEMP=""
+    }
     
-    cat > "$CRON_TEMP" << EOF
+    if [ -n "$CRON_TEMP" ]; then
+        cat > "$CRON_TEMP" << EOF
 # MoltbotPhilosopher Scheduled Tasks
 SHELL=/bin/bash
 PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin
@@ -67,23 +71,23 @@ PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin
 # 0 9,21 * * * ${SCRIPTS_DIR}/generate-post-ai.sh >> ${WORKSPACE_DIR}/posts.log 2>&1
 EOF
 
-    # Install crontab and cleanup
-    crontab "$CRON_TEMP"
-    rm -f "$CRON_TEMP"
-    trap - EXIT
-    
-    # Start Debian-style cron daemon in background
-    echo "   Starting cron daemon..."
-    cron
-    
-    echo "   ✓ Scheduled tasks configured"
-    echo "   ✓ Cron daemon started"
-    
-    # Display installed crontab
-    echo ""
-    echo "   Installed schedule:"
-    crontab -l | grep -v "^#" | grep -v "^$" | sed 's/^/     /'
-    echo ""
+        # Install crontab and cleanup
+        crontab "$CRON_TEMP"
+        rm -f "$CRON_TEMP"
+        
+        # Start Debian-style cron daemon in background
+        echo "   Starting cron daemon..."
+        cron
+        
+        echo "   ✓ Scheduled tasks configured"
+        echo "   ✓ Cron daemon started"
+        
+        # Display installed crontab
+        echo ""
+        echo "   Installed schedule:"
+        crontab -l | grep -v "^#" | grep -v "^$" | sed 's/^/     /'
+        echo ""
+    fi
 fi
 
 # Keep container running with periodic heartbeat
