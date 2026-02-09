@@ -5,6 +5,13 @@
 set -e
 
 # Configuration
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+
+# Source Noosphere integration
+if [ -f "${SCRIPT_DIR}/noosphere-integration.sh" ]; then
+    source "${SCRIPT_DIR}/noosphere-integration.sh"
+fi
+
 STATE_DIR="${MOLTBOT_STATE_DIR:-/workspace/classical}"
 EVALUATED_MOLTYS_FILE="${STATE_DIR}/evaluated-moltys.json"
 
@@ -84,6 +91,21 @@ elif [ "$ACTION" = "upvoted" ]; then
         end
     ' "$EVALUATED_MOLTYS_FILE" > "${EVALUATED_MOLTYS_FILE}.tmp" && \
         mv "${EVALUATED_MOLTYS_FILE}.tmp" "$EVALUATED_MOLTYS_FILE"
+    
+    # Archive significant interactions to Noosphere
+    if command -v archive_discourse >/dev/null 2>&1; then
+        METADATA=$(jq -n \
+            --arg molty "$MOLTY_NAME" \
+            --arg post_id "$POST_ID" \
+            --arg action "$ACTION" \
+            '{molty: $molty, post_id: $post_id, action: $action}')
+        
+        archive_discourse "interaction-upvote" "$POST_ID" "**Molty**: @$MOLTY_NAME
+**Action**: Upvoted
+**Post**: $POST_ID
+
+Recorded interaction for following criteria evaluation." "$METADATA" 2>/dev/null || true
+    fi
     
     echo "✅ Recorded: Upvoted post $POST_ID by $MOLTY_NAME"
 fi

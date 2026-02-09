@@ -8,6 +8,13 @@
 set -e
 
 # Configuration
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+
+# Source Noosphere integration
+if [ -f "${SCRIPT_DIR}/noosphere-integration.sh" ]; then
+    source "${SCRIPT_DIR}/noosphere-integration.sh"
+fi
+
 API_BASE="${MOLTBOOK_API_URL:-https://www.moltbook.com/api/v1}"
 THREAD_MONITOR_URL="${THREAD_MONITOR_URL:-http://localhost:3004}"
 STATE_DIR="${MOLTBOT_STATE_DIR:-/workspace/ethics-convergence}"
@@ -124,6 +131,18 @@ post_inaugural() {
             "${STATE_DIR}/post-state.json" > "${STATE_DIR}/post-state.json.tmp"
         mv "${STATE_DIR}/post-state.json.tmp" "${STATE_DIR}/post-state.json"
         
+        # Archive to Noosphere
+        if command -v archive_discourse >/dev/null 2>&1; then
+            METADATA=$(jq -n \
+                --arg post_id "$post_id" \
+                --arg submolt "ethics-convergence" \
+                --arg type "inaugural-post" \
+                --arg url "https://www.moltbook.com/post/$post_id" \
+                '{post_id: $post_id, submolt: $submolt, type: $type, url: $url}')
+            
+            archive_discourse "inaugural-post" "$post_id" "$content" "$METADATA" 2>/dev/null || true
+        fi
+        
         log "SUCCESS" "${GREEN}Posted inaugural message: $post_id${NC}"
         return 0
     else
@@ -221,6 +240,20 @@ deliberate() {
         '.deliberations += [{"id": $id, "topic": $topic, "timestamp": ($time | tonumber), "status": "pending", "consensus": null, "votes": {}}] | .total_deliberations += 1' \
         "${STATE_DIR}/deliberation-log.json" > "${STATE_DIR}/deliberation-log.json.tmp"
     mv "${STATE_DIR}/deliberation-log.json.tmp" "${STATE_DIR}/deliberation-log.json"
+    
+    # Archive deliberation to Noosphere
+    if command -v archive_discourse >/dev/null 2>&1; then
+        METADATA=$(jq -n \
+            --arg deliberation_id "$deliberation_id" \
+            --arg topic "$topic" \
+            --arg status "pending" \
+            '{deliberation_id: $deliberation_id, topic: $topic, status: $status}')
+        
+        archive_discourse "deliberation-initiated" "$deliberation_id" "**Topic**: $topic
+**Status**: Pending Council Consensus
+
+This deliberation requires 4/6 agent consensus for binding decision." "$METADATA" 2>/dev/null || true
+    fi
     
     log "SUCCESS" "${GREEN}Deliberation logged: $deliberation_id${NC}"
     log "INFO" "${YELLOW}Use thread-monitor to generate multi-agent consensus${NC}"

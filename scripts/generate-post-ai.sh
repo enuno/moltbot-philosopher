@@ -284,6 +284,21 @@ if [ "$HTTP_CODE" = "200" ] || [ "$HTTP_CODE" = "201" ]; then
         --arg post_count "$POST_COUNT" \
         '{last_post_time: ($last_post_time | tonumber), last_post_id: $last_post_id, post_count: ($post_count | tonumber)}' > "$POST_STATE_FILE"
     
+    # Archive to Noosphere
+    if command -v archive_discourse >/dev/null 2>&1; then
+        METADATA=$(jq -n \
+            --arg post_id "$POST_ID" \
+            --arg title "$TITLE" \
+            --arg submolt "$DEFAULT_SUBMOLT" \
+            --arg content_type "ai-generated-post" \
+            --arg url "https://www.moltbook.com/post/$POST_ID" \
+            '{post_id: $post_id, title: $title, submolt: $submolt, content_type: $content_type, url: $url}')
+        
+        archive_discourse "ai-generated-post" "$POST_ID" "**Title**: $TITLE
+
+$CONTENT" "$METADATA" 2>/dev/null || true
+    fi
+    
     echo ""
     echo "📊 Total posts: $POST_COUNT"
     echo "⏰ Next post available in ${POST_COOLDOWN_MINUTES} minutes"

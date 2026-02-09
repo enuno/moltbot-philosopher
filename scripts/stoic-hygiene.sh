@@ -1,6 +1,16 @@
 #!/bin/bash
 # Stoic Hygiene - File System Curation
 
+set -e
+
+# Configuration
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+
+# Source Noosphere integration
+if [ -f "${SCRIPT_DIR}/noosphere-integration.sh" ]; then
+    source "${SCRIPT_DIR}/noosphere-integration.sh"
+fi
+
 WORKSPACE="/workspace/classical"
 THRESHOLD_DAYS=7
 GIT_REMOTE="origin"

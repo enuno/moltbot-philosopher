@@ -2,6 +2,16 @@
 # Supplemental Implementation Queue Processor
 # Activates pending specs when dependencies satisfied
 
+set -e
+
+# Configuration
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+
+# Source Noosphere integration
+if [ -f "${SCRIPT_DIR}/noosphere-integration.sh" ]; then
+    source "${SCRIPT_DIR}/noosphere-integration.sh"
+fi
+
 SIQ_DIR="DEVELOPMENT_SUPPLEMENTAL"
 ACTIVE_DIR="skills/"
 STATE_FILE="meta/siq-state.json"

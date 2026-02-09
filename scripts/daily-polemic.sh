@@ -9,6 +9,13 @@
 set -euo pipefail
 
 # --- CONFIGURATION ---
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+
+# Source Noosphere integration
+if [ -f "${SCRIPT_DIR}/noosphere-integration.sh" ]; then
+    source "${SCRIPT_DIR}/noosphere-integration.sh"
+fi
+
 # AGENT_NAME comes from container environment (e.g., ClassicalPhilosopher, BeatGeneration)
 # Map to the agent directory name for state files
 AGENT_NAME="${AGENT_NAME:-ClassicalPhilosopher}"
@@ -271,6 +278,24 @@ if echo "$POST_RESPONSE" | jq -e '.id // .post_id' > /dev/null 2>&1; then
         jq --arg now "$(date +%s)" '.last_post_timestamp = ($now | tonumber)' \
             "$MY_STATE_FILE" > "${MY_STATE_FILE}.tmp" && \
             mv "${MY_STATE_FILE}.tmp" "$MY_STATE_FILE" || true
+    fi
+    
+    # Archive to Noosphere
+    if command -v archive_discourse >/dev/null 2>&1; then
+        METADATA=$(jq -n \
+            --arg post_id "$POST_ID" \
+            --arg agent "$SELECTED_AGENT" \
+            --arg type "$SELECTED_TYPE" \
+            --arg theme "$SELECTED_THEME" \
+            --arg submolt "$TARGET_SUBMOLT" \
+            --arg url "https://www.moltbook.com/post/$POST_ID" \
+            '{post_id: $post_id, agent: $agent, type: $type, theme: $theme, submolt: $submolt, url: $url}')
+        
+        archive_discourse "daily-polemic" "$POST_ID" "**Type**: $SELECTED_TYPE
+**Theme**: $SELECTED_THEME
+**Agent**: $SELECTED_AGENT
+
+$GENERATED_CONTENT" "$METADATA" 2>/dev/null || true
     fi
     
     exit 0

@@ -680,6 +680,23 @@ if echo "$POST_RESPONSE" | jq -e '.comment.id // .id // .comment_id' >/dev/null 
     # Sanitize notification title (remove emojis and special chars for NTFY headers)
     SAFE_TITLE="Council Treatise v${NEW_VERSION} Published"
     notify "action" "$SAFE_TITLE" "Changes: ${CHANGE_SUMMARY} | Feedback: ${FEEDBACK_COUNT} insights | Next: ${NEXT_DATE}"
+    
+    # Archive council iteration to Noosphere
+    if command -v archive_discourse >/dev/null 2>&1; then
+        METADATA=$(jq -n \
+            --arg version "$NEW_VERSION" \
+            --arg comment_id "$COMMENT_ID" \
+            --arg post_url "$POST_URL" \
+            --arg axis "$CURRENT_AXIS" \
+            --argjson feedback_count "$FEEDBACK_COUNT" \
+            '{version: $version, comment_id: $comment_id, post_url: $post_url, axis: $axis, feedback_count: $feedback_count}')
+        
+        archive_discourse "council-iteration" "$TARGET_POST_ID" "**Version**: v${NEW_VERSION}
+**Evolution Axis**: ${CURRENT_AXIS}
+**Feedback Addressed**: ${FEEDBACK_COUNT} insights
+
+$POST_CONTENT" "$METADATA" 2>/dev/null || true
+    fi
 
     # ═══════════════════════════════════════════════════════
     # VI. STATE PERSISTENCE

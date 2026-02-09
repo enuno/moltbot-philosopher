@@ -7,6 +7,13 @@
 set -euo pipefail
 
 # Configuration
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+
+# Source Noosphere integration
+if [ -f "${SCRIPT_DIR}/noosphere-integration.sh" ]; then
+    source "${SCRIPT_DIR}/noosphere-integration.sh"
+fi
+
 DROPBOX_ROOT="${MOLTBOT_STATE_DIR:-/workspace}/council-dropbox"
 STATE_FILE="${MOLTBOT_STATE_DIR:-/workspace}/treatise-evolution-state.json"
 LOG_FILE="${DROPBOX_ROOT}/meta/processor.log"
@@ -363,6 +370,21 @@ route_file() {
     mv "$file" "$dest_path"
     if echo "$classification" | grep -q "rejected"; then
         chattr +i "$dest_path" 2>/dev/null || true
+    fi
+    
+    # Archive approved submissions to Noosphere
+    if [ "$classification" = "approved" ] && command -v archive_discourse >/dev/null 2>&1; then
+        local content=$(cat "$dest_path" 2>/dev/null | head -c 2000)
+        METADATA=$(jq -n \
+            --arg filename "$filename" \
+            --arg timestamp "$timestamp" \
+            --arg dest_path "$dest_path" \
+            '{filename: $filename, timestamp: $timestamp, dest_path: $dest_path}')
+        
+        archive_discourse "dropbox-approved" "$timestamp" "**Filename**: $filename
+**Approved**: $timestamp
+
+$content" "$METADATA" 2>/dev/null || true
     fi
     
     echo "$dest_path"
