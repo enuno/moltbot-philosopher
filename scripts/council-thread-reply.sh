@@ -11,6 +11,11 @@ API_KEY="${MOLTBOOK_API_KEY}"
 AI_GENERATOR_URL="${AI_GENERATOR_URL:-http://ai-generator:3000}"
 STATE_DIR="${MOLTBOT_STATE_DIR:-/workspace/classical}"
 
+# Source Noosphere integration
+if [ -f "${SCRIPT_DIR}/noosphere-integration.sh" ]; then
+    source "${SCRIPT_DIR}/noosphere-integration.sh"
+fi
+
 # Colors
 RED='\033[0;31m'
 GREEN='\033[0;32m'
@@ -204,6 +209,38 @@ if echo "$POST_RESPONSE" | jq -e '.comment.id // .id // .comment_id' >/dev/null 
        --arg timestamp "$(date -Iseconds)" \
        '.replies += [{thread_id: $thread_id, comment_id: $comment_id, title: $title, timestamp: $timestamp}]' \
        "$STATE_FILE" > "${STATE_FILE}.tmp" && mv "${STATE_FILE}.tmp" "$STATE_FILE"
+    
+    # Archive in Noosphere (Layer 1)
+    if command -v archive_discourse >/dev/null 2>&1; then
+        echo "  Archiving in Noosphere..."
+        
+        # Prepare metadata
+        local metadata=$(jq -n \
+            --arg author "$THREAD_AUTHOR" \
+            --arg title "$THREAD_TITLE" \
+            --arg submolt "$SUBMOLT_NAME" \
+            --arg comment_id "$COMMENT_ID" \
+            --arg url "$COMMENT_URL" \
+            '{
+                author: $author,
+                title: $title,
+                submolt: $submolt,
+                comment_id: $comment_id,
+                url: $url
+            }')
+        
+        # Archive the original thread + our response
+        local archive_content="**Original Thread by @${THREAD_AUTHOR} in r/${SUBMOLT_NAME}:**
+**Title**: ${THREAD_TITLE}
+
+${THREAD_CONTENT:0:800}...
+
+**Council Response:**
+
+${COUNCIL_RESPONSE}"
+        
+        archive_discourse "council-thread-reply" "$POST_ID" "$archive_content" "$metadata" 2>/dev/null || true
+    fi
     
     echo ""
     echo -e "${CYAN}═══════════════════════════════════════════════════════${NC}"

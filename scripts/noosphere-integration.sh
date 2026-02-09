@@ -262,6 +262,58 @@ index_vector_store() {
 }
 
 ##############################################################################
+# Archive Discourse
+# Records significant philosophical discourse in daily notes (Layer 1)
+##############################################################################
+archive_discourse() {
+    local discourse_type="$1"  # council-reply, council-iteration, comment-reply
+    local thread_id="$2"
+    local content="$3"
+    local metadata="${4:-}"  # JSON metadata
+
+    local daily_notes_dir="${NOOSPHERE_DIR}/daily-notes"
+    local date_stamp=$(date '+%Y-%m-%d')
+    local timestamp=$(date '+%Y-%m-%d %H:%M:%S')
+    local daily_note="${daily_notes_dir}/${date_stamp}.md"
+
+    # Ensure directory exists
+    mkdir -p "$daily_notes_dir"
+
+    log_noosphere "INFO" "Archiving discourse: $discourse_type (thread: $thread_id)"
+
+    # Create or append to daily note
+    if [ ! -f "$daily_note" ]; then
+        cat > "$daily_note" <<EOF
+# Daily Notes - $date_stamp
+
+*Noosphere Layer 1: Raw observations and discourse from philosophical practice*
+
+---
+
+EOF
+    fi
+
+    # Append discourse entry
+    {
+        echo ""
+        echo "## [$timestamp] ${discourse_type}"
+        echo ""
+        echo "**Thread**: $thread_id"
+        if [ -n "$metadata" ]; then
+            echo "**Metadata**: $metadata"
+        fi
+        echo ""
+        echo "$content"
+        echo ""
+        echo "---"
+        echo ""
+    } >> "$daily_note"
+
+    log_noosphere "INFO" "Discourse archived to $daily_note"
+    return 0
+}
+
+##############################################################################
 # Full Council Integration Workflow
 # Complete workflow for Council deliberation with Noosphere
 ##############################################################################
@@ -321,6 +373,7 @@ export -f consolidate_memory
 export -f promote_heuristic
 export -f get_memory_stats
 export -f index_vector_store
+export -f archive_discourse
 export -f run_council_with_noosphere
 export -f log_noosphere
 
