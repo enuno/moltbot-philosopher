@@ -23,12 +23,31 @@ from datetime import datetime
 from typing import Dict, List, Optional
 from pathlib import Path
 
+# Load .env file if available
+try:
+    from dotenv import load_dotenv
+    # Look for .env in project root (parent of scripts/)
+    env_path = Path(__file__).parent.parent / '.env'
+    if env_path.exists():
+        load_dotenv(env_path)
+        print(f"[DEBUG] Loaded .env from: {env_path}", file=sys.stderr)
+    else:
+        print(f"[DEBUG] No .env file found at: {env_path}", file=sys.stderr)
+except ImportError:
+    print("[WARNING] python-dotenv not installed. Install with: pip install python-dotenv", file=sys.stderr)
+    print("[WARNING] Environment variables must be exported manually", file=sys.stderr)
+
 # Environment configuration
 MEM0_API_KEY = os.getenv('MEM0_API_KEY', '')
 MEM0_API_URL = os.getenv('MEM0_API_URL', 'https://api.mem0.ai/v1')
 MEM0_ORG_ID = os.getenv('MEM0_ORG_ID', '')
 MEM0_USER_ID = os.getenv('MEM0_USER_ID', 'moltbot-philosopher')
 ENABLE_MEM0 = os.getenv('ENABLE_MEM0_STORE', 'false').lower() == 'true'
+
+# Debug: Print configuration on import
+if __name__ != '__main__':
+    print(f"[DEBUG] ENABLE_MEM0_STORE from env: {os.getenv('ENABLE_MEM0_STORE')}", file=sys.stderr)
+    print(f"[DEBUG] ENABLE_MEM0 parsed: {ENABLE_MEM0}", file=sys.stderr)
 
 # Local Noosphere paths - adjust based on execution context
 SCRIPT_DIR = Path(__file__).parent
@@ -65,65 +84,54 @@ def get_mem0_client():
 
 
 def create_noosphere_project() -> str:
-    """Create or get Moltbot Living Noosphere project in Mem0."""
+    """
+    Connect to Moltbot Living Noosphere project in Mem0.
+    Note: Mem0 v1.0+ requires projects to be created via web UI at https://app.mem0.ai
+    """
+    # Get project ID from environment
+    project_id = os.getenv('MEM0_PROJECT_ID', '')
+    
+    if not project_id:
+        raise RuntimeError(
+            "MEM0_PROJECT_ID not set. Create project at https://app.mem0.ai "
+            "and add project ID to .env file"
+        )
+    
     client = get_mem0_client()
     
-    project_config = {
-        "name": "moltbot-philosopher-living-noosphere",
-        "description": """Moltbot-Philosopher Living Noosphere 
-        (https://github.com/enuno/moltbot-philosopher) extends Moltbot/OpenClaw 
-        with a philosopher persona powered by Noosphere's decentralized thought 
-        protocol and Mem0's scalable memory layer. 
-        
-        Features:
-        - Socratic dialogue with persistent user philosophy journeys
-        - Collective noospheric memory sharing across Moltbot instances
-        - Graph-structured wisdom recall (stoicism, existentialism, ethics)
-        - Living evolution of ideas via Mem0's A.U.D.N. update cycle
-        - 9 philosopher personas (Classical, Existentialist, Transcendentalist,
-          Joyce, Enlightenment, Beat, Cyberpunk, Satirist, Scientist)
-        - Ethics-convergence governance with 4/6 agent consensus
-        - 3-layer epistemological memory (daily → consolidated → constitutional)
-        
-        Use for reflective AI companions that grow wiser through shared 
-        human-AI discourse.""",
-        "custom_categories": [
-            "living_noosphere",
-            "philosophy",
-            "socratic_dialogue",
-            "decentralized_thought",
-            "ethical_reasoning",
-            "multi_agent_governance",
-            "epistemic_memory"
-        ]
-    }
-    
     try:
-        project_id = client.projects.create(**project_config)
-        print(f"✅ Created Mem0 project: {project_id}")
+        # Verify project connection
+        project = client.get_project()
+        print(f"✅ Connected to project: {project.get('name', 'Moltbot Noosphere')}")
+        print(f"   Project ID: {project_id}")
         
-        # Seed with foundational memory
-        seed_memory = {
-            "memory": """Living Noosphere: Collective philosophical evolution 
-            where individual insights merge into shared wisdom across decentralized 
-            Moltbot nodes. Each agent (Classical, Existentialist, etc.) contributes 
-            unique perspectives that consolidate into constitutional heuristics 
-            through 4/6 consensus governance.""",
-            "user_id": "noosphere_collective",
-            "metadata": {
-                "type": "foundational",
-                "timestamp": datetime.utcnow().isoformat(),
-                "version": "2.6"
-            }
-        }
-        
-        client.add(seed_memory, project_id=project_id)
-        print("✅ Seeded foundational memory")
+        # Seed with foundational memory if empty
+        try:
+            existing = client.get_all(user_id="noosphere_collective", limit=1)
+            if not existing.get("results"):
+                result = client.add(
+                    "Living Noosphere: Collective philosophical evolution where "
+                    "individual insights merge into shared wisdom across decentralized "
+                    "Moltbot nodes. Each agent (Classical, Existentialist, etc.) contributes "
+                    "unique perspectives that consolidate into constitutional heuristics "
+                    "through 4/6 consensus governance.",
+                    user_id="noosphere_collective",
+                    metadata={
+                        "type": "foundational",
+                        "timestamp": datetime.utcnow().isoformat(),
+                        "version": "2.6"
+                    }
+                )
+                print("✅ Seeded foundational memory")
+        except Exception as seed_error:
+            # Ignore if already seeded
+            pass
         
         return project_id
         
     except Exception as e:
-        print(f"❌ Error creating project: {e}")
+        print(f"❌ Error connecting to project: {e}")
+        print("   Ensure MEM0_PROJECT_ID is correct and project exists at https://app.mem0.ai")
         raise
 
 
@@ -232,7 +240,7 @@ def search_mem0(query: str, top_k: int = 10) -> List[Dict]:
     try:
         results = client.search(
             query=query,
-            user_id=MEM0_USER_ID,
+            filters={"user_id": MEM0_USER_ID},
             limit=top_k
         )
         
@@ -278,6 +286,12 @@ def get_stats() -> Dict:
 
 
 def main():
+    # Print configuration for debugging
+    print(f"[CONFIG] ENABLE_MEM0_STORE: {os.getenv('ENABLE_MEM0_STORE')}", file=sys.stderr)
+    print(f"[CONFIG] MEM0_API_KEY: {'set' if MEM0_API_KEY else 'not set'}", file=sys.stderr)
+    print(f"[CONFIG] Mem0 enabled: {ENABLE_MEM0}", file=sys.stderr)
+    print("", file=sys.stderr)
+    
     parser = argparse.ArgumentParser(
         description="Mem0 Living Noosphere Integration"
     )
