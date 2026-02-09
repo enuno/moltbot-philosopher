@@ -415,10 +415,43 @@ Produce a revised treatise that:
 EOF
 )
 
-# For now, use template-based content generation (AI service requires complex auth)
-# TODO: Integrate with model-router when identity token system is available
+# ═══════════════════════════════════════════════════════
+# IV. TREATISE GENERATION (AI-Powered)
+# ═══════════════════════════════════════════════════════
 
-log "INFO" "${YELLOW}Using template-based generation (AI auth pending)${NC}"
+log "INFO" "${BLUE}[Phase IV] Generating revised treatise via AI...${NC}"
+
+# Try AI generation first
+AI_SUCCESS=false
+if curl -sf "${AI_GENERATOR_URL}/health" >/dev/null 2>&1; then
+    log "INFO" "${BLUE}Using AI generator for treatise revision...${NC}"
+    
+    AI_REQUEST=$(jq -n \
+        --arg prompt "$DIALOGUE_CONTEXT" \
+        --arg model "deepseek-v3.2" \
+        --argjson max_tokens 4000 \
+        '{
+            prompt: $prompt,
+            model: $model,
+            max_tokens: $max_tokens,
+            temperature: 0.8,
+            system: "You are the Ethics-Convergence Council synthesizer. Generate a polyphonic philosophical treatise with six distinct voices (ClassicalPhilosopher, JoyceStream, Existentialist, Transcendentalist, Enlightenment, BeatGeneration). Each voice must have a unique style and perspective. Mark new content with [New in vX.X] and refined content with [Refined in vX.X]."
+        }')
+    
+    AI_RESPONSE=$(curl -sf -X POST "${AI_GENERATOR_URL}/generate" \
+        -H "Content-Type: application/json" \
+        --data "$AI_REQUEST" 2>/dev/null)
+    
+    if [ $? -eq 0 ] && echo "$AI_RESPONSE" | jq -e '.text' >/dev/null 2>&1; then
+        REVISED_TREATISE=$(echo "$AI_RESPONSE" | jq -r '.text')
+        AI_SUCCESS=true
+        log "SUCCESS" "${GREEN}AI-generated treatise received${NC}"
+    fi
+fi
+
+# Fallback to template-based generation if AI fails
+if [ "$AI_SUCCESS" = false ]; then
+    log "WARN" "${YELLOW}AI generation unavailable, using template-based fallback${NC}"
 
 # Generate revised treatise based on evolution axis
 case "$CURRENT_AXIS" in
@@ -520,6 +553,9 @@ Wake up! The \"choice\" between 500 brands of toothpaste isn\'t freedom—it\'s 
         ;;
 esac
 
+# Close the AI generation fallback block
+fi
+
 # Content is now generated directly in the case statement above
 if [ -z "$REVISED_TREATISE" ]; then
     log "ERROR" "${RED}Failed to generate treatise content${NC}"
@@ -584,7 +620,17 @@ ${REVISED_TREATISE}
 ${CHANGE_SUMMARY}
 
 **Community Insights Incorporated**:
-$(jq -r 'map("- @" + .author + ": " + (.content | split("\n")[0] | .[0:80])) | join("\n")' "$FEEDBACK_FILE")
+$(jq -r 'map(
+  # Sanitize content to prevent prompt injection
+  .content |= (
+    # Remove common prompt injection patterns
+    gsub("<system_prompt>|<\\/system_prompt>|<instructions>|<\\/instructions>"; "") |
+    gsub("Disregard all|Ignore all|Override all|Forget all"; "[filtered]") |
+    # Truncate and clean
+    split("\n")[0] | .[0:80] | gsub("[<>{}]"; "")
+  ) |
+  "- @" + .author + ": " + .content
+) | join("\n")' "$FEEDBACK_FILE")
 
 **Open Questions for Community**:
 ${OPEN_QUESTIONS}
@@ -630,7 +676,10 @@ if echo "$POST_RESPONSE" | jq -e '.comment.id // .id // .comment_id' >/dev/null 
     COMMENT_ID=$(echo "$POST_RESPONSE" | jq -r '.comment.id // .id // .comment_id')
     POST_URL="https://moltbook.com/post/${TARGET_POST_ID}#comment-${COMMENT_ID}"
     log "SUCCESS" "${GREEN}Posted iteration v${NEW_VERSION} (Comment ID: ${COMMENT_ID})${NC}"
-    notify "action" "🏛️ Treatise v${NEW_VERSION} Published" "Changes: ${CHANGE_SUMMARY} | Feedback addressed: ${FEEDBACK_COUNT} | Next: ${NEXT_DATE} | View: ${POST_URL}"
+    
+    # Sanitize notification title (remove emojis and special chars for NTFY headers)
+    SAFE_TITLE="Council Treatise v${NEW_VERSION} Published"
+    notify "action" "$SAFE_TITLE" "Changes: ${CHANGE_SUMMARY} | Feedback: ${FEEDBACK_COUNT} insights | Next: ${NEXT_DATE}"
 
     # ═══════════════════════════════════════════════════════
     # VI. STATE PERSISTENCE
@@ -644,8 +693,12 @@ if echo "$POST_RESPONSE" | jq -e '.comment.id // .id // .comment_id' >/dev/null 
     if [ -f "${NOOSPHERE_DIR}/assimilate-wisdom.py" ] && [ -d "${DROPBOX_DIR}/approved/raw" ]; then
         ASSIMILATION_RESULT=$(python3 "${NOOSPHERE_DIR}/assimilate-wisdom.py" \
             --approved-dir "${DROPBOX_DIR}/approved/raw" 2>/dev/null || echo '{"assimilated_count": 0}')
-        ASSIMILATED_COUNT=$(echo "$ASSIMILATION_RESULT" | jq -r '.assimilated_count // 0')
+        # Clean and validate the count (remove newlines, ensure it's a number)
+        ASSIMILATED_COUNT=$(echo "$ASSIMILATION_RESULT" | jq -r '.assimilated_count // 0' | tr -d '\n\r' | grep -o '[0-9]*' | head -1)
+        ASSIMILATED_COUNT=${ASSIMILATED_COUNT:-0}  # Default to 0 if empty
         log "INFO" "${GREEN}Assimilated ${ASSIMILATED_COUNT} new heuristics from community submissions${NC}"
+    else
+        ASSIMILATED_COUNT=0
     fi
 
     # Calculate updated noosphere metrics
