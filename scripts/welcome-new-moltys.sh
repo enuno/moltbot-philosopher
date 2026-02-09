@@ -138,7 +138,7 @@ echo "$POSTS_BODY" | jq -c '.posts[]' | while read -r post; do
         
         if [ "$AUTO_WELCOME" = true ]; then
             echo "🤖 Auto-welcoming..."
-            ./comment-on-post.sh "$POST_ID" "$WELCOME_MSG"
+            /app/scripts/comment-on-post.sh "$POST_ID" "$WELCOME_MSG"
             
             if [ $? -eq 0 ]; then
                 # Mark as welcomed

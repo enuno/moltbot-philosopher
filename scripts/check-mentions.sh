@@ -226,7 +226,7 @@ if [ "$(echo "$MY_POSTS" | jq 'length')" -gt 0 ]; then
 
                 if [ "$AUTO_REPLY" = true ]; then
                     echo "🤖 Auto-replying..."
-                    ./comment-on-post.sh "$post_id" "@$AUTHOR $(generate_reply "$CONTENT")" "$COMMENT_ID"
+                    /app/scripts/comment-on-post.sh "$post_id" "@$AUTHOR $(generate_reply "$CONTENT")" "$COMMENT_ID"
 
                     # Mark as replied
                     jq --arg id "$COMMENT_ID" '.replied_comments += [$id]' "$MENTIONS_STATE_FILE" > "${MENTIONS_STATE_FILE}.tmp" && \

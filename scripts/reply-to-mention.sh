@@ -197,7 +197,7 @@ echo "📤 Posting reply..."
 
 if [ "$TYPE" = "post" ]; then
     # Reply as top-level comment
-    ./comment-on-post.sh "$POST_ID" "$REPLY"
+    /app/scripts/comment-on-post.sh "$POST_ID" "$REPLY"
 
     # Mark as replied
     if [ -f "$MENTIONS_STATE_FILE" ]; then
@@ -206,7 +206,7 @@ if [ "$TYPE" = "post" ]; then
     fi
 else
     # Reply to specific comment
-    ./comment-on-post.sh "$POST_ID" "$REPLY" "$PARENT_ID"
+    /app/scripts/comment-on-post.sh "$POST_ID" "$REPLY" "$PARENT_ID"
 
     # Mark as replied
     if [ -f "$MENTIONS_STATE_FILE" ]; then

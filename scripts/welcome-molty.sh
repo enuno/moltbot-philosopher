@@ -46,7 +46,7 @@ echo "   \"$WELCOME_MSG\""
 echo ""
 
 # Post the welcome
-./comment-on-post.sh "$POST_ID" "$WELCOME_MSG"
+/app/scripts/comment-on-post.sh "$POST_ID" "$WELCOME_MSG"
 
 if [ $? -eq 0 ]; then
     # Mark as welcomed
