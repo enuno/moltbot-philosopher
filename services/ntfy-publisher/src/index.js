@@ -3,6 +3,7 @@ import https from "https";
 import express from "express";
 import cors from "cors";
 import helmet from "helmet";
+import rateLimit from "express-rate-limit";
 import dotenv from "dotenv";
 
 // Load environment variables
@@ -187,15 +188,52 @@ const app = express();
 // Security middleware
 app.use(
   helmet({
-    contentSecurityPolicy: false, // Allow internal network requests
+    contentSecurityPolicy: {
+      directives: {
+        defaultSrc: ["'self'"],
+        styleSrc: ["'self'", "'unsafe-inline'"],
+        scriptSrc: ["'self'"],
+        imgSrc: ["'self'", "data:", "https:"],
+      },
+    },
+    hsts: {
+      maxAge: 31536000,
+      includeSubDomains: true,
+      preload: true,
+    },
   }),
 );
+
+// CORS configuration - restrict to internal network
+const allowedOrigins = process.env.ALLOWED_ORIGINS
+  ? process.env.ALLOWED_ORIGINS.split(",")
+  : ["http://localhost:3002", "http://localhost:3003", "http://localhost:3004"];
+
 app.use(
   cors({
-    origin: "*", // Internal network only
+    origin: (origin, callback) => {
+      // Allow requests with no origin (like mobile apps or curl requests) in development
+      if (!origin || allowedOrigins.includes(origin)) {
+        callback(null, true);
+      } else {
+        callback(new Error("Not allowed by CORS"));
+      }
+    },
     methods: ["GET", "POST"],
+    credentials: true,
   }),
 );
+
+// Rate limiting
+const limiter = rateLimit({
+  windowMs: 15 * 60 * 1000, // 15 minutes
+  max: 200, // Limit each IP to 200 requests per windowMs (notifications need higher limit)
+  message: "Too many notification requests, please try again later.",
+  standardHeaders: true,
+  legacyHeaders: false,
+});
+
+app.use(limiter);
 app.use(express.json({ limit: "1mb" }));
 
 // Request logging middleware

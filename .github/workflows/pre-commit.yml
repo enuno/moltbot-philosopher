@@ -12,9 +12,14 @@ on:
       - '.pre-commit-config.yaml'
       - '.github/workflows/pre-commit.yml'
 
+permissions:
+  contents: read
+
 jobs:
   install-hooks:
     runs-on: ubuntu-latest
+    permissions:
+      contents: read
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
@@ -35,6 +40,8 @@ jobs:
 
   lint-markdown:
     runs-on: ubuntu-latest
+    permissions:
+      contents: read
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
@@ -53,6 +60,8 @@ jobs:
 
   lint-python:
     runs-on: ubuntu-latest
+    permissions:
+      contents: read
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
@@ -73,6 +82,8 @@ jobs:
 
   lint-bash:
     runs-on: ubuntu-latest
+    permissions:
+      contents: read
     steps:
       - name: Checkout code
         uses: actions/checkout@v4

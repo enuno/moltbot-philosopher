@@ -34,11 +34,24 @@ class StateManager {
   }
 
   /**
+   * Sanitize thread ID to prevent path traversal
+   */
+  sanitizeThreadId(threadId) {
+    // Remove any path traversal attempts and special characters
+    const sanitized = String(threadId).replace(/[^a-zA-Z0-9_-]/g, "");
+    if (!sanitized || sanitized !== String(threadId)) {
+      throw new Error(`Invalid thread ID: ${threadId}`);
+    }
+    return sanitized;
+  }
+
+  /**
    * Get file path for a thread
    */
   getThreadPath(threadId, archived = false) {
+    const sanitizedId = this.sanitizeThreadId(threadId);
     const dir = archived ? this.archivedDir : this.activeDir;
-    return path.join(dir, `thread-${threadId}.json`);
+    return path.join(dir, `thread-${sanitizedId}.json`);
   }
 
   /**
@@ -262,7 +275,8 @@ class StateManager {
       stall_count: thread.stall_count,
     };
 
-    const probePath = path.join(this.probesDir, `probe-${threadId}-${Date.now()}.json`);
+    const sanitizedId = this.sanitizeThreadId(threadId);
+    const probePath = path.join(this.probesDir, `probe-${sanitizedId}-${Date.now()}.json`);
 
     try {
       await fs.writeFile(probePath, JSON.stringify(probeRecord, null, 2));
