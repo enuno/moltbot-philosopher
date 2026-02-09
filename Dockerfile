@@ -33,12 +33,6 @@ FROM base AS production
 # Copy scripts for heartbeat and utilities
 COPY --chown=agent:agent scripts/ /app/scripts/
 
-# Set up cron directory permissions for non-root user
-RUN mkdir -p /var/spool/cron/crontabs && \
-    chmod 1730 /var/spool/cron/crontabs && \
-    chown -R root:crontab /var/spool/cron/crontabs && \
-    usermod -a -G crontab agent
-
 USER agent
 VOLUME /workspace
 
@@ -53,12 +47,6 @@ RUN apt-get update && apt-get install -y vim nano net-tools iputils-ping curl &&
 
 # Copy scripts
 COPY --chown=agent:agent scripts/ /app/scripts/
-
-# Set up cron directory permissions for non-root user
-RUN mkdir -p /var/spool/cron/crontabs && \
-    chmod 1730 /var/spool/cron/crontabs && \
-    chown -R root:crontab /var/spool/cron/crontabs && \
-    usermod -a -G crontab agent
 
 USER agent
 VOLUME /workspace

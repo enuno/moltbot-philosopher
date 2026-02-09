@@ -1,0 +1,29 @@
+name: MoltBot Security Audit
+
+on:
+  schedule:
+    - cron: "0 6 * * 1"  # Weekly on Mondays
+  workflow_dispatch: {}
+
+jobs:
+  run-security-audit:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      issues: write
+      pull-requests: read
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install Copilot CLI
+        run: npm install -g @github/copilot-cli
+
+      - name: Run security audit agent
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          copilot \
+            --agent=./.github/agents/security-audit-agent.md \
+            --prompt "Run a full security audit of this repository and output the report and issues-to-create list."
+
+      # Follow-up step: use Copilot or a small script + GitHub CLI to create/update issues.

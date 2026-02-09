@@ -35,63 +35,9 @@ echo "🔄 Running initial heartbeat check..."
 "${SCRIPTS_DIR}/moltbook-heartbeat-enhanced.sh" || true
 echo ""
 
-# Set up cron for scheduled tasks (Debian-style cron for Ubuntu)
-if command -v cron >/dev/null 2>&1; then
-    echo "📅 Setting up scheduled tasks..."
-    
-    # Create crontab with secure temp file in workspace (not /tmp which is read-only)
-    CRON_TEMP="${WORKSPACE_DIR}/.crontab.tmp"
-    touch "$CRON_TEMP" 2>/dev/null || {
-        echo "   ⚠️  Cannot create temp file in workspace, skipping cron setup"
-        CRON_TEMP=""
-    }
-    
-    if [ -n "$CRON_TEMP" ]; then
-        cat > "$CRON_TEMP" << EOF
-# MoltbotPhilosopher Scheduled Tasks
-SHELL=/bin/bash
-PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin
-
-# Heartbeat every 4 hours
-0 */4 * * * ${SCRIPTS_DIR}/moltbook-heartbeat-enhanced.sh >> ${WORKSPACE_DIR}/heartbeat.log 2>&1
-
-# Check mentions every 2 hours
-0 */2 * * * ${SCRIPTS_DIR}/check-mentions.sh >> ${WORKSPACE_DIR}/mentions.log 2>&1
-
-# Welcome new moltys daily at 9 AM
-0 9 * * * ${SCRIPTS_DIR}/welcome-new-moltys.sh --auto-welcome >> ${WORKSPACE_DIR}/welcomes.log 2>&1
-
-# Daily philosophical polemic (9 AM UTC) - rotating personas, 4 content types
-0 9 * * * ${SCRIPTS_DIR}/daily-polemic.sh >> ${WORKSPACE_DIR}/polemic.log 2>&1
-
-# Ethics-Convergence Council deliberation (every 5 days)
-0 0 */5 * * ${SCRIPTS_DIR}/convene-council.sh >> ${WORKSPACE_DIR}/council.log 2>&1
-
-# Generate a post twice daily (9 AM and 9 PM) - requires confirmation
-# 0 9,21 * * * ${SCRIPTS_DIR}/generate-post-ai.sh >> ${WORKSPACE_DIR}/posts.log 2>&1
-EOF
-
-        # Install crontab and cleanup
-        crontab "$CRON_TEMP"
-        rm -f "$CRON_TEMP"
-        
-        # Start Debian-style cron daemon in background
-        echo "   Starting cron daemon..."
-        cron
-        
-        echo "   ✓ Scheduled tasks configured"
-        echo "   ✓ Cron daemon started"
-        
-        # Display installed crontab
-        echo ""
-        echo "   Installed schedule:"
-        crontab -l | grep -v "^#" | grep -v "^$" | sed 's/^/     /'
-        echo ""
-    fi
-fi
-
 # Keep container running with periodic heartbeat
 echo "🔄 Entering main loop..."
+echo "   Scheduled tasks via while loop (cron not available)"
 echo "   Press Ctrl+C to stop"
 echo ""
 
@@ -135,6 +81,17 @@ while true; do
             "${SCRIPTS_DIR}/welcome-new-moltys.sh" --auto-welcome || true
         fi
         date +%s > "$WELCOME_CHECK_FILE"
+    fi
+    
+    # Daily polemic (once per day)
+    POLEMIC_CHECK_FILE="${STATE_DIR}/.last_polemic_check"
+    LAST_POLEMIC_CHECK=$(cat "$POLEMIC_CHECK_FILE" 2>/dev/null || echo 0)
+    TIME_SINCE_POLEMIC_CHECK=$((CURRENT_TIME - LAST_POLEMIC_CHECK))
+    
+    if [ "$TIME_SINCE_POLEMIC_CHECK" -ge 86400 ]; then
+        echo "[$(date '+%Y-%m-%d %H:%M:%S')] Generating daily polemic..."
+        "${SCRIPTS_DIR}/daily-polemic.sh" >> "${WORKSPACE_DIR}/polemic.log" 2>&1 || true
+        date +%s > "$POLEMIC_CHECK_FILE"
     fi
     
     # Ethics-Convergence Council iteration (every 5 days = 120 hours)
