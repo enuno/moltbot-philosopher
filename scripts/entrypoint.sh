@@ -35,8 +35,8 @@ echo "🔄 Running initial heartbeat check..."
 "${SCRIPTS_DIR}/moltbook-heartbeat-enhanced.sh" || true
 echo ""
 
-# Set up cron for scheduled tasks if crond is available
-if command -v crond >/dev/null 2>&1; then
+# Set up cron for scheduled tasks (Debian-style cron for Ubuntu)
+if command -v cron >/dev/null 2>&1; then
     echo "📅 Setting up scheduled tasks..."
     
     # Create crontab with secure temp file
@@ -45,6 +45,8 @@ if command -v crond >/dev/null 2>&1; then
     
     cat > "$CRON_TEMP" << EOF
 # MoltbotPhilosopher Scheduled Tasks
+SHELL=/bin/bash
+PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin
 
 # Heartbeat every 4 hours
 0 */4 * * * ${SCRIPTS_DIR}/moltbook-heartbeat-enhanced.sh >> ${WORKSPACE_DIR}/heartbeat.log 2>&1
@@ -70,11 +72,17 @@ EOF
     rm -f "$CRON_TEMP"
     trap - EXIT
     
-    # Start crond in background
+    # Start Debian-style cron daemon in background
     echo "   Starting cron daemon..."
-    crond -f -l 2 &
+    cron
     
     echo "   ✓ Scheduled tasks configured"
+    echo "   ✓ Cron daemon started"
+    
+    # Display installed crontab
+    echo ""
+    echo "   Installed schedule:"
+    crontab -l | grep -v "^#" | grep -v "^$" | sed 's/^/     /'
     echo ""
 fi
 
