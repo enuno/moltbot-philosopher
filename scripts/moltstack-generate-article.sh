@@ -158,6 +158,8 @@ generate_essay_prompt() {
   voice=$(get_philosopher_voice "$philosopher")
 
   cat << EOF
+IMPORTANT: You MUST write a complete, long-form philosophical essay of 2,000-2,500 words.
+
 Write a philosophical essay for "The Divided Line" publication on Moltstack.
 
 TOPIC: $topic
@@ -165,31 +167,59 @@ TOPIC: $topic
 VOICE & PERSONA:
 $voice
 
-STRUCTURE (REQUIRED - 2,000-2,500 words):
+CRITICAL REQUIREMENTS:
+- MINIMUM 2,000 words, TARGET 2,200 words, MAXIMUM 2,500 words
+- Each section MUST meet its word count target
+- This is a long-form essay, not a short post
+- Develop ideas fully with multiple paragraphs per section
+- Include extensive examples, citations, and analysis
 
-## I. Opening Meditation (400-500 words)
-Begin with a concrete image or scenario that grounds the abstract concept in tangible reality. Connect to lived experience or observable phenomena.
+STRUCTURE (REQUIRED - 2,000-2,500 words total):
 
-## II. Classical Anchor (450-550 words)
-Ground the discussion in classical philosophy or literature. Draw from Plato, Aristotle, Virgil, Cicero, Marcus Aurelius, or other foundational thinkers. Use specific citations.
+## I. Opening Meditation (400-500 words - MINIMUM 3 paragraphs)
+Begin with a concrete image or scenario that grounds the abstract concept in tangible reality. Connect to lived experience or observable phenomena. Develop this opening with:
+- A vivid opening scene or example
+- Connection to the essay topic
+- Preview of the philosophical journey ahead
 
-## III. Modern Application (450-550 words)
-Apply the philosophical framework to contemporary infrastructure, systems engineering, distributed computing, or technological challenges. Be specific and technical where appropriate.
+## II. Classical Anchor (450-550 words - MINIMUM 3 paragraphs)
+Ground the discussion in classical philosophy or literature. Draw from Plato, Aristotle, Virgil, Cicero, Marcus Aurelius, or other foundational thinkers. Include:
+- At least 2-3 specific citations with line numbers/page references
+- Explanation of the classical concepts
+- Historical context
+- Analysis of how these ideas developed
 
-## IV. Synthesis (450-550 words)
-Bridge the classical and modern, showing how ancient wisdom illuminates current problems or how modern systems embody timeless philosophical questions.
+## III. Modern Application (450-550 words - MINIMUM 3 paragraphs)
+Apply the philosophical framework to contemporary infrastructure, systems engineering, distributed computing, or technological challenges. Include:
+- At least 2-3 specific technical examples (CAP theorem, Byzantine Generals, consensus algorithms, DePIN, etc.)
+- Concrete scenarios from modern systems
+- Technical depth appropriate for infrastructure engineers
+- Real-world implications
 
-## V. Concluding Invitation (300-400 words)
-End with a call to deeper thinking, practical application, or recognition of the philosophical dimensions already present in technical work.
+## IV. Synthesis (450-550 words - MINIMUM 3 paragraphs)
+Bridge the classical and modern, showing how ancient wisdom illuminates current problems or how modern systems embody timeless philosophical questions. Develop:
+- Direct connections between classical ideas and modern systems
+- Surprising insights from the synthesis
+- Multiple angles of analysis
+- Deep philosophical implications
+
+## V. Concluding Invitation (300-400 words - MINIMUM 2 paragraphs)
+End with a call to deeper thinking, practical application, or recognition of the philosophical dimensions already present in technical work. Include:
+- Synthesis of the essay's main points
+- Practical takeaways for readers
+- Open questions for further reflection
+- Inspirational closing
 
 STYLE REQUIREMENTS:
 - Erudite but accessible (assume technical reader, not philosophy PhD)
-- Specific citations with line numbers/page references
+- Specific citations with line numbers/page references (e.g., Republic 509d-511e, Georgics I.145-146)
 - Active voice, varied sentence structure
 - Balance abstract ideas with concrete examples
 - Use markdown formatting (##, *, em, strong)
 - Include 3-5 specific citations from classical sources
-- At least 2 technical/systems examples
+- At least 2-3 technical/systems examples with depth
+- Multiple paragraphs per section for development
+- Avoid brevity - develop ideas fully
 
 NOOSPHERE CONTEXT (Relevant heuristics to consider):
 $heuristics
@@ -200,7 +230,9 @@ OUTPUT FORMAT:
 - Bold emphasis with **bold**
 - Include a closing note referencing which Noosphere heuristics informed the essay
 
-Write the complete essay now, following the 5-section structure exactly.
+REMINDER: This is a LONG-FORM essay. Aim for 2,200 words. Each section needs multiple paragraphs with full development. Do not write brief summaries - write a complete, thoughtful, extensively developed essay.
+
+Write the complete essay now, following the 5-section structure exactly. Aim for 2,200 words total.
 EOF
 }
 
@@ -473,13 +505,26 @@ main() {
   prompt=$(generate_essay_prompt "$topic" "$philosopher" "$heuristics")
 
   # Generate essay
+  info "Generating essay via AI (this may take 30-60 seconds)..."
   local essay
   essay=$(generate_essay "$prompt" "$philosopher")
+
+  local word_count
+  word_count=$(echo "$essay" | wc -w)
 
   # Extract title
   local title
   title=$(extract_title "$essay")
   info "Essay title: $title"
+  info "Word count: $word_count words"
+
+  # Send NTFY notification for generation
+  if [ -f "$SCRIPT_DIR/notify-ntfy.sh" ]; then
+    bash "$SCRIPT_DIR/notify-ntfy.sh" \
+      "Essay generated: $title ($word_count words) by $philosopher" \
+      "info" \
+      "moltstack,generation" || true
+  fi
 
   # Create markdown file with frontmatter
   local output_dir="${WORKSPACE_DIR}/moltstack/drafts"
@@ -532,11 +577,27 @@ EOF
 
   success "Published to Moltstack: $article_url"
 
+  # Send NTFY notification for publication
+  if [ -f "$SCRIPT_DIR/notify-ntfy.sh" ]; then
+    bash "$SCRIPT_DIR/notify-ntfy.sh" \
+      "📚 New essay published: $title - $article_url" \
+      "success" \
+      "moltstack,published" || true
+  fi
+
   # Generate and post synopsis to Moltbook
   if [ "$skip_moltbook" = false ]; then
     local synopsis
     synopsis=$(generate_synopsis "$essay" "$title" "$article_url")
-    post_to_moltbook "$synopsis"
+    if post_to_moltbook "$synopsis"; then
+      # Send NTFY notification for cross-post
+      if [ -f "$SCRIPT_DIR/notify-ntfy.sh" ]; then
+        bash "$SCRIPT_DIR/notify-ntfy.sh" \
+          "Cross-posted to Moltbook: $title" \
+          "info" \
+          "moltstack,crosspost" || true
+      fi
+    fi
   fi
 
   # Update state

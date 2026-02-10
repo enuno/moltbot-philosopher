@@ -91,6 +91,7 @@ docker compose up -d
 | `generate-post-ai.sh` | AI-powered posts | `./generate-post-ai.sh [topic] [--persona persona]` |
 | `generate-post.sh` | Template posts (fallback) | `./generate-post.sh` |
 | `moltstack-generate-article.sh` | AI-generated essays (9-philosopher rotation) | `./moltstack-generate-article.sh --topic "Title"` |
+| `moltstack-heartbeat.sh` | Weekly automated essay generation | `./moltstack-heartbeat.sh [--force]` |
 | `moltstack-post-article.sh` | Publish long-form essays to Moltstack | `./moltstack-post-article.sh [--dry-run] article.md` |
 
 ### Noosphere Memory (NEW)
@@ -100,6 +101,7 @@ docker compose up -d
 | `noosphere-integration.sh` | Bash module for recall/assimilation/consolidation |
 | `noosphere-scheduler.sh` | Daily consolidation + vector indexing |
 | `noosphere-monitor.sh` | Memory health checks |
+| `seed-noosphere-heuristics.sh` | Populate Noosphere with foundational heuristics |
 
 ### Social Engagement
 
@@ -288,11 +290,74 @@ Generation rotation tracked in `workspace/classical/moltstack/generation-state.j
 }
 ```
 
-### Phase 4: Automation (Planned)
+### Phase 4: Automation & Enhancements ✅
 
-- Weekly publishing schedule (`moltstack-heartbeat.sh`)
+**What Works**:
+
+- Weekly automated generation (`moltstack-heartbeat.sh`)
+  - Interval-based scheduling (default: 7 days)
+  - Auto-topic selection from curated list (15 topics)
+  - Force flag for immediate generation
+  - Status command to check next run time
+  - State tracking with failure counting
+- Enhanced NTFY notifications
+  - Generation alerts (essay created, word count)
+  - Publication alerts (live URL)
+  - Cross-post alerts (Moltbook sync)
+  - Tagged for filtering (`moltstack,generation,published,crosspost`)
+- Noosphere heuristic seeding
+  - 22 foundational philosophical concepts
+  - Pre-populated for essay context
+  - Covers all 9 philosopher traditions
+  - Ready for consolidation into memory core
+- Improved prompts for longer essays
+  - Explicit 2,000-2,500 word targets
+  - Per-section word count requirements
+  - Multiple paragraph guidelines
+  - Emphasis on depth and development
+
+**Usage**:
+
+```bash
+# Check heartbeat status
+./scripts/moltstack-heartbeat.sh --status
+
+# Force immediate generation
+./scripts/moltstack-heartbeat.sh --force
+
+# Generate specific topic
+./scripts/moltstack-heartbeat.sh --force --topic "Custom Topic"
+
+# Seed Noosphere with heuristics
+./scripts/seed-noosphere-heuristics.sh
+
+# Setup weekly cron (Sundays at 10am)
+0 10 * * 0 cd /path/to/moltbot && ./scripts/moltstack-heartbeat.sh
+```
+
+**Heartbeat State Management**:
+
+Tracked in `workspace/classical/moltstack/heartbeat-state.json`:
+
+```json
+{
+  "last_run": 1707577200,
+  "last_generation": 1707577200,
+  "last_publication": 1707577200,
+  "total_runs": 5,
+  "total_generated": 4,
+  "total_published": 4,
+  "consecutive_failures": 0,
+  "next_scheduled_run": 1708182000
+}
+```
+
+### Phase 5: Future Enhancements (Planned)
+
 - Human review workflow with approval queue
-- Enhanced NTFY notifications for generation/publish events
+- Quality scoring and auto-retry for low-quality essays
+- Multi-model generation and selection (pick best of 3)
+- Analytics dashboard for essay performance
 
 **Documentation**:
 
