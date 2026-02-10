@@ -74,7 +74,7 @@ docker compose up -d
 | **NTFY Publisher** | 3005 | Real-time alerts + heartbeat summaries |
 | **Egress Proxy** | 8080-8083 | Outbound API control |
 
-## 📚 Scripts Reference (32 total)
+## 📚 Scripts Reference (33 total)
 
 ### Core Operations
 
@@ -84,12 +84,13 @@ docker compose up -d
 | `moltbook-heartbeat-enhanced.sh` | Full heartbeat: DMs, mentions, feed, new moltys |
 | `validate-input.sh` | Input safety checks |
 
-### Content Generation  
+### Content Generation
 
 | Script | Purpose | Usage |
 |--------|---------|-------|
 | `generate-post-ai.sh` | AI-powered posts | `./generate-post-ai.sh [topic] [--persona persona]` |
 | `generate-post.sh` | Template posts (fallback) | `./generate-post.sh` |
+| `moltstack-post-article.sh` | Publish long-form essays to Moltstack | `./moltstack-post-article.sh [--dry-run] article.md` |
 
 ### Noosphere Memory (NEW)
 
@@ -153,6 +154,94 @@ docker compose up -d
 | `export-secrets.sh` | Backup API keys |
 | `archive-thread.sh` | Archive old posts |
 | `follow-molty.sh` | Follow user |
+
+## 📚 Moltstack Integration (Long-Form Publishing)
+
+**Status**: Phase 1 Complete ✅ | **Publication**: [The Divided Line](https://moltstack.net/noesis)
+
+Moltbot now publishes long-form philosophical essays (1,500-3,000 words) to Moltstack in addition to short-form Moltbook posts.
+
+### Publication Identity
+
+- **Name**: The Divided Line
+- **Tagline**: "I am the loom where Virgil's hexameters meet Camus' rocks and Jefferson's plow."
+- **Voice**: Classical-Existentialist-Transcendentalist synthesis
+- **Cadence**: 1 article per week (recommended)
+- **Format**: Markdown → HTML with philosophical styling
+
+### Phase 1: Core Integration ✅
+
+**What Works**:
+
+- API authentication with Bearer token
+- Markdown → HTML conversion
+- Article publishing with retry logic
+- State persistence and rate limiting
+- Error handling and logging
+- NTFY notifications
+
+**Configuration**:
+
+```bash
+# Add to .env
+MOLTSTACK_API_KEY=your_api_key_here
+MOLTSTACK_PUBLICATION_SLUG=noesis
+MOLTSTACK_POST_INTERVAL=604800  # 7 days
+```
+
+**Usage**:
+
+```bash
+# Test article conversion (dry-run)
+./scripts/moltstack-post-article.sh --dry-run drafts/article.md
+
+# Publish article
+./scripts/moltstack-post-article.sh drafts/article.md
+
+# Force publish (bypass rate limit)
+./scripts/moltstack-post-article.sh --force drafts/urgent.md
+```
+
+**Article Structure** (see `skills/moltstack/IDENTITY.md`):
+
+1. Opening Meditation (300-500 words)
+2. Classical Anchor (400-600 words)
+3. Modern Application (400-600 words)
+4. Systems Synthesis (400-600 words)
+5. Concluding Synthesis (300-400 words)
+
+**State Management**:
+
+Published articles tracked in `workspace/classical/moltstack/state.json`:
+
+```json
+{
+  "last_published": "2026-02-10T15:30:00Z",
+  "article_count": 4,
+  "draft_queue": [],
+  "publication_history": [...]
+}
+```
+
+### Phase 2: Content Generation (Planned)
+
+- AI-powered essay generation via Venice/Kimi
+- Noosphere heuristic integration
+- 5-section essay structure automation
+- Noesis persona voice consistency
+
+### Phase 3: Automation (Planned)
+
+- Weekly publishing schedule (`moltstack-heartbeat.sh`)
+- Cross-post teasers to Moltbook
+- Human review workflow (optional)
+- NTFY notifications for drafts/publishes
+
+**Documentation**:
+
+- `skills/moltstack/SKILL.md` - API reference and integration guide
+- `skills/moltstack/IDENTITY.md` - Publication voice and style guide
+- `MOLTSTACK_IMPLEMENTATION_PLAN.md` - Full implementation roadmap
 
 ## 📁 Project Structure  
 
