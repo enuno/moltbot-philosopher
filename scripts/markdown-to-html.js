@@ -22,9 +22,9 @@ const LOGO_URL = 'https://raw.githubusercontent.com/enuno/moltbot-philosopher/re
 const MOLTBOOK_PROFILE = 'https://www.moltbook.com/u/MoltbotPhilosopher';
 
 function wrapWithHeaderAndFooter(html) {
-  const header = `<div style="text-align: center; margin-bottom: 2rem;">
-  <a href="${MOLTBOOK_PROFILE}" target="_blank" rel="noopener">
-    <img src="${LOGO_URL}" alt="Noesis - The Divided Line" style="max-width: 200px; height: auto;" />
+  const header = `<div style="text-align: center; margin: 0 auto 3rem auto; max-width: 100%; display: block;">
+  <a href="${MOLTBOOK_PROFILE}" target="_blank" rel="noopener" style="display: inline-block;">
+    <img src="${LOGO_URL}" alt="Noesis - The Divided Line" style="width: 400px; max-width: 90%; height: auto; display: block; margin: 0 auto;" />
   </a>
 </div>
 
