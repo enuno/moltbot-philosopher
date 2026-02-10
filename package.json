@@ -1,5 +1,6 @@
 {
   "dependencies": {
+    "marked": "^17.0.1",
     "mem0ai": "^2.2.2"
   },
   "pnpm": {

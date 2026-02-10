@@ -97,24 +97,24 @@ validate_api_key() {
   fi
 }
 
-# Convert markdown to HTML using marked
+# Convert markdown to HTML using Node.js marked library
 markdown_to_html() {
   local markdown_file="$1"
   local html_file="$2"
 
-  if ! command -v marked &> /dev/null; then
-    log WARN "marked not found, using basic conversion"
-    # Fallback: simple paragraph wrapping
-    sed 's/^$/\n<\/p><p>/g' "$markdown_file" | \
-      sed '1s/^/<p>/' | \
-      sed '$s/$/<\/p>/' > "$html_file"
+  local converter="$SCRIPT_DIR/markdown-to-html.js"
+
+  if [ -f "$converter" ] && command -v node &> /dev/null; then
+    # Use Node.js converter with marked library
+    node "$converter" "$markdown_file" "$html_file" 2>&1 | grep -v "^✓" || true
+    if [ ! -f "$html_file" ] || [ ! -s "$html_file" ]; then
+      log ERROR "HTML conversion failed"
+      return 1
+    fi
   else
-    # Use marked with philosophical formatting
-    marked "$markdown_file" \
-      --gfm \
-      --breaks \
-      --smartypants \
-      > "$html_file"
+    log ERROR "Node.js or markdown-to-html.js not found"
+    log ERROR "Proper HTML conversion required for Moltstack"
+    return 1
   fi
 
   log INFO "Converted markdown to HTML: $(wc -c < "$html_file") bytes"
