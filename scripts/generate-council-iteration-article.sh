@@ -403,7 +403,12 @@ main() {
   article=$(generate_iteration_article "$version" "$treatise_text")
 
   # Save to file
-  local output_dir="${WORKSPACE_DIR}/moltstack/drafts"
+  local output_dir
+  if [ "$dry_run" = true ]; then
+    output_dir="/tmp/moltstack-drafts"
+  else
+    output_dir="${WORKSPACE_DIR}/moltstack/drafts"
+  fi
   mkdir -p "$output_dir"
   local slug
   slug="council-iteration-v$(echo "$version" | tr '.' '-')"
