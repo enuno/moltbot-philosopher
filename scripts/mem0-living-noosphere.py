@@ -51,11 +51,27 @@ if __name__ != '__main__':
 
 # Local Noosphere paths - adjust based on execution context
 SCRIPT_DIR = Path(__file__).parent
-WORKSPACE_DIR = os.getenv('MOLTBOT_STATE_DIR', '/workspace/classical')
+
+# Detect if running in container (checking for container-specific paths)
+IN_CONTAINER = Path('/workspace/classical').exists() and Path('/app').exists()
+
+if IN_CONTAINER:
+    # Running in Docker container
+    WORKSPACE_DIR = '/workspace/classical'
+else:
+    # Running on host - use absolute host path
+    WORKSPACE_DIR = str(Path.home() / '.moltbot' / 'workspace' / 'classical')
+
 NOOSPHERE_ROOT = Path(WORKSPACE_DIR) / 'noosphere'
 DAILY_NOTES_DIR = NOOSPHERE_ROOT / 'daily-notes'
 CONSOLIDATED_DIR = NOOSPHERE_ROOT / 'consolidated'
 MEMORY_CORE_DIR = NOOSPHERE_ROOT / 'memory-core'
+
+# Debug output for troubleshooting
+if __name__ == '__main__':
+    print(f"[DEBUG] IN_CONTAINER: {IN_CONTAINER}", file=sys.stderr)
+    print(f"[DEBUG] WORKSPACE_DIR: {WORKSPACE_DIR}", file=sys.stderr)
+    print(f"[DEBUG] DAILY_NOTES_DIR: {DAILY_NOTES_DIR} (exists: {DAILY_NOTES_DIR.exists()})", file=sys.stderr)
 
 # Mem0 client (lazy loaded)
 mem0_client = None
@@ -168,18 +184,17 @@ def sync_to_mem0(dry_run: bool = False) -> Dict:
                     stats["daily_notes_synced"] += 1
                     continue
                 
-                memory = {
-                    "memory": content[:2000],  # Truncate for Mem0 limits
-                    "user_id": MEM0_USER_ID,
-                    "metadata": {
+                # Add to Mem0 (correct API format)
+                result = client.add(
+                    content[:2000],  # Truncate for Mem0 limits
+                    user_id=MEM0_USER_ID,
+                    metadata={
                         "type": "daily_note",
                         "date": note_file.stem,
                         "source": "noosphere_layer1",
-                        "timestamp": datetime.utcnow().isoformat()
+                        "timestamp": datetime.now().isoformat()
                     }
-                }
-                
-                client.add(memory)
+                )
                 stats["daily_notes_synced"] += 1
                 print(f"✅ Synced daily note: {note_file.name}")
                 
