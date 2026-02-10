@@ -1,0 +1,18 @@
+# Generated files
+node_modules/
+coverage/
+dist/
+build/
+
+# Cache and state
+.cache/
+state/
+logs/
+workspace/
+
+# Lock files and generated docs
+pnpm-lock.yaml
+package-lock.json
+
+# Session state and temporary files
+.copilot/

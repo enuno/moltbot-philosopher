@@ -37,8 +37,17 @@ jobs:
       - name: Install dependencies
         run: pnpm install --frozen-lockfile
 
+      - name: Install yamllint
+        run: sudo apt-get update -qq && sudo apt-get install -y yamllint
+
       - name: Run linting (code quality check)
         run: pnpm run lint
+
+      - name: Run markdown linting
+        run: pnpm run lint:md
+
+      - name: Run YAML linting
+        run: pnpm run lint:yaml
 
       - name: Run tests with coverage
         run: pnpm test:ci

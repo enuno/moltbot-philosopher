@@ -6,8 +6,6 @@ rules:
   line-length:
     max: 120
     level: warning
-    ignore: |
-      https?://
 
   # Indentation
   indentation:
@@ -22,9 +20,6 @@ rules:
 
   # Trailing spaces
   trailing-spaces: {}
-
-  # Tabs
-  tabs: disable
 
   # New lines
   new-lines:
@@ -65,22 +60,6 @@ rules:
     min-spaces-inside: 0
     max-spaces-inside: 0
 
-  # Anchors
-  anchors: {}
-
-  # Aliases
-  aliases: {}
-
-  # Empty values
-  empty-values:
-    forbid-in-block-mappings: false
-    forbid-in-flow-mappings: false
-
-  # Empty sequences
-  empty-sequences:
-    forbid-in-block-mappings: false
-    forbid-in-flow-mappings: false
-
   # Hyphens
   hyphens:
     max-spaces-after: 1
@@ -93,8 +72,5 @@ rules:
 
   # Truthy
   truthy:
-    allowed: ['true', 'false']
+    allowed-values: ['true', 'false']
     check-keys: false
-
-  # Type (disable default rules that conflict)
-  type: disable
