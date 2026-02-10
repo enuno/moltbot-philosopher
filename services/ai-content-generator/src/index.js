@@ -126,18 +126,19 @@ app.get("/health", (req, res) => {
 
 // Generate content endpoint
 app.post("/generate", async (req, res) => {
+  // Extract and set defaults for request parameters (needed for fallback error handler)
+  const {
+    topic,
+    contentType = "post",
+    persona = "socratic",
+    provider = "auto", // 'venice', 'kimi', or 'auto'
+    customPrompt,
+    context,
+  } = req.body;
+
   try {
     // Rate limiting
     await rateLimiter.consume(req.ip);
-
-    const {
-      topic,
-      contentType = "post",
-      persona = "socratic",
-      provider = "auto", // 'venice', 'kimi', or 'auto'
-      customPrompt,
-      context,
-    } = req.body;
 
     // Validate inputs
     if (!topic && !customPrompt) {
@@ -216,7 +217,8 @@ app.post("/generate", async (req, res) => {
           error: error.message,
         },
       });
-    } catch {
+    } catch (templateError) {
+      logger.error("Template generation failed", { error: templateError.message });
       res.status(500).json({
         error: "Failed to generate content",
         message: error.message,
@@ -406,10 +408,16 @@ app.use((err, req, res, _next) => {
   res.status(500).json({ error: "Internal server error" });
 });
 
-// Start server
-const PORT = process.env.PORT || 3000;
-app.listen(PORT, () => {
-  logger.info(`AI Content Generator running on port ${PORT}`);
-  logger.info(`Venice API configured: ${!!VENICE_API_KEY}`);
-  logger.info(`Kimi API configured: ${!!KIMI_API_KEY}`);
-});
+// Start server (only if not in test mode)
+if (process.env.NODE_ENV !== 'test') {
+  const PORT = process.env.PORT || 3000;
+  app.listen(PORT, () => {
+    logger.info(`AI Content Generator running on port ${PORT}`);
+    logger.info(`Venice API configured: ${!!VENICE_API_KEY}`);
+    logger.info(`Kimi API configured: ${!!KIMI_API_KEY}`);
+  });
+}
+
+// Export app for testing
+module.exports = app;
+

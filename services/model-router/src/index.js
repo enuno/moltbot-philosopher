@@ -29,14 +29,20 @@ const PORT = process.env.PORT || 3000;
 const NODE_ENV = process.env.NODE_ENV || "production";
 
 // Configure logging (must be before any logger usage)
+const logTransports = [new winston.transports.Console()];
+
+// Only add file transports in non-test environments
+if (NODE_ENV !== 'test') {
+  logTransports.push(
+    new winston.transports.File({ filename: "/app/logs/router-error.log", level: "error" }),
+    new winston.transports.File({ filename: "/app/logs/router-combined.log" }),
+  );
+}
+
 const logger = winston.createLogger({
   level: process.env.LOG_LEVEL || "info",
   format: winston.format.combine(winston.format.timestamp(), winston.format.json()),
-  transports: [
-    new winston.transports.Console(),
-    new winston.transports.File({ filename: "/app/logs/router-error.log", level: "error" }),
-    new winston.transports.File({ filename: "/app/logs/router-combined.log" }),
-  ],
+  transports: logTransports,
 });
 
 // Check required environment variables (after logger is initialized)
@@ -49,12 +55,18 @@ const configPath =
   process.env.ROUTER_CONFIG_PATH || path.join(__dirname, "../config/model-routing.yml");
 let routingConfig;
 
-try {
-  routingConfig = yaml.load(configPath);
-  logger.info("Model routing configuration loaded", { configPath });
-} catch (error) {
-  logger.error("Failed to load routing configuration", { error: error.message, configPath });
-  process.exit(1);
+// Allow injecting config for testing
+if (process.env.NODE_ENV === 'test' && global.mockRoutingConfig) {
+  routingConfig = global.mockRoutingConfig;
+  logger.info("Using mock routing configuration for tests");
+} else {
+  try {
+    routingConfig = yaml.load(configPath);
+    logger.info("Model routing configuration loaded", { configPath });
+  } catch (error) {
+    logger.error("Failed to load routing configuration", { error: error.message, configPath });
+    process.exit(1);
+  }
 }
 
 // Initialize cache
@@ -288,24 +300,28 @@ app.use((err, req, res, _next) => {
   });
 });
 
-// Start server
-app.listen(PORT, "0.0.0.0", () => {
-  logger.info(`Model Router Service running on port ${PORT}`, {
-    environment: NODE_ENV,
-    configPath,
-    defaultModel: routingConfig.global?.default_model,
+// Start server (only if not in test mode)
+if (process.env.NODE_ENV !== 'test') {
+  app.listen(PORT, "0.0.0.0", () => {
+    logger.info(`Model Router Service running on port ${PORT}`, {
+      environment: NODE_ENV,
+      configPath,
+      defaultModel: routingConfig.global?.default_model,
+    });
   });
-});
+}
 
-// Graceful shutdown
-process.on("SIGTERM", () => {
-  logger.info("SIGTERM received, shutting down gracefully");
-  process.exit(0);
-});
+// Graceful shutdown (only in non-test mode to avoid listener leaks)
+if (process.env.NODE_ENV !== 'test') {
+  process.on("SIGTERM", () => {
+    logger.info("SIGTERM received, shutting down gracefully");
+    process.exit(0);
+  });
 
-process.on("SIGINT", () => {
-  logger.info("SIGINT received, shutting down gracefully");
-  process.exit(0);
-});
+  process.on("SIGINT", () => {
+    logger.info("SIGINT received, shutting down gracefully");
+    process.exit(0);
+  });
+}
 
 module.exports = app;

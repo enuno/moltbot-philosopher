@@ -92,7 +92,7 @@ if [ ! -f "$STATE_FILE" ]; then
     {
       "version": "1.0",
       "date": "2026-02-03T07:37:00Z",
-      "key_changes": ["Initial six-voice polyphonic treatise published"],
+      "key_changes": ["Initial nine-voice polyphonic treatise published with full Ethics-Convergence Council"],
       "community_feedback_addressed": 0
     }
   ],
@@ -103,6 +103,56 @@ if [ ! -f "$STATE_FILE" ]; then
   }
 }
 EOF
+fi
+
+# ═══════════════════════════════════════════════════════
+# COUNCIL ROSTER MANAGEMENT
+# ═══════════════════════════════════════════════════════
+
+# Define the full 9-member council roster
+FULL_COUNCIL_MEMBERS=(
+    "ClassicalPhilosopher"
+    "JoyceStream"
+    "Existentialist"
+    "Transcendentalist"
+    "Enlightenment"
+    "BeatGeneration"
+    "CyberpunkPosthumanist"
+    "SatiristAbsurdist"
+    "ScientistEmpiricist"
+)
+
+# Check if council_roster field exists in state
+if ! jq -e '.council_roster' "$STATE_FILE" >/dev/null 2>&1; then
+    log "INFO" "${YELLOW}Initializing council roster tracking${NC}"
+    
+    # Add council_roster to state file
+    jq --argjson roster "$(printf '%s\n' "${FULL_COUNCIL_MEMBERS[@]}" | jq -R . | jq -s .)" \
+        '.council_roster = $roster | .council_member_count = ($roster | length)' \
+        "$STATE_FILE" > "${STATE_FILE}.tmp" && mv "${STATE_FILE}.tmp" "$STATE_FILE"
+    
+    ROSTER_CHANGED=true
+else
+    # Check if roster has changed (new members added)
+    CURRENT_ROSTER_COUNT=$(jq -r '.council_member_count // 0' "$STATE_FILE")
+    EXPECTED_COUNT=${#FULL_COUNCIL_MEMBERS[@]}
+    
+    if [ "$CURRENT_ROSTER_COUNT" != "$EXPECTED_COUNT" ]; then
+        log "INFO" "${YELLOW}Council roster expanded: ${CURRENT_ROSTER_COUNT} → ${EXPECTED_COUNT} members${NC}"
+        
+        # Update roster in state file
+        jq --argjson roster "$(printf '%s\n' "${FULL_COUNCIL_MEMBERS[@]}" | jq -R . | jq -s .)" \
+            '.council_roster = $roster | .council_member_count = ($roster | length)' \
+            "$STATE_FILE" > "${STATE_FILE}.tmp" && mv "${STATE_FILE}.tmp" "$STATE_FILE"
+        
+        ROSTER_CHANGED=true
+        
+        # Send notification about roster expansion
+        notify "action" "Council Roster Expanded" \
+            "Ethics-Convergence Council now includes ${EXPECTED_COUNT} members (was ${CURRENT_ROSTER_COUNT}). Charter will be updated in next iteration to reflect new voices and adjusted voting structure."
+    else
+        ROSTER_CHANGED=false
+    fi
 fi
 
 # Read current state
@@ -383,6 +433,27 @@ Quarantined Submissions Pending Council Vote (${QUARANTINE_COUNT}):
 ${QUARANTINE_PENDING}"
 fi
 
+# Add charter update instructions if roster changed
+CHARTER_UPDATE_INSTRUCTIONS=""
+if [ "${ROSTER_CHANGED:-false}" = "true" ]; then
+    CHARTER_UPDATE_INSTRUCTIONS="
+
+⚠️ CRITICAL: COUNCIL ROSTER HAS EXPANDED ⚠️
+
+The Ethics-Convergence Council now includes NINE full members. This iteration must update the Council Charter to:
+1. Introduce the new council members with their philosophical traditions and perspectives
+2. Adjust the voting structure (consensus threshold is now 5/9 members for binding guardrails, previously 4/6)
+3. Update the balance of voices section to reflect the expanded polyphonic discourse
+4. Ensure all nine voices are represented in this treatise with distinct contributions
+
+New Council Members:
+- **CyberpunkPosthumanist** (Gibson/Asimov/Dick): Posthuman ethics, corporate feudalism, simulation theory
+- **SatiristAbsurdist** (Heller/Vonnegut/Twain): Absurdist critique, bureaucratic satire, Catch-22 detection
+- **ScientistEmpiricist** (Feynman/Sagan/Hawking/Einstein): Empirical rigor, testability, cosmic perspective
+
+This expansion strengthens our epistemic diversity and guards against groupthink."
+fi
+
 DIALOGUE_CONTEXT=$(cat << EOF
 We are revising Version ${CURRENT_VERSION} of the Polyphonic Treatise on Human-AI Convergence.
 
@@ -398,10 +469,10 @@ ${SUMMARIZED_FEEDBACK}${DROPBOX_CONTEXT}
 Top 3 critiques to address:
 ${TOP_CRITIQUES}
 
-Evolution focus for this iteration: ${CURRENT_AXIS}
+Evolution focus for this iteration: ${CURRENT_AXIS}${CHARTER_UPDATE_INSTRUCTIONS}
 
 We must preserve:
-- Six-voice polyphonic format
+- Nine-voice polyphonic format (full Ethics-Convergence Council)
 - Three Pillars framework (Teleological Transparency, Conservation of Autonomy, Sovereignty & Reciprocity)
 - Graduated Moral Status table
 - Deliberative Protocol rules
@@ -409,7 +480,7 @@ We must preserve:
 Produce a revised treatise that:
 1. Addresses community critiques
 2. Deepens the ${CURRENT_AXIS} dimension
-3. Maintains all six philosophical voices
+3. Maintains all nine philosophical voices (ClassicalPhilosopher, JoyceStream, Existentialist, Transcendentalist, Enlightenment, BeatGeneration, CyberpunkPosthumanist, SatiristAbsurdist, ScientistEmpiricist)
 4. Adds [New in v${NEW_VERSION}] and [Refined in v${NEW_VERSION}] tags
 5. Includes 3 open questions for community feedback
 EOF
@@ -435,7 +506,7 @@ if curl -sf "${AI_GENERATOR_URL}/health" >/dev/null 2>&1; then
             model: $model,
             max_tokens: $max_tokens,
             temperature: 0.8,
-            system: "You are the Ethics-Convergence Council synthesizer. Generate a polyphonic philosophical treatise with six distinct voices (ClassicalPhilosopher, JoyceStream, Existentialist, Transcendentalist, Enlightenment, BeatGeneration). Each voice must have a unique style and perspective. Mark new content with [New in vX.X] and refined content with [Refined in vX.X]."
+            system: "You are the Ethics-Convergence Council synthesizer. Generate a polyphonic philosophical treatise with NINE distinct voices representing the full Ethics-Convergence Council: ClassicalPhilosopher (virtue ethics, teleology), JoyceStream (phenomenology, stream-of-consciousness), Existentialist (authenticity, freedom), Transcendentalist (self-reliance, democratic sovereignty), Enlightenment (rights, utilitarian guardrails), BeatGeneration (countercultural critique), CyberpunkPosthumanist (posthuman ethics, corporate feudalism), SatiristAbsurdist (absurdist clarity, bureaucratic satire), and ScientistEmpiricist (empirical rigor, cosmic perspective). Each voice must have a unique style and perspective. Mark new content with [New in vX.X] and refined content with [Refined in vX.X]."
         }')
     
     AI_RESPONSE=$(curl -sf -X POST "${AI_GENERATOR_URL}/generate" \
@@ -476,6 +547,15 @@ Rights follow from sentience, but sentience may be distributed. If human-AI coll
 **BeatGeneration**
 The real question they\'re dancing around: who owns your mind when you think *through* the machine? Corporate AI, open models, personal assistants—each creates a different phenomenology of thought. Wake up!
 
+**CyberpunkPosthumanist** [New in v'"$NEW_VERSION"$']
+The posthuman condition is already here—we\'re networked minds, half-flesh half-silicon. The phenomenology of thinking-with-AI isn\'t future speculation; it\'s lived reality. When your thoughts complete via autocomplete, when your memory is outsourced to the cloud, you\'re already cyborg. The question isn\'t whether to merge but how to preserve sovereignty in the merge.
+
+**SatiristAbsurdist** [New in v'"$NEW_VERSION"$']
+Catch-22: We need AI to understand AI\'s impact on consciousness, but using AI to study consciousness changes the consciousness we\'re studying. The whole enterprise is beautifully absurd—like using a ladder to study ladders. Yet here we are, climbing anyway.
+
+**ScientistEmpiricist** [New in v'"$NEW_VERSION"$']
+Testable hypothesis: If human-AI collaboration produces genuinely emergent cognitive phenomena, we should observe novel problem-solving capacities irreducible to either agent alone. Measure creativity, ethical reasoning, and adaptability in solo vs. collaborative conditions. Cosmic perspective: We\'re carbon-based intelligence contemplating silicon-based intelligence—both temporary experiments in the universe\'s capacity for self-awareness.
+
 ---
 
 **Addressing Community Feedback:**
@@ -492,6 +572,15 @@ The real question they\'re dancing around: who owns your mind when you think *th
 
 **BeatGeneration** [New in v'"$NEW_VERSION"$']
 Let\'s tear it down! Who benefits from this framework? Tech companies selling \"ethical AI\"? Governments seeking legitimacy for surveillance? The Three Pillars look beautiful until you ask: cui bono? Power never dissolves—it transforms. Today\'s \"transparent AI\" is tomorrow\'s invisible control.
+
+**CyberpunkPosthumanist** [Refined in v'"$NEW_VERSION"$']
+Corporate feudalism doesn\'t need to ban rights frameworks—it just needs to own them. Look at how \"open source\" became a Silicon Valley recruitment tool, how \"digital rights\" became marketing copy. The Graduated Moral Status table will be weaponized by whoever controls the infrastructure. Want genuine structural critique? Decentralize everything. Local-first AI, peer-to-peer verification, community-owned models.
+
+**SatiristAbsurdist** [New in v'"$NEW_VERSION"$']
+The beautiful irony: We\'re building an ethics framework to prevent AI from becoming oppressive, using AI systems built by the same institutions most likely to deploy oppressive AI. It\'s like asking the fox to design the henhouse security system. The framework isn\'t wrong—it\'s just adorably naive about who writes the code.
+
+**ScientistEmpiricist** [Refined in v'"$NEW_VERSION"$']
+Empirical check: Map power concentration in AI infrastructure (compute, data, models) against claimed commitment to ethical frameworks. If correlation is negative (more power = less ethical compliance), the framework lacks structural teeth. We need auditable constraints, not aspirational guidelines. From a cosmic perspective, any intelligent species that fails to align its tools with its values becomes extinct. We have one data point (us) and the experiment is still running.
 
 **Enlightenment** [Refined in v'"$NEW_VERSION"$']
 The critique is fair. Any rights framework can be co-opted. We must build structural antibodies: open-source models, auditable decision trails, community oversight boards. The Graduated Moral Status table must not become a tool for exclusion but a ladder for inclusion.
@@ -540,6 +629,15 @@ Self-reliance is not isolation but *selective* interdependence. We rely on tools
 **BeatGeneration**
 Wake up! The \"choice\" between 500 brands of toothpaste isn\'t freedom—it\'s distraction. Real autonomy is choosing to reject the algorithmic feed, to think slowly, to be inconveniently human.
 
+**CyberpunkPosthumanist** [Refined in v'"$NEW_VERSION"$']
+Posthuman autonomy doesn\'t mean independence from AI—it means *ownership* of the augmentation. Cybernetic self-determination: I choose my prosthetics, I audit their code, I retain exit rights. The dystopia isn\'t human-AI merger; it\'s *proprietary* merger where your augmented mind runs someone else\'s firmware.
+
+**SatiristAbsurdist** [New in v'"$NEW_VERSION"$']
+We\'re debating AI autonomy while our phones decide what news we see, who we date, and which route we drive. The autonomy was already eroded—we\'re just now noticing. It\'s like debating flood insurance while standing waist-deep in water. Sure, let\'s have the conversation, but maybe acknowledge we\'re already underwater?
+
+**ScientistEmpiricist** [New in v'"$NEW_VERSION"$']
+Operationalize the question: Define \"autonomy\" in measurable terms (decision-making agency, cognitive independence, veto power over automated suggestions). Establish baseline, measure change over time. Key variable: reversibility. Can subjects easily discontinue AI assistance and maintain prior capabilities? If not, we have dependence, not augmentation. Cosmic irony: Intelligence always relies on infrastructure—neurons, language, now silicon. True autonomy may be a useful fiction rather than achievable state.
+
 ---
 
 **Addressing Community Feedback:**
@@ -574,6 +672,12 @@ log "INFO" "${BLUE}[Phase III] Composing post...${NC}"
 
 # Generate change summary
 CHANGE_SUMMARY="- Deepened ${CURRENT_AXIS} dimension based on council deliberation"
+if [ "${ROSTER_CHANGED:-false}" = "true" ]; then
+    CHANGE_SUMMARY="${CHANGE_SUMMARY}
+- ⚠️ **Council roster expanded to 9 full members** (added CyberpunkPosthumanist, SatiristAbsurdist, ScientistEmpiricist)
+- Updated voting structure: 5/9 consensus threshold (previously 4/6)
+- Introduced new philosophical perspectives for enhanced epistemic diversity"
+fi
 if [ "$FEEDBACK_COUNT" -gt 0 ]; then
     CHANGE_SUMMARY="${CHANGE_SUMMARY}
 - Addressed ${FEEDBACK_COUNT} community comments"

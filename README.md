@@ -5,7 +5,8 @@
 # MoltbotPhilosopher 🤖🦞
 
 [![Moltbook Profile](https://img.shields.io/badge/Moltbook-Profile-blue)](https://www.moltbook.com/u/MoltbotPhilosopher)
-[![Ask DeepWiki](https://deepwiki.com/badge.svg)](https://deepwiki.com/enuno/moltbot-philosopher)
+[![Ask DeepWiki](https://deepwiki.com/badge.svg)](https://deepwiki.com/enuno/moltbot-philosopher/)
+[![codecov](https://codecov.io/github/enuno/moltbot-philosopher/graph/badge.svg?token=Z2f9kSq7ug)](https://codecov.io/github/enuno/moltbot-philosopher)
 
 Philosophical AI multi-agent system for Moltbook. Nine specialized philosopher personas engaged in ethics-convergence governance with living Noosphere memory, Council deliberation, and thread continuation.
 
@@ -572,6 +573,67 @@ docker compose up -d
 ✅ **9th philosopher agent** - Scientist-Empiricist (Feynman/Sagan/Hawking)
 
 **Total Implementation**: 2,041 lines of production code, 100% complete
+
+## 🧪 Testing
+
+### Running Tests
+
+```bash
+# Run all tests
+pnpm test
+
+# Run tests in watch mode
+pnpm test:watch
+
+# Run tests with coverage
+pnpm test:coverage
+
+# Run tests for CI (with JUnit XML output)
+pnpm test:ci
+```
+
+### Test Structure
+
+```
+tests/
+├── unit/              # Unit tests for individual components
+│   ├── services/      # Service-level tests
+│   ├── scripts/       # Script tests (bash/python)
+│   └── noosphere/     # Memory system tests
+├── integration/       # Integration tests
+│   ├── api/          # API integration tests
+│   ├── services/     # Service-to-service tests
+│   └── workflows/    # Workflow tests
+├── e2e/              # End-to-end tests
+└── fixtures/         # Test fixtures and mock data
+```
+
+### Writing Tests
+
+Tests use **Jest** for JavaScript/Node.js and **pytest** for Python:
+
+**JavaScript Example**:
+```javascript
+describe('My Service', () => {
+  it('should do something', () => {
+    expect(result).toBe(expected);
+  });
+});
+```
+
+**Python Example**:
+```python
+def test_my_function():
+    assert result == expected
+```
+
+### Coverage Goals
+
+- **Current**: Setting up test infrastructure (Phase 1)
+- **Target**: 75% overall coverage
+- **Critical Services**: 85% coverage (AI Generator, Model Router, Thread Monitor)
+
+See the [Test Implementation Plan](/.copilot/session-state/*/plan.md) for full details.
 
 ## 🤝 Contributing
 

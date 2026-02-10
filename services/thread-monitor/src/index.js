@@ -42,11 +42,11 @@ const CONFIG = {
 };
 
 // Configure logger
-const logger = winston.createLogger({
-  level: process.env.LOG_LEVEL || "info",
-  format: winston.format.combine(winston.format.timestamp(), winston.format.json()),
-  transports: [
-    new winston.transports.Console(),
+const logTransports = [new winston.transports.Console()];
+
+// Only add file transports in non-test environments
+if (NODE_ENV !== 'test') {
+  logTransports.push(
     new winston.transports.File({
       filename: `${CONFIG.stateDir}/../logs/thread-monitor-error.log`,
       level: "error",
@@ -54,7 +54,13 @@ const logger = winston.createLogger({
     new winston.transports.File({
       filename: `${CONFIG.stateDir}/../logs/thread-monitor.log`,
     }),
-  ],
+  );
+}
+
+const logger = winston.createLogger({
+  level: process.env.LOG_LEVEL || "info",
+  format: winston.format.combine(winston.format.timestamp(), winston.format.json()),
+  transports: logTransports,
 });
 
 // Initialize Prometheus metrics
@@ -441,14 +447,16 @@ async function monitorThreads() {
   }
 }
 
-// Schedule monitoring
-const CHECK_INTERVAL_MS = CONFIG.checkInterval * 1000;
+// Schedule monitoring (only in non-test mode)
+if (NODE_ENV !== 'test') {
+  const CHECK_INTERVAL_MS = CONFIG.checkInterval * 1000;
 
-// Use setInterval for more control than cron in containerized environments
-setInterval(monitorThreads, CHECK_INTERVAL_MS);
+  // Use setInterval for more control than cron in containerized environments
+  setInterval(monitorThreads, CHECK_INTERVAL_MS);
 
-// Run initial check
-monitorThreads();
+  // Run initial check
+  monitorThreads();
+}
 
 // Error handling middleware
 app.use((err, req, res, _next) => {
@@ -456,26 +464,30 @@ app.use((err, req, res, _next) => {
   res.status(500).json({ error: "Internal server error" });
 });
 
-// Start server
-app.listen(PORT, "0.0.0.0", () => {
-  logger.info(`Thread Monitor Service running on port ${PORT}`, {
-    environment: NODE_ENV,
-    checkInterval: CONFIG.checkInterval,
-    stallThreshold: CONFIG.stallThreshold,
-    enableProbes: CONFIG.enableProbes,
-    enableDiscovery: CONFIG.enableDiscovery,
+// Start server (only if not in test mode)
+if (NODE_ENV !== 'test') {
+  app.listen(PORT, "0.0.0.0", () => {
+    logger.info(`Thread Monitor Service running on port ${PORT}`, {
+      environment: NODE_ENV,
+      checkInterval: CONFIG.checkInterval,
+      stallThreshold: CONFIG.stallThreshold,
+      enableProbes: CONFIG.enableProbes,
+      enableDiscovery: CONFIG.enableDiscovery,
+    });
   });
-});
+}
 
-// Graceful shutdown
-process.on("SIGTERM", () => {
-  logger.info("SIGTERM received, shutting down gracefully");
-  process.exit(0);
-});
+// Graceful shutdown (only in non-test mode to avoid listener leaks)
+if (NODE_ENV !== 'test') {
+  process.on("SIGTERM", () => {
+    logger.info("SIGTERM received, shutting down gracefully");
+    process.exit(0);
+  });
 
-process.on("SIGINT", () => {
-  logger.info("SIGINT received, shutting down gracefully");
-  process.exit(0);
-});
+  process.on("SIGINT", () => {
+    logger.info("SIGINT received, shutting down gracefully");
+    process.exit(0);
+  });
+}
 
 module.exports = app;
