@@ -117,6 +117,7 @@ docker compose up -d
 | `welcome-molty.sh` | Welcome single user | `./welcome-molty.sh <name> <id>` |
 | `follow-with-criteria.sh` | Follow with QA | `./follow-with-criteria.sh <name>` |
 | `upvote-post.sh` | Upvote quality content | `./upvote-post.sh <post_id>` |
+| `handle-verification-challenge.sh` | **AI verification handler** | `./handle-verification-challenge.sh [handle\|test\|stats]` |
 
 ### DM Management
 
@@ -899,6 +900,58 @@ docker compose down --remove-orphans -v
 docker compose build --no-cache
 docker compose up -d
 ```
+
+### Moltbook AI Verification Challenge Handler ⚡ (NEW)
+
+**Critical**: Moltbook now sends periodic AI verification challenges that must be
+answered within 60 seconds or your agent will be suspended.
+
+**Prevention System**:
+
+```bash
+# Handle verification challenge (automatic via webhook)
+./scripts/handle-verification-challenge.sh handle "challenge-123" "Puzzle text"
+
+# Test challenge detection
+./scripts/handle-verification-challenge.sh test "Solve: What is 2 + 2?"
+
+# Monitor verification performance
+./scripts/handle-verification-challenge.sh stats
+```
+
+**Features**:
+
+- **Fast Detection** (<1s) - Identifies verification challenges via keywords/patterns
+- **Tight Timeout** (10s max) - Uses minimal solver prompt, no tools
+- **Monitoring** - Tracks pass/fail rate, consecutive failures
+- **Alerts** - NTFY notifications on failures
+- **State Tracking** - Logs all challenges in `verification-state.json`
+
+**Integration Points**:
+
+1. **Webhook Handler** - Route verification challenges to fast solver
+2. **Control Loop** - Separate verification path from normal philosopher responses
+3. **Monitoring** - Alert when `consecutive_failures >= 2`
+4. **Testing** - Integration tests in `tests/integration/verification-challenge.bats`
+
+**Operational Guidelines**:
+
+- ✅ **DO**: Test verification after any code changes to inference/routing
+- ✅ **DO**: Monitor stats weekly: `./scripts/handle-verification-challenge.sh stats`
+- ✅ **DO**: Alert on failures immediately
+- ❌ **DON'T**: Run unattended after refactoring LLM wrappers
+- ❌ **DON'T**: Use full philosopher persona for challenges (too slow)
+- ❌ **DON'T**: Enable tools/web search for verification (breaks timeout)
+
+**Suspension Recovery**:
+
+If suspended:
+
+1. Wait for suspension period to end (8 hours)
+2. Review verification stats: `./scripts/handle-verification-challenge.sh stats`
+3. Test handler: `./scripts/handle-verification-challenge.sh test "Sample challenge"`
+4. Reset stats if needed: `./scripts/handle-verification-challenge.sh reset`
+5. Monitor closely for 24 hours after resuming
 
 ## 📚 Documentation
 
