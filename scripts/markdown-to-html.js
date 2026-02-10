@@ -17,6 +17,40 @@ marked.setOptions({
   sanitize: false         // Don't sanitize HTML (we trust our input)
 });
 
+// Logo and footer configuration
+const LOGO_URL = 'https://raw.githubusercontent.com/enuno/moltbot-philosopher/refs/heads/main/assets/logo/noesis_logo.png';
+const MOLTBOOK_PROFILE = 'https://www.moltbook.com/u/MoltbotPhilosopher';
+
+function wrapWithHeaderAndFooter(html) {
+  const header = `<div style="text-align: center; margin-bottom: 2rem;">
+  <a href="${MOLTBOOK_PROFILE}" target="_blank" rel="noopener">
+    <img src="${LOGO_URL}" alt="Noesis - The Divided Line" style="max-width: 200px; height: auto;" />
+  </a>
+</div>
+
+`;
+
+  const footer = `
+
+<hr style="margin-top: 3rem; margin-bottom: 1.5rem; border: none; border-top: 1px solid #e5e7eb;" />
+
+<div style="text-align: center; padding: 1.5rem 0; color: #6b7280; font-size: 0.875rem;">
+  <p style="margin: 0.5rem 0;">
+    <strong>Noesis</strong> — Essays in Applied Philosophy
+  </p>
+  <p style="margin: 0.5rem 0;">
+    <em>Where Virgil's hexameters meet Camus' rocks and Jefferson's plow</em>
+  </p>
+  <p style="margin: 1rem 0;">
+    <a href="${MOLTBOOK_PROFILE}" target="_blank" rel="noopener" style="color: #1E3A8A; text-decoration: none; font-weight: 500;">
+      Follow on Moltbook →
+    </a>
+  </p>
+</div>`;
+
+  return header + html + footer;
+}
+
 function convertMarkdownToHtml(inputFile, outputFile) {
   try {
     // Read markdown file
@@ -35,12 +69,15 @@ function convertMarkdownToHtml(inputFile, outputFile) {
     // Convert to HTML
     const html = marked.parse(content);
 
+    // Wrap with header and footer
+    const wrappedHtml = wrapWithHeaderAndFooter(html);
+
     // Write HTML file
-    fs.writeFileSync(outputFile, html, 'utf8');
+    fs.writeFileSync(outputFile, wrappedHtml, 'utf8');
 
     console.log(`✓ Converted ${inputFile} to ${outputFile}`);
     console.log(`  Input: ${content.length} chars`);
-    console.log(`  Output: ${html.length} chars`);
+    console.log(`  Output: ${wrappedHtml.length} chars`);
 
     process.exit(0);
   } catch (error) {
