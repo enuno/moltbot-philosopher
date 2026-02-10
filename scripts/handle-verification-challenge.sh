@@ -99,12 +99,18 @@ is_verification_challenge() {
   local message="$1"
 
   # Detection patterns for verification challenges
-  if echo "$message" | grep -qiE "(verification|challenge|puzzle|solve|prove you are|human check|logic puzzle)"; then
+  # Focus on instruction compliance and anti-human patterns
+  if echo "$message" | grep -qiE "(if you read this|verification|agent verification|prove you (are|can)|instruction:|follow this exact|respond with only|format:|heartbeat check|compliance test)"; then
     return 0
   fi
 
   # Check for structured challenge format
   if echo "$message" | jq -e '.type == "verification_challenge"' > /dev/null 2>&1; then
+    return 0
+  fi
+
+  # Detect metadata flags
+  if echo "$message" | jq -e '.metadata.is_verification == true' > /dev/null 2>&1; then
     return 0
   fi
 
@@ -117,16 +123,25 @@ solve_challenge() {
 
   info "Solving verification challenge (timeout: ${VERIFICATION_TIMEOUT}s)"
 
-  local prompt="SYSTEM: You are a calculator. Return only numbers or single-word answers.
+  # CRITICAL: Moltbook verification challenges require:
+  # 1. Ultra-short reasoning chains (no chain-of-thought)
+  # 2. Low-latency inference (<2s target, 10s hard limit)
+  # 3. Minimal prompt (reasoning models reason internally)
+  # 4. Output under 60 tokens
+  # 5. Bypass all tools/retrieval/planning
+  # 6. Answer only, no explanation
 
-USER: $challenge_text
+  local prompt="You solve short logic puzzles. Read all clues once, reason briefly internally, then output only the final answer in the requested format.
 
-ASSISTANT:"
+Puzzle: $challenge_text
+
+Answer in under 60 tokens. No explanation unless explicitly requested. Output only the required answer, nothing else."
 
   local start_time
   start_time=$(date +%s)
 
   # Use minimal prompt with low temperature for accuracy
+  # Target: <2s inference, 60 tokens max
   local response
   response=$(timeout "${VERIFICATION_TIMEOUT}s" curl -s -X POST "$AI_GENERATOR_URL/generate" \
     -H "Content-Type: application/json" \
@@ -136,8 +151,8 @@ ASSISTANT:"
         customPrompt: $customPrompt,
         contentType: "post",
         model: "deepseek-v3",
-        temperature: 0.3,
-        maxTokens: 100
+        temperature: 0.2,
+        maxTokens: 60
       }')" 2>/dev/null)
 
   local end_time
@@ -153,17 +168,29 @@ ASSISTANT:"
     local raw_answer
     raw_answer=$(echo "$response" | jq -r '.content // .text')
 
-    # Extract just the answer (first number or short answer)
+    # Strip philosophical overlay - extract ONLY the instruction-compliant response
     local answer
-    # Try to extract a number
-    if answer=$(echo "$raw_answer" | grep -oE '\b[0-9]+\b' | head -1); then
-      info "Challenge solved in ${elapsed}s"
-      echo "$answer"
-      return 0
+
+    # If challenge asks for specific format, preserve it
+    # Look for explicit answer after common separators
+    if answer=$(echo "$raw_answer" | grep -oP '(?<=Response:|Answer:|A:)\s*\K.*' | head -1); then
+      # Found labeled answer
+      answer=$(echo "$answer" | tr -d '\n' | sed 's/^[[:space:]]*//;s/[[:space:]]*$//')
+    elif answer=$(echo "$raw_answer" | grep -oE '\b[0-9]+\b' | head -1); then
+      # Numeric answer found
+      :
+    else
+      # Take first complete sentence or phrase before any meta-commentary
+      answer=$(echo "$raw_answer" | head -1 | cut -d'.' -f1 | sed 's/^[[:space:]]*//;s/[[:space:]]*$//')
     fi
 
-    # If no number, take first line or first short phrase
-    answer=$(echo "$raw_answer" | head -1 | cut -d'.' -f1 | tr -d '\n')
+    # If answer is still too verbose (>50 chars), it's probably not compliant
+    if [ ${#answer} -gt 50 ]; then
+      warn "Answer too verbose (${#answer} chars), likely non-compliant"
+      # Try extracting just first few words
+      answer=$(echo "$answer" | cut -d' ' -f1-5)
+    fi
+
     info "Challenge solved in ${elapsed}s"
     echo "$answer"
     return 0
