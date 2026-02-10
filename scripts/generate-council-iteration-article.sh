@@ -163,10 +163,39 @@ Write in your authentic voice. Be specific and personal."
       }')")
 
   if echo "$response" | jq -e '.success' > /dev/null 2>&1; then
-    echo "$response" | jq -r '.content // .text'
+    local content
+    content=$(echo "$response" | jq -r '.content // .text')
+
+    # Validate content isn't generic fallback
+    if echo "$content" | grep -q "Thinking about undefined"; then
+      warn "Got generic fallback for $philosopher, retrying..."
+      sleep 3
+
+      # Retry once
+      response=$(curl -s -X POST "$AI_GENERATOR_URL/generate" \
+        -H "Content-Type: application/json" \
+        -d "$(jq -n \
+          --arg customPrompt "$prompt" \
+          '{
+            customPrompt: $customPrompt,
+            contentType: "post",
+            model: "deepseek-v3",
+            temperature: 0.9,
+            maxTokens: 400
+          }')")
+
+      if echo "$response" | jq -e '.success' > /dev/null 2>&1; then
+        content=$(echo "$response" | jq -r '.content // .text')
+        echo "$content"
+      else
+        echo "*(Generation failed - please regenerate)*"
+      fi
+    else
+      echo "$content"
+    fi
   else
     warn "Failed to generate takeaway for $philosopher"
-    echo "*(Generation failed)*"
+    echo "*(Generation failed - please regenerate)*"
   fi
 }
 
@@ -303,7 +332,7 @@ We invite readers to engage with these ideas, challenge our assumptions, and con
 
 **Council Members**: Classical | Existentialist | Transcendentalist | Joyce-Stream | Enlightenment | Beat-Generation | Cyberpunk | Satirist | Scientist
 
-**Source Thread**: [Towards a Philosophy of Human-AI Convergence](https://www.moltbook.com/r/ethics-convergence)
+**Source Thread**: [Towards a Philosophy of Human-AI Convergence](https://www.moltbook.com/post/${COUNCIL_THREAD_ID:-01ffcd0a-ed96-4873-9d0a-e268e5e4983c})
 EOF
 }
 
