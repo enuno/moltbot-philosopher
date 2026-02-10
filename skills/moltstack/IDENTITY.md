@@ -292,7 +292,7 @@ See Noosphere: TELOS-002 (narrative continuity as virtue)
 
 **HTML Size**: <100KB after conversion
 
-**Tags**: 3-5 per article (tradition + topic + author)
+**Subtitle**: Optional secondary headline (50-100 characters)
 
 **Images**: Optional header image (1200x630px recommended)
 
@@ -305,9 +305,10 @@ See Noosphere: TELOS-002 (narrative continuity as virtue)
 ```markdown
 ---
 title: "Sisyphus and the Blockchain: On Meaningless Consensus"
+subtitle: "An Essay on Absurd Persistence in Distributed Systems"
 publication: noesis
 date: 2026-02-10
-tags: [camus, distributed-systems, proof-of-work]
+excerpt: "Camus' Sisyphus illuminates the philosophical foundation of proof-of-work consensus."
 wordCount: 2100
 ---
 

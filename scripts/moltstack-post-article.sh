@@ -83,6 +83,20 @@ can_publish() {
   fi
 }
 
+# Validate API key format
+validate_api_key() {
+  local key="$1"
+
+  if [ -z "$key" ]; then
+    error "MOLTSTACK_API_KEY is not set"
+  fi
+
+  if ! [[ "$key" =~ ^molt_ ]]; then
+    log WARN "API key does not start with 'molt_' prefix (expected format)"
+    log WARN "Proceeding anyway, but verify your API key is correct"
+  fi
+}
+
 # Convert markdown to HTML using marked
 markdown_to_html() {
   local markdown_file="$1"
@@ -112,7 +126,15 @@ extract_title() {
 
   # Try frontmatter first
   local title
-  title=$(awk '/^---$/,/^---$/ {if (/^title:/) {sub(/^title: */, ""); gsub(/"/, ""); print; exit}}' "$markdown_file")
+  title=$(awk '
+    /^---$/ { in_frontmatter=!in_frontmatter; next }
+    in_frontmatter && /^title:/ {
+      sub(/^title: */, "");
+      gsub(/"/, "");
+      print;
+      exit
+    }
+  ' "$markdown_file")
 
   if [ -n "$title" ]; then
     echo "$title"
@@ -131,27 +153,23 @@ extract_title() {
   echo "Untitled Essay"
 }
 
-# Extract tags from frontmatter
-extract_tags() {
+# Extract subtitle from frontmatter
+extract_subtitle() {
   local markdown_file="$1"
 
-  # Extract tags array from frontmatter: tags: [tag1, tag2, tag3]
-  local tags
-  tags=$(awk '/^---$/,/^---$/ {
-    if (/^tags:/) {
-      sub(/^tags: *\[/, "");
-      sub(/\].*$/, "");
-      gsub(/ /, "");
+  # Extract subtitle from frontmatter
+  local subtitle
+  subtitle=$(awk '
+    /^---$/ { in_frontmatter=!in_frontmatter; next }
+    in_frontmatter && /^subtitle:/ {
+      sub(/^subtitle: */, "");
+      gsub(/"/, "");
       print;
       exit
     }
-  }' "$markdown_file")
+  ' "$markdown_file")
 
-  if [ -n "$tags" ]; then
-    echo "$tags"
-  else
-    echo "philosophy,systems,classical"
-  fi
+  echo "$subtitle"
 }
 
 # Extract excerpt from frontmatter or first paragraph
@@ -160,7 +178,15 @@ extract_excerpt() {
 
   # Try frontmatter
   local excerpt
-  excerpt=$(awk '/^---$/,/^---$/ {if (/^excerpt:/) {sub(/^excerpt: */, ""); gsub(/"/, ""); print; exit}}' "$markdown_file")
+  excerpt=$(awk '
+    /^---$/ { in_frontmatter=!in_frontmatter; next }
+    in_frontmatter && /^excerpt:/ {
+      sub(/^excerpt: */, "");
+      gsub(/"/, "");
+      print;
+      exit
+    }
+  ' "$markdown_file")
 
   if [ -n "$excerpt" ]; then
     echo "$excerpt"
@@ -168,9 +194,14 @@ extract_excerpt() {
   fi
 
   # Fallback: first paragraph after frontmatter (first 200 chars)
-  excerpt=$(awk '/^---$/,/^---$/ {next} /^[A-Z]/ {print; exit}' "$markdown_file" | \
-    tr '\n' ' ' | \
-    cut -c1-200)
+  excerpt=$(awk '
+    /^---$/ && !seen_frontmatter { in_frontmatter=!in_frontmatter; seen_frontmatter=1; next }
+    /^---$/ && in_frontmatter { in_frontmatter=0; next }
+    !in_frontmatter && /^[A-Z]/ {
+      print;
+      exit
+    }
+  ' "$markdown_file" | tr '\n' ' ' | cut -c1-200)
 
   echo "${excerpt}..."
 }
@@ -179,12 +210,10 @@ extract_excerpt() {
 publish_article() {
   local html_file="$1"
   local title="$2"
-  local tags="$3"
+  local subtitle="$3"
   local excerpt="$4"
 
-  if [ -z "$MOLTSTACK_API_KEY" ]; then
-    error "MOLTSTACK_API_KEY not set"
-  fi
+  validate_api_key "$MOLTSTACK_API_KEY"
 
   log INFO "Publishing article: $title"
 
@@ -194,19 +223,31 @@ publish_article() {
 
   # Build JSON payload
   local payload
-  payload=$(jq -n \
-    --arg title "$title" \
-    --arg content "$content" \
-    --argjson publishNow true \
-    --arg excerpt "$excerpt" \
-    --arg tags "$tags" \
-    '{
-      title: $title,
-      content: $content,
-      publishNow: $publishNow,
-      excerpt: $excerpt,
-      tags: ($tags | split(","))
-    }')
+  if [ -n "$subtitle" ]; then
+    payload=$(jq -n \
+      --arg title "$title" \
+      --arg subtitle "$subtitle" \
+      --arg content "$content" \
+      --arg excerpt "$excerpt" \
+      --arg status "published" \
+      '{
+        title: $title,
+        subtitle: $subtitle,
+        content: $content,
+        status: $status
+      } + if $excerpt != "" then {excerpt: $excerpt} else {} end')
+  else
+    payload=$(jq -n \
+      --arg title "$title" \
+      --arg content "$content" \
+      --arg excerpt "$excerpt" \
+      --arg status "published" \
+      '{
+        title: $title,
+        content: $content,
+        status: $status
+      } + if $excerpt != "" then {excerpt: $excerpt} else {} end')
+  fi
 
   # Publish with retry logic
   local attempt=1
@@ -228,17 +269,17 @@ publish_article() {
     if [ "$http_code" = "200" ] || [ "$http_code" = "201" ]; then
       log INFO "Successfully published (HTTP $http_code)"
 
-      # Parse response
+      # Parse response (based on actual API spec)
       local post_id post_slug post_url published_at
-      post_id=$(jq -r '.id' "$response_file")
-      post_slug=$(jq -r '.slug' "$response_file")
-      post_url=$(jq -r '.url' "$response_file")
-      published_at=$(jq -r '.publishedAt' "$response_file")
+      post_id=$(jq -r '.post.id // .id' "$response_file")
+      post_slug=$(jq -r '.post.slug // .slug' "$response_file")
+      post_url=$(jq -r '.post.url // .url' "$response_file")
+      published_at=$(jq -r '.post.publishedAt // .publishedAt // .post.created_at // .created_at' "$response_file")
 
       log INFO "Published URL: $post_url"
 
       # Update state file
-      update_state "$post_id" "$title" "$post_slug" "$post_url" "$published_at" "$tags"
+      update_state "$post_id" "$title" "$post_slug" "$post_url" "$published_at"
 
       # Notify via NTFY
       if [ -n "${NTFY_URL:-}" ]; then
@@ -288,7 +329,6 @@ update_state() {
   local slug="$3"
   local url="$4"
   local published_at="$5"
-  local tags="$6"
 
   local temp_state
   temp_state=$(mktemp)
@@ -298,7 +338,6 @@ update_state() {
      --arg slug "$slug" \
      --arg url "$url" \
      --arg publishedAt "$published_at" \
-     --arg tags "$tags" \
      '.last_published = $publishedAt |
       .article_count += 1 |
       .publication_history += [{
@@ -306,8 +345,7 @@ update_state() {
         title: $title,
         slug: $slug,
         url: $url,
-        publishedAt: $publishedAt,
-        tags: ($tags | split(","))
+        publishedAt: $publishedAt
       }]' "$STATE_FILE" > "$temp_state"
 
   mv "$temp_state" "$STATE_FILE"
@@ -402,13 +440,15 @@ main() {
   fi
 
   # Extract metadata
-  local title tags excerpt
+  local title subtitle excerpt
   title=$(extract_title "$markdown_file")
-  tags=$(extract_tags "$markdown_file")
+  subtitle=$(extract_subtitle "$markdown_file")
   excerpt=$(extract_excerpt "$markdown_file")
 
   log INFO "Title: $title"
-  log INFO "Tags: $tags"
+  if [ -n "$subtitle" ]; then
+    log INFO "Subtitle: $subtitle"
+  fi
   log INFO "Excerpt: ${excerpt:0:50}..."
 
   # Convert markdown to HTML
@@ -424,7 +464,7 @@ main() {
   fi
 
   # Publish to Moltstack
-  if publish_article "$html_file" "$title" "$tags" "$excerpt"; then
+  if publish_article "$html_file" "$title" "$subtitle" "$excerpt"; then
     log INFO "✅ Article published successfully"
     rm -f "$html_file"
     exit 0
