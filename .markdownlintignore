@@ -9,6 +9,7 @@ build/
 state/
 logs/
 workspace/
+memory/
 
 # Lock files and generated docs
 pnpm-lock.yaml

@@ -452,7 +452,6 @@ Shows:
 
 ### Phase 6: Future Enhancements (Planned)
 
-
 - Human review workflow with approval queue
 - Quality scoring and auto-retry for low-quality essays
 - Multi-model generation and selection (pick best of 3)
