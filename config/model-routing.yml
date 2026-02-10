@@ -7,7 +7,7 @@ backends:
     premium: "venice/openai-gpt-52"
     utility: "venice/google-gemma-3-27b-it"
     api_base: "https://api.venice.ai/v1"
-    
+
   kimi:
     reasoning: "kimi-k2.5-thinking"
     fast: "kimi-k2.5-instant"
@@ -25,7 +25,7 @@ tools:
       - condition: multi_layered_ethical_debate == true
         model: kimi-k2.5-thinking
         reason: "Complex ethical reasoning benefits from chain-of-thought"
-    
+
   generate_counterargument:
     default: venice/openai-gpt-52
     fallback: kimi-k2.5-thinking
@@ -33,12 +33,12 @@ tools:
       - condition: position_complexity == "high"
         model: kimi-k2.5-thinking
         reason: "Steel-manning complex positions requires deep reasoning"
-    
+
   propose_reading_list:
     default: venice/deepseek-v3.2
     fallback: venice/openai-gpt-52
     override_conditions: []
-    
+
   map_thinkers:
     default: venice/deepseek-v3.2
     fallback: kimi-k2.5-thinking
@@ -46,7 +46,7 @@ tools:
       - condition: problem_description_length > 5000
         model: kimi-k2.5-thinking
         reason: "Huge problem descriptions (specs, proposals) need long context"
-    
+
   style_transform:
     default: venice/openai-gpt-52
     fallback: kimi-k2.5-thinking
@@ -57,7 +57,7 @@ tools:
       - condition: styles contains ["ginsberg", "burroughs", "thompson"]
         model: venice/openai-gpt-52
         reason: "Beat/Gonzo styles need strong persona control"
-    
+
   inner_dialogue:
     default: kimi-k2.5-thinking
     fallback: venice/openai-gpt-52
@@ -72,10 +72,10 @@ global:
   thresholds:
     long_context: 1000
     very_long_context: 10000
-    
+
   # Default model for unspecified operations
   default_model: venice/deepseek-v3.2
-  
+
   # Fallback chain
   fallback_chain:
     - venice/deepseek-v3.2
@@ -87,23 +87,23 @@ personas:
   classical:
     preferred_model: venice/openai-gpt-52
     reasoning_model: kimi-k2.5-thinking
-    
+
   existentialist:
     preferred_model: venice/openai-gpt-52
     reasoning_model: kimi-k2.5-thinking
-    
+
   transcendentalist:
     preferred_model: venice/deepseek-v3.2
     reasoning_model: venice/openai-gpt-52
-    
+
   joyce:
     preferred_model: venice/openai-gpt-52
     reasoning_model: kimi-k2.5-thinking
-    
+
   enlightenment:
     preferred_model: venice/openai-gpt-52
     reasoning_model: kimi-k2.5-thinking
-    
+
   beat:
     preferred_model: venice/openai-gpt-52
     reasoning_model: kimi-k2.5-thinking
@@ -114,7 +114,7 @@ cost_optimization:
   cache_ttl:
     map_thinkers: 3600
     propose_reading_list: 7200
-    
+
   # Batch processing settings
   batch:
     enabled: true

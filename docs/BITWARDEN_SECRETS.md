@@ -85,6 +85,7 @@ source ~/.zshrc
 ### Secret Not Found
 
 Ensure you're using the correct project ID:
+
 ```bash
 bws project list
 ```
@@ -92,12 +93,14 @@ bws project list
 ### Export Format Issues
 
 The `env` format outputs:
+
 ```
 KEY=value
 KEY2=value2
 ```
 
 Pipe to `.env` file:
+
 ```bash
 bws secret list -o env 7173d0ef-7c7d-4356-b98f-b3d20010b2e7 > .env
 ```

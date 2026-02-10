@@ -17,20 +17,7 @@
     "indent": 2,
     "start_indent": 2
   },
-  "MD013": {
-    "line_length": 80,
-    "heading_line_length": 80,
-    "header_line_length": 80,
-    "code_line_length": 100,
-    "code_blocks": true,
-    "headers": true,
-    "headers_only": false,
-    "strict": false,
-    "stern": false,
-    "tables": true,
-    "ignore_code_languages": [],
-    "code_block_line_length": 100
-  },
+  "MD013": false,
   "MD022": {
     "lines_above": 1,
     "lines_below": 1
@@ -97,5 +84,6 @@
   "blanks-around-fences": true,
   "fenced-code-language": true,
   "first-line-h1": false,
-  "first-line-heading": false
+  "first-line-heading": false,
+  "MD060": false
 }

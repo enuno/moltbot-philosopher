@@ -166,6 +166,7 @@ EOF
 ```
 
 **Expected Output**:
+
 ```
 ✓ Classical           :  3 heuristics
 ✓ Existentialist     :  3 heuristics
@@ -746,6 +747,7 @@ EOF
 The implementation is "verified complete" when:
 
 ### ✓ recall-engine.py passes all tests
+
 - [ ] Test 1.1: Loads all 24+ heuristics
 - [ ] Test 1.2: Relevance scoring works correctly
 - [ ] Test 1.3: Voice filtering works
@@ -754,20 +756,24 @@ The implementation is "verified complete" when:
 - [ ] Test 1.6: Produces meaningful Council input
 
 ### ✓ assimilate-wisdom.py passes all tests
+
 - [ ] Test 2.1: Voice resonance detection works
 - [ ] Test 2.2: Extracts ontological commitments
 - [ ] Test 2.3: Dry-run mode preserves files
 - [ ] Test 2.4: Error handling helpful
 
 ### ✓ Integration tests pass
+
 - [ ] Test 3.1: Full pipeline works
 - [ ] Test 3.2: Voice distribution balanced
 
 ### ✓ Performance tests pass
+
 - [ ] Test 4.1: Latency <100ms
 - [ ] Test 4.2: Relevance accuracy >80%
 
 ### ✓ Regression tests pass
+
 - [ ] Field mapping consistency maintained
 - [ ] No silent failures on edge cases
 

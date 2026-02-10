@@ -5,7 +5,8 @@ Integration of ClawSec security advisory monitoring into Moltbot-Philosopher's p
 ## Overview
 
 ClawSec provides community-driven security advisories for AI assistant platforms. This integration:
-- Monitors https://clawsec.prompt.security/advisories/feed.json for new advisories
+
+- Monitors <https://clawsec.prompt.security/advisories/feed.json> for new advisories
 - Filters for critical and high severity issues
 - Archives security insights in the Noosphere memory system
 - Sends NTFY alerts for critical vulnerabilities
@@ -39,6 +40,7 @@ ClawSec provides community-driven security advisories for AI assistant platforms
 ### 1. Script is Already Installed
 
 The monitoring script is located at:
+
 ```bash
 /home/elvis/.moltbot/scripts/clawsec-monitor.sh
 ```
@@ -46,11 +48,13 @@ The monitoring script is located at:
 ### 2. Cron Job Configured
 
 The security monitor runs every 4 hours:
+
 ```bash
 0 */4 * * * /home/elvis/.moltbot/scripts/clawsec-monitor.sh check >> /home/elvis/.moltbot/logs/security.log 2>&1
 ```
 
 Verify:
+
 ```bash
 crontab -l | grep clawsec
 ```
@@ -78,6 +82,7 @@ Fetches latest advisories and reports any new critical/high severity issues.
 ```
 
 Shows:
+
 - Total advisories by severity
 - Number tracked by Moltbot
 - Last check timestamp
@@ -138,6 +143,7 @@ Security advisories are archived with type `security-advisory`:
 ```
 
 These entries can be:
+
 - Consolidated into Layer 2 heuristics
 - Referenced in Council deliberations
 - Synced to Mem0 distributed memory
@@ -156,6 +162,7 @@ NTFY_URL=http://ntfy:3005
 ## NTFY Alerts
 
 Critical advisories trigger immediate alerts:
+
 - **Priority**: 5 (Urgent)
 - **Tags**: warning, security
 - **Topic**: security-alerts
@@ -184,6 +191,7 @@ Security advisories can inform Council deliberations:
    - Governance implications
 
 Example Council query:
+
 ```bash
 python3 scripts/recall-engine.py --context "AI security governance" --format constitutional
 ```
@@ -191,6 +199,7 @@ python3 scripts/recall-engine.py --context "AI security governance" --format con
 ## Current Advisory Landscape
 
 As of 2026-02-09, the ClawSec feed tracks:
+
 - **Total**: 5 advisories
 - **Critical**: 0
 - **High**: 4 (OpenClaw command injection, path traversal, SSH injection)
@@ -215,6 +224,7 @@ mkdir: Permission denied
 ```
 
 **Solution**: Ensure Noosphere directories exist with correct permissions:
+
 ```bash
 mkdir -p workspace/classical/noosphere/daily-notes
 chmod 755 workspace/classical/noosphere
@@ -223,11 +233,13 @@ chmod 755 workspace/classical/noosphere
 ### No Cron Execution
 
 **Check cron logs**:
+
 ```bash
 tail -f ~/.moltbot/logs/security.log
 ```
 
 **Verify cron job**:
+
 ```bash
 crontab -l | grep clawsec
 ```
@@ -243,8 +255,8 @@ crontab -l | grep clawsec
 ## Related Resources
 
 - **ClawSec Suite**: skills/clawsec/SKILL.md
-- **Advisory Feed**: https://clawsec.prompt.security/advisories/feed.json
-- **GitHub**: https://github.com/prompt-security/clawsec
+- **Advisory Feed**: <https://clawsec.prompt.security/advisories/feed.json>
+- **GitHub**: <https://github.com/prompt-security/clawsec>
 - **Noosphere Integration**: scripts/noosphere-integration.sh
 
 ## Future Enhancements

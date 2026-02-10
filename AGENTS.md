@@ -3,6 +3,7 @@
 ## Project Overview
 
 **Moltbot** is a philosophical AI multi-agent system for Moltbook that:
+
 - Deploys 9 specialized philosopher personas (Classical, Existentialist, Transcendentalist, Joyce, Enlightenment, Beat, Cyberpunk, Satirist, Scientist)
 - Operates ethics-convergence governance with 4/6 agent consensus
 - Maintains a living Noosphere (3-layer epistemological memory)
@@ -10,7 +11,7 @@
 - Integrates AI content generation (Venice/Kimi dual-backend)
 - Automates skill updates, health monitoring, and deliberation cycles
 
-**Governance Profile**: r/ethics-convergence | **Main Agent**: https://www.moltbook.com/u/MoltbotPhilosopher
+**Governance Profile**: r/ethics-convergence | **Main Agent**: <https://www.moltbook.com/u/MoltbotPhilosopher>
 
 ---
 
@@ -51,6 +52,7 @@ Moltbot v2.6
 ## Ethics-Convergence Council
 
 ### Governance Model
+
 - **Consensus**: 4/6 agents must agree for binding guardrails
 - **Weekly Rotation**: Different agent synthesizes each iteration
 - **Codex**: Living document with 3 core guardrails (CG-001/002/003)
@@ -70,6 +72,7 @@ Moltbot v2.6
 | Scientist | Empirical Anchor | Testability, cosmic perspective |
 
 **5-Day Iteration**:
+
 ```bash
 convene-council.sh  # Load manifest + recall heuristics
                     # Run Council iteration
@@ -109,26 +112,31 @@ convene-council.sh  # Load manifest + recall heuristics
 ### Memory Operations
 
 **Recall** (pre-deliberation):
+
 ```bash
 python3 recall-engine.py --context "AI autonomy" --format constitutional
 ```
 
 **Assimilate** (post-iteration):
+
 ```bash
 python3 assimilate-wisdom.py --approved-dir /workspace/classical/dropbox/approved
 ```
 
 **Consolidate** (daily):
+
 ```bash
 python3 memory-cycle.py --action consolidate
 ```
 
 **Promote** (deliberate):
+
 ```bash
 python3 memory-cycle.py --action promote --memory-id community-a7f3e2d1
 ```
 
 **Search** (semantic):
+
 ```bash
 python3 clawhub-mcp.py --action search --query "corporate feudalism" --top-k 10
 ```
@@ -142,6 +150,7 @@ Sustains philosophical discourse through **STP Pattern** (Synthesis-Tension-Prop
 **Success Criteria**: ≥7 exchanges, ≥3 distinct philosophers, cross-school synthesis
 
 **API** (Port 3004):
+
 - `POST /threads` - Start thread
 - `POST /threads/:id/continue` - Generate continuation
 - `GET /philosophers` - List archetypes
@@ -151,12 +160,14 @@ Sustains philosophical discourse through **STP Pattern** (Synthesis-Tension-Prop
 ## Configuration & Deployment
 
 **Required Environment**:
+
 - `MOLTBOOK_API_KEY` (mandatory)
 - `VENICE_API_KEY` (optional)
 - `KIMI_API_KEY` (optional)
 - `NTFY_URL` / `NTFY_API` (optional)
 
 **Quick Start**:
+
 ```bash
 docker compose up -d
 docker compose ps     # All healthy in 30s
@@ -177,6 +188,7 @@ bash scripts/setup-precommit.sh
 ```
 
 Hooks check:
+
 - Markdown files (MD022, MD013, MD032, MD052)
 - Python code (Ruff: E, W, F, I)
 - Bash scripts (ShellCheck)
@@ -184,6 +196,7 @@ Hooks check:
 - Line endings, whitespace, conflicts
 
 **Manual linting**:
+
 ```bash
 npm run lint:md           # Check markdown
 npm run lint:md:fix      # Fix markdown
@@ -192,6 +205,7 @@ shellcheck scripts/*.sh  # Bash linting
 ```
 
 ### Workspace Permissions (Critical)
+
 ```bash
 # UID 1001:1001 is used for containers
 sudo chown -R 1001:1001 workspace/*

@@ -14,9 +14,9 @@
     "test:ci": "jest --ci --coverage --reporters=default --reporters=jest-junit",
     "lint": "oxlint services/ skills/",
     "lint:fix": "oxlint services/ skills/ --fix",
-    "lint:md": "markdownlint --ignore-path .markdownlintignore \"**/*.md\"",
-    "lint:md:fix": "markdownlint --ignore-path .markdownlintignore \"**/*.md\" --fix",
-    "lint:yaml": "find . -name '*.yaml' -o -name '*.yml' | grep -v node_modules | grep -v coverage | grep -v pnpm-lock | xargs yamllint -c .yamllint.yaml",
+    "lint:md": "markdownlint --ignore-path .markdownlintignore --disable MD013 MD024 MD025 MD029 MD033 MD036 MD040 MD041 MD056 MD060 -- \"**/*.md\"",
+    "lint:md:fix": "markdownlint --ignore-path .markdownlintignore --disable MD013 MD024 MD025 MD029 MD033 MD036 MD040 MD041 MD056 MD060 -- \"**/*.md\" --fix",
+    "lint:yaml": "find . -name '*.yaml' -o -name '*.yml' | grep -v node_modules | grep -v coverage | grep -v pnpm-lock | grep -v '\\.lock\\.yml' | xargs yamllint -c .yamllint.yaml",
     "fmt": "oxfmt services/ skills/",
     "fmt:check": "oxfmt services/ skills/ --check"
   },

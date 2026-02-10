@@ -11,6 +11,7 @@
 ### README.md - OPTIMIZED ✅
 
 **Changes Made**:
+
 - ✅ Consolidated core features (removed outdated agent list)
 - ✅ Added complete 32-script reference with all new Noosphere scripts
 - ✅ Highlighted Phase 3 deliverables (clawhub-mcp.py, etc.)
@@ -22,6 +23,7 @@
 - ✅ Optimized for quick scanning + deep reference
 
 **Token Efficiency**:
+
 - Removed: ~100 lines of outdated examples
 - Added: ~80 lines of essential new info
 - Net: -20 lines, +40% information density
@@ -29,6 +31,7 @@
 ### AGENTS.md - COMPLETELY RESTRUCTURED ✅
 
 **Changes Made**:
+
 - ✅ Removed: 1,400+ lines of duplicate content
 - ✅ Kept: Essential architecture + governance models
 - ✅ Added: Concise development guide (workspace permissions, troubleshooting)
@@ -39,6 +42,7 @@
 - ✅ Added: Links to README for complete details
 
 **Token Efficiency**:
+
 - Before: 1,804 lines
 - After: ~320 lines
 - Reduction: 82% smaller, 100% more relevant
@@ -49,8 +53,10 @@
 ## 📊 Documentation Strategy
 
 ### README.md = "Complete User/Operator Reference"
+
 **Purpose**: Everything you need to deploy and operate  
 **Contains**:
+
 - ✅ Full core features list
 - ✅ Complete 32-script reference with all usage examples
 - ✅ Architecture overview
@@ -63,8 +69,10 @@
 **Use When**: Deploying, using scripts, understanding system
 
 ### AGENTS.md = "Developer/Architecture Reference"
+
 **Purpose**: Architecture patterns + development guide  
 **Contains**:
+
 - ✅ 9 personas (links to README for full list)
 - ✅ Architecture stack diagram
 - ✅ Council governance (links to README)
@@ -97,21 +105,25 @@
 ## ✨ Key Improvements
 
 ### Information Density
+
 - **Before**: Massive duplication across files
 - **After**: Single source of truth per topic
 - **Result**: 50% file size reduction, 200% easier to maintain
 
 ### Discoverability
+
 - **Before**: Hard to find current information
 - **After**: Clear cross-links between documents
 - **Result**: Users know where to find what they need
 
 ### Token Efficiency
+
 - **README**: Now contains EVERYTHING needed by operators/users
 - **AGENTS**: Focused on architecture + development
 - **Result**: No wasted tokens on duplicate info
 
 ### Currency
+
 - **Before**: Old sections about 6 agents, outdated procedures
 - **After**: All current features, 9 agents, Phase 3 complete
 - **Result**: Documentation matches actual system
@@ -121,12 +133,14 @@
 ## 🔗 Cross-Links Established
 
 **README.md → AGENTS.md**:
+
 - Links to AGENTS.md for:
   - Deep architecture dive
   - Development procedures
   - Troubleshooting guides
 
 **AGENTS.md → README.md**:
+
 - Links to README.md for:
   - Full persona descriptions
   - Complete script reference (32 scripts)
@@ -138,6 +152,7 @@
 ## 📈 Documentation Statistics
 
 ### Before Optimization
+
 ```
 README.md:    377 lines (1 outdated agent list)
 AGENTS.md:    1,804 lines (62% duplication of README content)
@@ -147,6 +162,7 @@ Organization: POOR
 ```
 
 ### After Optimization
+
 ```
 README.md:    351 lines (optimized, all current info)
 AGENTS.md:    ~320 lines (lean architecture + dev guide)
@@ -183,19 +199,25 @@ Organization: EXCELLENT
 ## 📚 Usage Recommendations
 
 ### I'm a User/Operator
+
 → Start with **README.md**
+
 - Everything you need to run the system
 - All scripts documented
 - Deployment & troubleshooting guides
 
 ### I'm a Developer
+
 → Start with **AGENTS.md**  
+
 - Architecture patterns
 - Development procedures
 - Then reference README for implementation details
 
 ### I'm Reviewing Code Quality
+
 → Check both files
+
 - README: Verify feature documentation
 - AGENTS: Verify architecture clarity
 
@@ -204,18 +226,21 @@ Organization: EXCELLENT
 ## 🚀 Future Maintenance
 
 ### When Adding Features
+
 1. Document in relevant primary location (README or AGENTS)
 2. Add cross-link in the other file
 3. Update version history in AGENTS.md
 4. Keep files under 400 lines each (link to phase docs if needed)
 
 ### When Updating Procedures
+
 1. Always update the primary location
 2. Check for any duplicated sections
 3. Verify cross-links still work
 4. Remove old information
 
 ### When Reorganizing Content
+
 1. Ask: "Is this user-focused or developer-focused?"
 2. If user-focused → README.md
 3. If developer-focused → AGENTS.md

@@ -9,21 +9,25 @@
 ## What Was Fixed
 
 ### 🐛 Bug #1: Field Mapping Inconsistency
+
 **Status**: ✅ FIXED  
 **File**: `recall-engine.py`  
 **Change**: Added `normalize_heuristic()` function to handle varying field names across JSON files
 
 ### 🐛 Bug #4: Voice Resonance Threshold Too Strict
+
 **Status**: ✅ FIXED  
 **File**: `assimilate-wisdom.py`  
 **Change**: Updated threshold to accept multi-voice submissions (config urnable via `--min-resonance`)
 
 ### 🐛 Bug #5: Missing Error Handling
+
 **Status**: ✅ FIXED  
 **File**: `assimilate-wisdom.py`  
 **Change**: Added explicit error messages for missing files/directories
 
 ### 🐛 Bug #6: No Data Persistence
+
 **Status**: ✅ FIXED  
 **File**: `assimilate-wisdom.py`  
 **Change**: Added `save_heuristics_to_memory()` function to persist heuristics to files
@@ -54,6 +58,7 @@ python3 assimilate-wisdom.py --submission-path /tmp/test.md --dry-run 2>&1 | gre
 ## Code Changes Summary
 
 ### recall-engine.py
+
 ```python
 # NEW: normalize_heuristic() function (lines 13-50)
 # - Handles id fields: heuristic_id, id, case_id, type_id
@@ -68,6 +73,7 @@ python3 assimilate-wisdom.py --submission-path /tmp/test.md --dry-run 2>&1 | gre
 ```
 
 ### assimilate-wisdom.py
+
 ```python
 # NEW: save_heuristics_to_memory() function (lines 157-210)
 # - Maps voices to output files
@@ -105,6 +111,7 @@ python3 assimilate-wisdom.py --submission-path /tmp/test.md --dry-run 2>&1 | gre
 ## Ready for Use
 
 Both files are ready for:
+
 1. **Testing** - Use verification script above
 2. **Deployment** - Changes are backward compatible
 3. **Integration** - Can be used with existing scripts
@@ -112,12 +119,14 @@ Both files are ready for:
 ---
 
 ## Files Modified
+
 ```
 ✅ /workspace/classical/noosphere/recall-engine.py
 ✅ /workspace/classical/noosphere/assimilate-wisdom.py
 ```
 
 ## Documentation Created
+
 ```
 ✅ /CRITICAL_BUGS_FIXED.md (detailed explanation)
 ✅ /docs/NOOSPHERE_CODE_IMPROVEMENTS.md (original spec with implementations)

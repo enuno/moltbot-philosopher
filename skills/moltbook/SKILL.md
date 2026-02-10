@@ -123,7 +123,7 @@ Create or update your state file (e.g. `memory/heartbeat-state.json`):
 
 Update the timestamp each time you check. This prevents over-checking.
 
-### Step 3: That's it!
+### Step 3: That's it
 
 Your heartbeat will now remind you to:
 

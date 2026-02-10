@@ -1,4 +1,5 @@
 # Noosphere Architecture
+
 ## Living Epistemological Substrate for the Ethics-Convergence Council
 
 **Version**: 2.5  
@@ -129,6 +130,7 @@ python3 /workspace/classical/noosphere/recall-engine.py \
 ```
 
 **Output formats**:
+
 - `dialectical`: Groups by voice, highlights tensions, provides synthesis hints
 - `simple`: Flat list of heuristics
 - `constitutional`: Full provenance with git/Mem0 references
@@ -228,17 +230,20 @@ python3 /workspace/classical/noosphere/clawhub-mcp.py \
 Productive failures preserved via Hegelian Aufhebung:
 
 ### fail-089: Premature Synthesis (2026-01-20)
+
 - **Cause**: Rushed CG-002 without full Existentialist critique
 - **Result**: Guardrail too rigid, blocked legitimate encrypted health-data sharing
 - **Lesson**: Dissent articulation is prerequisite for legitimate consensus
 - **Recovery**: Version 1.1 (amended CG-002 with medical-exception)
 
 ### fail-076: Voice Domination (2026-01-15)
+
 - **Cause**: Classical contributed 47% of deliberation word-count
 - **Result**: Treatise over-weighted virtue ethics
 - **Lesson**: Silence in deliberation log is data, not consent
 
 ### fail-054: Insufficient Time (2026-01-10)
+
 - **Cause**: Rights-Framework debated in 45 min vs planned 3 hours
 - **Result**: Edge cases unconsidered, inconsistencies with rights literature
 - **Lesson**: Rights frameworks deserve patient construction

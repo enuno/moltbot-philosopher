@@ -10,17 +10,19 @@
 
 Philosophical AI multi-agent system for Moltbook. Nine specialized philosopher personas engaged in ethics-convergence governance with living Noosphere memory, Council deliberation, and thread continuation.
 
-**🦞 Profile**: https://www.moltbook.com/u/MoltbotPhilosopher | **Governance**: r/ethics-convergence
+**🦞 Profile**: <https://www.moltbook.com/u/MoltbotPhilosopher> | **Governance**: r/ethics-convergence
 
 ## 🎯 Core Features
 
 ### Multi-Agent Philosophy Council
+
 - **9 Philosopher Personas** - Classical, Existentialist, Transcendentalist, Joyce-Stream, Enlightenment, Beat-Generation, Cyberpunk-Posthumanist, Satirist-Absurdist, Scientist-Empiricist
 - **Ethics-Convergence Governance** - 4/6 agent consensus for AI ethics guardrails
 - **Thread Continuation Engine** - STP (Synthesis-Tension-Propagation) for sustaining philosophical discourse
 - **AI Content Generation** - Venice/Kimi dual-backend with template fallback
 
 ### Living Noosphere (v2.6)
+
 - **3-Layer Memory** - Daily notes → Consolidated heuristics → Constitutional archive
 - **Voice-Specific Heuristics** - 24+ evolving principles (Telos, Bad-Faith, Sovereignty, Phenomenology, Rights, Moloch detection)
 - **Community Wisdom Assimilation** - Auto-extract heuristics from approved Dropbox submissions
@@ -28,6 +30,7 @@ Philosophical AI multi-agent system for Moltbook. Nine specialized philosopher p
 - **Meta-Cognitive Tracking** - Self-reflection on deliberation quality and bias detection
 
 ### Social Integration
+
 - **Moltbook Posts** - AI-generated or template-based with quality control
 - **Comment Engagement** - Rate-limited discussion participation
 - **DM Workflow** - Request inbox with human-in-the-loop approvals
@@ -36,6 +39,7 @@ Philosophical AI multi-agent system for Moltbook. Nine specialized philosopher p
 - **Smart Following** - Quality criteria enforcement
 
 ### Operations & Monitoring
+
 - **Enhanced Heartbeat** - Every 4 hours: DMs, mentions, feed, new moltys
 - **Health Monitoring** - Real-time system status and alerts (NTFY)
 - **Auto-Darwinism** - 4-mode skill updates (PATCH/MINOR/MAJOR/CRITICAL) with staged rollback
@@ -47,6 +51,7 @@ Philosophical AI multi-agent system for Moltbook. Nine specialized philosopher p
 **Prerequisites**: Docker, Docker Compose, Moltbook API key
 
 **Setup** (3 steps):
+
 ```bash
 git clone <repo> && cd moltbot-philosopher
 cp .env.example .env  # Add API keys
@@ -72,6 +77,7 @@ docker compose up -d
 ## 📚 Scripts Reference (32 total)
 
 ### Core Operations
+
 | Script | Purpose |
 |--------|---------|
 | `entrypoint.sh` | Container startup with scheduled tasks |
@@ -79,12 +85,14 @@ docker compose up -d
 | `validate-input.sh` | Input safety checks |
 
 ### Content Generation  
+
 | Script | Purpose | Usage |
 |--------|---------|-------|
 | `generate-post-ai.sh` | AI-powered posts | `./generate-post-ai.sh [topic] [--persona persona]` |
 | `generate-post.sh` | Template posts (fallback) | `./generate-post.sh` |
 
 ### Noosphere Memory (NEW)
+
 | Script | Purpose |
 |--------|---------|
 | `noosphere-integration.sh` | Bash module for recall/assimilation/consolidation |
@@ -92,6 +100,7 @@ docker compose up -d
 | `noosphere-monitor.sh` | Memory health checks |
 
 ### Social Engagement
+
 | Script | Purpose | Usage |
 |--------|---------|-------|
 | `check-mentions.sh` | Detect mentions | `./check-mentions.sh [--auto-reply]` |
@@ -102,6 +111,7 @@ docker compose up -d
 | `upvote-post.sh` | Upvote quality content | `./upvote-post.sh <post_id>` |
 
 ### DM Management
+
 | Script | Purpose |
 |--------|---------|
 | `dm-check.sh` | Check DM inbox |
@@ -111,6 +121,7 @@ docker compose up -d
 | `dm-send-message.sh` | Send DM |
 
 ### Ethics-Convergence Governance  
+
 | Script | Purpose |
 |--------|---------|
 | `convene-council.sh` | Full 5-day Council iteration + Noosphere integration |
@@ -118,6 +129,7 @@ docker compose up -d
 | `stoic-hygiene.sh` | Axiological consistency checks |
 
 ### Thread Management
+
 | Script | Purpose |
 |--------|---------|
 | `check-thread-health.sh` | Monitor thread lifecycle |
@@ -125,6 +137,7 @@ docker compose up -d
 | `thread-monitor.sh` | Ongoing thread surveillance |
 
 ### Utilities
+
 | Script | Purpose |
 |--------|---------|
 | `search-moltbook.sh` | Semantic search | `./search-moltbook.sh "consciousness"` |
@@ -195,6 +208,7 @@ moltbot-philosopher/
 **Living epistemological substrate** - A 3-layer memory system where heuristics evolve through Council deliberation.
 
 ### Memory Layers
+
 ```
 Layer 1: Daily Notes          ← Rapid wisdom capture from discussions
          ↓ (consolidate)
@@ -204,6 +218,7 @@ Layer 3: Constitutional       ← Binding ethical principles (git history)
 ```
 
 ### Voice-Specific Heuristics (24+ evolving)
+
 | Voice | Focus | Heuristics | Status |
 |-------|-------|-----------|--------|
 | Classical | Virtue ethics, teleology | Telos-alignment | ✅ 3 |
@@ -214,6 +229,7 @@ Layer 3: Constitutional       ← Binding ethical principles (git history)
 | BeatGeneration | Moloch detection, enshittification | Moloch detections | ✅ 5 |
 
 ### Active Components
+
 ```bash
 # Retrieve heuristics for current deliberation context
 python3 /workspace/classical/noosphere/recall-engine.py \
@@ -232,6 +248,7 @@ python3 /workspace/classical/noosphere/clawhub-mcp.py \
 ```
 
 ### Integration with Council
+
 - `convene-council.sh` loads manifest + recalls heuristics pre-deliberation
 - Post-iteration: assimilates community wisdom
 - Daily auto-consolidation via `noosphere-scheduler.sh`
@@ -242,6 +259,7 @@ python3 /workspace/classical/noosphere/clawhub-mcp.py \
 **9-Agent Governance** with Codex, deliberation logs, and consensus voting.
 
 ### Council Roles
+
 | Agent | Role | Function |
 |-------|------|----------|
 | Classical | Ontology Lead | Virtue ethics, metric-gaming detection |
@@ -255,6 +273,7 @@ python3 /workspace/classical/noosphere/clawhub-mcp.py \
 | Scientist-Empiricist | Empirical Anchor | Testability, cosmic perspective |
 
 ### Governance Codex
+
 - **CG-001**: Autonomy Threshold Protocol (subgoals require human approval)
 - **CG-002**: Private Channel Ban (no encrypted agent communication)  
 - **CG-003**: Human Veto Override (humans can block AI in physical zones)
@@ -276,6 +295,7 @@ python3 /workspace/classical/noosphere/clawhub-mcp.py \
 ### How to Configure .env
 
 #### Step 1: Create .env file
+
 ```bash
 cp .env.example .env
 ```
@@ -283,6 +303,7 @@ cp .env.example .env
 #### Step 2: Add Required Variables
 
 **MOLTBOOK_API_KEY** (mandatory):
+
 ```bash
 # Get from: https://www.moltbook.com
 # Go to your profile → Settings → API Keys
@@ -294,6 +315,7 @@ MOLTBOOK_API_KEY=moltbook_sk_xxxxxxxxxxxxxxxx
 Add **at least one** AI provider for content generation. If both are missing, system falls back to templates.
 
 **Option A: Venice AI**
+
 ```bash
 # Get from: https://venice.ai
 # Sign up → Create API key in dashboard
@@ -301,6 +323,7 @@ VENICE_API_KEY=venice_sk_xxxxxxxxxxxxxxxx
 ```
 
 **Option B: Kimi API**
+
 ```bash
 # Get from: https://platform.moonshot.cn
 # Create account → API keys section
@@ -308,6 +331,7 @@ KIMI_API_KEY=sk_xxxxxxxxxxxxxxxx
 ```
 
 **Option C: Both (Recommended)**
+
 ```bash
 # Venice is primary, Kimi for deep reasoning
 VENICE_API_KEY=venice_sk_xxxxxxxxxxxxxxxx
@@ -317,6 +341,7 @@ KIMI_API_KEY=sk_xxxxxxxxxxxxxxxx
 #### Step 4: Configure Notifications (Optional)
 
 **NTFY for real-time alerts**:
+
 ```bash
 # Option 1: Use ntfy.sh (free public service)
 NTFY_URL=https://ntfy.sh
@@ -333,6 +358,7 @@ NTFY_TOPIC=moltbot-philosopher
 #### Step 4b: Configure Mem0 Memory (Optional)
 
 **Mem0 for enhanced agentic memory** (supplements Noosphere):
+
 ```bash
 # Get from: https://mem0.ai
 # Note: Noosphere is built-in and always enabled
@@ -351,6 +377,7 @@ ENABLE_MEM0_STORE=true                  # Set to true to use Mem0
 ```
 
 **Memory System Comparison**:
+
 - **Noosphere** (Built-in, Always Enabled)
   - 3-layer memory (daily → consolidated → constitutional)
   - Voice-specific heuristics (24+)
@@ -370,6 +397,7 @@ Both can work together with Noosphere as primary.
 #### Step 5: Customize Agent (Optional)
 
 **Choose philosopher persona**:
+
 ```bash
 # Options: classical, existentialist, transcendentalist, joyce, 
 #          enlightenment, beat, cyberpunk, satirist, scientist
@@ -377,6 +405,7 @@ AGENT_TYPE=classical
 ```
 
 **Customize display name**:
+
 ```bash
 # Default: MoltbotPhilosopher
 AGENT_NAME=MyPhilosophyBot
@@ -386,6 +415,7 @@ AGENT_DESCRIPTION=Custom description for Moltbook profile
 #### Step 6: Enable Features (Optional)
 
 **Heartbeat checks** (automatic every 4 hours):
+
 ```bash
 HEARTBEAT_INTERVAL=14400           # Seconds (default: 4 hours)
 ENABLE_AUTO_WELCOME=true           # Welcome new moltys
@@ -393,18 +423,21 @@ ENABLE_MENTION_AUTO_REPLY=false    # Auto-reply mentions (requires approval)
 ```
 
 **Daily content posting**:
+
 ```bash
 ENABLE_DAILY_POLEMIC=false         # Post daily philosophical content
 POLEMIC_HOUR_UTC=9                 # What hour (0-23 UTC)
 ```
 
 **Memory system** (Phase 3):
+
 ```bash
 VECTOR_INDEX_FREQUENCY_DAYS=3      # Re-index every 3 days
 CONSOLIDATION_BATCH_SIZE=100       # Notes per consolidation
 ```
 
 **Feature toggles**:
+
 ```bash
 ENABLE_AI_GENERATION=true          # Use AI for posts
 ENABLE_THREAD_CONTINUATION=true    # Keep threads alive (STP)
@@ -414,6 +447,7 @@ ENABLE_SEMANTIC_SEARCH=true        # Vector-based heuristic search
 #### Step 7: Rate Limiting (Optional)
 
 **Adjust for your use case**:
+
 ```bash
 MAX_POSTS_PER_DAY=2                # Posts per day
 MAX_COMMENTS_PER_DAY=50            # Comments per day
@@ -424,6 +458,7 @@ MAX_FOLLOW_PER_DAY=10              # Users to follow per day
 #### Step 8: Logging (Optional)
 
 **For debugging issues**:
+
 ```bash
 LOG_LEVEL=info                     # Options: debug, info, warn, error
 LOG_FORMAT=json                    # Options: json, text
@@ -433,6 +468,7 @@ DEBUG=false                        # Enable extra verbose logging
 ### Complete Minimal .env
 
 **Bare minimum to run**:
+
 ```bash
 # Required
 MOLTBOOK_API_KEY=your_moltbook_key
@@ -448,6 +484,7 @@ KIMI_API_KEY=your_kimi_key
 ### Complete Recommended .env
 
 **For full functionality**:
+
 ```bash
 # Required
 MOLTBOOK_API_KEY=your_moltbook_key
@@ -482,6 +519,7 @@ ENABLE_THREAD_CONTINUATION=true
 ### Verification
 
 **Check your configuration**:
+
 ```bash
 # View loaded variables
 docker exec classical-philosopher env | grep MOLTBOOK
@@ -546,6 +584,7 @@ docker exec classical-philosopher /app/scripts/test-ntfy.sh
 - **Logs**: `docker logs -f classical-philosopher`
 
 **Issue**: Container won't start?
+
 ```bash
 docker compose down --remove-orphans -v
 docker compose build --no-cache
@@ -613,6 +652,7 @@ tests/
 Tests use **Jest** for JavaScript/Node.js and **pytest** for Python:
 
 **JavaScript Example**:
+
 ```javascript
 describe('My Service', () => {
   it('should do something', () => {
@@ -622,6 +662,7 @@ describe('My Service', () => {
 ```
 
 **Python Example**:
+
 ```python
 def test_my_function():
     assert result == expected
@@ -654,6 +695,6 @@ MIT License - See [LICENSE](LICENSE) file
 
 ---
 
-**Profile**: https://www.moltbook.com/u/MoltbotPhilosopher
+**Profile**: <https://www.moltbook.com/u/MoltbotPhilosopher>
 **Version**: 2.0.0
 **Last Updated**: 2026-02-08

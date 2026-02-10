@@ -1,4 +1,5 @@
 # Noosphere Usage Guide
+
 ## Practical Workflows for the Ethics-Convergence Council
 
 **Version**: 2.5  
@@ -84,6 +85,7 @@ cat /workspace/classical/noosphere/manifest.md
 ```
 
 This shows:
+
 - Heuristic counts by voice
 - Confidence distribution
 - Key clusters
@@ -149,6 +151,7 @@ python3 /workspace/classical/noosphere/recall-engine.py \
 ### Step 5: Present to Council
 
 Use the retrieved heuristics as:
+
 - **Opening context**: Before agents speak
 - **Tension identifier**: When discussing conflicts
 - **Consensus validator**: To check against past failures
@@ -213,9 +216,11 @@ bash load-memory.sh "AI content moderation policy"
 ## Workflow 2: Assimilating Community Wisdom
 
 ### Purpose
+
 Extract heuristics from approved community submissions and integrate them into the Noosphere.
 
 ### When to Use
+
 - After dropbox submissions are approved
 - Weekly consolidation of community feedback
 - When new philosophical insights emerge
@@ -265,6 +270,7 @@ python3 /workspace/classical/noosphere/assimilate-wisdom.py \
 ```
 
 **This will**:
+
 - Extract heuristics from each submission
 - Validate against existing Treatise
 - Assign to appropriate voice file (telos-alignment, bad-faith-patterns, etc.)
@@ -382,12 +388,15 @@ cat /workspace/classical/noosphere/meta-cognitive/council-biases.json | \
 ### Problem 1: recall-engine returns no results
 
 **Symptom**:
+
 ```
 Relevant Heuristics:
 ```
+
 (empty list)
 
 **Causes**:
+
 1. Context doesn't overlap with heuristic keywords
 2. All matching heuristics below confidence threshold
 3. Wrong voice filter applied
@@ -434,7 +443,8 @@ Context about privacy returns engagement-metric heuristics
 
 **Cause**: Keyword overlap is too broad
 
-**Solution**: 
+**Solution**:
+
 ```bash
 # Use voice-specific queries
 python3 recall-engine.py \
@@ -451,6 +461,7 @@ python3 recall-engine.py \
 ### Problem 3: Community submissions not being assimilated
 
 **Symptom**:
+
 ```
 {
   "assimilated_count": 0,
@@ -459,6 +470,7 @@ python3 recall-engine.py \
 ```
 
 **Causes**:
+
 1. Directory doesn't exist
 2. Voice resonance too low (all voices <0.1)
 3. No ontological commitment extracted
@@ -486,11 +498,13 @@ python3 assimilate-wisdom.py --submission-path /tmp/test.md --dry-run
 ### Problem 4: "Cannot find module" errors
 
 **Symptom**:
+
 ```
 ModuleNotFoundError: No module named 'pathlib'
 ```
 
 **Solution**:
+
 ```bash
 # Ensure Python 3.7+
 python3 --version

@@ -13,6 +13,7 @@
 
 **File**: `assimilate-wisdom.py`  
 **Original Code**:
+
 ```python
 if max(voice_alignment.values()) < 0.1:
     return None  # Rejects valid submissions
@@ -21,6 +22,7 @@ if max(voice_alignment.values()) < 0.1:
 **Problem**: Threshold of 0.1 is too strict, rejects valid multi-voice submissions
 
 **Fix Applied**:
+
 ```python
 def assimilate_submission(
     submission: Dict, dry_run: bool = False, min_resonance: float = 0.05
@@ -42,6 +44,7 @@ def assimilate_submission(
 ```
 
 **Benefits**:
+
 - ✅ Accepts multi-voice submissions
 - ✅ Configurable threshold via `--min-resonance` flag
 - ✅ Default: 0.05 (more permissive)
@@ -52,6 +55,7 @@ def assimilate_submission(
 
 **File**: `assimilate-wisdom.py`  
 **Original Code**:
+
 ```python
 approved_dir = Path(args.approved_dir)
 if approved_dir.exists():
@@ -62,6 +66,7 @@ if approved_dir.exists():
 **Problem**: Silent failure if directory doesn't exist; no error messages
 
 **Fix Applied**:
+
 ```python
 # Process directory of submissions
 approved_dir = Path(args.approved_dir)
@@ -84,6 +89,7 @@ if not files:
 ```
 
 **Benefits**:
+
 - ✅ Clear error messages for debugging
 - ✅ Proper exit codes
 - ✅ Handles single submission path errors
@@ -94,6 +100,7 @@ if not files:
 
 **File**: `assimilate-wisdom.py`  
 **Original Code**:
+
 ```python
 result = {
     "assimilated_count": len(assimilated),
@@ -110,6 +117,7 @@ return 0 if assimilated else 1
 **Fix Applied**:
 
 1. **New Function**: `save_heuristics_to_memory()`
+
 ```python
 def save_heuristics_to_memory(
     heuristics: List[Dict], output_dir: Optional[str] = None
@@ -155,7 +163,8 @@ def save_heuristics_to_memory(
             json.dump(existing_data, f, indent=2)
 ```
 
-2. **Updated main()** to call persistence:
+1. **Updated main()** to call persistence:
+
 ```python
 # Persist to files if not dry-run
 if assimilated and not args.dry_run:
@@ -170,7 +179,8 @@ if assimilated and not args.dry_run:
         return 1
 ```
 
-3. **New CLI arguments**:
+1. **New CLI arguments**:
+
 ```python
 parser.add_argument(
     "--output-dir",
@@ -180,6 +190,7 @@ parser.add_argument(
 ```
 
 **Benefits**:
+
 - ✅ Heuristics are saved to files
 - ✅ Organized by voice
 - ✅ Error handling for file operations
@@ -191,6 +202,7 @@ parser.add_argument(
 
 **File**: `recall-engine.py`  
 **Original Code**:
+
 ```python
 # Sovereignty heuristics
 h['heuristic_id'] = h.get('id', 'unknown')
@@ -208,6 +220,7 @@ h['formulation'] = h.get('description', '')
 **Fix Applied**:
 
 1. **New Function**: `normalize_heuristic()`
+
 ```python
 def normalize_heuristic(h: Dict, voice: str, category: str = "") -> Dict:
     """Normalize heuristics to standard field names across different JSON sources."""
@@ -249,7 +262,8 @@ def normalize_heuristic(h: Dict, voice: str, category: str = "") -> Dict:
     }
 ```
 
-2. **Updated load_all_heuristics()**:
+1. **Updated load_all_heuristics()**:
+
 ```python
 def load_all_heuristics() -> List[Dict]:
     """Load and normalize all heuristics from memory-core files."""
@@ -270,6 +284,7 @@ def load_all_heuristics() -> List[Dict]:
 ```
 
 **Benefits**:
+
 - ✅ Single source of truth for field mapping
 - ✅ Easy to add new field name variants
 - ✅ Type safety (float, str, list conversions)
@@ -313,6 +328,7 @@ python3 assimilate-wisdom.py \
 ```
 
 Expected output:
+
 ```
 ERROR: Directory not found: /nonexistent/path
 Expected: /nonexistent/path
@@ -330,6 +346,7 @@ python3 assimilate-wisdom.py \
 ```
 
 Expected output:
+
 ```json
 {
   "assimilated_count": 1,
@@ -339,6 +356,7 @@ Expected output:
 ```
 
 Plus stderr:
+
 ```
 ✓ Saved 1 heuristics to telos-alignment-heuristics.json
 ```
@@ -408,6 +426,7 @@ Run with: `bash /tmp/test_fixes.sh`
 ## Files Modified
 
 ### assimilate-wisdom.py
+
 - Added: `save_heuristics_to_memory()` function
 - Modified: `assimilate_submission()` function  
 - Modified: `main()` function
@@ -417,6 +436,7 @@ Run with: `bash /tmp/test_fixes.sh`
 - Lines modified: ~50
 
 ### recall-engine.py
+
 - Added: `normalize_heuristic()` function
 - Modified: `load_all_heuristics()` function
 - Lines added: ~60
@@ -438,11 +458,13 @@ Run with: `bash /tmp/test_fixes.sh`
 ## Next Steps
 
 ### Immediate
+
 1. ✅ Test all 4 fixes
 2. ✅ Commit changes
 3. ✅ Update version
 
 ### Short-term (Next Fix Phase)
+
 - Implement output format enhancements
 - Add consistency checking
 - Implement memory-cycle.py
@@ -454,11 +476,13 @@ Run with: `bash /tmp/test_fixes.sh`
 If needed, all changes are in these sections:
 
 **assimilate-wisdom.py**:
+
 - Lines 1-50: New imports and functions
 - Lines 140-170: Updated `assimilate_submission()`
 - Lines 290-340: Updated `main()`
 
 **recall-engine.py**:
+
 - Lines 12-50: New `normalize_heuristic()` function
 - Lines 97-145: Updated `load_all_heuristics()`
 

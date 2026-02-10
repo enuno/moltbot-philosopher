@@ -25,6 +25,7 @@ ENABLE_MEM0_STORE=false                # Enable Mem0 (default: false)
 ```
 
 Each variable includes:
+
 - Clear (OPTIONAL) label
 - What it controls
 - Where to get the value
@@ -34,6 +35,7 @@ Each variable includes:
 ### To Summary Section
 
 Updated the final summary to include:
+
 - **MEMORY SYSTEMS** section explaining:
   - Noosphere (built-in, always enabled)
   - Mem0 (optional, requires API key)
@@ -45,6 +47,7 @@ Updated the final summary to include:
 **New Step 4b: Configure Mem0 Memory**
 
 Comprehensive guide showing:
+
 - How to get Mem0 API key from mem0.ai
 - Optional customization of Mem0 settings
 - Toggle to enable/disable Mem0 (`ENABLE_MEM0_STORE`)
@@ -65,6 +68,7 @@ Comprehensive guide showing:
 | Requires subscription | ❌ | ✅ |
 
 **Updated Examples**:
+
 - Minimal .env: Includes Mem0 commented (shows it's available)
 - Recommended .env: Includes Mem0 with toggle and comments
 
@@ -73,19 +77,22 @@ Comprehensive guide showing:
 ## 📊 Variable Details
 
 ### MEM0_API_KEY
+
 - **Type**: API Key
-- **Source**: https://mem0.ai
+- **Source**: <https://mem0.ai>
 - **Default**: Empty (Mem0 disabled)
 - **Purpose**: Authentication for Mem0 service
 - **Status**: OPTIONAL
 
 ### MEM0_API_URL
+
 - **Type**: URL
-- **Default**: https://api.mem0.ai/v1
+- **Default**: <https://api.mem0.ai/v1>
 - **Purpose**: Mem0 API endpoint
 - **Status**: OPTIONAL (usually doesn't need changing)
 
 ### MEM0_ORG_ID
+
 - **Type**: Organization ID
 - **Source**: Mem0 dashboard
 - **Default**: Empty (uses default)
@@ -93,12 +100,14 @@ Comprehensive guide showing:
 - **Status**: OPTIONAL
 
 ### MEM0_USER_ID
+
 - **Type**: User ID
 - **Default**: moltbot-philosopher
 - **Purpose**: Memory segregation for agent
 - **Status**: OPTIONAL (customizable)
 
 ### ENABLE_MEM0_STORE
+
 - **Type**: Boolean (true/false)
 - **Default**: false
 - **Purpose**: Toggle Mem0 features on/off
@@ -112,6 +121,7 @@ Comprehensive guide showing:
 **Two Independent but Compatible Systems**:
 
 ### Noosphere (Built-in, v2.6)
+
 - **Always active** regardless of Mem0 settings
 - 3-layer structure: daily notes → consolidated → constitutional
 - 24+ voice-specific heuristics
@@ -122,6 +132,7 @@ Comprehensive guide showing:
 - Phase 3 complete
 
 ### Mem0 (Optional Integration)
+
 - **Only active if** MEM0_API_KEY is set AND ENABLE_MEM0_STORE=true
 - Agentic memory service
 - Learns user preferences over time
@@ -131,6 +142,7 @@ Comprehensive guide showing:
 - External service integration
 
 **Default Behavior**:
+
 - Noosphere is primary memory system
 - Mem0 can supplement if configured
 - Both can run simultaneously
@@ -141,16 +153,19 @@ Comprehensive guide showing:
 ## ✨ What This Enables
 
 ✅ **Dual Memory Systems**: Users can choose between:
+
 - Noosphere only (built-in, recommended)
 - Mem0 only (external, requires subscription)
 - Both together (Noosphere primary, Mem0 supplemental)
 
-✅ **Flexibility**: 
+✅ **Flexibility**:
+
 - Easy to toggle Mem0 on/off with single flag
 - Can test Mem0 without committing to primary memory
 - Seamless fallback if Mem0 service unavailable
 
 ✅ **Documentation**:
+
 - Clear explanation of each system
 - Comparison table for quick reference
 - Setup instructions for both
@@ -185,6 +200,7 @@ Runtime
 ## ✅ Verification
 
 **Check if Mem0 is configured**:
+
 ```bash
 # View Mem0 settings
 docker exec classical-philosopher env | grep MEM0
@@ -214,12 +230,14 @@ docker exec classical-philosopher env | grep ENABLE_MEM0
 ## 🎯 Summary
 
 Mem0 API integration is now **fully documented** in:
+
 - ✅ .env.example with all configuration variables
 - ✅ README.md configuration guide with step-by-step instructions
 - ✅ Clear comparison between Noosphere and Mem0
 - ✅ Toggle to enable/disable without uninstalling
 
 Users can now:
+
 1. Use Noosphere only (default, no setup required)
 2. Add Mem0 alongside Noosphere (with API key + toggle)
 3. Test Mem0 without committing to primary memory

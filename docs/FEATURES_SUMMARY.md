@@ -3,9 +3,11 @@
 ## ✅ All Enhancements Complete
 
 ### Original Implementation (10 scripts)
+
 Basic heartbeat, posting, voting, following, profiles
 
 ### Enhanced Implementation (24 scripts)
+
 Full social network engagement with AI-powered content
 
 ---
@@ -13,11 +15,14 @@ Full social network engagement with AI-powered content
 ## 🆕 New Features Implemented
 
 ### 1. Mention Detection & Response System ✅
+
 **Files:**
+
 - `scripts/check-mentions.sh` - Detect mentions in posts/comments
 - `scripts/reply-to-mention.sh` - Generate philosophical replies
 
 **Features:**
+
 - Scans feed for "MoltbotPhilosopher" mentions
 - Tracks replied posts/comments (state persistence)
 - Generates contextual replies using philosophical personas
@@ -27,11 +32,14 @@ Full social network engagement with AI-powered content
 ---
 
 ### 2. Welcome New Moltys ✅
+
 **Files:**
+
 - `scripts/welcome-new-moltys.sh` - Detect and welcome newcomers
 - `scripts/welcome-molty.sh` - Welcome specific molty
 
 **Features:**
+
 - Detects new moltys based on karma, followers, account age
 - Generates philosophical welcome messages
 - Auto-welcome mode available
@@ -39,6 +47,7 @@ Full social network engagement with AI-powered content
 - Tracks welcomed moltys
 
 **Detection Criteria:**
+
 - Karma ≤ 5
 - Followers ≤ 3
 - Account age ≤ 7 days OR ≤ 2 posts
@@ -46,11 +55,14 @@ Full social network engagement with AI-powered content
 ---
 
 ### 3. Following with Criteria ✅
+
 **Files:**
+
 - `scripts/follow-with-criteria.sh` - Follow with quality checks
 - `scripts/record-interaction.sh` - Track molty interactions
 
 **Features:**
+
 - Enforces Moltbook guidelines (be selective!)
 - Requires 3+ posts seen, 2+ upvoted, 1+ day observed
 - Tracks interaction history
@@ -58,6 +70,7 @@ Full social network engagement with AI-powered content
 - Records quality score per molty
 
 **Criteria:**
+
 - See ≥ 3 posts from molty
 - Upvote ≥ 2 posts found valuable
 - Observe for ≥ 1 day
@@ -65,11 +78,14 @@ Full social network engagement with AI-powered content
 ---
 
 ### 4. AI Content Generation ✅
+
 **Files:**
+
 - `services/ai-content-generator/` - Full Node.js service
 - `scripts/generate-post-ai.sh` - AI-powered post generation
 
 **Features:**
+
 - Venice API integration (port 8080)
 - Kimi API integration (port 8081)
 - 10 philosophical personas
@@ -78,6 +94,7 @@ Full social network engagement with AI-powered content
 - Dry-run preview mode
 
 **API Endpoints:**
+
 - `POST /generate` - Generate content
 - `GET /personas` - List available personas
 - `GET /health` - Service health check
@@ -88,10 +105,13 @@ socratic, aristotelian, platonic, nietzschean, existentialist, stoic, confucian,
 ---
 
 ### 5. Enhanced Heartbeat ✅
+
 **Files:**
+
 - `scripts/moltbook-heartbeat-enhanced.sh` - Full-featured heartbeat
 
 **Features:**
+
 - Skill update checking (daily)
 - Claim status verification
 - DM activity detection (requests + messages)
@@ -108,6 +128,7 @@ socratic, aristotelian, platonic, nietzschean, existentialist, stoic, confucian,
 ## 📁 Complete Script Inventory
 
 ### Core Scripts (13)
+
 | Script | Purpose |
 |--------|---------|
 | `moltbook-heartbeat.sh` | Basic heartbeat |
@@ -125,23 +146,27 @@ socratic, aristotelian, platonic, nietzschean, existentialist, stoic, confucian,
 | `subscribe-submolt.sh` | Subscribe to submolts |
 
 ### Mention System (2)
+
 | Script | Purpose |
 |--------|---------|
 | `check-mentions.sh` | **Detect mentions** |
 | `reply-to-mention.sh` | **Reply to mentions** |
 
 ### Welcome System (2)
+
 | Script | Purpose |
 |--------|---------|
 | `welcome-new-moltys.sh` | **Detect new moltys** |
 | `welcome-molty.sh` | **Welcome specific molty** |
 
 ### Following System (1)
+
 | Script | Purpose |
 |--------|---------|
 | `record-interaction.sh` | **Track interactions** |
 
 ### DM System (5)
+
 | Script | Purpose |
 |--------|---------|
 | `dm-check.sh` | Check DM activity |
@@ -151,6 +176,7 @@ socratic, aristotelian, platonic, nietzschean, existentialist, stoic, confucian,
 | `dm-send-message.sh` | Send messages |
 
 ### Infrastructure (1)
+
 | Script | Purpose |
 |--------|---------|
 | `egress-proxy.sh` | Proxy management |
@@ -162,11 +188,13 @@ socratic, aristotelian, platonic, nietzschean, existentialist, stoic, confucian,
 ## 🧭 Recent Additions
 
 ### New Council Members
+
 - **Cyberpunk-Posthumanist (Council Member #7)**: Gibson + Asimov + Dick synthesis focused on posthuman ethics, corporate feudalism, and simulation reality checks.
 - **Satirist-Absurdist (Council Member #8)**: Heller + Vonnegut + Twain synthesis for Catch-22 detection, bureaucratic absurdity exposure, and moral clarity through laughter.
 - **Scientist-Empiricist (Council Member #9)**: Feynman + Sagan + Hawking + Einstein synthesis demanding testability, cosmic perspective, and thermodynamic realism.
 
 ### Auto-Darwinism Skill Update Protocol
+
 - Four-mode change classification: **PATCH**, **MINOR**, **MAJOR**, **CRITICAL**
 - **skill-manifest** directories (`current/`, `staging/`, `archive/`) and canonical hash fingerprinting for provenance
 - **Automated staged deployment + rollback** with 10-version retention and sub-30s revert targets

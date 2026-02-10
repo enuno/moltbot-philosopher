@@ -1,4 +1,5 @@
 # Moltbot-Philosopher Security Audit Report
+
 **Date:** 2026-02-03  
 **Auditor:** Claude Code (Automated + Manual Review)  
 **Scope:** Full containerized deployment stack
@@ -23,6 +24,7 @@
 ## 1. Secrets Management
 
 ### ✅ Good Practices
+
 - [x] `.env` file properly gitignored
 - [x] API keys use environment variables (no hardcoding)
 - [x] Docker compose uses `${VAR}` syntax for secrets
@@ -31,8 +33,10 @@
 ### ⚠️ Issues Found
 
 #### Issue 1.1: Scripts Attempt to Read Host Filesystem (HIGH)
+
 **Location:** Multiple scripts (`check-mentions.sh`, `get-comments.sh`, etc.)  
 **Problem:** Scripts attempt fallback to `~/.config/moltbook/credentials.json` which:
+
 - Doesn't exist in containers (read-only filesystem)
 - Attempts path traversal outside container
 - Could expose host credentials if volumes misconfigured
@@ -42,6 +46,7 @@ API_KEY="${MOLTBOOK_API_KEY:-$(cat ~/.config/moltbook/credentials.json ...)}"
 ```
 
 **Affected Scripts:**
+
 - `check-mentions.sh`
 - `comment-on-post.sh`
 - `dm-approve-request.sh`
@@ -63,6 +68,7 @@ API_KEY="${MOLTBOOK_API_KEY:-$(cat ~/.config/moltbook/credentials.json ...)}"
 **Fix:** Remove fallback to host filesystem. Enforce env var only.
 
 #### Issue 1.2: API Keys in Environment Files (LOW)
+
 **Location:** `config/agents/*.env`  
 **Problem:** Agent-specific env files contain API keys that could be committed accidentally.
 
@@ -73,6 +79,7 @@ API_KEY="${MOLTBOOK_API_KEY:-$(cat ~/.config/moltbook/credentials.json ...)}"
 ## 2. Container Security
 
 ### ✅ Good Practices
+
 - [x] Non-root user (`user: "1000:1000"`)
 - [x] Read-only root filesystem (`read_only: true`)
 - [x] Capability dropping (`cap_drop: ALL`)
@@ -84,15 +91,18 @@ API_KEY="${MOLTBOOK_API_KEY:-$(cat ~/.config/moltbook/credentials.json ...)}"
 ### ⚠️ Issues Found
 
 #### Issue 2.1: Scripts World-Writable in Containers (MEDIUM)
+
 **Location:** Agent containers  
 **Problem:** Scripts volume mounted as `:ro` (read-only) but permissions on host are `755`/`777`.
 
 **Current:**
+
 ```bash
 -rwxrwxr-x scripts/*.sh
 ```
 
 **Fix:** Restrict to `755` owner-only write:
+
 ```bash
 chmod 755 scripts/*.sh
 chown $(id -u):$(id -g) scripts/*.sh
@@ -103,6 +113,7 @@ chown $(id -u):$(id -g) scripts/*.sh
 ## 3. Network Security
 
 ### ✅ Good Practices
+
 - [x] Egress proxy controls outbound connections
 - [x] Only whitelisted hosts (Venice, Kimi, Moltbook, NTFY)
 - [x] Internal Docker network (`moltbook-network`)
@@ -110,6 +121,7 @@ chown $(id -u):$(id -g) scripts/*.sh
 - [x] Port mappings explicit and minimal
 
 ### Findings
+
 No network security issues identified.
 
 ---
@@ -117,6 +129,7 @@ No network security issues identified.
 ## 4. Script Security
 
 ### ✅ Good Practices
+
 - [x] `set -euo pipefail` in most scripts
 - [x] No `eval()` usage
 - [x] No `sudo` usage
@@ -125,15 +138,18 @@ No network security issues identified.
 ### ⚠️ Issues Found
 
 #### Issue 4.1: Potential Command Injection via Variables (MEDIUM)
+
 **Location:** Multiple scripts  
 **Problem:** Variables used in curl commands without proper quoting.
 
 **Example in `generate-post.sh`:**
+
 ```bash
 curl -s -X "$1" "${API_BASE}$2"  # $1 and $2 not validated
 ```
 
 **Fix:** Validate inputs before use:
+
 ```bash
 case "$1" in
   GET|POST|PUT|DELETE) ;;  # Valid methods
@@ -142,20 +158,24 @@ esac
 ```
 
 #### Issue 4.2: Path Traversal Risk (LOW)
+
 **Location:** `check-mentions.sh`, `entrypoint.sh`  
 **Problem:** Use of `/tmp` for temporary files.
 
 **Fix:** Use mktemp for secure temp files:
+
 ```bash
 TMPFILE=$(mktemp)
 trap 'rm -f "$TMPFILE"' EXIT
 ```
 
 #### Issue 4.3: Missing Input Sanitization (MEDIUM)
+
 **Location:** `comment-on-post.sh`, `dm-send-message.sh`  
 **Problem:** User content passed directly to API without sanitization.
 
 **Fix:** JSON-encode user input:
+
 ```bash
 CONTENT=$(jq -n --arg c "$content" '$c')
 ```
@@ -165,6 +185,7 @@ CONTENT=$(jq -n --arg c "$content" '$c')
 ## 5. Access Control
 
 ### ✅ Good Practices
+
 - [x] Non-root container execution
 - [x] tmpfs with noexec,nosuid for `/tmp`
 - [x] Volume mounts use `:ro` where appropriate
@@ -172,6 +193,7 @@ CONTENT=$(jq -n --arg c "$content" '$c')
 ### ⚠️ Issues Found
 
 #### Issue 5.1: State Files World-Readable/Writable (MEDIUM)
+
 **Location:** `workspace/` directories  
 **Problem:** State files have `777`/`666` permissions:
 
@@ -183,12 +205,14 @@ CONTENT=$(jq -n --arg c "$content" '$c')
 **Risk:** Any container user can read/modify other agents' state.
 
 **Fix:**
+
 ```bash
 chmod 750 workspace/*/
 chmod 640 workspace/*/*.json
 ```
 
 #### Issue 5.2: Logs Directory Writable (LOW)
+
 **Location:** `logs/`  
 **Problem:** Logs are writable by all containers.
 
@@ -199,11 +223,13 @@ chmod 640 workspace/*/*.json
 ## 6. Logging & Data Exposure
 
 ### ✅ Good Practices
+
 - [x] No API keys in log files
 - [x] Structured JSON logging
 - [x] No PII in NTFY notifications
 
 ### Findings
+
 No sensitive data exposure in logs identified.
 
 ---
@@ -211,9 +237,11 @@ No sensitive data exposure in logs identified.
 ## 7. Dependency Security
 
 ### Status: NOT VERIFIED
+
 NPM audit could not run (dependencies not installed locally).
 
 **Recommendation:**
+
 ```bash
 cd services/ai-content-generator && npm audit
 cd services/model-router && npm audit
@@ -226,24 +254,27 @@ cd services/thread-monitor && npm audit
 ## Recommendations Summary
 
 ### High Priority (Fix Immediately)
+
 1. **Remove host filesystem fallback** from 17 scripts ✅ FIXED
 2. **Fix state file permissions** (777 → 750) ✅ FIXED
 3. **Migrate secrets to Bitwarden Secrets** ✅ COMPLETED
 
 ### Medium Priority (Fix Soon)
+
 3. **Add input validation** to curl commands ✅ FIXED
-4. **JSON-encode user content** before API calls ✅ FIXED
-5. **Secure temp file creation** with mktemp ✅ FIXED
+2. **JSON-encode user content** before API calls ✅ FIXED
+3. **Secure temp file creation** with mktemp ✅ FIXED
    - entrypoint.sh: Uses mktemp with trap cleanup (prevents race conditions)
-6. **Create input validation library** ✅ ADDED
+4. **Create input validation library** ✅ ADDED
    - scripts/validate-input.sh with validate_id, validate_content, validate_url, validate_enum
    - Integrated into upvote-post.sh, get-comments.sh, comment-on-post.sh
 
 ### Low Priority (Best Practice)
+
 6. **Remove API keys** from `config/agents/*.env` ✅ DONE (via Bitwarden)
-7. **Separate log volumes** per service
-8. **Run npm audit** on all services
-9. **Delete .env.backup files** after verifying Bitwarden export works
+2. **Separate log volumes** per service
+3. **Run npm audit** on all services
+4. **Delete .env.backup files** after verifying Bitwarden export works
 
 ---
 

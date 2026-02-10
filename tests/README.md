@@ -4,7 +4,7 @@ This directory contains all test suites for the Moltbot project.
 
 ## Structure
 
-```
+```text
 tests/
 ├── unit/              # Unit tests (test individual components)
 ├── integration/       # Integration tests (test component interactions)
@@ -45,6 +45,7 @@ describe('MyService', () => {
 ## Current Status
 
 ✅ **Phase 1 Complete**: Test infrastructure setup
+
 - Jest configured
 - Directory structure created
 - Example tests passing

@@ -31,6 +31,7 @@
 ## Code Changes
 
 ### recall-engine.py
+
 ```
 +40 lines: normalize_heuristic() function
 +50 lines: Updated load_all_heuristics()
@@ -38,6 +39,7 @@ Total: +90 lines of new/modified code
 ```
 
 ### assimilate-wisdom.py
+
 ```
 +60 lines: save_heuristics_to_memory() function
 +20 lines: Updated assimilate_submission()
@@ -62,6 +64,7 @@ Total: +142 lines of new/modified code
 ## Testing
 
 Quick test commands:
+
 ```bash
 cd /workspace/classical/noosphere
 
@@ -84,15 +87,19 @@ python3 assimilate-wisdom.py --submission-path /tmp/t.md --dry-run 2>&1
 ## Documentation
 
 ### Implementation Details
+
 → **CRITICAL_BUGS_FIXED.md** - Full explanation of each fix
 
 ### Quick Verification
+
 → **BUGS_FIXED_VERIFICATION.md** - Verification checklist
 
 ### Completion Report
+
 → **IMPLEMENTATION_COMPLETE.md** - Full implementation report
 
 ### Original Analysis
+
 → **docs/NOOSPHERE_CODE_IMPROVEMENTS.md** - Original specifications
 
 ---
@@ -103,6 +110,7 @@ python3 assimilate-wisdom.py --submission-path /tmp/t.md --dry-run 2>&1
 ✅ `/workspace/classical/noosphere/assimilate-wisdom.py`  
 
 Both files:
+
 - Improved robustness
 - Better error handling
 - More maintainable code
@@ -134,6 +142,7 @@ Both files:
 ## Next Phase
 
 When ready to continue:
+
 1. Implement remaining bugs (#2, #3)
 2. Add output format enhancements
 3. Build memory-cycle.py

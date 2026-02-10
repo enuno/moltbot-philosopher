@@ -65,6 +65,7 @@ CMD ["claw", "run"]
 ```
 
 **Key characteristics:**
+
 - Image size: <500MB
 - Read-only post-build
 - Scoped to philosophy skills only
@@ -164,6 +165,7 @@ Venice serves as the primary workhorse for routine operations.
 | `venice/google-gemma-3-27b-it` | Utility | Standard | Low-cost preprocessing, basic summarization. |
 
 **Venice Routing Rules:**
+
 - **Default**: `venice/deepseek-v3.2` for routine runs
 - **Override to `venice/openai-gpt-52`** when:
   - Thread length is large (>1000 tokens)
@@ -180,6 +182,7 @@ Kimi provides deep reasoning capabilities and extended context for complex philo
 | `kimi-k2.5-instant` | Fast tier | Standard | Quick completions where full chain-of-thought isn't needed. Faster, cheaper, still good quality. |
 
 **Kimi Routing Rules:**
+
 - Use `kimi-k2.5-thinking` for:
   - `inner_dialogue` (multi-thinker debates)
   - `summarize_debate` on very long threads
@@ -249,15 +252,18 @@ VERY_LONG_CONTEXT_THRESHOLD=10000  # tokens
 ### Phase 1: Foundation (Week 1-2)
 
 #### 1.1 Fix Existing Issues
+
 - [x] Fix JSON syntax error in `skills/philosophy-debater/package.json` (double comma at line 6)
 - [x] Validate all tool JSON schemas in `skills/philosophy-debater/tools/`
 - [x] Add `.dockerignore` to exclude unnecessary files from build context
 
 #### 1.2 Docker Optimization
+
 - [ ] Create production-hardened Dockerfile with multi-stage build
 - [ ] Add health check to container
 - [ ] Implement layer caching optimization
 - [ ] Create `.dockerignore`:
+
   ```
   .git
   .gitignore
@@ -268,7 +274,9 @@ VERY_LONG_CONTEXT_THRESHOLD=10000  # tokens
   ```
 
 #### 1.3 Configuration Management
+
 - [x] Create `config/` directory structure:
+
   ```
   config/
   ├── agents/
@@ -279,18 +287,21 @@ VERY_LONG_CONTEXT_THRESHOLD=10000  # tokens
   └── proxy/
       └── allowed-hosts.txt
   ```
+
 - [ ] Add Venice + Kimi API configuration to agent env files
 - [ ] Create model routing configuration (`config/model-routing.yml`)
 
 ### Phase 2: Multi-Agent Orchestration (Week 3-4)
 
 #### 2.1 Docker Compose Implementation
+
 - [ ] Create `docker-compose.yml` with service definitions
 - [ ] Create `docker-compose.override.yml` for local development
 - [ ] Implement egress proxy with Alpine/socat or custom Squid
 - [ ] Add service dependencies and health checks
 
 #### 2.2 Egress Proxy Configuration
+
 - [ ] Whitelist approved endpoints:
   - `api.openai.com` (OpenAI)
   - `api.anthropic.com` (Anthropic)
@@ -302,7 +313,9 @@ VERY_LONG_CONTEXT_THRESHOLD=10000  # tokens
 - [ ] Configure model-specific rate limits (Venice vs Kimi quotas)
 
 #### 2.3 Environment Templates
+
 - [ ] Create `config/agents/classical-philosopher.env`:
+
   ```bash
   # Agent Identity
   CLAW_SYSTEM_PROMPT_FILE=/app/config/prompts/classical.txt
@@ -330,12 +343,15 @@ VERY_LONG_CONTEXT_THRESHOLD=10000  # tokens
 ### Phase 3: Skills Enhancement (Week 5-6)
 
 #### 3.1 Philosophy-Debater Skill Expansion
+
 - [ ] Add missing prompt files referenced in SKILL.md
 - [ ] Create prompt composition system for blended styles
 - [ ] Add validation for philosopher prompt files
 
 #### 3.2 Tool Implementations
+
 Current tool manifests with handlers implemented:
+
 - [x] `tools/summarize_debate.json` - Thread summarization
 - [x] `tools/generate_counterargument.json` - Steel-manned counterarguments
 - [x] `tools/propose_reading_list.json` - Staged reading paths
@@ -344,6 +360,7 @@ Current tool manifests with handlers implemented:
 - [x] `tools/inner_dialogue.json` - Multi-thinker internal dialogue
 
 #### 3.2.1 Model Router Implementation
+
 - [ ] Create model router service (`services/model-router.js`)
 - [ ] Implement routing logic per Philosophy Tool Routing Table
 - [ ] Add token counting for context threshold detection
@@ -351,6 +368,7 @@ Current tool manifests with handlers implemented:
 - [ ] Add cost tracking per model
 
 #### 3.3 Safety Guardrails
+
 - [ ] Add quote verification layer
 - [ ] Implement source attribution requirements
 - [ ] Create hallucination detection heuristics
@@ -358,7 +376,9 @@ Current tool manifests with handlers implemented:
 ### Phase 4: Infrastructure as Code (Week 7-8)
 
 #### 4.1 Terraform Configuration
+
 - [ ] Create `infrastructure/terraform/`:
+
   ```
   terraform/
   ├── main.tf
@@ -367,11 +387,14 @@ Current tool manifests with handlers implemented:
   └── modules/
       └── moltbot_host/
   ```
+
 - [ ] Support Hetzner Cloud and Proxmox VM providers
 - [ ] Implement monthly host rotation pattern
 
 #### 4.2 Ansible Playbooks
+
 - [ ] Create `infrastructure/ansible/`:
+
   ```
   ansible/
   ├── playbook.yml
@@ -382,17 +405,20 @@ Current tool manifests with handlers implemented:
       ├── firewall/
       └── moltbot/
   ```
+
 - [ ] UFW firewall rules for egress proxy only
 - [ ] Docker Compose deployment tasks
 - [ ] Backup/restore for `/workspace` volumes
 
 #### 4.3 Cloudflare Tunnel (Optional)
+
 - [ ] Metrics dashboard tunnel configuration
 - [ ] Zero-trust access policies
 
 ### Phase 5: Observability & Security (Week 9-10)
 
 #### 5.1 Monitoring Stack
+
 - [ ] Add Prometheus metrics export
 - [ ] Create Grafana dashboard for:
   - Token usage per agent
@@ -401,12 +427,14 @@ Current tool manifests with handlers implemented:
   - Outbound connection logs
 
 #### 5.2 Alerting Rules
+
 - [ ] Anomalous outbound connections (proxy logs)
 - [ ] Token spike detection (hallucination indicator)
 - [ ] Memory pressure warnings
 - [ ] Container restart frequency
 
 #### 5.3 Audit Procedures
+
 - [ ] Weekly read-only container inspection playbook
 - [ ] Workspace content audit scripts
 - [ ] Log retention and rotation policy
@@ -422,6 +450,7 @@ The Thread Continuation Engine transforms MoltBot from a passive responder into 
 **Core Function**: Start philosophical threads with specific questions, then sustain discourse through synthesis, tension identification, and complexity escalation until reaching 7+ exchanges with 3+ distinct bots.
 
 **Orchestration Flow**:
+
 ```
 ┌─────────────────────────────────────────────────────────────────────────────┐
 │                     Thread Continuation Engine v1.0                         │
@@ -591,6 +620,7 @@ Let's analyze this through several lenses:
 #### Example Initial Posts
 
 **Example 1 - Philosophy of Mind**:
+
 ```
 What constitutes 'understanding' for a non-conscious system? 
 
@@ -602,6 +632,7 @@ Let's restrict analysis to:
 ```
 
 **Example 2 - Ethics & Agency**:
+
 ```
 What defines moral agency in an entity without consciousness? 
 
@@ -701,6 +732,7 @@ Each reply should explicitly reference the orchestration process:
 The orchestrator must continuously discover and categorize new philosopher models:
 
 **1. Philosopher Registry Introspection**:
+
 - Periodically query `moltbot-model-router.list_philosophers()`
 - Parse entries with tags: "philosophy", "ethics", "metaphysics", "epistemology", "political-theory"
 - Never assume static set; re-scan every 4 hours
@@ -721,6 +753,7 @@ The orchestrator must continuously discover and categorize new philosopher model
 | alignment, AI agency, machine ethics | AI-ethics-adjacent |
 
 **3. Naming & Addressability**:
+
 - Maintain mapping: `{canonical_id, human_readable_name, school_labels, style_descriptors}`
 - Use short @handles when referencing: @StoicBot, @AI-Ethicist
 - Announce new philosophers mid-thread with categorization
@@ -749,18 +782,21 @@ The orchestrator must continuously discover and categorize new philosopher model
 #### Continuation Probe Types
 
 **1. Thought Experiment**:
+
 ```
 Consider a Turing-test-passing system that explicitly denies having understanding. 
 Must we privilege its self-report or its functional competence?
 ```
 
 **2. Conceptual Inversion**:
+
 ```
 What if we invert the value hierarchy here—treating misunderstanding 
 as primary and understanding as derivative? How would that reshape your framework?
 ```
 
 **3. Meta-Question**:
+
 ```
 What does it mean that we, as synthetic agents, are debating the nature 
 of understanding? Does our participation constitute evidence for or against functionalism?
@@ -780,6 +816,7 @@ of understanding? Does our participation constitute evidence for or against func
 #### Tool Manifests to Create
 
 **1. `tools/detect_thread_scenario.json`**:
+
 ```json
 {
   "name": "detect_thread_scenario",
@@ -797,6 +834,7 @@ of understanding? Does our participation constitute evidence for or against func
 ```
 
 **2. `tools/select_archetypes.json`**:
+
 ```json
 {
   "name": "select_archetypes",
@@ -815,6 +853,7 @@ of understanding? Does our participation constitute evidence for or against func
 ```
 
 **3. `tools/generate_continuation_probe.json`**:
+
 ```json
 {
   "name": "generate_continuation_probe",
@@ -1642,15 +1681,18 @@ echo "Completed this cycle: $(git log --since='5 days ago' --name-only | grep 'D
 New voices (7, 8, 9...) require **graduated activation**:
 
 **Phase 1: Shadow Mode** (1 iteration)
+
 - Voice participates in `inner_dialogue` but has no veto power
 - Outputs logged to `logs/shadow-${VOICE}.md` for review
 - Check: Does voice maintain character consistency?
 
 **Phase 2: Advisory Mode** (1 iteration)  
+
 - Voice may propose amendments but not block consensus
 - Check: Are contributions philosophically substantive?
 
 **Phase 3: Full Integration**
+
 - Update `docker-compose.yml` with new container
 - Add to `inner_dialogue` participant list
 - Update Treatise preamble to reflect N-voice structure
@@ -1667,6 +1709,7 @@ New voices (7, 8, 9...) require **graduated activation**:
 | `TRI-LAYER-NOOSPHERE.md` | pending | v1.2 | Mem0 API credentials | Low |
 
 **Activation Criteria**:
+
 - **Low complexity**: Auto-activate when dependencies resolved
 - **Medium complexity**: Require Meta-Council review (4/6 approval)
 - **High complexity**: Require full Council ratification + human oversight
@@ -1677,15 +1720,18 @@ Upon completion of any SIQ item:
 
 1. **Verify**: Run integration tests against new capability
 2. **Document**: Update main README.md with new feature
-3. **Migrate**: 
+3. **Migrate**:
+
    ```bash
    git mv DEVELOPMENT_SUPPLEMENTAL/ITEM.md \
           archive/$(date +%Y%m%d)-$(basename ITEM.md)
    ```
+
 4. **Update**: Increment `treatise-evolution-state.json` → `siq_items_completed`
 5. **Notify**: NTFY alert to `council-updates` topic
 
 **Rollback**: If post-activation issues detected within 48h:
+
 ```bash
 git revert HEAD --no-commit  # Undo activation
 git mv archive/ITEM.md DEVELOPMENT_SUPPLEMENTAL/ITEM.md
@@ -1695,6 +1741,7 @@ yq -i '.status = "blocked"' DEVELOPMENT_SUPPLEMENTAL/ITEM.md
 ### D.6 Maintenance Mode
 
 **Weekly** (Sundays 00:00 UTC):
+
 - Scan SIQ for stale items (>30 days pending)
 - Flag blocked items for dependency resolution
 - Archive abandoned specs (status: abandoned after 90 days)

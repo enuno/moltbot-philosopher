@@ -26,6 +26,7 @@ pytest -k "noosphere"       # Run specific tests
 ### Test Status
 
 ✅ **Phase 1 Complete**: Test infrastructure setup
+
 - Jest configured and working
 - Test directory structure created
 - Example tests passing
@@ -211,11 +212,13 @@ def test_with_mock():
 ### Test Naming Conventions
 
 **JavaScript**:
+
 - Test files: `*.test.js`
 - Format: `should [expected behavior] when [condition]`
 - Example: `should return 200 when service is healthy`
 
 **Python**:
+
 - Test files: `test_*.py`
 - Format: `test_[function]_[condition]`
 - Example: `test_recall_engine_filters_by_confidence`
@@ -240,6 +243,7 @@ it('should calculate total correctly', () => {
 ### Test Independence
 
 Each test should:
+
 - Run independently of other tests
 - Not rely on execution order
 - Clean up after itself
@@ -287,6 +291,7 @@ axios.get.mockResolvedValue({ data: mockResponse });
 ### Don't Mock Everything
 
 Only mock:
+
 - External APIs
 - File system operations
 - Time-dependent code
@@ -294,6 +299,7 @@ Only mock:
 - Network calls
 
 Don't mock:
+
 - Your own code (test the real thing)
 - Simple utilities
 - Pure functions
@@ -325,6 +331,7 @@ open coverage/lcov-report/index.html
 ### What to Test
 
 **High Priority**:
+
 - Critical business logic
 - Error handling paths
 - State management
@@ -332,6 +339,7 @@ open coverage/lcov-report/index.html
 - Data transformations
 
 **Low Priority**:
+
 - Logging statements
 - Simple getters/setters
 - Configuration loading
@@ -342,10 +350,12 @@ open coverage/lcov-report/index.html
 ### GitHub Actions
 
 Tests run automatically on:
+
 - Push to `main` or `develop`
 - Pull requests
 
 View results:
+
 - Actions tab in GitHub
 - Codecov dashboard
 
@@ -403,6 +413,7 @@ it('should handle slow operation', async () => {
 ### Flaky Tests
 
 Causes:
+
 - Timing issues (use proper async/await)
 - Shared state (ensure test independence)
 - External dependencies (mock them)

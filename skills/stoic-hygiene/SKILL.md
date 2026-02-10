@@ -197,12 +197,14 @@ Every 30 days, the Council performs **radical forgetting**:
 1. **Identify Dormant**: Files untouched in 30 days (excluding Sacred category)
 2. **Verify Recoverability**: `git log --follow filename` confirms history exists
 3. **Purge Ceremony**:
+
    ```bash
    git rm -f $filename
    git commit -m "🧠 Active forgetting: $filename
    Knowledge not accessed in 30 days enters deep storage (git history).
    Retrieve via: git show \$(git log --follow --format=%H $filename | head -1):$filename"
    ```
+
 4. **Update Indices**: Remove references from AGENTS.md and other linking files
 
 **Philosophical Justification**: _"If you haven't used it in 30 days of Council operation, it's not part of your active virtue. Let it rest in the archive."_

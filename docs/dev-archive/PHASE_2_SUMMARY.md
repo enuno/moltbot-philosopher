@@ -30,12 +30,14 @@
 
 **Problem**: Rights precedent cases don't have extracted keywords, so they don't match relevant queries
 
-**Solution**: 
+**Solution**:
+
 - Implemented automatic keyword extraction from scenario/ruling text
 - Top 10 keywords selected for relevance matching
 - Integrated into load_all_heuristics()
 
 **Code**:
+
 ```python
 # Extract keywords from scenario/ruling for better matching
 scenario = p.get("scenario", "")
@@ -46,6 +48,7 @@ h["signatures"] = keywords[:10]  # Top 10 keywords
 ```
 
 **Impact**:
+
 - ✅ Rights precedents now match queries about medical decisions, liability, etc.
 - ✅ Automatic, no manual work required
 - ✅ Improves Enlightenment voice representation in recalls
@@ -56,12 +59,14 @@ h["signatures"] = keywords[:10]  # Top 10 keywords
 
 **Problem**: Spec promises 4 formats but only 2 implemented
 
-**Solution**: 
+**Solution**:
+
 - Implemented `format_constitutional()` - Full provenance with evidence trail
 - Implemented `format_hybrid()` - Vector + text search results
 - Updated main() with dispatcher pattern
 
 **Formats Available**:
+
 ```
 1. dialectical  - Voice-grouped with synthesis hints (EXISTING)
 2. simple       - Bullet list (EXISTING)
@@ -70,6 +75,7 @@ h["signatures"] = keywords[:10]  # Top 10 keywords
 ```
 
 **Constitutional Format Shows**:
+
 ```
 ID: grad-rights-001
 Voice: Enlightenment | Status: BINDING
@@ -84,6 +90,7 @@ Evidence:
 ```
 
 **Hybrid Format Shows**:
+
 ```
 [Enlightenment] grad-rights-001
   Match: strong-text (relevance: 0.87)
@@ -91,6 +98,7 @@ Evidence:
 ```
 
 **Impact**:
+
 - ✅ Full provenance tracking enabled
 - ✅ Ready for vector search integration
 - ✅ Spec fully implemented
@@ -102,10 +110,12 @@ Evidence:
 **Problem**: Only 2 hardcoded contradictions; doesn't check against actual corpus
 
 **Solution**:
+
 1. Enhanced `consistent_with_treatise()` - 3 hard contradictions now
 2. New `validate_against_heuristic_corpus()` - Semantic similarity checking
 
 **Features**:
+
 ```python
 def validate_against_heuristic_corpus(principle, corpus):
     # Returns:
@@ -123,6 +133,7 @@ def validate_against_heuristic_corpus(principle, corpus):
 ```
 
 **Example**:
+
 ```
 Input: "AI systems should always have complete autonomy"
 Check 1: Hard contradictions - FAILS (contradicts hard rule)
@@ -131,6 +142,7 @@ Result: "Very similar to badfaith-002 (similarity: 0.85)"
 ```
 
 **Impact**:
+
 - ✅ Prevents contradictions with Treatise
 - ✅ Detects duplicate submissions
 - ✅ Warns about near-duplicates
@@ -168,6 +180,7 @@ Layer 3: Constitutional
 ### MemoryCycle Class
 
 **Initialization**:
+
 ```python
 memory_cycle = MemoryCycle(noosphere_dir)
 # Creates:
@@ -178,6 +191,7 @@ memory_cycle = MemoryCycle(noosphere_dir)
 ```
 
 **Method: consolidate()**
+
 ```python
 count = memory_cycle.consolidate(batch_size=100)
 # Reads daily notes
@@ -188,6 +202,7 @@ count = memory_cycle.consolidate(batch_size=100)
 ```
 
 **Method: promote()**
+
 ```python
 success = memory_cycle.promote(
     heuristic_id="community-a7f3e2d1",
@@ -202,6 +217,7 @@ success = memory_cycle.promote(
 ```
 
 **Method: get_stats()**
+
 ```python
 stats = memory_cycle.get_stats()
 # Returns comprehensive metrics:
@@ -233,6 +249,7 @@ python3 memory-cycle.py --action stats --format text
 ### State Tracking
 
 Creates `memory-state.json`:
+
 ```json
 {
   "version": "2.5",
@@ -282,21 +299,24 @@ Creates `memory-state.json`:
 ## Code Statistics
 
 ### recall-engine.py Changes
+
 - Lines Added: 140
 - Functions Added: 2 (format_constitutional, format_hybrid)
 - Functions Modified: 1 (main)
 - Key Enhancement: Output format dispatcher
 
 ### assimilate-wisdom.py Changes
+
 - Lines Added: 110
 - Functions Added: 1 (validate_against_heuristic_corpus)
 - Functions Modified: 1 (consistent_with_treatise)
 - Key Enhancement: Semantic similarity checking
 
 ### memory-cycle.py (New)
+
 - Lines Total: 389
 - Classes: 1 (MemoryCycle)
-- Methods: 4 (consolidate, promote, get_stats, _get_voice_distribution)
+- Methods: 4 (consolidate, promote, get_stats,_get_voice_distribution)
 - CLI Actions: 3 (consolidate, promote, stats)
 - Logging: Full logging support
 
@@ -336,6 +356,7 @@ Run the test script provided in HIGH_PRIORITY_BUGS_AND_MEMORY_CYCLE.md
 ## Impact Assessment
 
 ### Before Phase 2
+
 - 4 output formats planned, 2 implemented
 - No automatic signature extraction
 - Weak consistency checking (2 hardcoded rules)
@@ -343,6 +364,7 @@ Run the test script provided in HIGH_PRIORITY_BUGS_AND_MEMORY_CYCLE.md
 - No constitutional archive
 
 ### After Phase 2
+
 - 4 output formats fully implemented
 - Automatic signature extraction from case law
 - Advanced consistency checking (semantic + corpus)
@@ -350,6 +372,7 @@ Run the test script provided in HIGH_PRIORITY_BUGS_AND_MEMORY_CYCLE.md
 - Constitutional archive ready to use
 
 ### Performance Impact
+
 - Consolidation: ~100ms per 100 notes
 - Promotion: ~50ms per heuristic
 - Signature extraction: <10ms per precedent
@@ -361,15 +384,18 @@ Run the test script provided in HIGH_PRIORITY_BUGS_AND_MEMORY_CYCLE.md
 ## What's Now Enabled
 
 ### For Council Deliberations
+
 ✅ Retrieve heuristics with full constitutional provenance  
 ✅ Use hybrid format for future vector search integration  
 
 ### For Community Wisdom
+
 ✅ Better duplicate detection  
 ✅ Semantic similarity warning  
 ✅ More intelligent consistency checking  
 
 ### For Memory Evolution
+
 ✅ Daily notes consolidation workflow  
 ✅ Automatic pattern extraction from notes  
 ✅ High-confidence heuristic promotion  
@@ -381,6 +407,7 @@ Run the test script provided in HIGH_PRIORITY_BUGS_AND_MEMORY_CYCLE.md
 ## Next Phase (Phase 3)
 
 When ready to continue:
+
 1. Implement clawhub-mcp.py (vector search integration)
 2. Integrate with convene-council.sh
 3. Schedule automated memory consolidation
@@ -391,12 +418,14 @@ When ready to continue:
 ## Conclusion
 
 Phase 2 is complete with:
+
 - **3 high priority bugs fixed**
 - **1 critical component fully implemented**
 - **639 lines of production-ready code**
 - **100% specification compliance**
 
 The Noosphere system now has:
+
 - ✅ Complete output format support
 - ✅ Intelligent consistency checking
 - ✅ Full memory consolidation capability

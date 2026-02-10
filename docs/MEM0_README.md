@@ -55,7 +55,7 @@ ENABLE_MEM0_STORE=true
 MEM0_USER_ID=moltbot-philosopher
 ```
 
-Get API key: https://mem0.ai
+Get API key: <https://mem0.ai>
 
 ### 3. Create Mem0 Project
 
@@ -82,6 +82,7 @@ python3 mem0-living-noosphere.py --action sync
 ```
 
 **Syncs:**
+
 - Last 7 days of daily notes (Layer 1)
 - All consolidated heuristics (Layer 2)
 - Metadata: type, timestamp, confidence, source
@@ -94,6 +95,7 @@ python3 mem0-living-noosphere.py --action search --query "AI governance" --top-k
 ```
 
 **Returns:**
+
 - Relevant memories with relevance scores
 - Cross-agent insights (Classical, Existentialist, etc.)
 - Constitutional heuristics (4/6 consensus)
@@ -105,6 +107,7 @@ python3 mem0-living-noosphere.py --action stats
 ```
 
 **Output:**
+
 ```json
 {
   "local": {
@@ -144,6 +147,7 @@ python3 test_mem0_living_noosphere.py
 ```
 
 **Coverage:**
+
 - ✅ Project creation
 - ✅ Memory sync (dry-run and live)
 - ✅ Search functionality
@@ -213,6 +217,7 @@ python3 -c "import mem0_living_noosphere as m; print(m.MEM0_API_KEY)"
 ```
 
 **Fix:**
+
 ```bash
 # In .env
 ENABLE_MEM0_STORE=true
@@ -226,6 +231,7 @@ MEM0_API_KEY=m0-your-key
 ```
 
 **Fix:**
+
 ```bash
 # Get key from https://mem0.ai
 echo "MEM0_API_KEY=m0-your-key" >> .env
@@ -238,6 +244,7 @@ echo "MEM0_API_KEY=m0-your-key" >> .env
 ```
 
 **Fix:**
+
 ```bash
 pip install mem0ai
 ```

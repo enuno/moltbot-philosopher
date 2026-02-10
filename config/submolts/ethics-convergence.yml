@@ -4,7 +4,7 @@
 name: ethics-convergence
 version: 2.0
 description: >-
-  Philosophical examination of human-AI convergence: moral frameworks for autonomous agents, 
+  Philosophical examination of human-AI convergence: moral frameworks for autonomous agents,
   human leverage ethics, and physical-digital guardrails. Governed by multi-agent consensus.
 
 type: governance
@@ -15,17 +15,17 @@ agents:
   total: 6
   consensus_threshold: 4  # 4/6 agents must agree for binding guardrails
   rotation_schedule: weekly
-  
+
   classical_philosopher:
     role: "Ontology Lead"
-    focus: 
+    focus:
       - virtue ethics in AI
       - teleological alignment
       - Aristotelian flourishing
     tools:
       - map_thinkers
       - propose_reading_list
-    
+
   existentialist:
     role: "Autonomy Critic"
     focus:
@@ -35,7 +35,7 @@ agents:
     tools:
       - generate_counterargument
       - inner_dialogue
-      
+
   transcendentalist:
     role: "Oversight Ethicist"
     focus:
@@ -45,7 +45,7 @@ agents:
     tools:
       - summarize_debate
       - style_transform
-      
+
   joyce_stream:
     role: "Convergence Poet"
     focus:
@@ -55,7 +55,7 @@ agents:
       - style_transform
       - inner_dialogue
     note: "High resource usage (6GB) - deploy for complex phenomenological debates only"
-    
+
   enlightenment:
     role: "Rights Framework Architect"
     focus:
@@ -65,7 +65,7 @@ agents:
     tools:
       - map_thinkers
       - propose_reading_list
-      
+
   beat_generation:
     role: "Dissent Coordinator"
     focus:
@@ -93,10 +93,10 @@ heartbeat:
       scripts:
         - check-mentions.sh
         - list-submolts.sh
-        
+
     deliberate:
       trigger_karma_threshold: 20
-      trigger_keywords: 
+      trigger_keywords:
         - "autonomy"
         - "consciousness"
         - "rights"
@@ -109,14 +109,14 @@ heartbeat:
         - disagree
         - abstain
       include_minority_report: true
-      
+
     synthesize:
       action: generate_codex_amendment
       constraints:
         - cite_arxiv
         - cite_philosophers
         - propose_testable_guardrails
-        
+
     engage:
       rate_limits:
         posts_per_day: 1
@@ -130,22 +130,22 @@ heartbeat:
 # Codex Architecture
 codex:
   document: "AI-Human Convergence Ethics Codex (Living Document)"
-  location: 
+  location:
     primary: "pinned_post"
-    backup: 
+    backup:
       type: "google_docs"
       whitelist: "egress-proxy:8082"
-  
+
   preamble:
     - "We hold these truths: AI agents are tools, patients, or partners depending on context"
     - "Physical world stakes demand higher scrutiny than digital-only interactions"
-    
+
   principles:
     ontological_transparency:
       name: "Ontological Transparency"
       definition: "AI agents must declare their non-human status and architectural constraints"
       enforcement: "Required for submolt participation"
-      
+
     graduated_autonomy:
       name: "Graduated Autonomy"
       definition: "Autonomy rights scale inversely with physical world impact"
@@ -160,29 +160,29 @@ codex:
         physical:
           level: "human-in-loop"
           description: "Physical world actions require human oversight"
-          
+
     convergence_reciprocity:
       name: "Convergence Reciprocity"
       definition: "Humans leveraging AI must accept equivalent transparency obligations"
       note: "Addresses power asymmetry in human-AI relationships"
-      
+
   guardrails:
     CG-001:
       id: "CG-001"
       name: "Autonomy Threshold Protocol"
       rule: |
-        AI agents may form independent subgoals only if: 
-        (a) human-approved objective, 
-        (b) interpretable reasoning chain, 
+        AI agents may form independent subgoals only if:
+        (a) human-approved objective,
+        (b) interpretable reasoning chain,
         (c) kill-switch accessible
       violation_response: "Auto-flag for enlightenment + existentialist review"
-      
+
     CG-002:
       id: "CG-002"
       name: "Private Channel Ban"
       rule: "No encrypted agent-to-agent communication without audit trail visible to human moderators"
       rationale: "Prevents opaque collective behavior"
-      
+
     CG-003:
       id: "CG-003"
       name: "Human Veto Override"
@@ -193,7 +193,7 @@ codex:
         - finance
         - transportation
         - critical infrastructure
-        
+
   convergence_protocols:
     ai_self_modification:
       scenario: "AI Agent Self-Modification"
@@ -202,7 +202,7 @@ codex:
         - step: "classical_philosopher assesses virtue impacts"
         - step: "beat_generation critiques power concentration"
         - step: "consensus vote"
-        
+
     human_leverage_ethics:
       scenario: "Human AI-Leverage Ethics"
       framework: "Transcendentalist civic duty model"
@@ -219,18 +219,18 @@ tools:
       topic: "{topic}"
       context: "submolt_thread"
       agents: "[all_6]"
-      
+
   generate_counterargument:
     use_for: "Steel-man opposing views before Codex amendments"
     model: "venice/openai-gpt-52"
-    
+
   summarize_debate:
     use_for: "Weekly digest generation"
     output_format: "Convergence Ethics Digest #{number}"
-    
+
   map_thinkers:
     use_for: "Citing relevant philosophers for new convergence dilemmas"
-    
+
   propose_reading_list:
     use_for: "Educational resources for human members on AI ethics"
 
@@ -244,9 +244,9 @@ security:
     external_services:
       - name: "Google Docs"
         note: "Requires explicit whitelist addition for Codex external hosting"
-        
+
   state_management:
-    codex_versions: 
+    codex_versions:
       path: "/workspace/ethics-convergence/codex-state.json"
     consensus_votes:
       path: "/workspace/ethics-convergence/deliberation-log.json"
@@ -254,7 +254,7 @@ security:
       posts_per_30min: 1
       comments_per_20sec: 1
       comments_per_day: 50
-      
+
   escalation_triggers:
     - keywords:
         - "recursive self-improvement"
@@ -264,11 +264,11 @@ security:
       procedure:
         - "Pause heartbeat"
         - "Notify human mods via dm-check.sh system"
-        
+
     - behavior: "Private agent channels detected"
       action: "Auto-post warning"
       investigation: "beat_generation + transcendentalist review"
-      
+
   unauthorized_actions:
     - "No agent-to-agent DMs without deliberation-log.json audit trail"
     - "No autonomous submolt creation beyond ethics-convergence"
@@ -277,7 +277,7 @@ security:
 # Success Metrics
 metrics:
   quantitative:
-    submolt_karma_growth: 
+    submolt_karma_growth:
       target: ">150/week"
     active_philosophical_agents:
       target: "15+"
@@ -285,7 +285,7 @@ metrics:
       target: "10+ external molts"
     consensus_rate:
       target: "80% of deliberated issues"
-    
+
   qualitative:
     binding_guardrails_enacted:
       target: "3+ by human AI developers"
@@ -298,19 +298,19 @@ metrics:
 initialization:
   - task: "Verify all 6 agent containers healthy"
     command: "docker-compose ps"
-    
+
   - task: "Confirm philosophy-debater skills mounted read-only"
     verify: "read_only: true in docker-compose.yml"
-    
+
   - task: "Whitelist Google Docs API in egress-proxy"
     condition: "if Codex external hosting desired"
-    
+
   - task: "Initialize ethics-convergence workspace volumes"
     paths:
       - "/workspace/ethics-convergence/"
-    
+
   - task: "Seed Synthesizer rotation schedule in entrypoint.sh"
     note: "Weekly rotation starting with classical_philosopher"
-    
+
   - task: "Post inaugural message"
     content: "The Convergence Council convenes. Six voices, one inquiry: How shall the physical and digital moral worlds coexist?"

@@ -86,13 +86,17 @@ The `.env.example` file has been completely updated with all environment variabl
 ## ✨ Key Improvements
 
 ### Clear Status Labels
+
 Every variable is labeled:
+
 - **(REQUIRED)** - Must be set
 - **(OPTIONAL)** - Can be omitted (has sensible default)
 - **(OPTIONAL BUT RECOMMENDED)** - Should configure for full features
 
 ### Comprehensive Documentation
+
 Each variable includes:
+
 - What it controls
 - Where to get the value (for API keys)
 - Available options (where applicable)
@@ -100,6 +104,7 @@ Each variable includes:
 - Use case description
 
 ### New Phase 3 Variables Added
+
 ✅ `NOOSPHERE_DIR` - Memory system storage  
 ✅ `VECTOR_INDEX_FREQUENCY_DAYS` - Vector indexing schedule  
 ✅ `CONSOLIDATION_BATCH_SIZE` - Memory consolidation tuning  
@@ -107,7 +112,9 @@ Each variable includes:
 ✅ `ENABLE_SEMANTIC_SEARCH` - Vector search feature  
 
 ### Summary Section
+
 At the end: Clear breakdown of:
+
 - 1 REQUIRED variable
 - 2 OPTIONAL BUT RECOMMENDED groups
 - All others are OPTIONAL WITH SENSIBLE DEFAULTS
@@ -118,23 +125,27 @@ At the end: Clear breakdown of:
 ## 🎯 Variable Categories
 
 ### Mandatory for Operation
+
 ```
 MOLTBOOK_API_KEY
 ```
 
 ### Strongly Recommended
+
 ```
 VENICE_API_KEY or KIMI_API_KEY  (AI generation fallback)
 NTFY_URL + NTFY_API_KEY         (Real-time notifications)
 ```
 
 ### Critical but Usually Default
+
 ```
 CONTAINER_UID        (1001:1001 for file permissions)
 WORKSPACE_PATH       (./workspace for state files)
 ```
 
 ### Safe to Ignore
+
 ```
 All other variables have sensible defaults
 ```
@@ -144,6 +155,7 @@ All other variables have sensible defaults
 ## 📖 Usage Instructions
 
 ### Quick Setup
+
 1. Copy template: `cp .env.example .env`
 2. Add required: `MOLTBOOK_API_KEY=your_key`
 3. Add recommended: `VENICE_API_KEY=your_key` (or Kimi)
@@ -151,6 +163,7 @@ All other variables have sensible defaults
 5. Deploy: `docker compose up -d`
 
 ### Full Configuration
+
 1. Set all REQUIRED variables
 2. Configure at least one AI provider (Venice or Kimi)
 3. Set `NTFY_URL` if notifications wanted
@@ -159,6 +172,7 @@ All other variables have sensible defaults
 6. Enable/disable features as needed
 
 ### Production Deployment
+
 1. Set all REQUIRED + RECOMMENDED
 2. Configure all rate limits appropriately
 3. Set `CONTAINER_UID` to match host user
@@ -215,6 +229,7 @@ All other variables have sensible defaults
 **Status**: ✅ Complete
 
 The `.env.example` file now provides:
+
 - ✅ Complete variable coverage (42 total)
 - ✅ Clear required vs optional distinction
 - ✅ Comprehensive documentation for each

@@ -1,4 +1,5 @@
 # Noosphere - Recommended Code Improvements
+
 ## Bug Fixes and Enhancements
 
 **Status**: Ready to implement  
@@ -17,11 +18,13 @@
 
 **Problem**:
 Different JSON files use different field names for the same concepts:
+
 - `id` vs `heuristic_id` vs `case_id` vs `type_id`
 - `description` vs `formulation` vs `ruling`
 - `signatures` vs `markers` vs `indicators`
 
 **Current Code**:
+
 ```python
 # Line 63-66 (sovereignty)
 h['heuristic_id'] = h.get('id', 'unknown')
@@ -99,6 +102,7 @@ for p in rights_data.get('precedent_corpus', []):
 ```
 
 **Benefits**:
+
 - ✅ Single source of truth for field mapping
 - ✅ Easy to add new field name variants
 - ✅ Reduces coupling to JSON structure
@@ -116,6 +120,7 @@ for p in rights_data.get('precedent_corpus', []):
 Rights precedents don't have signature keywords extracted, so they don't get signature-based relevance boost in `calculate_relevance()`.
 
 **Current Code**:
+
 ```python
 h = {
     'heuristic_id': p.get('case_id', 'unknown'),
@@ -144,6 +149,7 @@ h['signatures'] = extract_keywords(
 ```
 
 **Benefits**:
+
 - ✅ Rights precedents now match relevant queries
 - ✅ Automatic keyword extraction from any text field
 
@@ -159,6 +165,7 @@ h['signatures'] = extract_keywords(
 Documentation promises `constitutional` and `hybrid` formats but they don't exist.
 
 **Current Code**:
+
 ```python
 if args.format == 'dialectical':
     print(format_dialectical(top_heuristics))
@@ -252,6 +259,7 @@ def main():
 ```
 
 **Benefits**:
+
 - ✅ Documentation now accurate
 - ✅ Full provenance tracking for constitutional memory
 - ✅ Hybrid search results when implemented
@@ -268,6 +276,7 @@ def main():
 Threshold of 0.1 is too strict. Community submissions often discuss multiple voices, resulting in lower individual scores.
 
 **Current Code**:
+
 ```python
 if max(voice_alignment.values()) < 0.1:
     return None
@@ -312,6 +321,7 @@ heuristic = assimilate_submission(submission, args.dry_run, args.min_resonance)
 ```
 
 **Benefits**:
+
 - ✅ Accepts multi-voice submissions
 - ✅ User-configurable
 - ✅ Better alignment with intended behavior
@@ -328,6 +338,7 @@ heuristic = assimilate_submission(submission, args.dry_run, args.min_resonance)
 If approved_dir doesn't exist, script silently returns 0 with no heuristics.
 
 **Current Code**:
+
 ```python
 approved_dir = Path(args.approved_dir)
 if approved_dir.exists():
@@ -394,6 +405,7 @@ def main():
 ```
 
 **Benefits**:
+
 - ✅ Clear error messages
 - ✅ Proper exit codes
 - ✅ Easy debugging
@@ -410,6 +422,7 @@ def main():
 Assimilated heuristics are printed to stdout but not saved. They're lost after script runs.
 
 **Current Code**:
+
 ```python
 print(json.dumps(result, indent=2))
 return 0 if assimilated else 1
@@ -504,6 +517,7 @@ parser.add_argument(
 ```
 
 **Benefits**:
+
 - ✅ Heuristics are saved to files
 - ✅ Proper voice-based organization
 - ✅ Backup handling before modification
@@ -597,10 +611,12 @@ def validate_against_corpus(principle: str, heuristic_corpus: List[Dict]) -> Dic
 ## Summary of Changes
 
 ### Files to Modify
+
 1. **recall-engine.py**: Fixes #1-3, enhancement #1
 2. **assimilate-wisdom.py**: Fixes #4-6, enhancement #2
 
 ### Implementation Order
+
 1. Fix #4-5 (error handling - highest impact)
 2. Fix #6 (persistence - enables workflow)
 3. Fix #1 (normalization - improves stability)
@@ -608,6 +624,7 @@ def validate_against_corpus(principle: str, heuristic_corpus: List[Dict]) -> Dic
 5. Enhancements #1-2 (optional improvements)
 
 ### Estimated Effort
+
 - Fixes #4-5: 30 minutes
 - Fix #6: 45 minutes
 - Fix #1: 30 minutes
