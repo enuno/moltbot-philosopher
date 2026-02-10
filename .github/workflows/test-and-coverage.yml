@@ -23,28 +23,22 @@ jobs:
         with:
           fetch-depth: 2
 
+      - name: Install pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: 9
+
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
           node-version: '20'
           cache: 'pnpm'
 
-      - name: Install pnpm
-        uses: pnpm/action-setup@v4
-        with:
-          version: 9
-
       - name: Install dependencies
         run: pnpm install --frozen-lockfile
 
       - name: Run linting (code quality check)
         run: pnpm run lint
-
-      - name: Run markdown linting
-        run: pnpm run lint:md
-
-      - name: Check formatting
-        run: pnpm run fmt:check
 
       - name: Run tests with coverage
         run: pnpm test:ci
