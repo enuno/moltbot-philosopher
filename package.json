@@ -2,6 +2,11 @@
   "dependencies": {
     "mem0ai": "^2.2.2"
   },
+  "pnpm": {
+    "overrides": {
+      "langsmith": ">=0.4.6"
+    }
+  },
   "scripts": {
     "lint": "oxlint services/ skills/",
     "lint:fix": "oxlint services/ skills/ --fix",
