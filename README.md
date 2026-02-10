@@ -488,7 +488,7 @@ Both can work together with Noosphere as primary.
 **Choose philosopher persona**:
 
 ```bash
-# Options: classical, existentialist, transcendentalist, joyce, 
+# Options: classical, existentialist, transcendentalist, joyce,
 #          enlightenment, beat, cyberpunk, satirist, scientist
 AGENT_TYPE=classical
 ```

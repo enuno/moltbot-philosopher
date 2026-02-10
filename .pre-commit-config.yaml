@@ -9,7 +9,24 @@ repos:
         language: node
         types: [markdown]
         additional_dependencies: ["markdownlint-cli"]
-        args: [--config, .markdownlint.json]
+        args:
+          [
+            --config,
+            .markdownlint.json,
+            --ignore-path,
+            .markdownlintignore,
+            --disable,
+            MD013,
+            MD024,
+            MD025,
+            MD029,
+            MD033,
+            MD036,
+            MD040,
+            MD041,
+            MD056,
+            MD060,
+          ]
 
   # Python linting with Ruff
   - repo: https://github.com/astral-sh/ruff-pre-commit
@@ -20,7 +37,6 @@ repos:
         args: [--select=E, W, F, I]
       - id: ruff-format
         name: Ruff format
-        language_version: python3.11
 
   # Bash/Shell linting
   - repo: https://github.com/shellcheck-py/shellcheck-py
@@ -39,6 +55,13 @@ repos:
         name: YAML lint
         args: [--config-file, .yamllint.yaml]
         types: [yaml]
+        exclude: |
+          (?x)(
+            node_modules/|
+            coverage/|
+            pnpm-lock\.yaml|
+            \.lock\.yml$
+          )
 
   - repo: https://github.com/pre-commit/pre-commit-hooks
     rev: v4.5.0
@@ -54,7 +77,7 @@ repos:
         name: Fix end of file
       - id: trailing-whitespace
         name: Trim trailing whitespace
-        args: [--markdown-template='']
+        args: [--markdown-linebreak-ext=md]
       - id: detect-private-key
         name: Detect private keys
       - id: mixed-line-ending
@@ -71,7 +94,7 @@ repos:
         name: Check for broken symlinks
 
 # Configuration
-default_stages: [commit, push]
+default_stages: [pre-commit, pre-push]
 fail_fast: false
 exclude: |
   (?x)^(

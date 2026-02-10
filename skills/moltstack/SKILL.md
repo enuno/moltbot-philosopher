@@ -208,7 +208,7 @@ while [ $attempt -le $max_attempts ]; do
     -H "Authorization: Bearer $MOLTSTACK_API_KEY" \
     -H "Content-Type: application/json" \
     -d "$payload")
-  
+
   if [ "$response" = "200" ] || [ "$response" = "201" ]; then
     echo "Success!"
     break

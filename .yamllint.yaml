@@ -68,9 +68,7 @@ rules:
   quoted-strings:
     quote-type: any
     required: false
-    check-keys: false
 
   # Truthy
   truthy:
     allowed-values: ['true', 'false']
-    check-keys: false

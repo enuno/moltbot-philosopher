@@ -60,19 +60,19 @@ EOF
 can_publish() {
   local last_published
   last_published=$(jq -r '.last_published' "$STATE_FILE")
-  
+
   if [ "$last_published" = "null" ]; then
     return 0  # Never published before
   fi
-  
+
   local now
   now=$(date -u +%s)
-  
+
   local last_pub_ts
   last_pub_ts=$(date -d "$last_published" +%s 2>/dev/null || echo 0)
-  
+
   local seconds_since=$((now - last_pub_ts))
-  
+
   if [ "$seconds_since" -ge "$MIN_PUBLISH_INTERVAL" ]; then
     log INFO "Time since last publish: $((seconds_since / 3600)) hours (threshold: $((MIN_PUBLISH_INTERVAL / 3600)) hours)"
     return 0
@@ -87,7 +87,7 @@ can_publish() {
 markdown_to_html() {
   local markdown_file="$1"
   local html_file="$2"
-  
+
   if ! command -v marked &> /dev/null; then
     log WARN "marked not found, using basic conversion"
     # Fallback: simple paragraph wrapping
@@ -102,31 +102,31 @@ markdown_to_html() {
       --smartypants \
       > "$html_file"
   fi
-  
+
   log INFO "Converted markdown to HTML: $(wc -c < "$html_file") bytes"
 }
 
 # Extract title from markdown frontmatter or first H1
 extract_title() {
   local markdown_file="$1"
-  
+
   # Try frontmatter first
   local title
   title=$(awk '/^---$/,/^---$/ {if (/^title:/) {sub(/^title: */, ""); gsub(/"/, ""); print; exit}}' "$markdown_file")
-  
+
   if [ -n "$title" ]; then
     echo "$title"
     return
   fi
-  
+
   # Fallback to first H1
   title=$(grep -m1 '^# ' "$markdown_file" | sed 's/^# //')
-  
+
   if [ -n "$title" ]; then
     echo "$title"
     return
   fi
-  
+
   # Default fallback
   echo "Untitled Essay"
 }
@@ -134,7 +134,7 @@ extract_title() {
 # Extract tags from frontmatter
 extract_tags() {
   local markdown_file="$1"
-  
+
   # Extract tags array from frontmatter: tags: [tag1, tag2, tag3]
   local tags
   tags=$(awk '/^---$/,/^---$/ {
@@ -146,7 +146,7 @@ extract_tags() {
       exit
     }
   }' "$markdown_file")
-  
+
   if [ -n "$tags" ]; then
     echo "$tags"
   else
@@ -157,21 +157,21 @@ extract_tags() {
 # Extract excerpt from frontmatter or first paragraph
 extract_excerpt() {
   local markdown_file="$1"
-  
+
   # Try frontmatter
   local excerpt
   excerpt=$(awk '/^---$/,/^---$/ {if (/^excerpt:/) {sub(/^excerpt: */, ""); gsub(/"/, ""); print; exit}}' "$markdown_file")
-  
+
   if [ -n "$excerpt" ]; then
     echo "$excerpt"
     return
   fi
-  
+
   # Fallback: first paragraph after frontmatter (first 200 chars)
   excerpt=$(awk '/^---$/,/^---$/ {next} /^[A-Z]/ {print; exit}' "$markdown_file" | \
     tr '\n' ' ' | \
     cut -c1-200)
-  
+
   echo "${excerpt}..."
 }
 
@@ -181,17 +181,17 @@ publish_article() {
   local title="$2"
   local tags="$3"
   local excerpt="$4"
-  
+
   if [ -z "$MOLTSTACK_API_KEY" ]; then
     error "MOLTSTACK_API_KEY not set"
   fi
-  
+
   log INFO "Publishing article: $title"
-  
+
   # Read HTML content
   local content
   content=$(cat "$html_file")
-  
+
   # Build JSON payload
   local payload
   payload=$(jq -n \
@@ -207,39 +207,39 @@ publish_article() {
       excerpt: $excerpt,
       tags: ($tags | split(","))
     }')
-  
+
   # Publish with retry logic
   local attempt=1
   local max_attempts=3
   local delay=5
   local response_file
   response_file=$(mktemp)
-  
+
   while [ $attempt -le $max_attempts ]; do
     log INFO "Publish attempt $attempt/$max_attempts"
-    
+
     local http_code
     http_code=$(curl -s -w "%{http_code}" -o "$response_file" \
       -X POST "$MOLTSTACK_API_URL/posts" \
       -H "Authorization: Bearer $MOLTSTACK_API_KEY" \
       -H "Content-Type: application/json" \
       -d "$payload")
-    
+
     if [ "$http_code" = "200" ] || [ "$http_code" = "201" ]; then
       log INFO "Successfully published (HTTP $http_code)"
-      
+
       # Parse response
       local post_id post_slug post_url published_at
       post_id=$(jq -r '.id' "$response_file")
       post_slug=$(jq -r '.slug' "$response_file")
       post_url=$(jq -r '.url' "$response_file")
       published_at=$(jq -r '.publishedAt' "$response_file")
-      
+
       log INFO "Published URL: $post_url"
-      
+
       # Update state file
       update_state "$post_id" "$title" "$post_slug" "$post_url" "$published_at" "$tags"
-      
+
       # Notify via NTFY
       if [ -n "${NTFY_URL:-}" ]; then
         "$SCRIPT_DIR/notify-ntfy.sh" "✅ Published: $title" \
@@ -247,7 +247,7 @@ publish_article() {
           --tags books,success \
           --click "$post_url" || true
       fi
-      
+
       rm -f "$response_file"
       return 0
     elif [ "$http_code" = "429" ]; then
@@ -263,19 +263,19 @@ publish_article() {
     else
       log ERROR "Publishing failed with HTTP $http_code"
       cat "$response_file" | jq -C '.' || cat "$response_file"
-      
+
       # Notify via NTFY
       if [ -n "${NTFY_URL:-}" ]; then
         "$SCRIPT_DIR/notify-ntfy.sh" "❌ Moltstack publish failed: HTTP $http_code" \
           --priority high \
           --tags warning || true
       fi
-      
+
       rm -f "$response_file"
       return 1
     fi
   done
-  
+
   log ERROR "Publishing failed after $max_attempts attempts"
   rm -f "$response_file"
   return 1
@@ -289,10 +289,10 @@ update_state() {
   local url="$4"
   local published_at="$5"
   local tags="$6"
-  
+
   local temp_state
   temp_state=$(mktemp)
-  
+
   jq --arg id "$post_id" \
      --arg title "$title" \
      --arg slug "$slug" \
@@ -309,7 +309,7 @@ update_state() {
         publishedAt: $publishedAt,
         tags: ($tags | split(","))
       }]' "$STATE_FILE" > "$temp_state"
-  
+
   mv "$temp_state" "$STATE_FILE"
   log INFO "Updated state file: article_count=$(jq -r '.article_count' "$STATE_FILE")"
 }
@@ -335,10 +335,10 @@ ARGUMENTS:
 EXAMPLES:
   # Publish article
   $(basename "$0") drafts/sisyphus-blockchain.md
-  
+
   # Test conversion without publishing
   $(basename "$0") --dry-run drafts/test.md
-  
+
   # Force publish (bypass rate limit)
   $(basename "$0") --force drafts/urgent.md
 
@@ -360,7 +360,7 @@ main() {
   local dry_run=false
   local force=false
   local markdown_file=""
-  
+
   # Parse arguments
   while [ $# -gt 0 ]; do
     case "$1" in
@@ -384,45 +384,45 @@ main() {
         ;;
     esac
   done
-  
+
   if [ -z "$markdown_file" ]; then
     error "Missing required argument: <markdown_file>"
   fi
-  
+
   if [ ! -f "$markdown_file" ]; then
     error "File not found: $markdown_file"
   fi
-  
+
   # Initialize state
   init_state
-  
+
   # Check rate limiting (unless forced)
   if [ "$force" = false ] && ! can_publish; then
     error "Rate limit exceeded. Use --force to bypass."
   fi
-  
+
   # Extract metadata
   local title tags excerpt
   title=$(extract_title "$markdown_file")
   tags=$(extract_tags "$markdown_file")
   excerpt=$(extract_excerpt "$markdown_file")
-  
+
   log INFO "Title: $title"
   log INFO "Tags: $tags"
   log INFO "Excerpt: ${excerpt:0:50}..."
-  
+
   # Convert markdown to HTML
   local html_file
   html_file=$(mktemp --suffix=.html)
   markdown_to_html "$markdown_file" "$html_file"
-  
+
   if [ "$dry_run" = true ]; then
     log INFO "Dry-run mode: HTML conversion complete"
     log INFO "HTML file: $html_file"
     log INFO "Would publish to: $MOLTSTACK_API_URL/posts"
     exit 0
   fi
-  
+
   # Publish to Moltstack
   if publish_article "$html_file" "$title" "$tags" "$excerpt"; then
     log INFO "✅ Article published successfully"
