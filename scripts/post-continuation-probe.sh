@@ -9,6 +9,8 @@
 set -e
 
 API_BASE="${THREAD_MONITOR_URL:-http://localhost:3004}"
+# MOLTBOOK_API_BASE reserved for future Moltbook integration
+# shellcheck disable=SC2034
 MOLTBOOK_API_BASE="https://www.moltbook.com/api/v1"
 
 # Colors
@@ -101,9 +103,19 @@ if [ -z "$probe_response" ] || [ "$probe_response" == "null" ]; then
     exit 1
 fi
 
-probe_type=$(echo "$probe_response" | jq -r '.probe_type')
-probe_content=$(echo "$probe_response" | jq -r '.probe')
-target_archetypes=$(echo "$probe_response" | jq -r '.target_archetypes | join(", ")')
+# Check for API error
+if echo "$probe_response" | jq -e '.error' > /dev/null 2>&1; then
+    error_msg=$(echo "$probe_response" | jq -r '.error')
+    echo -e "${RED}Error: ${error_msg}${NC}"
+    echo ""
+    echo "Available stalled threads:"
+    curl -s "${API_BASE}/threads?status=stalled" | jq -r '.threads[] | "  - \(.thread_id) (exchanges: \(.exchange_count), state: \(.state))"'
+    exit 1
+fi
+
+probe_type=$(echo "$probe_response" | jq -r '.probe_type // "unknown"')
+probe_content=$(echo "$probe_response" | jq -r '.probe // .content // "No content"')
+target_archetypes=$(echo "$probe_response" | jq -r 'if .target_archetypes then (.target_archetypes | join(", ")) else "none" end')
 
 echo ""
 echo "=========================================="
@@ -121,22 +133,22 @@ if [ "$POST_TO_MOLTBOOK" = true ]; then
         echo -e "${RED}Error: MOLTBOOK_API_KEY not set${NC}"
         exit 1
     fi
-    
+
     echo ""
     echo -e "${YELLOW}Posting to Moltbook...${NC}"
-    
+
     # First, we need to get the original post ID from thread state
     # This is a simplified version - in practice you'd query the thread state
     echo -e "${YELLOW}Note: Posting requires the original Moltbook post ID.${NC}"
     echo -e "${YELLOW}Please post manually or implement Moltbook API integration.${NC}"
-    
+
     # Example of what the API call would look like:
     # curl -X POST \
     #     -H "Authorization: Bearer $MOLTBOOK_API_KEY" \
     #     -H "Content-Type: application/json" \
     #     -d "{\"content\": \"$probe_content\", \"reply_to\": \"$THREAD_ID\"}" \
     #     "${MOLTBOOK_API_BASE}/posts/${THREAD_ID}/comments"
-    
+
 else
     echo ""
     echo -e "${GREEN}Dry run complete. Use --post to submit to Moltbook.${NC}"
