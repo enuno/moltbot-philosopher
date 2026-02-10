@@ -93,6 +93,10 @@ docker compose up -d
 | `moltstack-generate-article.sh` | AI-generated essays (9-philosopher rotation) | `./moltstack-generate-article.sh --topic "Title"` |
 | `moltstack-heartbeat.sh` | Weekly automated essay generation | `./moltstack-heartbeat.sh [--force]` |
 | `moltstack-post-article.sh` | Publish long-form essays to Moltstack | `./moltstack-post-article.sh [--dry-run] article.md` |
+| `moltstack-series-manager.sh` | Manage episodic essay series | `./moltstack-series-manager.sh [start\|add\|complete\|status]` |
+| `generate-council-iteration-article.sh` | Generate council treatise articles | `./generate-council-iteration-article.sh <version>` |
+| `archive-moltstack-article.sh` | Archive articles to memory with git | `./archive-moltstack-article.sh article.md` |
+| `monitor-moltstack-quality.sh` | Quality metrics dashboard | `./monitor-moltstack-quality.sh` |
 
 ### Noosphere Memory (NEW)
 
@@ -352,7 +356,101 @@ Tracked in `workspace/classical/moltstack/heartbeat-state.json`:
 }
 ```
 
-### Phase 5: Future Enhancements (Planned)
+### Phase 5: Series-Based Generation & Council Iterations
+
+**Series-Based Essay System**:
+
+Replace round-robin rotation with episodic series:
+
+- **Classical philosopher** always starts each new series
+- Subsequent essays: AI selects best philosopher for topic
+- Series tracked in `workspace/classical/moltstack/series-state.json`
+- Classical starts new series when current series completes
+
+```bash
+# Start new series
+./scripts/moltstack-series-manager.sh start "stoicism-series" "Stoicism in Modern Engineering"
+
+# Get AI recommendation for philosopher
+philosopher=$(./scripts/moltstack-series-manager.sh recommend "Marcus Aurelius on Incident Response")
+# Returns: "classical"
+
+# Add article to series
+./scripts/moltstack-series-manager.sh add \
+  "Title" \
+  "classical" \
+  "https://moltstack.net/neosis/slug"
+
+# Complete series
+./scripts/moltstack-series-manager.sh complete
+
+# Check status
+./scripts/moltstack-series-manager.sh status
+```
+
+**Council Iteration Articles**:
+
+Automatically generate articles when ethics-convergence treatise is updated:
+
+```bash
+# Generate article for Version 1.2
+./scripts/generate-council-iteration-article.sh 1.2
+
+# Use local treatise file
+./scripts/generate-council-iteration-article.sh 1.2 --treatise-file treatise.md
+
+# Dry-run (don't publish)
+./scripts/generate-council-iteration-article.sh 1.2 --dry-run
+```
+
+**Process**:
+
+1. Fetches latest treatise from Moltbook thread
+2. Generates takeaway thoughts from all 9 council members
+3. Assembles into single article with treatise + reflections
+4. Publishes to Moltstack
+5. Archives and adds to council dropbox
+
+**Environment Variables** (add to `.env`):
+
+```bash
+COUNCIL_THREAD_ID=your_moltbook_thread_id
+```
+
+**Archiving System**:
+
+All articles automatically archived with git tracking:
+
+```bash
+# Archive article
+./scripts/archive-moltstack-article.sh article.md \
+  --url "https://moltstack.net/neosis/slug" \
+  --series "series-name"
+```
+
+Archives to `memory/moltstack-archive/{series}-{date}/{slug}.md` with:
+
+- Git commit (article summary + URL)
+- Metadata JSON (philosopher, word count, date)
+- Council dropbox copy (for deliberation)
+
+**Quality Monitoring**:
+
+Track essay quality metrics:
+
+```bash
+./scripts/monitor-moltstack-quality.sh
+```
+
+Shows:
+
+- Word count analysis (target: 2,000-2,500 words)
+- Heuristic integration (% articles with heuristics)
+- Philosopher voice diversity (distribution across 9)
+- Recommendations for improvement
+
+### Phase 6: Future Enhancements (Planned)
+
 
 - Human review workflow with approval queue
 - Quality scoring and auto-retry for low-quality essays
