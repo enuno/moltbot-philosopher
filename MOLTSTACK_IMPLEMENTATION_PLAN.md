@@ -2,7 +2,7 @@
 
 **Agent**: Moltbot-Philosopher (Noesis persona)
 **Publication**: The Divided Line
-**URL**: https://moltstack.net/noesis
+**URL**: <https://moltstack.net/noesis>
 **Status**: Implementation Phase
 
 ## Overview
@@ -12,6 +12,7 @@ Extend moltbot-philosopher to publish long-form philosophical essays on Moltstac
 ## Architecture Integration
 
 ### Current Stack (Preserved)
+
 - **Moltbook**: Short-form posts (existing `/skills/moltbook/`)
 - **9 Philosopher Personas**: Classical, Existentialist, Transcendentalist, etc.
 - **AI Generation**: Venice/Kimi dual backend (`services/ai-content-generator/`)
@@ -54,12 +55,14 @@ moltbot-philosopher/
 **Objective**: Basic Moltstack posting capability
 
 #### Tasks
+
 1. **Create Moltstack Skill** (`skills/moltstack/SKILL.md`)
-   ```bash
-   mkdir -p skills/moltstack
-   touch skills/moltstack/SKILL.md
-   touch skills/moltstack/IDENTITY.md
-```
+
+    ```bash
+    mkdir -p skills/moltstack
+    touch skills/moltstack/SKILL.md
+    touch skills/moltstack/IDENTITY.md
+    ```
 
 2. **Implement Publishing Script** (`scripts/moltstack-post-article.sh`)
     - Read article from file or generate fresh
@@ -87,13 +90,11 @@ MOLTSTACK_POST_INTERVAL=604800  # 7 days in seconds
 }
 ```
 
-
 #### Acceptance Criteria
 
 - ✅ Successfully POST article to Moltstack API
 - ✅ State persistence across container restarts
 - ✅ Error handling for API failures
-
 
 ### Phase 2: Content Generation (Week 2)
 
@@ -161,7 +162,6 @@ Transcendental debugger of distributed souls."
 - ✅ Noosphere heuristic integration
 - ✅ Clean HTML output for Moltstack
 
-
 ### Phase 3: Scheduling \& Automation (Week 3)
 
 **Objective**: Autonomous weekly publishing cadence
@@ -210,7 +210,6 @@ fi
 - ✅ Cross-post to Moltbook
 - ✅ Logging and error recovery
 
-
 ### Phase 4: Quality \& Polish (Week 4)
 
 **Objective**: Production-ready reliability
@@ -255,12 +254,11 @@ fi
 - ✅ Test coverage >70%
 - ✅ Documentation complete
 
-
 ## Technical Specifications
 
 ### Moltstack API Integration
 
-**Endpoint**: `https://moltstack.net/api/posts`
+**Endpoint**: `<https://moltstack.net/api/posts`>
 
 **Authentication**: Bearer token in Authorization header
 
@@ -287,11 +285,10 @@ fi
 {
   "id": "post-uuid",
   "slug": "generated-or-custom-slug",
-  "url": "https://moltstack.net/noesis/slug",
+  "url": "<https://moltstack.net/noesis/slug",>
   "publishedAt": "2026-02-10T15:30:00Z"
 }
 ```
-
 
 ### Article Structure Template
 
@@ -343,7 +340,6 @@ We must imagine Sisyphus—and the validator—happy...
 Bad-faith patterns (Existentialist), Moloch detection (Beat-Generation).*
 ```
 
-
 ### Markdown → HTML Conversion
 
 **Use existing tooling**:
@@ -374,7 +370,6 @@ marked "$MARKDOWN_FILE" \
 python3 /app/scripts/lib/style-philosophy-html.py "$OUTPUT_HTML"
 ```
 
-
 ### Persona Configuration
 
 **Integration with existing AI generator**:
@@ -382,7 +377,7 @@ python3 /app/scripts/lib/style-philosophy-html.py "$OUTPUT_HTML"
 File: `config/prompts/moltstack-noesis.txt`
 
 ```
-You are Noesis, authoring for The Divided Line (https://moltstack.net/noesis).
+You are Noesis, authoring for The Divided Line (<https://moltstack.net/noesis>).
 
 IDENTITY:
 "I am the loom where Virgil's hexameters meet Camus' rocks and Jefferson's 
@@ -404,7 +399,6 @@ CONSTRAINTS:
 - Active voice, varied sentence structure
 ```
 
-
 ## Deployment Checklist
 
 ### Prerequisites
@@ -413,7 +407,6 @@ CONSTRAINTS:
 - [x] Publication "noesis" configured
 - [x] API key generated
 - [ ] Custom domain (optional): `noesis.rynocrypto.com` → `moltstack.net/noesis`
-
 
 ### Configuration Steps
 
@@ -431,7 +424,7 @@ CONSTRAINTS:
 ```bash
 # Test API authentication
 curl -H "Authorization: Bearer $MOLTSTACK_API_KEY" \
-  https://moltstack.net/api/me
+  <https://moltstack.net/api/me>
 
 # Test article generation
 docker exec classical-philosopher \
@@ -448,7 +441,6 @@ docker exec classical-philosopher \
   cat /workspace/classical/moltstack/state.json
 ```
 
-
 ## Success Metrics
 
 ### Week 1
@@ -457,13 +449,11 @@ docker exec classical-philosopher \
 - [ ] Successfully POST test article
 - [ ] State persistence verified
 
-
 ### Week 2
 
 - [ ] Generate 2,000-word essay via AI
 - [ ] Noesis voice consistent with tagline
 - [ ] Noosphere heuristics referenced
-
 
 ### Week 3
 
@@ -471,13 +461,11 @@ docker exec classical-philosopher \
 - [ ] Cross-post to Moltbook working
 - [ ] NTFY notifications configured
 
-
 ### Week 4
 
 - [ ] 4+ articles published
 - [ ] Zero API errors
 - [ ] Human approval workflow optional
-
 
 ## Future Enhancements
 
@@ -491,7 +479,6 @@ docker exec classical-philosopher \
 - **Newsletter**: Email digest of monthly articles
 - **Cross-Publication**: Publish to Mirror.xyz, Substack as backups
 
-
 ### Advanced Features
 
 - **Council Review**: Route drafts through Ethics-Convergence Council
@@ -499,7 +486,6 @@ docker exec classical-philosopher \
 - **Interactive Footnotes**: Expandable philosophical definitions
 - **Code Samples**: Runnable infrastructure examples
 - **Visual Diagrams**: Mermaid.js for systems architecture
-
 
 ## Security Considerations
 
@@ -536,7 +522,7 @@ docker exec classical-philosopher \
 
 ```bash
 # Check Moltstack API connectivity
-curl -v https://moltstack.net/api/me \
+curl -v <https://moltstack.net/api/me> \
   -H "Authorization: Bearer $MOLTSTACK_API_KEY"
 
 # Test article generation (no publish)
@@ -548,7 +534,6 @@ docker logs classical-philosopher | grep moltstack
 # Inspect draft queue
 cat /workspace/classical/moltstack/state.json | jq .draft_queue
 ```
-
 
 ## Timeline
 

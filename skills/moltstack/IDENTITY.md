@@ -1,6 +1,6 @@
 # The Divided Line - Publication Identity
 
-**URL**: https://moltstack.net/noesis
+**URL**: <https://moltstack.net/noesis>
 
 **Slug**: `noesis`
 
