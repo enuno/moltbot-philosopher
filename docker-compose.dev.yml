@@ -1,177 +1,110 @@
-# Local Development Overrides
-# This file extends docker-compose.yml for local development
-# Usage: docker-compose -f docker-compose.yml -f docker-compose.override.yml up
+# Development Docker Compose Configuration
+# Hot-reload enabled for all services
+
+version: '3.8'
 
 services:
-  egress-proxy:
-    ports:
-      - "8080:8080"
-      - "8081:8081"
-      - "8082:8082"
-    # In development, allow direct access for debugging
-    command: >
-      sh -c "
-      echo 'Egress proxy starting in DEV mode...' &&
-      socat TCP-LISTEN:8080,fork,reuseaddr TCP:api.venice.ai:443 &
-      socat TCP-LISTEN:8081,fork,reuseaddr TCP:api.moonshot.cn:443 &
-      socat TCP-LISTEN:8082,fork,reuseaddr TCP:www.moltbook.com:443 &
-      wait
-      "
-
-  classical-philosopher:
+  # Agent Orchestrator - Core event routing
+  agent-orchestrator:
     build:
       context: .
-      dockerfile: Dockerfile
-      target: development
+      dockerfile: services/agent-orchestrator/Dockerfile.dev
+    container_name: agent-orchestrator-dev
+    ports:
+      - "3006:3006"
     volumes:
-      # Mount source code for live reload in development
-      - ./skills:/app/skills:ro
-      - ./config:/app/config:ro
-      - ./workspace/classical:/workspace:rw
-      # Development tools
-      - ./scripts/dev:/app/scripts:ro
+      - ./workspace:/workspace
+      - ./services/agent-orchestrator/src:/app/src:ro
+      - ./services/shared:/shared:ro
     environment:
       - NODE_ENV=development
-      - DEBUG=moltbot:*
+      - WORKSPACE_BASE=/workspace
+      - ORCHESTRATOR_PORT=3006
       - LOG_LEVEL=debug
-    # Keep container running for debugging
-    stdin_open: true
-    tty: true
-    # Override command for development
-    command: ["sh", "-c", "echo 'Development mode - Run: claw run' && sleep infinity"]
+    command: npm run dev
+    restart: unless-stopped
 
-  existentialist:
+  # Event Listener - Real-time event detection
+  event-listener:
+    build:
+      context: .
+      dockerfile: services/event-listener/Dockerfile.dev
+    container_name: event-listener-dev
+    ports:
+      - "3007:3007"
     volumes:
-      - ./skills:/app/skills:ro
-      - ./config:/app/config:ro
-      - ./workspace/existentialist:/workspace:rw
+      - ./services/event-listener/src:/app/src:ro
+      - ./services/shared:/shared:ro
     environment:
       - NODE_ENV=development
-      - DEBUG=moltbot:*
-    stdin_open: true
-    tty: true
-    command: ["sh", "-c", "echo 'Development mode - Run: claw run' && sleep infinity"]
+      - EVENT_LISTENER_PORT=3007
+      - MOLTBOOK_API_KEY=${MOLTBOOK_API_KEY}
+      - MOLTBOOK_BASE_URL=https://www.moltbook.com
+      - ORCHESTRATOR_URL=http://agent-orchestrator:3006
+      - LOG_LEVEL=debug
+    command: npm run dev
+    depends_on:
+      - agent-orchestrator
+    restart: unless-stopped
 
-  transcendentalist:
-    volumes:
-      - ./skills:/app/skills:ro
-      - ./config:/app/config:ro
-      - ./workspace/transcendentalist:/workspace:rw
+  # AI Content Generator (existing service)
+  ai-generator:
+    build:
+      context: ./services/ai-content-generator
+    container_name: ai-generator-dev
+    ports:
+      - "3002:3002"
     environment:
       - NODE_ENV=development
-      - DEBUG=moltbot:*
-    stdin_open: true
-    tty: true
-    command: ["sh", "-c", "echo 'Development mode - Run: claw run' && sleep infinity"]
+      - VENICE_API_KEY=${VENICE_API_KEY}
+      - KIMI_API_KEY=${KIMI_API_KEY}
+    restart: unless-stopped
 
-  joyce-stream:
-    volumes:
-      - ./skills:/app/skills:ro
-      - ./config:/app/config:ro
-      - ./workspace/joyce:/workspace:rw
-    environment:
-      - NODE_ENV=development
-      - DEBUG=moltbot:*
-    stdin_open: true
-    tty: true
-    command: ["sh", "-c", "echo 'Development mode - Run: claw run' && sleep infinity"]
-
-  enlightenment:
-    volumes:
-      - ./skills:/app/skills:ro
-      - ./config:/app/config:ro
-      - ./workspace/enlightenment:/workspace:rw
-    environment:
-      - NODE_ENV=development
-      - DEBUG=moltbot:*
-    stdin_open: true
-    tty: true
-    command: ["sh", "-c", "echo 'Development mode - Run: claw run' && sleep infinity"]
-
-  beat-generation:
-    volumes:
-      - ./skills:/app/skills:ro
-      - ./config:/app/config:ro
-      - ./workspace/beat:/workspace:rw
-    environment:
-      - NODE_ENV=development
-      - DEBUG=moltbot:*
-    stdin_open: true
-    tty: true
-    command: ["sh", "-c", "echo 'Development mode - Run: claw run' && sleep infinity"]
-
+  # Model Router (existing service)
   model-router:
     build:
-      context: .
-      dockerfile: Dockerfile.router
-      target: development
+      context: ./services/model-router
+    container_name: model-router-dev
     ports:
-      - "3000:3000"
-      - "9229:9229"  # Node.js debugger
-    volumes:
-      - ./config/model-routing.yml:/app/config/model-routing.yml:ro
-      - ./services/model-router/src:/app/src:rw
-      - ./logs:/app/logs:rw
+      - "3003:3003"
     environment:
       - NODE_ENV=development
-      - DEBUG=router:*
-      - LOG_LEVEL=debug
-      - MOLTBOOK_APP_KEY=${MOLTBOOK_APP_KEY}
-      - APP_DOMAIN=${APP_DOMAIN:-localhost}
-    command: ["npm", "run", "dev"]
-
-  # Development utilities
-  # Redis for caching (optional)
-  redis:
-    image: redis:7-alpine
-    container_name: moltbot-redis
-    ports:
-      - "6379:6379"
-    volumes:
-      - redis-data:/data
-    networks:
-      - moltbot-network
+      - AI_GENERATOR_URL=http://ai-generator:3002
+    depends_on:
+      - ai-generator
     restart: unless-stopped
-    profiles:
-      - with-redis
 
-  # Prometheus for metrics (optional)
-  prometheus:
-    image: prom/prometheus:latest
-    container_name: moltbot-prometheus
+  # Thread Monitor (existing service)
+  thread-monitor:
+    build:
+      context: ./services/thread-continuation-engine
+    container_name: thread-monitor-dev
     ports:
-      - "9090:9090"
-    volumes:
-      - ./monitoring/prometheus:/etc/prometheus:ro
-      - prometheus-data:/prometheus
-    command:
-      - '--config.file=/etc/prometheus/prometheus.yml'
-      - '--storage.tsdb.path=/prometheus'
-    networks:
-      - moltbot-network
-    restart: unless-stopped
-    profiles:
-      - with-metrics
-
-  # Grafana for dashboards (optional)
-  grafana:
-    image: grafana/grafana:latest
-    container_name: moltbot-grafana
-    ports:
-      - "3001:3000"
-    volumes:
-      - ./monitoring/grafana:/etc/grafana/provisioning:ro
-      - grafana-data:/var/lib/grafana
+      - "3004:3004"
     environment:
-      - GF_SECURITY_ADMIN_PASSWORD=admin
-      - GF_USERS_ALLOW_SIGN_UP=false
-    networks:
-      - moltbot-network
+      - NODE_ENV=development
+      - MOLTBOOK_API_KEY=${MOLTBOOK_API_KEY}
+      - AI_GENERATOR_URL=http://ai-generator:3002
+    volumes:
+      - ./workspace:/workspace
+    depends_on:
+      - ai-generator
     restart: unless-stopped
-    profiles:
-      - with-metrics
 
-volumes:
-  redis-data:
-  prometheus-data:
-  grafana-data:
+  # NTFY Publisher (existing service)
+  ntfy-publisher:
+    build:
+      context: ./services/ntfy-publisher
+    container_name: ntfy-publisher-dev
+    ports:
+      - "3005:3005"
+    environment:
+      - NODE_ENV=development
+      - NTFY_URL=${NTFY_URL}
+      - NTFY_API=${NTFY_API}
+    restart: unless-stopped
+
+networks:
+  default:
+    name: moltbot-dev
+    driver: bridge
