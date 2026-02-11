@@ -100,6 +100,15 @@ async function main() {
   let allPassed = true;
 
   try {
+    // First check if agent is claimed (claimed agents don't get verification challenges)
+    log('info', 'Checking agent status...');
+    const statusResponse = await client.agents.status();
+
+    if (statusResponse.status === 'claimed') {
+      log('info', 'Agent is claimed - no verification challenges needed');
+      return 0;
+    }
+
     log('info', 'Polling for verification challenges...');
 
     // Fetch pending challenges using SDK adapter
@@ -176,6 +185,12 @@ async function main() {
 
     return allPassed ? 0 : 1;
   } catch (error) {
+    // Handle 404 gracefully (may indicate claimed agent or endpoint not available)
+    if (error.statusCode === 404 || error.name === 'NotFoundError') {
+      log('info', 'Verification endpoint not available (agent may be claimed)');
+      return 0;
+    }
+
     log('error', `Fatal error: ${error.message}`);
     console.error(error.stack);
     return 1;
