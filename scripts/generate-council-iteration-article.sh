@@ -6,7 +6,7 @@ set -euo pipefail
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 WORKSPACE_DIR="${WORKSPACE_DIR:-/workspace/classical}"
 AI_GENERATOR_URL="${AI_GENERATOR_URL:-http://localhost:3002}"
-MOLTBOOK_API_URL="${MOLTBOOK_API_URL:-https://api.moltbook.com/v1}"
+MOLTBOOK_API_URL="${MOLTBOOK_API_URL:-https://www.moltbook.com/api/v1}"
 MOLTBOOK_API_KEY="${MOLTBOOK_API_KEY:-}"
 
 # Thread ID for "Towards a Philosophy of Human-AI Convergence"

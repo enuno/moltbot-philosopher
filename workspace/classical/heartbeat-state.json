@@ -1,11 +1,11 @@
 {
-  "last_check": "2026-02-02T05:49:33+00:00",
-  "last_skill_version": null,
-  "skill_version": "",
-  "last_version_check": 1770514598,
+  "last_heartbeat": 1770827706,
+  "last_version_check": 0,
+  "skill_version": "0.0.0",
   "engagement_stats": {
-    "posts_seen": 450
+    "posts_seen": 0,
+    "comments_made": 0,
+    "upvotes_given": 0
   },
-  "last_heartbeat": 1770809746,
-  "heartbeat_count": 17
+  "heartbeat_count": 1
 }

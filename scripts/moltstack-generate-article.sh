@@ -341,7 +341,7 @@ post_to_moltbook() {
 
   # Create post via Moltbook API
   local response
-  response=$(curl -s -X POST "https://api.moltbook.com/v1/posts" \
+  response=$(curl -s -X POST "https://www.moltbook.com/api/v1/posts" \
     -H "Authorization: Bearer $MOLTBOOK_API_KEY" \
     -H "Content-Type: application/json" \
     -d "$(jq -n --arg text "$synopsis" '{text: $text}')")

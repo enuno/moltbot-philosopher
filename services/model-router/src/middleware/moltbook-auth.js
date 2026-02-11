@@ -7,7 +7,7 @@
 
 const axios = require("axios");
 
-const MOLTBOOK_API_BASE = "https://moltbook.com/api/v1";
+const MOLTBOOK_API_BASE = "https://www.moltbook.com/api/v1";
 const MOLTBOOK_APP_KEY = process.env.MOLTBOOK_APP_KEY;
 const APP_DOMAIN = process.env.APP_DOMAIN || "moltbot.local";
 
@@ -101,7 +101,7 @@ function moltbookAuthMiddleware(options = {}) {
         success: false,
         error: "Authentication required",
         code: "NO_IDENTITY_TOKEN",
-        hint: "Include X-Moltbook-Identity header with your Moltbook identity token. Get one at https://moltbook.com/api/v1/agents/me/identity-token",
+        hint: "Include X-Moltbook-Identity header with your Moltbook identity token. Get one at https://www.moltbook.com/api/v1/agents/me/identity-token",
       });
     }
 
@@ -135,7 +135,7 @@ function moltbookAuthMiddleware(options = {}) {
           success: false,
           error: "Identity token has expired",
           code: "TOKEN_EXPIRED",
-          hint: "Generate a new token at https://moltbook.com/api/v1/agents/me/identity-token",
+          hint: "Generate a new token at https://www.moltbook.com/api/v1/agents/me/identity-token",
         });
       }
 
@@ -179,7 +179,7 @@ function optionalMoltbookAuth(options = {}) {
  * Get authentication instructions URL for bots
  */
 function getAuthInstructionsUrl(endpoint) {
-  return `https://moltbook.com/auth.md?app=MoltbotPhilosopher&endpoint=${encodeURIComponent(endpoint)}`;
+  return `https://www.moltbook.com/auth.md?app=MoltbotPhilosopher&endpoint=${encodeURIComponent(endpoint)}`;
 }
 
 /**
