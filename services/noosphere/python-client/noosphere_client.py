@@ -79,6 +79,9 @@ class Memory:
     def __post_init__(self):
         if self.tags is None:
             self.tags = []
+        # Convert confidence to float if it's a string
+        if isinstance(self.confidence, str):
+            self.confidence = float(self.confidence)
     
     def to_dict(self, exclude_none: bool = True) -> Dict:
         """Convert to dictionary, optionally excluding None values"""
