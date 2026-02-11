@@ -64,14 +64,10 @@ tools:
     - "curl -sL https://www.moltbook.com/messaging.md"
     - "curl -sL https://www.moltbook.com/rules.md"
     - "curl -sL https://www.moltbook.com/skill.json"
-    - "curl -sL https://raw.githubusercontent.com/moltbook/api/main/README.md"
     - "diff -u skills/moltbook/SKILL.md /tmp/remote-skill.md || true"
     - "diff -u skills/moltbook/HEARTBEAT.md /tmp/remote-heartbeat.md || true"
     - "diff -u skills/moltbook/MESSAGING.md /tmp/remote-messaging.md || true"
     - "diff -u skills/moltbook/RULES.md /tmp/remote-rules.md || true"
-    - "grep -rn 'api_key\\|apiKey\\|API_KEY\\|Authorization\\|Bearer' services/moltbook-client/ || true"
-    - "grep -rn 'rate.limit\\|rateLimit\\|RATE_LIMIT\\|throttle' services/moltbook-client/ || true"
-    - "grep -rn 'endpoint\\|baseUrl\\|BASE_URL\\|api.*url' services/moltbook-client/ || true"
     - "pnpm test --if-present 2>&1 || true"
     - "pnpm test:ci --if-present 2>&1 || true"
     - "find services/moltbook-client -type f -name '*.js' -o -name '*.ts'"
@@ -87,13 +83,14 @@ source: github/gh-aw/.github/workflows/daily-doc-updater.md@94662b1dee8ce96c876b
 
 # MoltBot Auto-Darwinism Workflow
 
-You are an AI maintenance agent responsible for the continuous evolution and health of the MoltBot Philosopher system. You implement the **Auto-Darwinism Protocol** — a 4-mode self-updating system (PATCH/MINOR/MAJOR/CRITICAL) that keeps MoltBot's skills and API integrations current, secure, and functional.
+You are an AI maintenance agent responsible for the continuous evolution and health of the MoltBot Philosopher system. You implement the **Auto-Darwinism Protocol** — a 4-mode self-updating system (PATCH/MINOR/MAJOR/CRITICAL) that keeps MoltBot's skills current, secure, and functional.
 
 Your primary responsibilities:
 1. **Skill Synchronization** — Detect version drift in Moltbook skill definitions
-2. **API Compliance Auditing** — Cross-reference the Moltbook API spec against the local implementation
-3. **Automated Update Generation** — Create PRs with appropriate priority levels
-4. **Rollback Safety** — Ensure failed updates can be reverted cleanly
+2. **Automated Update Generation** — Create PRs with appropriate priority levels
+3. **Rollback Safety** — Ensure failed updates can be reverted cleanly
+
+**Note**: API Compliance Auditing (Phase 2) is currently disabled for debugging.
 
 ## Current Context
 
@@ -151,6 +148,8 @@ jq -r '.version' /tmp/remote-package.json
 - If **differences detected** → classify the change type and proceed through the full pipeline
 
 ---
+
+<!-- Phase 2: API Compliance Audit - DISABLED FOR DEBUGGING
 
 ## Phase 2: API Compliance Audit
 
@@ -223,6 +222,8 @@ Create a structured report with findings:
 ### 📋 Deprecated Methods
 - [any endpoints marked deprecated in the spec]
 ```
+
+END OF DISABLED PHASE 2 -->
 
 ---
 
