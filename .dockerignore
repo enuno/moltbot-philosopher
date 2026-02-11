@@ -45,3 +45,13 @@ tests/
 tmp/
 temp/
 *.tmp
+
+# Runtime data (volumes only, not build context)
+data/
+workspace/
+state/
+memory/
+
+# Session and metadata
+.copilot/
+meta/
