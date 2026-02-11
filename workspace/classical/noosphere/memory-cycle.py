@@ -1,20 +1,34 @@
 #!/usr/bin/env python3
 """
-Noosphere Memory-Cycle Management
-Tri-Layer Memory consolidation and promotion system
+Noosphere v3.0 Memory-Cycle Management
+Migrated from v2.6 tri-layer system to PostgreSQL unified storage
 
-Consolidates daily notes → establishes heuristics → promotes to constitutional archive
+Key Changes:
+- Consolidation is automatic (no layer 1→2 migration needed)
+- Promotion = boost confidence to constitutional level (≥0.92)
+- Eviction = capacity management (200-cap enforcement)
+- Stats = query PostgreSQL via NoosphereClient
 """
 
 import argparse
 import json
 import logging
+import os
 import sys
 from datetime import datetime
 from pathlib import Path
-from typing import Dict
+from typing import Dict, List
 
-NOOSPHERE_DIR = Path("/workspace/classical/noosphere")
+# Add python-client to path
+CLIENT_DIR = Path(__file__).parent.parent.parent / "services" / "noosphere" / "python-client"
+sys.path.insert(0, str(CLIENT_DIR))
+
+try:
+    from noosphere_client import NoosphereClient, MemoryType, NoosphereCapacityError
+except ModuleNotFoundError:
+    import site
+    site.addsitedir(str(CLIENT_DIR))
+    from noosphere_client import NoosphereClient, MemoryType, NoosphereCapacityError
 
 # Configure logging
 logging.basicConfig(
@@ -25,439 +39,338 @@ logging.basicConfig(
 logger = logging.getLogger(__name__)
 
 
-class MemoryCycle:
-    """Manages tri-layer memory consolidation and promotion."""
-
-    def __init__(self, noosphere_dir: Path = NOOSPHERE_DIR):
+class MemoryCycleV3:
+    """Manages memory operations in Noosphere v3.0 (PostgreSQL-based)."""
+    
+    def __init__(self, api_url: str = "http://noosphere-service:3006"):
         """Initialize memory cycle manager."""
-        self.noosphere_dir = noosphere_dir
-        self.memory_core = noosphere_dir / "memory-core"
-        self.layer_1 = self.memory_core / "daily-notes"
-        self.layer_2 = self.memory_core / "consolidated"
-        self.layer_3 = self.memory_core / "archival"
-        self.state_file = noosphere_dir / "memory-state.json"
-
-        self._ensure_directories()
-        self._load_state()
-
-    def _ensure_directories(self):
-        """Create necessary directories if they don't exist."""
-        for directory in [self.layer_1, self.layer_2, self.layer_3]:
-            directory.mkdir(parents=True, exist_ok=True)
-        logger.info(f"✓ Memory directories ready at {self.memory_core}")
-
-    def _load_state(self):
-        """Load memory state from file."""
-        if self.state_file.exists():
-            try:
-                with open(self.state_file) as f:
-                    self.state = json.load(f)
-                logger.info("✓ Loaded memory state")
-            except Exception as e:
-                logger.warning(f"Could not load state file: {e}")
-                self.state = self._initialize_state()
-        else:
-            self.state = self._initialize_state()
-
-    def _initialize_state(self) -> Dict:
-        """Create fresh memory state."""
-        return {
-            "version": "2.5",
-            "last_consolidation": None,
-            "last_promotion": None,
-            "layers": {
-                "layer_1": {"entries": 0, "last_updated": None},
-                "layer_2": {"entries": 0, "last_updated": None},
-                "layer_3": {"entries": 0, "last_updated": None},
-            },
-            "metrics": {
-                "total_heuristics": 0,
-                "canonical_heuristics": 0,
-                "community_derived": 0,
-                "consolidation_lag_hours": 0,
-            },
-        }
-
-    def _save_state(self):
-        """Persist memory state to file."""
-        try:
-            with open(self.state_file, "w") as f:
-                json.dump(self.state, f, indent=2)
-            logger.info(f"✓ Saved memory state to {self.state_file.name}")
-        except Exception as e:
-            logger.error(f"Failed to save state: {e}")
-
-    def consolidate(self, batch_size: int = 100) -> int:
-        """Consolidate Layer 1 (daily notes) → Layer 2 (consolidated heuristics).
-
-        Process daily notes and extract patterns that appear multiple times.
-        Establish consolidated heuristics with improved confidence scoring.
-
-        Returns: Number of heuristics consolidated
-        """
-        logger.info("=" * 60)
-        logger.info("CONSOLIDATION: Layer 1 → Layer 2")
-        logger.info("=" * 60)
-
-        # Find all daily note files
-        note_files = list(self.layer_1.glob("*.json"))
-        logger.info(f"Found {len(note_files)} daily note files")
-
-        if not note_files:
-            logger.info("No daily notes to consolidate")
-            return 0
-
-        # Load all notes
-        all_notes = []
-        for note_file in note_files:
-            try:
-                with open(note_file) as f:
-                    note = json.load(f)
-                    all_notes.append(note)
-            except Exception as e:
-                logger.warning(f"Could not load {note_file.name}: {e}")
-
-        # Extract patterns (heuristics that appear in multiple notes)
-        heuristic_frequency = {}
-        for note in all_notes:
-            for heuristic in note.get("extracted_heuristics", []):
-                hid = heuristic.get("heuristic_id")
-                if hid not in heuristic_frequency:
-                    heuristic_frequency[hid] = {
-                        "count": 0,
-                        "heuristic": heuristic,
-                        "sources": [],
-                    }
-                heuristic_frequency[hid]["count"] += 1
-                heuristic_frequency[hid]["sources"].append(note.get("date", "unknown"))
-
-        # Consolidate: Keep heuristics appearing 2+ times
-        consolidated = []
-        for hid, data in heuristic_frequency.items():
-            if data["count"] >= 2:
-                h = data["heuristic"].copy()
-                # Boost confidence based on frequency
-                original_conf = h.get("confidence", 0.5)
-                frequency_boost = min(0.2, data["count"] * 0.05)
-                h["confidence"] = min(1.0, original_conf + frequency_boost)
-                h["consolidated_from"] = data["sources"]
-                h["consolidation_date"] = datetime.now().isoformat()
-                h["status"] = "consolidated"
-                consolidated.append(h)
-
-        # Save consolidated heuristics
-        if consolidated:
-            consolidated_file = self.layer_2 / "index.json"
-            consolidated_data = {
-                "heuristics": consolidated,
-                "consolidated_at": datetime.now().isoformat(),
-            }
-            try:
-                with open(consolidated_file, "w") as f:
-                    json.dump(consolidated_data, f, indent=2)
-                logger.info(f"✓ Consolidated {len(consolidated)} heuristics")
-                self.state["last_consolidation"] = datetime.now().isoformat()
-                self.state["layers"]["layer_2"]["entries"] = len(consolidated)
-                self.state["layers"]["layer_2"]["last_updated"] = (
-                    datetime.now().isoformat()
-                )
-                self._save_state()
-            except Exception as e:
-                logger.error(f"Failed to save consolidated heuristics: {e}")
-
-        return len(consolidated)
-
+        self.client = NoosphereClient(
+            api_url=api_url,
+            api_key=os.environ.get('MOLTBOOK_API_KEY')
+        )
+        logger.info(f"✓ Connected to Noosphere v3.0 API at {api_url}")
+    
     def promote(
         self,
-        heuristic_id: str,
-        min_confidence: float = 0.92,
-        force: bool = False,
+        memory_id: str,
+        target_confidence: float = 0.92,
+        force: bool = False
     ) -> bool:
-        """Promote a heuristic from Layer 2 → Layer 3 (constitutional archive).
-
-        Requires high confidence and explicit promotion request.
-        Creates git-style history entry.
-
-        Returns: True if successful
+        """Promote a memory to constitutional status by boosting confidence.
+        
+        Args:
+            memory_id: Memory UUID to promote
+            target_confidence: Target confidence level (default: 0.92 for DKG)
+            force: Force promotion even if already at target
+        
+        Returns:
+            True if successful
         """
         logger.info("=" * 60)
-        logger.info(f"PROMOTION: {heuristic_id} → Constitutional Archive")
+        logger.info(f"PROMOTION: {memory_id} → Constitutional Status")
         logger.info("=" * 60)
-
-        # Load from Layer 2
-        consolidated_file = self.layer_2 / "index.json"
-        if not consolidated_file.exists():
-            logger.error("No consolidated heuristics found in Layer 2")
-            return False
-
+        
         try:
-            with open(consolidated_file) as f:
-                consolidated_data = json.load(f)
-        except Exception as e:
-            logger.error(f"Could not load Layer 2 data: {e}")
-            return False
-
-        # Find heuristic to promote
-        heuristic_to_promote = None
-        for h in consolidated_data.get("heuristics", []):
-            if h.get("heuristic_id") == heuristic_id:
-                heuristic_to_promote = h
-                break
-
-        if not heuristic_to_promote:
-            logger.error(f"Heuristic {heuristic_id} not found in Layer 2")
-            return False
-
-        # Check confidence
-        confidence = heuristic_to_promote.get("confidence", 0)
-        if confidence < min_confidence and not force:
-            logger.error(
-                f"Confidence {confidence:.2f} below threshold {min_confidence} "
-                f"(use --force to override)"
+            # Get current memory
+            memory = self.client.get_memory(memory_id)
+            current_confidence = memory.confidence
+            
+            logger.info(f"Current: {memory.agent_id}/{memory.type} (conf: {current_confidence:.2f})")
+            logger.info(f"Content: {memory.content[:100]}...")
+            
+            # Check if already at target
+            if current_confidence >= target_confidence and not force:
+                logger.info(f"✓ Already at constitutional level ({current_confidence:.2f} ≥ {target_confidence})")
+                return True
+            
+            # Update confidence
+            updated = self.client.update_memory(
+                memory_id,
+                confidence=target_confidence,
+                tags=list(set(memory.tags + ["constitutional", "promoted"]))
             )
-            return False
-
-        # Promote to constitutional archive
-        archival_dir = self.layer_3 / "constitutional-memories"
-        archival_dir.mkdir(parents=True, exist_ok=True)
-
-        promoted = heuristic_to_promote.copy()
-        promoted["status"] = "constitutional"
-        promoted["promoted_at"] = datetime.now().isoformat()
-        promoted["promotion_confidence"] = confidence
-
-        # Save with unique filename
-        archive_file = (
-            archival_dir / f"{heuristic_id}-{datetime.now().isoformat()[:10]}.json"
-        )
-        try:
-            with open(archive_file, "w") as f:
-                json.dump(promoted, f, indent=2)
-            logger.info("✓ Promoted to constitutional archive")
-
-            # Update git history
-            git_history_dir = self.layer_3 / "git-history"
-            git_history_dir.mkdir(parents=True, exist_ok=True)
-            git_log = {
-                "heuristic_id": heuristic_id,
-                "promoted_at": datetime.now().isoformat(),
-                "promotion_confidence": confidence,
-                "archive_location": str(archive_file),
-                "message": f"PROMOTE: {heuristic_id} → constitutional memory",
-            }
-            git_file = git_history_dir / f"{heuristic_id}-promotion.json"
-            with open(git_file, "w") as f:
-                json.dump(git_log, f, indent=2)
-
-            self.state["last_promotion"] = datetime.now().isoformat()
-            self.state["layers"]["layer_3"]["entries"] = len(
-                list(archival_dir.glob("*.json"))
-            )
-            self.state["metrics"]["canonical_heuristics"] += 1
-            self._save_state()
-
+            
+            logger.info(f"✓ Promoted: {current_confidence:.2f} → {updated.confidence:.2f}")
+            logger.info(f"✓ Tags updated: {updated.tags}")
+            
             return True
+        
         except Exception as e:
-            logger.error(f"Failed to promote heuristic: {e}")
+            logger.error(f"Failed to promote memory: {e}")
             return False
-
-    def get_stats(self) -> Dict:
-        """Get memory statistics across all layers.
-
-        Returns: Dictionary with comprehensive memory metrics
+    
+    def evict(
+        self,
+        agent_id: str,
+        count: int = 1,
+        strategy: str = "oldest"
+    ) -> List[str]:
+        """Evict memories from an agent (capacity management).
+        
+        Args:
+            agent_id: Agent identifier
+            count: Number of memories to evict
+            strategy: Eviction strategy (oldest, lowest-confidence)
+        
+        Returns:
+            List of evicted memory IDs
+        """
+        logger.info("=" * 60)
+        logger.info(f"EVICTION: {agent_id} ({strategy} strategy)")
+        logger.info("=" * 60)
+        
+        try:
+            # Get agent stats
+            stats = self.client.get_agent_stats(agent_id)
+            logger.info(f"Current capacity: {stats.memory_count}/200")
+            
+            if stats.memory_count < 180:
+                logger.info(f"✓ Capacity healthy (<90%), no eviction needed")
+                return []
+            
+            # Get candidates based on strategy
+            if strategy == "oldest":
+                candidates = self.client.query_memories(
+                    agent_id=agent_id,
+                    limit=count,
+                    sort="created_at",
+                    order="ASC"
+                )
+            elif strategy == "lowest-confidence":
+                candidates = self.client.query_memories(
+                    agent_id=agent_id,
+                    limit=count,
+                    sort="confidence",
+                    order="ASC"
+                )
+            else:
+                logger.error(f"Unknown strategy: {strategy}")
+                return []
+            
+            # Evict memories
+            evicted_ids = []
+            for mem in candidates:
+                # Don't evict constitutional memories
+                if mem.confidence >= 0.92:
+                    logger.info(f"⏭️  Skipping constitutional memory {mem.id[:8]} (conf: {mem.confidence})")
+                    continue
+                
+                try:
+                    self.client.delete_memory(mem.id)
+                    evicted_ids.append(mem.id)
+                    logger.info(f"✓ Evicted: {mem.id[:8]} (conf: {mem.confidence:.2f}, type: {mem.type})")
+                except Exception as e:
+                    logger.error(f"Failed to evict {mem.id}: {e}")
+            
+            # Update stats
+            new_stats = self.client.get_agent_stats(agent_id)
+            logger.info(f"✓ New capacity: {new_stats.memory_count}/200")
+            
+            return evicted_ids
+        
+        except Exception as e:
+            logger.error(f"Eviction failed: {e}")
+            return []
+    
+    def get_stats(self, agent_id: str = None) -> Dict:
+        """Get memory statistics.
+        
+        Args:
+            agent_id: Optional agent to filter (or None for all)
+        
+        Returns:
+            Dictionary with comprehensive memory metrics
         """
         logger.info("=" * 60)
         logger.info("MEMORY STATISTICS")
         logger.info("=" * 60)
-
-        # Count entries in each layer
-        layer_1_count = len(list(self.layer_1.glob("*.json")))
-        layer_2_count = (
-            len(list(self.layer_2.glob("*.json"))) if self.layer_2.exists() else 0
-        )
-        layer_3_count = (
-            len(list(self.layer_3.glob("**/*.json"))) if self.layer_3.exists() else 0
-        )
-
-        # Load main heuristic files for stats
-        main_files_count = 0
-        canonical_count = 0
-        community_count = 0
-        memory_core = NOOSPHERE_DIR / "memory-core"
-
-        for heuristic_file in memory_core.glob("*.json"):
-            try:
-                with open(heuristic_file) as f:
-                    data = json.load(f)
-                    heuristics = data.get("heuristics", [])
-                    main_files_count += len(heuristics)
-                    canonical_count += len(
-                        [h for h in heuristics if h.get("status") == "canonical"]
-                    )
-                    community_count += len(
-                        [
-                            h
-                            for h in heuristics
-                            if h.get("status") == "community-derived"
-                        ]
-                    )
-            except (FileNotFoundError, json.JSONDecodeError):
-                pass
-
-        stats = {
-            "timestamp": datetime.now().isoformat(),
-            "memory_layers": {
-                "layer_1_daily_notes": layer_1_count,
-                "layer_2_consolidated": layer_2_count,
-                "layer_3_constitutional": layer_3_count,
-            },
-            "heuristic_count": {
-                "total": main_files_count,
-                "canonical": canonical_count,
-                "community_derived": community_count,
-                "provisional": main_files_count - canonical_count - community_count,
-            },
-            "memory_health": {
-                "consolidation_lag_days": (
-                    (
-                        datetime.now()
-                        - datetime.fromisoformat(
-                            self.state.get(
-                                "last_consolidation", datetime.now().isoformat()
-                            )
-                        )
-                    ).days
-                    if self.state.get("last_consolidation")
-                    else 0
-                ),
-                "last_consolidation": self.state.get("last_consolidation"),
-                "last_promotion": self.state.get("last_promotion"),
-            },
-            "voice_distribution": self._get_voice_distribution(),
-        }
-
-        # Log stats
-        logger.info(f"Layer 1 (Daily Notes): {layer_1_count}")
-        logger.info(f"Layer 2 (Consolidated): {layer_2_count}")
-        logger.info(f"Layer 3 (Constitutional): {layer_3_count}")
-        logger.info(f"Total Heuristics: {main_files_count}")
-        logger.info(f"  Canonical: {canonical_count}")
-        logger.info(f"  Community-Derived: {community_count}")
-        logger.info(
-            f"  Provisional: {main_files_count - canonical_count - community_count}"
-        )
-
-        return stats
-
-    def _get_voice_distribution(self) -> Dict[str, int]:
-        """Get distribution of heuristics by voice."""
-        voices = {}
-        memory_core = NOOSPHERE_DIR / "memory-core"
-
-        voice_files = {
-            "Classical": "telos-alignment-heuristics.json",
-            "Existentialist": "bad-faith-patterns.json",
-            "Transcendentalist": "sovereignty-warnings.json",
-            "JoyceStream": "phenomenological-touchstones.json",
-            "Enlightenment": "rights-precedents.json",
-            "BeatGeneration": "moloch-detections/archive.json",
-        }
-
-        for voice, filename in voice_files.items():
-            file_path = memory_core / filename
-            try:
-                if file_path.exists():
-                    with open(file_path) as f:
-                        data = json.load(f)
-                        count = len(
-                            data.get("heuristics", data.get("moloch_types", []))
-                        )
-                        voices[voice] = count
-            except (FileNotFoundError, json.JSONDecodeError):
-                voices[voice] = 0
-
-        return voices
+        
+        try:
+            if agent_id:
+                # Single agent stats
+                stats = self.client.get_agent_stats(agent_id)
+                return {
+                    "agent_id": stats.agent_id,
+                    "total_memories": stats.memory_count,
+                    "capacity_used": f"{stats.memory_count}/200 ({stats.memory_count/200*100:.1f}%)",
+                    "by_type": {
+                        "insights": stats.insights_count,
+                        "patterns": stats.patterns_count,
+                        "strategies": stats.strategies_count,
+                        "preferences": stats.preferences_count,
+                        "lessons": stats.lessons_count
+                    },
+                    "last_eviction": stats.last_eviction,
+                    "updated_at": stats.updated_at
+                }
+            else:
+                # All agents stats
+                all_stats = self.client.get_all_stats()
+                
+                # Aggregate metrics
+                total_memories = sum(s.memory_count for s in all_stats)
+                total_capacity = len(all_stats) * 200
+                
+                by_agent = {}
+                for s in all_stats:
+                    if s.memory_count > 0:  # Only include agents with memories
+                        by_agent[s.agent_id] = {
+                            "count": s.memory_count,
+                            "capacity": f"{s.memory_count/200*100:.1f}%",
+                            "insights": s.insights_count,
+                            "patterns": s.patterns_count,
+                            "strategies": s.strategies_count,
+                            "preferences": s.preferences_count,
+                            "lessons": s.lessons_count
+                        }
+                
+                return {
+                    "total_memories": total_memories,
+                    "total_capacity": f"{total_memories}/{total_capacity} ({total_memories/total_capacity*100:.1f}%)",
+                    "agents_with_memories": len(by_agent),
+                    "by_agent": by_agent
+                }
+        
+        except Exception as e:
+            logger.error(f"Failed to get stats: {e}")
+            return {"error": str(e)}
+    
+    def consolidate_deprecated(self):
+        """Consolidation is deprecated in v3.0 (automatic via PostgreSQL)."""
+        logger.warning("=" * 60)
+        logger.warning("CONSOLIDATION DEPRECATED IN v3.0")
+        logger.warning("=" * 60)
+        logger.warning("In Noosphere v3.0, consolidation is handled automatically:")
+        logger.warning("- Daily notes → Direct API creation (no Layer 1)")
+        logger.warning("- Consolidated heuristics → PostgreSQL memories (unified)")
+        logger.warning("- Constitutional archive → High-confidence memories (≥0.92)")
+        logger.warning("")
+        logger.warning("Use --action promote to boost confidence to constitutional level")
+        logger.warning("Use --action stats to view current memory distribution")
+        return 0
 
 
 def main():
     parser = argparse.ArgumentParser(
-        description="Noosphere Memory-Cycle Management - Consolidation and Promotion"
+        description="Noosphere v3.0 Memory-Cycle Management"
     )
     parser.add_argument(
         "--action",
-        choices=["consolidate", "promote", "stats"],
+        choices=["consolidate", "promote", "evict", "stats"],
         required=True,
-        help="Action to perform",
+        help="Action to perform"
     )
     parser.add_argument(
         "--memory-id",
-        help="Heuristic ID for promotion action",
+        help="Memory UUID for promotion action"
+    )
+    parser.add_argument(
+        "--agent-id",
+        help="Agent ID for eviction or stats"
     )
     parser.add_argument(
         "--min-confidence",
         type=float,
         default=0.92,
-        help="Minimum confidence for promotion (default: 0.92)",
+        help="Target confidence for promotion (default: 0.92 for DKG)"
     )
     parser.add_argument(
         "--force",
         action="store_true",
-        help="Force promotion even if below confidence threshold",
+        help="Force promotion even if already at target"
     )
     parser.add_argument(
-        "--batch-size",
+        "--count",
         type=int,
-        default=100,
-        help="Batch size for consolidation (default: 100)",
+        default=5,
+        help="Number of memories to evict (default: 5)"
+    )
+    parser.add_argument(
+        "--eviction-strategy",
+        choices=["oldest", "lowest-confidence"],
+        default="oldest",
+        help="Eviction strategy (default: oldest)"
     )
     parser.add_argument(
         "--format",
         choices=["json", "text"],
         default="text",
-        help="Output format for stats",
+        help="Output format for stats"
     )
-
+    parser.add_argument(
+        "--api-url",
+        default="http://noosphere-service:3006",
+        help="Noosphere API URL"
+    )
+    
     args = parser.parse_args()
-
+    
     try:
-        memory_cycle = MemoryCycle()
-
+        memory_cycle = MemoryCycleV3(api_url=args.api_url)
+        
         if args.action == "consolidate":
-            count = memory_cycle.consolidate(batch_size=args.batch_size)
-            print(f"\nConsolidation complete: {count} heuristics consolidated")
-            return 0
-
+            # Deprecated in v3.0
+            return memory_cycle.consolidate_deprecated()
+        
         elif args.action == "promote":
             if not args.memory_id:
                 logger.error("--memory-id required for promote action")
                 return 1
             success = memory_cycle.promote(
                 args.memory_id,
-                min_confidence=args.min_confidence,
-                force=args.force,
+                target_confidence=args.min_confidence,
+                force=args.force
             )
             return 0 if success else 1
-
+        
+        elif args.action == "evict":
+            if not args.agent_id:
+                logger.error("--agent-id required for evict action")
+                return 1
+            evicted = memory_cycle.evict(
+                args.agent_id,
+                count=args.count,
+                strategy=args.eviction_strategy
+            )
+            print(f"\nEviction complete: {len(evicted)} memories evicted")
+            return 0
+        
         elif args.action == "stats":
-            stats = memory_cycle.get_stats()
+            stats = memory_cycle.get_stats(agent_id=args.agent_id)
+            
             if args.format == "json":
                 print(json.dumps(stats, indent=2))
             else:
-                print("\nMemory Health Report")
+                print("\nNoosphere v3.0 Memory Health Report")
                 print("=" * 60)
-                for layer, count in stats["memory_layers"].items():
-                    print(f"{layer}: {count}")
-                print()
-                for htype, count in stats["heuristic_count"].items():
-                    print(f"{htype}: {count}")
-                print()
-                print("Voice Distribution:")
-                for voice, count in stats["voice_distribution"].items():
-                    print(f"  {voice}: {count}")
+                
+                if args.agent_id:
+                    # Single agent
+                    print(f"Agent: {stats['agent_id']}")
+                    print(f"Total Memories: {stats['total_memories']}")
+                    print(f"Capacity: {stats['capacity_used']}")
+                    print("\nBy Type:")
+                    for mem_type, count in stats['by_type'].items():
+                        print(f"  {mem_type:12s}: {count:3d}")
+                else:
+                    # All agents
+                    print(f"Total Memories: {stats['total_memories']}")
+                    print(f"Total Capacity: {stats['total_capacity']}")
+                    print(f"Agents with Memories: {stats['agents_with_memories']}/9")
+                    print("\nBy Agent:")
+                    for agent, agent_stats in stats['by_agent'].items():
+                        print(f"\n  {agent}:")
+                        print(f"    Count: {agent_stats['count']} ({agent_stats['capacity']})")
+                        print(f"    Types: I:{agent_stats['insights']} P:{agent_stats['patterns']} "
+                              f"S:{agent_stats['strategies']} Pr:{agent_stats['preferences']} "
+                              f"L:{agent_stats['lessons']}")
+            
             return 0
-
+    
     except Exception as e:
         logger.error(f"Error: {e}")
+        import traceback
+        traceback.print_exc()
         return 1
 
 
