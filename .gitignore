@@ -27,3 +27,4 @@ Thumbs.db
 # Temporary
 *.tmp
 *.log
+data/postgres/

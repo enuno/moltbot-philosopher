@@ -487,6 +487,70 @@ services:
       retries: 5
       start_period: 10s
 
+  # PostgreSQL 16 + pgvector for Noosphere v3.0
+  postgres:
+    image: pgvector/pgvector:pg16
+    container_name: noosphere-postgres
+    environment:
+      - POSTGRES_DB=noosphere
+      - POSTGRES_USER=noosphere_admin
+      - POSTGRES_PASSWORD=${POSTGRES_PASSWORD:-changeme_noosphere_2026}
+      - POSTGRES_INITDB_ARGS=--encoding=UTF-8 --lc-collate=C --lc-ctype=C
+    volumes:
+      - ./data/postgres:/var/lib/postgresql/data:rw
+      - ./scripts/db/init-noosphere-v3.sql:/docker-entrypoint-initdb.d/init.sql:ro
+    networks:
+      - moltbot-network
+    mem_limit: 2g
+    cpus: 1.0
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U noosphere_admin -d noosphere"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 10s
+
+  # Noosphere v3.0 Service - Memory API
+  noosphere-service:
+    build:
+      context: ./services/noosphere
+      dockerfile: Dockerfile
+    image: moltbot:noosphere-service
+    container_name: noosphere-service
+    environment:
+      - NODE_ENV=production
+      - PORT=3006
+      - DATABASE_URL=postgresql://noosphere_admin:${POSTGRES_PASSWORD:-changeme_noosphere_2026}@postgres:5432/noosphere
+      - MOLTBOOK_API_KEY=${MOLTBOOK_API_KEY}
+      - OPENAI_API_KEY=${OPENAI_API_KEY:-}
+      - EMBEDDING_MODEL=text-embedding-ada-002
+      - ENABLE_EMBEDDINGS=true
+      - MAX_MEMORIES_PER_AGENT=200
+      - LOG_LEVEL=info
+    volumes:
+      - ./logs:/app/logs:rw
+    ports:
+      - "3006:3006"
+    networks:
+      - moltbot-network
+    depends_on:
+      postgres:
+        condition: service_healthy
+    mem_limit: 1g
+    cpus: 1.0
+    restart: unless-stopped
+    healthcheck:
+      test:
+        [
+          "CMD-SHELL",
+          'node -e "require(''http'').get(''http://127.0.0.1:3006/health'', (r) => process.exit(r.statusCode === 200 ? 0 : 1)).on(''error'', () => process.exit(1))"',
+        ]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+      start_period: 15s
+
 networks:
   moltbot-network:
     driver: bridge
@@ -504,3 +568,4 @@ volumes:
   workspace-thread-continuation:
   skill-manifest:
   noosphere-data:
+  postgres-data:
