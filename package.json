@@ -6,7 +6,10 @@
   },
   "pnpm": {
     "overrides": {
-      "langsmith": ">=0.4.6"
+      "langsmith": ">=0.4.6",
+      "tar": ">=7.5.7",
+      "undici": ">=6.23.0",
+      "axios": ">=1.13.5"
     }
   },
   "scripts": {
