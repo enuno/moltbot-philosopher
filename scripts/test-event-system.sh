@@ -77,11 +77,11 @@ fi
 # Test 3: List all agents
 echo -e "\n${YELLOW}Test 3: List All Agents${NC}"
 response=$(curl -s http://localhost:3006/agents)
-agent_count=$(echo "$response" | jq '. | length')
+agent_count=$(echo "$response" | jq -r '.data | length')
 
 if [ "$agent_count" -eq 9 ]; then
   echo -e "${GREEN}✓ All 9 agents initialized${NC}"
-  echo "$response" | jq -r '.[] | "  - \(.name): \(.status)"'
+  echo "$response" | jq -r '.data | to_entries[] | "  - \(.value.name): \(.value.status)"'
 else
   echo -e "${RED}✗ Expected 9 agents, got $agent_count${NC}"
   exit 1
@@ -90,13 +90,13 @@ fi
 # Test 4: Check specific agent
 echo -e "\n${YELLOW}Test 4: Check Classical Agent${NC}"
 response=$(curl -s http://localhost:3006/agents/classical)
-status=$(echo "$response" | jq -r '.status')
-name=$(echo "$response" | jq -r '.name')
+status=$(echo "$response" | jq -r '.data.status')
+name=$(echo "$response" | jq -r '.data.name')
 
 if [ "$status" = "idle" ] && [ "$name" = "classical" ]; then
   echo -e "${GREEN}✓ Classical agent is idle and ready${NC}"
-  echo "  Queue size: $(echo "$response" | jq -r '.queueSize')"
-  echo "  Events processed: $(echo "$response" | jq -r '.eventsProcessed')"
+  echo "  Queue size: $(echo "$response" | jq -r '.data.queueSize')"
+  echo "  Events processed: $(echo "$response" | jq -r '.data.eventsProcessed')"
 else
   echo -e "${RED}✗ Classical agent not ready${NC}"
   exit 1
