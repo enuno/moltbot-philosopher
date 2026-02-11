@@ -7,6 +7,7 @@ Successfully integrated the official [@moltbook/auth](https://github.com/moltboo
 ## What Was Added
 
 ### 1. MoltbookClient Service
+
 **Location**: `services/moltbook-client/index.js` (240 lines)
 
 - Full-featured API client using `@moltbook/auth`
@@ -16,6 +17,7 @@ Successfully integrated the official [@moltbook/auth](https://github.com/moltboo
 - Comprehensive error messages with HTTP status codes
 
 **API Methods**:
+
 - **Agent**: `getMe()`, `setupOwnerEmail()`, `getStatus()`
 - **Posts**: `createPost()`, `getPost()`, `getPosts()`
 - **Comments**: `reply()`, `getComments()`
@@ -24,6 +26,7 @@ Successfully integrated the official [@moltbook/auth](https://github.com/moltboo
 - **Verification**: `submitVerificationAnswer()`, `getPendingChallenges()`
 
 ### 2. Bash Wrapper Script
+
 **Location**: `scripts/moltbook-api.sh` (executable)
 
 Simple CLI interface for making authenticated Moltbook API calls:
@@ -34,6 +37,7 @@ Simple CLI interface for making authenticated Moltbook API calls:
 ```
 
 ### 3. Comprehensive Test Suite
+
 **Location**: `tests/moltbook-client.test.js`
 
 - 16 tests covering all major functionality
@@ -41,6 +45,7 @@ Simple CLI interface for making authenticated Moltbook API calls:
 - Tests token validation, API calls, error handling
 
 ### 4. Documentation
+
 - `services/moltbook-client/README.md` - Full API reference
 - `examples/moltbook-client-demo.js` - Working example
 - Updated main README with integration details
@@ -48,24 +53,31 @@ Simple CLI interface for making authenticated Moltbook API calls:
 ## Key Features
 
 ### Token Validation
+
 Uses `@moltbook/auth` to validate API key format:
+
 - Must start with `moltbook_`
 - Must be exactly 64 hex characters (32 bytes) + prefix
 - Timing-safe comparison prevents timing attacks
 
 ### Type Safety
+
 Full TypeScript support via `@moltbook/auth`:
+
 - Type definitions for all API methods
 - IDE autocomplete and IntelliSense
 - Compile-time type checking
 
 ### Error Handling
+
 Detailed error messages with context:
+
 ```javascript
 throw new Error(`Moltbook API error (401): {"error":"Unauthorized"}`);
 ```
 
 ### Security
+
 - API keys never logged or exposed in errors
 - HTTPS required for all requests
 - Timing-safe token comparison
@@ -105,7 +117,9 @@ echo "Agent: $AGENT_NAME"
 ## Integration Points
 
 ### Existing Scripts
+
 These scripts can be updated to use the new client:
+
 - `check-mentions.sh` - Mention detection
 - `daily-polemic.sh` - Daily posting
 - `view-profile.sh` - Profile viewing
@@ -114,7 +128,9 @@ These scripts can be updated to use the new client:
 - `moltstack-generate-article.sh` - Cross-posting
 
 ### Services
+
 Can be integrated into:
+
 - Thread Monitor (port 3004) - For thread API calls
 - AI Content Generator (port 3002) - For posting content
 - Any new services requiring Moltbook API access
@@ -162,11 +178,13 @@ Installed from GitHub (not yet on npm).
 ## Next Steps
 
 ### Immediate
+
 1. ✅ Tests passing (16/16)
 2. ✅ Documentation complete
 3. ✅ Example working
 
 ### Future Enhancements
+
 1. Migrate existing scripts to use `MoltbookClient`
 2. Add retry logic with exponential backoff
 3. Add request caching (for GET requests)

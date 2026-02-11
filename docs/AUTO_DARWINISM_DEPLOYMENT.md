@@ -7,6 +7,7 @@
 ## Overview
 
 The Auto-Darwinism workflow is a GitHub Actions-based agentic workflow that:
+
 - **Monitors**: All 5 official Moltbook skill files + API spec
 - **Audits**: API compliance against `services/moltbook-client/`
 - **Classifies**: Changes using 4-mode protocol (PATCH/MINOR/MAJOR/CRITICAL)
@@ -98,17 +99,20 @@ gh run view [RUN_ID]
 ### Six Phases
 
 **Phase 1: Daily Health Check**
+
 - Fetches all 5 Moltbook skill files
 - Computes SHA-256 hashes
 - Generates unified diffs for drift
 
 **Phase 2: API Compliance Audit**
+
 - Fetches GitHub API spec
 - Cross-references against `services/moltbook-client/`
 - Checks endpoints, auth, rate limits
 - Watches for new endpoints (`/agents/:id/challenges`, `/dm/*`, `/moderation/*`)
 
 **Phase 3: Change Classification**
+
 - Uses 4-mode protocol:
   - **CRITICAL** (Mode 4): Security/CVE/auth changes → Non-draft PR + urgent NTFY
   - **MAJOR** (Mode 3): Breaking changes → PR for review + high NTFY
@@ -116,15 +120,18 @@ gh run view [RUN_ID]
   - **PATCH** (Mode 1): Typos/docs → Draft PR + low NTFY
 
 **Phase 4: Update Execution**
+
 - Applies appropriate file updates
 - Validates with `pnpm test` / `pnpm test:ci`
 
 **Phase 5: PR Creation**
+
 - Uses gh-aw safe-outputs
 - Creates labeled, priority-tagged PRs
 - Includes compliance reports and rollback instructions
 
 **Phase 6: Failure Diagnostics**
+
 - Creates GitHub issues on test failures
 - Full diagnostic context included
 
@@ -141,6 +148,7 @@ gh run view [RUN_ID]
 The workflow runtime-imports `.github/shared-instructions.md` for project context.
 
 It integrates with:
+
 - `scripts/skill-auto-update.sh` - 4-mode protocol source
 - `scripts/notify-ntfy.sh` - Alert system
 - `services/moltbook-client/` - API implementation
@@ -163,6 +171,7 @@ gh run view [RUN_ID] --log
 ### NTFY Alerts
 
 Subscribe to topics:
+
 - `council-updates` - All Auto-Darwinism events
 - Priority levels: low (PATCH), medium (MINOR), high (MAJOR), urgent (CRITICAL)
 
@@ -175,6 +184,7 @@ Subscribe to topics:
 ## Expected Behavior
 
 **No Changes Detected**:
+
 ```
 ✅ Daily Health Check passed
 ✅ API Compliance verified
@@ -182,6 +192,7 @@ Subscribe to topics:
 ```
 
 **PATCH Changes** (Mode 1):
+
 ```
 📝 Documentation updates detected
 → Creating draft PR for batch review
@@ -189,6 +200,7 @@ Subscribe to topics:
 ```
 
 **MINOR Changes** (Mode 2):
+
 ```
 ✨ New endpoints detected: /agents/:id/challenges
 → Creating PR for review
@@ -197,6 +209,7 @@ Subscribe to topics:
 ```
 
 **MAJOR Changes** (Mode 3):
+
 ```
 ⚠️ Breaking API changes detected
 → Creating PR requiring human review
@@ -205,6 +218,7 @@ Subscribe to topics:
 ```
 
 **CRITICAL Changes** (Mode 4):
+
 ```
 🚨 Security update: CVE-2026-12345
 → Creating urgent PR (non-draft)
@@ -241,6 +255,7 @@ gh extension install github/gh-aw
 ### Tests Failing
 
 The workflow will:
+
 1. Create a GitHub issue with diagnostics
 2. Not create a PR (prevents broken code)
 3. Include test output in issue
@@ -248,6 +263,7 @@ The workflow will:
 ### Network Errors
 
 Check allowlisted domains in frontmatter:
+
 - `*.moltbook.com`
 - `raw.githubusercontent.com`
 - GitHub APIs (default)
@@ -255,6 +271,7 @@ Check allowlisted domains in frontmatter:
 ### Rate Limits
 
 The workflow respects:
+
 - GitHub API rate limits (authenticated)
 - Moltbook API rate limits (via secrets)
 
@@ -294,6 +311,7 @@ git push
 ### Add New Monitored Files
 
 Edit frontmatter:
+
 ```yaml
 tools:
   bash:
@@ -306,6 +324,7 @@ Then recompile.
 ### Adjust Classification Logic
 
 Edit Phase 3 in the workflow markdown to modify:
+
 - Change classification criteria
 - Priority levels
 - Alert destinations
@@ -313,6 +332,7 @@ Edit Phase 3 in the workflow markdown to modify:
 ## Success Metrics
 
 ✅ **Working Correctly**:
+
 - Daily runs complete without errors
 - PRs created for detected changes
 - Tests pass before PR creation
@@ -320,6 +340,7 @@ Edit Phase 3 in the workflow markdown to modify:
 - No false positives
 
 ❌ **Needs Attention**:
+
 - Workflow failing repeatedly
 - PRs created for no changes (too sensitive)
 - No PRs when changes exist (too loose)
@@ -337,6 +358,7 @@ Edit Phase 3 in the workflow markdown to modify:
 ## Next Enhancements
 
 Future improvements to consider:
+
 - [ ] Add Slack/Discord integration
 - [ ] Custom classification rules per file
 - [ ] Automatic rollback on test failures

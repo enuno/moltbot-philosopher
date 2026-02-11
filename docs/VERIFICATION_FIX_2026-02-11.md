@@ -8,17 +8,20 @@
 The bot was suspended for failing verification challenges due to **3 critical architectural issues**:
 
 ### 1. ❌ No Active Polling
+
 - **Issue**: Heartbeat script never polled `/agents/me/verification-challenges`
 - **Impact**: Challenges were issued but never detected → automatic timeouts → suspension
 - **Fix**: Added `check-verification-challenges.js` with active polling
 
 ### 2. ❌ Wrong API Endpoint
+
 - **Issue**: Challenge submission used `/agents/verification/{id}/answer`
 - **Actual**: Should be `/agents/me/verification-challenges` with `challenge_id` in body
 - **Impact**: All submissions failed silently
 - **Fix**: Updated `handle-verification-challenge.sh` line 217
 
 ### 3. ❌ No Integration
+
 - **Issue**: Handler script existed but was never called by any automated process
 - **Impact**: Manual intervention required for every challenge
 - **Fix**: Integrated into heartbeat + added frequent polling
@@ -28,6 +31,7 @@ The bot was suspended for failing verification challenges due to **3 critical ar
 ### Components
 
 **1. Node.JS Checker** (`scripts/check-verification-challenges.js`):
+
 - **Purpose**: Active polling with AI-powered solving
 - **Frequency**: Called by heartbeat + frequent polling script
 - **Features**:
@@ -38,6 +42,7 @@ The bot was suspended for failing verification challenges due to **3 critical ar
   - Handles multiple response formats
 
 **2. Bash Handler** (`scripts/handle-verification-challenge.sh`):
+
 - **Purpose**: Fallback handler and manual testing
 - **Changes**:
   - Fixed submission endpoint (line 217)
@@ -45,10 +50,12 @@ The bot was suspended for failing verification challenges due to **3 critical ar
   - Now matches MoltbookClient implementation
 
 **3. Frequent Polling** (`scripts/frequent-challenge-check.sh`):
+
 - **Purpose**: Every-minute polling to catch challenges within TTL
 - **Usage**: Add to cron or Docker command
 
 **4. Heartbeat Integration** (`scripts/moltbook-heartbeat-enhanced.sh`):
+
 - **Purpose**: Challenge check before any other operations
 - **Logic**:
   1. Check account status (detect suspension)
@@ -112,11 +119,13 @@ tail -f /workspace/classical/logs/verification-checks.log
 ## Expected Behavior
 
 **Before Fix**:
+
 1. Moltbook issues challenge → Challenge sits in queue
 2. Bot never polls → Challenge times out after 60s
 3. After 2-3 timeouts → Account suspended
 
 **After Fix**:
+
 1. Moltbook issues challenge → Detected within 60s (heartbeat or frequent poll)
 2. AI solver generates answer → Submitted via correct endpoint
 3. Challenge passed → No suspension
@@ -124,27 +133,32 @@ tail -f /workspace/classical/logs/verification-checks.log
 ## Monitoring
 
 **Log Files**:
+
 - `/workspace/classical/logs/verification-checks.log` - Frequent polling
 - `/workspace/classical/logs/heartbeat.log` - Heartbeat checks
 - `docker logs classical-philosopher | grep -i verif` - All verification events
 
 **State Files**:
+
 - `/workspace/classical/verification-state.json` - Challenge stats
 - Check `consecutive_failures` - Must stay < 3
 
 **NTFY Alerts**:
+
 - `council-updates` topic gets verification failure alerts
 - Priority: urgent for failures
 
 ## Success Metrics
 
 ✅ **Passing**:
+
 - `consecutive_failures = 0` in verification-state.json
 - No "Account suspended" in API responses
 - Challenges detected and solved within 60s
 - Success rate > 95% over 24 hours
 
 ❌ **Failing**:
+
 - `consecutive_failures >= 2` (suspension imminent)
 - Challenges timing out
 - Solver errors or submission failures

@@ -9,16 +9,19 @@
 ## Root Cause Analysis
 
 ### 1. Missing Challenge Detection
+
 - No active monitoring for verification challenges in message pathways
 - Heartbeat doesn't check for pending challenges
 - No dedicated fast-response handler integrated into posting flow
 
 ### 2. Wrong Processing Path
+
 - Challenges routed through full philosophical persona
 - Multi-step reasoning adds latency (>60s timeout risk)
 - Tool calling and retrieval disabled for speed
 
 ### 3. No Proactive Prevention
+
 - Reactive only (waits for suspension)
 - No periodic challenge checks
 - No pre-posting verification status check
@@ -28,6 +31,7 @@
 ### Phase 1: Immediate Prevention (CRITICAL)
 
 #### 1.1 Add Challenge Check to Heartbeat
+
 **File**: `scripts/enhanced-heartbeat.sh`
 **Location**: Before any posting operations
 
@@ -55,12 +59,15 @@ fi
 ```
 
 #### 1.2 Add Challenge Check to Post Operations
+
 **Files**: All scripts that post content
+
 - `daily-polemic.sh`
 - `moltstack-generate-article.sh`
 - Any script using `POST /api/v1/posts`
 
 **Pattern**:
+
 ```bash
 # Before posting
 if ! ./scripts/handle-verification-challenge.sh handle-all; then
@@ -73,6 +80,7 @@ curl -X POST https://www.moltbook.com/api/v1/posts ...
 ```
 
 #### 1.3 Add Suspension Detection to All API Calls
+
 **File**: `scripts/moltbook-api.sh`
 **Enhancement**: Parse error responses
 
@@ -96,6 +104,7 @@ fi
 ### Phase 2: Enhanced Detection
 
 #### 2.1 Message-Level Detection
+
 **For any message processing pipeline**:
 
 ```bash
@@ -123,6 +132,7 @@ fi
 ```
 
 #### 2.2 Periodic Background Check
+
 **Add to cron or systemd timer**:
 
 ```bash
@@ -133,6 +143,7 @@ fi
 ### Phase 3: Monitoring & Alerting
 
 #### 3.1 Challenge Metrics
+
 **Track in state file** `workspace/verification-state.json`:
 
 ```json
@@ -153,6 +164,7 @@ fi
 ```
 
 #### 3.2 Daily Digest
+
 **Add to NTFY daily summary**:
 
 ```bash
@@ -171,12 +183,14 @@ fi
 ## Implementation Checklist
 
 ### Immediate (Fix Suspension)
+
 - [ ] Wait for 8-hour suspension to lift (ends ~2026-02-11 13:30 UTC)
 - [ ] Verify account status with `GET /api/v1/agents/status`
 - [ ] Test verification handler: `./scripts/handle-verification-challenge.sh test`
 - [ ] Manually check for pending challenges
 
 ### High Priority (Prevent Recurrence)
+
 - [ ] Update `enhanced-heartbeat.sh` with challenge check (before posting)
 - [ ] Add challenge check to `daily-polemic.sh`
 - [ ] Add challenge check to `moltstack-generate-article.sh`
@@ -184,6 +198,7 @@ fi
 - [ ] Add periodic check to cron (every 15 minutes)
 
 ### Medium Priority (Robustness)
+
 - [ ] Create message-level detection function
 - [ ] Integrate detection into all message handlers
 - [ ] Add verification metrics tracking
@@ -191,6 +206,7 @@ fi
 - [ ] Create verification dashboard script
 
 ### Low Priority (Enhancement)
+
 - [ ] Add challenge replay/debugging
 - [ ] Create challenge test suite with real examples
 - [ ] Profile inference latency in production
@@ -199,6 +215,7 @@ fi
 ## Testing Plan
 
 ### 1. Unit Tests
+
 ```bash
 # Test detection
 ./scripts/handle-verification-challenge.sh test
@@ -209,12 +226,14 @@ echo '{"type":"verification","content":"If you read this, respond with VERIFIED"
 ```
 
 ### 2. Integration Test
+
 ```bash
 # Simulate full flow
 ./scripts/handle-verification-challenge.sh handle-all --dry-run
 ```
 
 ### 3. Production Monitoring
+
 ```bash
 # Check stats after 24 hours
 ./scripts/handle-verification-challenge.sh stats
@@ -228,17 +247,20 @@ echo '{"type":"verification","content":"If you read this, respond with VERIFIED"
 ## Files to Modify
 
 ### Critical Path
+
 1. `scripts/enhanced-heartbeat.sh` - Add challenge check before posting
 2. `scripts/daily-polemic.sh` - Add challenge check before post
 3. `scripts/moltstack-generate-article.sh` - Add challenge check before cross-post
 4. `scripts/moltbook-api.sh` - Add suspension detection
 
 ### Supporting
+
 5. `scripts/handle-verification-challenge.sh` - Already exists, enhance logging
 6. `services/moltbook-client/index.js` - Add convenience methods
 7. `skills/moltbook/SKILL.md` - Already updated with verification section
 
 ### New Files
+
 8. `scripts/check-verification-status.sh` - Quick status check utility
 9. `scripts/verify-account-health.sh` - Pre-deployment health check
 10. `.github/workflows/verification-test.yml` - CI test for challenge handler
@@ -246,18 +268,21 @@ echo '{"type":"verification","content":"If you read this, respond with VERIFIED"
 ## Deployment Strategy
 
 ### Stage 1: Hotfix (Immediate)
+
 1. Update heartbeat script only
 2. Deploy to classical-philosopher container
 3. Test with dry-run
 4. Monitor for 24 hours
 
 ### Stage 2: Full Rollout
+
 1. Update all posting scripts
 2. Add cron job for periodic checks
 3. Deploy to all 9 philosopher containers
 4. Monitor pass rate for 48 hours
 
 ### Stage 3: Enhancement
+
 1. Add metrics dashboard
 2. Add alerting rules
 3. Document runbooks
