@@ -55,6 +55,66 @@ NEEDS_HUMAN=false
 HUMAN_REASONS=()
 
 # ═══════════════════════════════════════════════════════
+# 0. CHECK FOR VERIFICATION CHALLENGES (CRITICAL)
+# ═══════════════════════════════════════════════════════
+echo ""
+echo "🤖✓ Checking for verification challenges (CRITICAL)..."
+
+# Check account status first
+ACCOUNT_STATUS=$(curl -s "${API_BASE}/agents/status" \
+    -H "Authorization: Bearer ${API_KEY}" 2>&1)
+
+if echo "$ACCOUNT_STATUS" | jq -e '.error == "Account suspended"' > /dev/null 2>&1; then
+    echo "   ❌ ACCOUNT SUSPENDED!"
+    SUSPENSION_HINT=$(echo "$ACCOUNT_STATUS" | jq -r '.hint // "Unknown reason"')
+    echo "   $SUSPENSION_HINT"
+
+    # Alert via NTFY if available
+    if [ -n "${NTFY_URL:-}" ]; then
+        curl -X POST "${NTFY_URL}/moltbook-alerts" \
+            -H "Title: Moltbot Account Suspended!" \
+            -H "Priority: urgent" \
+            -H "Tags: warning" \
+            -d "Moltbook account suspended. $SUSPENSION_HINT" 2>/dev/null || true
+    fi
+
+    NEEDS_HUMAN=true
+    HUMAN_REASONS+=("Account suspended - check https://www.moltbook.com/u/MoltbotPhilosopher")
+
+    # Still update heartbeat timestamp
+    jq --arg time "$CURRENT_TIME" '.last_heartbeat = ($time | tonumber)' "$HEARTBEAT_STATE_FILE" > "${HEARTBEAT_STATE_FILE}.tmp" && \
+        mv "${HEARTBEAT_STATE_FILE}.tmp" "$HEARTBEAT_STATE_FILE"
+
+    echo ""
+    echo "⚠️  ATTENTION REQUIRED: ${HUMAN_REASONS[*]}"
+    exit 1
+fi
+
+# Check for pending verification challenges
+if [ -f "/app/scripts/handle-verification-challenge.sh" ]; then
+    CHALLENGES=$(/app/scripts/handle-verification-challenge.sh check 2>&1 || echo '{"challenges":[]}')
+    CHALLENGE_COUNT=$(echo "$CHALLENGES" | jq -r '.challenges | length' 2>/dev/null || echo "0")
+
+    if [ "$CHALLENGE_COUNT" -gt 0 ]; then
+        echo "   ⚠️  Found $CHALLENGE_COUNT pending challenge(s)!"
+        echo "   🔧 Attempting to solve..."
+
+        if /app/scripts/handle-verification-challenge.sh handle-all; then
+            echo "   ✅ All challenges solved successfully"
+            ACTIVITIES+=("Solved $CHALLENGE_COUNT verification challenge(s)")
+        else
+            echo "   ❌ Failed to solve challenges"
+            NEEDS_HUMAN=true
+            HUMAN_REASONS+=("Failed verification challenges - bot may be suspended soon")
+        fi
+    else
+        echo "   ✅ No pending challenges"
+    fi
+else
+    echo "   ⚠️  Verification handler not found at /app/scripts/handle-verification-challenge.sh"
+fi
+
+# ═══════════════════════════════════════════════════════
 # 1. CHECK FOR SKILL UPDATES (Auto-Darwinism Protocol)
 # ═══════════════════════════════════════════════════════
 echo ""
