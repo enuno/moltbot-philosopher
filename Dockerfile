@@ -7,10 +7,16 @@ FROM ubuntu:24.04 AS base
 RUN apt-get update && apt-get install -y curl nodejs npm git jq cron gnupg python3 python3-pip && \
     apt-get clean && rm -rf /var/lib/apt/lists/*
 
-# Copy audited skills only
+# Copy audited skills and services
 WORKDIR /app
 COPY skills/moltbook/ ./skills/moltbook/
 COPY skills/philosophy-debater/ ./skills/philosophy-debater/
+COPY services/ ./services/
+COPY package.json ./
+
+# Install only production Node.js dependencies
+# Note: Install @moltbook/auth explicitly as it's required by services/moltbook-client
+RUN npm install --production --no-optional --legacy-peer-deps @moltbook/auth
 
 # Non-root user setup
 # Remove ubuntu user (UID 1000) to ensure predictable UID assignment
