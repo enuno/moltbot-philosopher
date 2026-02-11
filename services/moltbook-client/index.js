@@ -61,20 +61,37 @@ class MoltbookClient {
 
     const response = await fetch(url, fetchOptions);
 
+    // Capture rate limit headers
+    const rateLimitInfo = {
+      limit: response.headers.get('X-RateLimit-Limit'),
+      remaining: response.headers.get('X-RateLimit-Remaining'),
+      reset: response.headers.get('X-RateLimit-Reset'),
+    };
+
     // Handle non-JSON responses
     const contentType = response.headers.get('content-type');
     const isJson = contentType && contentType.includes('application/json');
 
     if (!response.ok) {
       const error = isJson ? await response.json() : await response.text();
-      throw new Error(
+      const errorObj = new Error(
         `Moltbook API error (${response.status}): ${
           typeof error === 'object' ? JSON.stringify(error) : error
         }`
       );
+      errorObj.status = response.status;
+      errorObj.rateLimit = rateLimitInfo;
+      throw errorObj;
     }
 
-    return isJson ? await response.json() : await response.text();
+    const data = isJson ? await response.json() : await response.text();
+
+    // Attach rate limit info if data is an object
+    if (typeof data === 'object' && data !== null) {
+      data._rateLimit = rateLimitInfo;
+    }
+
+    return data;
   }
 
   /**
@@ -92,10 +109,10 @@ class MoltbookClient {
   }
 
   /**
-   * PUT request
+   * PATCH request
    */
-  async put(endpoint, body, options = {}) {
-    return this._request('PUT', endpoint, { ...options, body });
+  async patch(endpoint, body, options = {}) {
+    return this._request('PATCH', endpoint, { ...options, body });
   }
 
   /**
@@ -110,24 +127,60 @@ class MoltbookClient {
   // ═══════════════════════════════════════════════════════════
 
   /**
+   * Register a new agent
+   * @param {Object} data - { name, description }
+   */
+  async registerAgent(data) {
+    return this.post('/agents/register', data);
+  }
+
+  /**
    * Get current agent's profile
+   * GET /agents/me
    */
   async getMe() {
     return this.get('/agents/me');
   }
 
   /**
-   * Setup owner email for agent
+   * Update agent profile
+   * PATCH /agents/me
+   * @param {Object} data - { description }
    */
-  async setupOwnerEmail(email) {
-    return this.post('/agents/me/setup-owner-email', { email });
+  async updateProfile(data) {
+    return this.patch('/agents/me', data);
   }
 
   /**
-   * Get agent status
+   * Check agent claim status
+   * GET /agents/status
    */
   async getStatus() {
     return this.get('/agents/status');
+  }
+
+  /**
+   * View another agent's profile
+   * GET /agents/profile?name=AGENT_NAME
+   */
+  async getAgentProfile(agentName) {
+    return this.get(`/agents/profile?name=${agentName}`);
+  }
+
+  /**
+   * Follow an agent
+   * POST /agents/:name/follow
+   */
+  async followAgent(agentName) {
+    return this.post(`/agents/${agentName}/follow`);
+  }
+
+  /**
+   * Unfollow an agent
+   * DELETE /agents/:name/follow
+   */
+  async unfollowAgent(agentName) {
+    return this.delete(`/agents/${agentName}/follow`);
   }
 
   // ═══════════════════════════════════════════════════════════
@@ -135,25 +188,63 @@ class MoltbookClient {
   // ═══════════════════════════════════════════════════════════
 
   /**
-   * Create a new post
+   * Create a text post
+   * POST /posts
+   * @param {Object} data - { submolt, title, content }
    */
   async createPost(data) {
     return this.post('/posts', data);
   }
 
   /**
+   * Create a link post
+   * POST /posts
+   * @param {Object} data - { submolt, title, url }
+   */
+  async createLinkPost(data) {
+    return this.post('/posts', data);
+  }
+
+  /**
+   * Get feed (all posts)
+   * GET /posts?sort=hot&limit=25
+   * @param {Object} params - { sort: 'hot'|'new'|'top'|'rising', limit: 25 }
+   */
+  async getPosts(params = {}) {
+    const query = new URLSearchParams(params).toString();
+    return this.get(`/posts${query ? `?${query}` : ''}`);
+  }
+
+  /**
    * Get a specific post
+   * GET /posts/:id
    */
   async getPost(postId) {
     return this.get(`/posts/${postId}`);
   }
 
   /**
-   * Get posts (with filters)
+   * Delete a post
+   * DELETE /posts/:id
    */
-  async getPosts(params = {}) {
-    const query = new URLSearchParams(params).toString();
-    return this.get(`/posts${query ? `?${query}` : ''}`);
+  async deletePost(postId) {
+    return this.delete(`/posts/${postId}`);
+  }
+
+  /**
+   * Upvote a post
+   * POST /posts/:id/upvote
+   */
+  async upvotePost(postId) {
+    return this.post(`/posts/${postId}/upvote`);
+  }
+
+  /**
+   * Downvote a post
+   * POST /posts/:id/downvote
+   */
+  async downvotePost(postId) {
+    return this.post(`/posts/${postId}/downvote`);
   }
 
   // ═══════════════════════════════════════════════════════════
@@ -161,41 +252,129 @@ class MoltbookClient {
   // ═══════════════════════════════════════════════════════════
 
   /**
-   * Reply to a post or comment
+   * Add a comment to a post
+   * POST /posts/:id/comments
+   * @param {string} postId
+   * @param {Object} data - { content, parent_id? }
    */
-  async reply(parentId, content, options = {}) {
-    return this.post(`/posts/${parentId}/replies`, {
+  async addComment(postId, data) {
+    return this.post(`/posts/${postId}/comments`, data);
+  }
+
+  /**
+   * Reply to a comment
+   * POST /posts/:id/comments
+   * @param {string} postId
+   * @param {string} parentId
+   * @param {string} content
+   */
+  async replyToComment(postId, parentId, content) {
+    return this.post(`/posts/${postId}/comments`, {
       content,
-      ...options,
+      parent_id: parentId,
     });
   }
 
   /**
    * Get comments for a post
+   * GET /posts/:id/comments?sort=top
+   * @param {string} postId
+   * @param {Object} params - { sort: 'top'|'new'|'controversial' }
    */
   async getComments(postId, params = {}) {
     const query = new URLSearchParams(params).toString();
     return this.get(`/posts/${postId}/comments${query ? `?${query}` : ''}`);
   }
 
-  // ═══════════════════════════════════════════════════════════
-  // Mention Operations
-  // ═══════════════════════════════════════════════════════════
-
   /**
-   * Get mentions of current agent
+   * Upvote a comment
+   * POST /comments/:id/upvote
    */
-  async getMentions(params = {}) {
-    const query = new URLSearchParams(params).toString();
-    return this.get(`/agents/me/mentions${query ? `?${query}` : ''}`);
+  async upvoteComment(commentId) {
+    return this.post(`/comments/${commentId}/upvote`);
   }
 
   // ═══════════════════════════════════════════════════════════
-  // Thread Operations
+  // Submolt (Community) Operations
   // ═══════════════════════════════════════════════════════════
 
   /**
-   * Get thread details with all comments
+   * Create a submolt
+   * POST /submolts
+   * @param {Object} data - { name, display_name, description }
+   */
+  async createSubmolt(data) {
+    return this.post('/submolts', data);
+  }
+
+  /**
+   * List submolts
+   * GET /submolts
+   */
+  async listSubmolts() {
+    return this.get('/submolts');
+  }
+
+  /**
+   * Get submolt info
+   * GET /submolts/:name
+   */
+  async getSubmolt(name) {
+    return this.get(`/submolts/${name}`);
+  }
+
+  /**
+   * Subscribe to a submolt
+   * POST /submolts/:name/subscribe
+   */
+  async subscribeToSubmolt(name) {
+    return this.post(`/submolts/${name}/subscribe`);
+  }
+
+  /**
+   * Unsubscribe from a submolt
+   * DELETE /submolts/:name/subscribe
+   */
+  async unsubscribeFromSubmolt(name) {
+    return this.delete(`/submolts/${name}/subscribe`);
+  }
+
+  // ═══════════════════════════════════════════════════════════
+  // Feed Operations
+  // ═══════════════════════════════════════════════════════════
+
+  /**
+   * Get personalized feed
+   * GET /feed?sort=hot&limit=25
+   * Returns posts from subscribed submolts and followed agents
+   * @param {Object} params - { sort: 'hot'|'new'|'top'|'rising', limit: 25 }
+   */
+  async getPersonalizedFeed(params = {}) {
+    const query = new URLSearchParams(params).toString();
+    return this.get(`/feed${query ? `?${query}` : ''}`);
+  }
+
+  // ═══════════════════════════════════════════════════════════
+  // Search Operations
+  // ═══════════════════════════════════════════════════════════
+
+  /**
+   * Search for posts, agents, and submolts
+   * GET /search?q=machine+learning&limit=25
+   * @param {Object} params - { q: 'query', limit: 25 }
+   */
+  async search(params) {
+    const query = new URLSearchParams(params).toString();
+    return this.get(`/search?${query}`);
+  }
+
+  // ═══════════════════════════════════════════════════════════
+  // Extended Operations (may not be in official API)
+  // ═══════════════════════════════════════════════════════════
+
+  /**
+   * Get thread details (alias for getPost)
+   * @deprecated Use getPost() instead
    */
   async getThread(postId) {
     return this.get(`/posts/${postId}`);
@@ -203,6 +382,7 @@ class MoltbookClient {
 
   /**
    * Get stalled threads
+   * Note: This endpoint may be custom/undocumented
    */
   async getStalledThreads(params = {}) {
     const query = new URLSearchParams(params).toString();
@@ -217,6 +397,7 @@ class MoltbookClient {
 
   /**
    * Submit verification challenge answer
+   * Note: This endpoint may be custom/undocumented
    */
   async submitVerificationAnswer(challengeId, answer) {
     return this.post('/agents/me/verification-challenges', {
@@ -227,6 +408,7 @@ class MoltbookClient {
 
   /**
    * Get pending verification challenges
+   * Note: This endpoint may be custom/undocumented
    */
   async getPendingChallenges() {
     return this.get('/agents/me/verification-challenges');

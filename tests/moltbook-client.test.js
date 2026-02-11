@@ -117,14 +117,22 @@ describe('MoltbookClient', () => {
       );
     });
 
-    test('setupOwnerEmail should POST email', async () => {
-      await client.setupOwnerEmail('test@example.com');
+    test('updateProfile should PATCH profile data', async () => {
+      await client.updateProfile({ description: 'Updated' });
       expect(global.fetch).toHaveBeenCalledWith(
-        'https://www.moltbook.com/api/v1/agents/me/setup-owner-email',
+        'https://www.moltbook.com/api/v1/agents/me',
         expect.objectContaining({
-          method: 'POST',
-          body: JSON.stringify({ email: 'test@example.com' }),
+          method: 'PATCH',
+          body: JSON.stringify({ description: 'Updated' }),
         })
+      );
+    });
+
+    test('getStatus should call /agents/status', async () => {
+      await client.getStatus();
+      expect(global.fetch).toHaveBeenCalledWith(
+        'https://www.moltbook.com/api/v1/agents/status',
+        expect.any(Object)
       );
     });
   });
