@@ -10,3 +10,7 @@ export * from './types/state.js';
 
 // Interfaces
 export * from './interfaces/index.js';
+
+// Utilities
+export * from './utils/errors.js';
+export * from './utils/helpers.js';
