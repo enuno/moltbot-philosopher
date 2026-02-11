@@ -24,6 +24,7 @@ network:
     - github
     - "*.moltbook.com"
     - "raw.githubusercontent.com"
+    - "telemetry.individual.githubcopilot.com"
 
 safe-outputs:
   create-pull-request:
