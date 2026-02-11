@@ -65,19 +65,27 @@ function log(level, message, meta = {}) {
 }
 
 async function solveChallenge(puzzleText) {
-  log('info', 'Solving challenge', { puzzle: puzzleText.substring(0, 100) });
+  log('info', 'Starting challenge solve process', {
+    puzzleLength: puzzleText.length,
+    primaryModel: VENICE_PRIMARY_MODEL,
+  });
 
   // Try primary model (Qwen3-4B - fastest)
   let answer = await solveWithVenice(puzzleText, VENICE_PRIMARY_MODEL);
   if (answer) return answer;
 
   // Fallback to Llama if primary fails
-  log('warn', 'Primary model failed, trying fallback');
+  log('warn', 'Primary model failed, trying fallback model', {
+    fallbackModel: VENICE_FALLBACK_MODEL,
+  });
   answer = await solveWithVenice(puzzleText, VENICE_FALLBACK_MODEL);
   return answer;
 }
 
 async function solveWithVenice(puzzleText, model) {
+  const startTime = Date.now();
+  log('info', 'Calling Venice.ai model', { model, puzzlePreview: puzzleText.substring(0, 100) });
+
   try {
     const controller = new AbortController();
     const timeout = setTimeout(() => controller.abort(), CHALLENGE_TIMEOUT);
@@ -110,25 +118,39 @@ async function solveWithVenice(puzzleText, model) {
     clearTimeout(timeout);
 
     if (!response.ok) {
-      throw new Error(`Venice API ${response.status}`);
+      throw new Error(`Venice API returned ${response.status}`);
     }
 
     const result = await response.json();
     const answer = result.choices?.[0]?.message?.content?.trim();
 
+    const duration = Date.now() - startTime;
+
     if (answer) {
-      log('success', 'Solved', { model, answer: answer.substring(0, 50) });
+      log('info', 'Venice.ai response received', {
+        model,
+        answerPreview: answer.substring(0, 50),
+        duration: `${duration}ms`,
+      });
       return answer;
     }
-    throw new Error('No answer from Venice');
+    throw new Error('No answer content in Venice response');
   } catch (error) {
-    log('error', 'Venice solve failed', { model, error: error.message });
+    const duration = Date.now() - startTime;
+    log('error', 'Venice.ai API call failed', {
+      model,
+      error: error.message,
+      duration: `${duration}ms`,
+    });
     return null;
   }
 }
 
 async function submitAnswer(challengeId, answer) {
-  log('info', 'Submitting answer', { challengeId });
+  log('info', 'Submitting challenge answer to Moltbook', {
+    challengeId,
+    answerLength: answer.length,
+  });
 
   try {
     const res = await fetch('https://www.moltbook.com/api/v1/agents/verification/submit', {
@@ -141,15 +163,30 @@ async function submitAnswer(challengeId, answer) {
     });
 
     const result = await res.json();
+
+    log('info', 'Moltbook verification response', {
+      challengeId,
+      status: res.status,
+      success: result.success || res.ok,
+      response: JSON.stringify(result).substring(0, 200),
+    });
+
     if (result.success || res.ok) {
-      log('success', 'Answer accepted');
+      log('info', 'Challenge answer accepted by Moltbook', { challengeId });
       return true;
     }
 
-    log('error', 'Answer rejected', { error: result.error });
+    log('error', 'Challenge answer rejected by Moltbook', {
+      challengeId,
+      error: result.error || 'Unknown error',
+      statusCode: res.status,
+    });
     return false;
   } catch (error) {
-    log('error', 'Submit failed', { error: error.message });
+    log('error', 'Failed to submit answer to Moltbook', {
+      challengeId,
+      error: error.message,
+    });
     return false;
   }
 }
@@ -162,23 +199,41 @@ async function handleChallenge(challenge) {
   const puzzle = challenge.puzzle || challenge.question || challenge.text;
 
   if (!id || !puzzle) {
-    log('error', 'Invalid challenge', { challenge });
+    log('error', 'Invalid challenge format', { challenge });
     stats.challengesFailed++;
     return false;
   }
 
-  log('warn', '🔐 Challenge detected', { id });
+  log('warn', '🔐 Verification challenge detected', {
+    challengeId: id,
+    puzzlePreview: puzzle.substring(0, 200),
+    timestamp: stats.lastChallengeTime.toISOString(),
+  });
 
   const answer = await solveChallenge(puzzle);
   if (!answer) {
+    log('error', 'Challenge solving failed', { challengeId: id });
     stats.challengesFailed++;
     return false;
   }
 
+  log('info', 'Challenge solved, submitting answer', {
+    challengeId: id,
+    answerLength: answer.length,
+  });
+
   const success = await submitAnswer(id, answer);
   if (success) {
+    log('info', '✅ Challenge passed successfully', {
+      challengeId: id,
+      totalSolved: stats.challengesSolved + 1,
+    });
     stats.challengesSolved++;
   } else {
+    log('error', '❌ Challenge answer rejected', {
+      challengeId: id,
+      totalFailed: stats.challengesFailed + 1,
+    });
     stats.challengesFailed++;
   }
 
@@ -190,9 +245,11 @@ function proxyRequest(clientReq, clientRes) {
 
   const reqUrl = new URL(clientReq.url, `http://${clientReq.headers.host || 'localhost'}`);
 
-  if (DEBUG) {
-    log('debug', 'Proxy', { method: clientReq.method, path: reqUrl.pathname });
-  }
+  log('info', 'Proxying request', {
+    method: clientReq.method,
+    path: reqUrl.pathname,
+    host: TARGET_HOST,
+  });
 
   let requestBody = [];
   clientReq.on('data', (chunk) => requestBody.push(chunk));
@@ -219,12 +276,19 @@ function proxyRequest(clientReq, clientRes) {
 
             if (json.verification_challenge || json.challenge) {
               const challenge = json.verification_challenge || json.challenge;
-              log('warn', '🔐 Challenge intercepted');
+              log('warn', '🔐 Verification challenge intercepted in response', {
+                path: reqUrl.pathname,
+                method: clientReq.method,
+                challengeType: json.verification_challenge ? 'verification_challenge' : 'challenge',
+              });
 
               const solved = await handleChallenge(challenge);
 
               if (solved) {
-                log('success', '✅ Retrying request');
+                log('info', '✅ Challenge solved, retrying original request', {
+                  path: reqUrl.pathname,
+                  method: clientReq.method,
+                });
 
                 const retryReq = https.request(options, (retryRes) => {
                   let retryBody = [];
@@ -233,27 +297,40 @@ function proxyRequest(clientReq, clientRes) {
                     retryBody = Buffer.concat(retryBody);
                     clientRes.writeHead(retryRes.statusCode, retryRes.headers);
                     clientRes.end(retryBody);
-                    log('success', 'Retry done', { status: retryRes.statusCode });
+                    log('info', 'Retry request completed successfully', {
+                      path: reqUrl.pathname,
+                      status: retryRes.statusCode,
+                    });
                   });
                 });
 
                 retryReq.on('error', (err) => {
-                  log('error', 'Retry failed', { error: err.message });
+                  log('error', 'Retry request failed', {
+                    path: reqUrl.pathname,
+                    error: err.message,
+                  });
                   clientRes.writeHead(500, { 'Content-Type': 'text/plain' });
-                  clientRes.end('Retry failed');
+                  clientRes.end('Challenge solved but retry failed');
                 });
 
                 retryReq.write(requestBody);
                 retryReq.end();
                 return;
               } else {
-                log('error', '❌ Challenge failed');
+                log('error', '❌ Challenge solve failed, returning error to client', {
+                  path: reqUrl.pathname,
+                });
               }
             }
           } catch (err) {
-            // Not JSON - pass through
+            // Not JSON or parse error - pass through
           }
         }
+
+        log('info', 'Proxying response to client', {
+          path: reqUrl.pathname,
+          status: upstreamRes.statusCode,
+        });
 
         clientRes.writeHead(upstreamRes.statusCode, upstreamRes.headers);
         clientRes.end(responseBody);
