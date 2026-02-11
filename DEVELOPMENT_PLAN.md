@@ -2330,12 +2330,1004 @@ echo "✅ All integration tests passed"
 **Team Size**: 2-3 engineers (1 backend, 1 ML, 1 DevOps/QA)  
 **Budget**: $0 (open-source stack, existing hardware)
 
-### E.9 References
+### E.9 Layer 4 Preparation
+
+To support future Layer 4 (DKG federation) integration, the v3.0 implementation
+includes forward-compatibility features:
+
+**Database schema preparation**:
+
+- All `noosphere_memory` records include `source_trace_id` for provenance
+  tracking
+- Constitutional promotion (confidence ≥ 0.92) creates natural boundary for
+  public vs. private heuristics
+- JSONB `content_json` field supports future RDF/JSON-LD serialization
+- UUID primary keys align with distributed knowledge graph patterns
+
+**Architecture considerations**:
+
+- PostgreSQL backend enables extension with DKG-specific columns without
+  migration downtime
+- Microservice pattern (port 3006) allows adding OriginTrail node as peer
+  service
+- Typed memory model maps cleanly to RDF ontologies (each type becomes an
+  `rdfs:Class`)
+- Confidence thresholds (0.92 for constitutional) establish natural boundary
+  for blockchain anchoring
+
+**Script compatibility**:
+
+- All Python clients use abstraction layer (`noosphere_client.py`) to isolate
+  storage backend
+- Adding Layer 4 requires only extending client, not modifying 25+ scripts
+- Async publish queue pattern established in consolidation pipeline supports
+  DKG publishing
+
+### E.10 References
 
 - [5-Type Memory Architecture Best Practices](docs/best-practices/5-Type-Memory-Architecture.md)
 - [PostgreSQL pgvector Documentation](https://github.com/pgvector/pgvector)
 - [Mem0 Consolidation Pipeline](https://arxiv.org/pdf/2504.19413.pdf)
 - [AgentCore Long-Term Memory](https://aws.amazon.com/blogs/machine-learning/building-smarter-ai-agents-agentcore-long-term-memory-deep-dive/)
+
+---
+
+## F. Layer 4 — OriginTrail DKG: Federated Blockchain Knowledge Graph
+
+### F.1 Executive Summary
+
+**Objective**: Extend the Noosphere v3.0 (5-type PostgreSQL architecture from
+Section E) with a **fourth layer** for decentralized knowledge federation via
+the [OriginTrail Decentralized Knowledge Graph
+(DKG)](https://docs.origintrail.io/decentralized-knowledge-graph/dkgintro),
+publishing constitutional heuristics as blockchain-anchored **Knowledge Assets**
+and enabling cross-council semantic queries via SPARQL.
+
+**Rationale**:
+
+- **Current limitations**: Noosphere v3.0 is a single-instance system —
+  heuristics cannot be shared across council deployments, verified externally,
+  or queried by federated agents
+- **DKG benefits**: Multi-chain blockchain anchoring (Gnosis, Base, Ethereum)
+  provides tamper-proof provenance; RDF/SPARQL enables semantic queries across
+  councils; Knowledge Assets are W3C-standard verifiable containers
+- **AI agent memory**: OriginTrail explicitly supports [persistent agent
+  memory](https://docs.origintrail.io/build-with-dkg/chatdkg-builder-toolkit/ai-agents/custom-dkg-python-agent)
+  via `dkg.py` SDK, with existing ElizaOS plugin reference implementation
+
+**Success Metrics**:
+
+- Constitutional heuristics (confidence ≥ 0.92) published as Knowledge Assets
+  on DKG within 60s of Layer 3 promotion
+- SPARQL queries return federated heuristics from ≥ 2 trusted councils within
+  500ms
+- Zero data loss: All Layer 3 promotions have corresponding DKG UAL (Universal
+  Asset Locator)
+- Private heuristics (confidence < 0.92) never leave the local PostgreSQL
+  instance
+- Gas costs < $0.10 per Knowledge Asset creation on Gnosis chain
+
+### F.2 Architecture Overview
+
+**Layer Integration with Noosphere v3.0**:
+
+```
+Noosphere v3.0 + Layer 4
+├── Layer 1: Rapid Recall (PostgreSQL, local only)          [UNCHANGED]
+├── Layer 2: Consolidation (pgvector hybrid search)          [UNCHANGED]
+├── Layer 3: Constitutional Archive (PostgreSQL + eviction)  [EXTENDED: DKG anchoring on promotion]
+└── Layer 4: DKG Federation (NEW)
+    ├── OriginTrail DKG (Gnosis chain)
+    │   ├── Knowledge Assets (published heuristics as JSON-LD/RDF)
+    │   ├── SPARQL endpoint (semantic cross-council queries)
+    │   └── Paranets (virtual knowledge graphs per council)
+    ├── Gateway Node (self-hosted ot-node)
+    │   ├── Public graph: Canonical heuristics (replicated across ODN)
+    │   └── Private graph: Council-internal metadata (node-local only)
+    └── DKG Client (dkg.py SDK integration)
+        ├── Publish: Layer 3 → Knowledge Asset
+        ├── Query: SPARQL federated search
+        └── Get: Retrieve specific UAL
+```
+
+**Data Flow**:
+
+```mermaid
+graph TD
+    A[Council Deliberation] -->|Store| B[Layer 1: Rapid Recall - PostgreSQL]
+    B -->|Consolidate daily| C[Layer 2: Consolidation - pgvector]
+    C -->|Promote conf >= 0.92| D[Layer 3: Constitutional - PostgreSQL]
+    D -->|Publish canonical| E[Layer 4: DKG Knowledge Asset]
+    E -->|Replicate| F[OriginTrail Decentralized Network]
+    F -->|SPARQL query| G[Federated Council Discovery]
+    G -->|Import as provisional| B
+
+    D -->|DKG UAL stored| D
+    E -->|Blockchain anchor| H[Gnosis Chain - Immutable Record]
+```
+
+### F.3 Database Schema Extension
+
+**New columns on `noosphere_memory` table** (extends Section E.3 schema):
+
+```sql
+-- Add DKG columns to existing noosphere_memory table
+ALTER TABLE noosphere_memory ADD COLUMN dkg_ual TEXT UNIQUE DEFAULT NULL;
+ALTER TABLE noosphere_memory ADD COLUMN dkg_assertion_id TEXT DEFAULT NULL;
+ALTER TABLE noosphere_memory ADD COLUMN dkg_published_at TIMESTAMPTZ DEFAULT NULL;
+ALTER TABLE noosphere_memory ADD COLUMN dkg_paranet TEXT DEFAULT NULL;
+ALTER TABLE noosphere_memory ADD COLUMN dkg_visibility TEXT DEFAULT 'private'
+  CHECK (dkg_visibility IN ('private', 'public'));
+
+-- Index for DKG lookups
+CREATE INDEX idx_memory_dkg_ual ON noosphere_memory(dkg_ual)
+  WHERE dkg_ual IS NOT NULL;
+CREATE INDEX idx_memory_dkg_paranet ON noosphere_memory(dkg_paranet)
+  WHERE dkg_paranet IS NOT NULL;
+
+-- DKG federation log (incoming heuristics from other councils)
+CREATE TABLE noosphere_federation_log (
+  id              SERIAL PRIMARY KEY,
+  source_council  TEXT NOT NULL,        -- DID or petname of remote council
+  source_ual      TEXT NOT NULL UNIQUE, -- Remote Knowledge Asset UAL
+  local_memory_id UUID REFERENCES noosphere_memory(id),
+  imported_at     TIMESTAMPTZ DEFAULT now(),
+  original_confidence NUMERIC(3,2),     -- Confidence from source
+  local_confidence    NUMERIC(3,2) DEFAULT 0.40,  -- Reset for local validation
+  federation_status   TEXT DEFAULT 'provisional'
+    CHECK (federation_status IN ('provisional', 'validated', 'rejected', 'expired'))
+);
+
+-- DKG publish queue (outbound)
+CREATE TABLE noosphere_dkg_publish_queue (
+  id              SERIAL PRIMARY KEY,
+  memory_id       UUID REFERENCES noosphere_memory(id) NOT NULL,
+  status          TEXT DEFAULT 'pending'
+    CHECK (status IN ('pending', 'publishing', 'published', 'failed')),
+  attempts        INTEGER DEFAULT 0,
+  last_attempt_at TIMESTAMPTZ,
+  error_message   TEXT,
+  created_at      TIMESTAMPTZ DEFAULT now()
+);
+```
+
+### F.4 OriginTrail DKG Integration
+
+#### F.4.1 Gateway Node Setup
+
+**Self-hosted OriginTrail node** (Docker container, added to
+`docker-compose.yml`):
+
+```yaml
+services:
+  ot-node:
+    image: origintrail/ot-node:latest
+    container_name: ot-node
+    restart: unless-stopped
+    ports:
+      - "8900:8900"   # Node API (internal only, behind firewall)
+      - "9000:9000"   # Network port (P2P, requires public access)
+    volumes:
+      - ./data/ot-node:/ot-node/data:rw
+    environment:
+      - NODE_ENV=mainnet
+      - BLOCKCHAIN_IMPLEMENTATION=gnosis
+      - RPC_ENDPOINT=${GNOSIS_RPC_ENDPOINT}
+      - PRIVATE_KEY=${DKG_WALLET_PRIVATE_KEY}
+      - MANAGEMENT_WALLET=${DKG_MANAGEMENT_WALLET}
+    mem_limit: 4g
+    cpus: 2.0
+    networks:
+      - noosphere-internal
+    depends_on:
+      - postgres
+```
+
+**Security considerations**:
+
+- Port 8900 (API) exposed **only** on internal Docker network — never public
+- Port 9000 (P2P) requires public access for DKG network participation
+- `DKG_WALLET_PRIVATE_KEY` stored in Bitwarden Secrets (per existing BWS
+  pattern)
+- Separate wallet from mining/treasury operations — dedicated DKG gas wallet
+- Gas budget: Fund with ~0.5 xDAI on Gnosis (sufficient for ~5,000 KA creates)
+
+#### F.4.2 Python SDK Integration
+
+**File**: `workspace/classical/noosphere/dkg_client.py`
+
+```python
+"""
+OriginTrail DKG client for Noosphere Layer 4.
+Handles Knowledge Asset publishing, retrieval, and SPARQL queries.
+
+Requirements:
+  - pip install dkg
+  - Running ot-node (local or remote gateway)
+  - Gnosis wallet funded with xDAI + TRAC tokens
+"""
+
+import os
+import json
+import logging
+from datetime import datetime, timezone
+from dkg import DKG
+from dkg.providers import BlockchainProvider, NodeHTTPProvider
+
+logger = logging.getLogger("noosphere.dkg")
+
+# DKG Configuration
+DKG_NODE_HOSTNAME = os.getenv("DKG_NODE_HOSTNAME", "localhost")
+DKG_NODE_PORT = int(os.getenv("DKG_NODE_PORT", "8900"))
+DKG_BLOCKCHAIN = os.getenv("DKG_BLOCKCHAIN", "gnosis:mainnet")
+DKG_EPOCHS = int(os.getenv("DKG_EPOCHS", "2"))  # 2 epochs = 6 months
+DKG_PARANET = os.getenv("DKG_PARANET", None)     # Optional paranet UAL
+
+# Noosphere RDF ontology prefix
+NOOSPHERE_PREFIX = "https://ontology.moltbot.ai/noosphere/1.0#"
+SCHEMA_PREFIX = "http://schema.org/"
+
+
+class NoosphereDKGClient:
+    """Bridge between Noosphere v3.0 PostgreSQL and OriginTrail DKG."""
+
+    def __init__(self):
+        node_provider = NodeHTTPProvider(
+            f"http://{DKG_NODE_HOSTNAME}:{DKG_NODE_PORT}"
+        )
+        blockchain_provider = BlockchainProvider(
+            DKG_BLOCKCHAIN,
+            private_key=os.getenv("DKG_WALLET_PRIVATE_KEY")
+        )
+        self.dkg = DKG(node_provider, blockchain_provider)
+        self.paranet = DKG_PARANET
+
+    def publish_heuristic(self, memory: dict) -> dict:
+        """
+        Publish a Layer 3 constitutional memory as a DKG Knowledge Asset.
+
+        Args:
+            memory: Dict with keys from noosphere_memory table:
+                - id, agent_id, type, content, confidence,
+                  tags, source_trace_id
+
+        Returns:
+            Dict with UAL, assertionId, and blockchain transaction hash.
+        """
+        # Serialize as JSON-LD (W3C standard)
+        knowledge_asset = {
+            "@context": {
+                "schema": SCHEMA_PREFIX,
+                "noosphere": NOOSPHERE_PREFIX
+            },
+            "@type": "noosphere:ConstitutionalHeuristic",
+            "@id": f"urn:noosphere:heuristic:{memory['id']}",
+            "schema:name": f"{memory['type']}-{memory['agent_id']}-{memory['id'][:8]}",
+            "schema:description": memory["content"],
+            "noosphere:agentId": memory["agent_id"],
+            "noosphere:memoryType": memory["type"],
+            "noosphere:confidence": float(memory["confidence"]),
+            "noosphere:tags": memory.get("tags", []),
+            "noosphere:sourceTraceId": memory.get("source_trace_id", ""),
+            "noosphere:publishedAt": datetime.now(timezone.utc).isoformat(),
+            "noosphere:councilId": os.getenv("COUNCIL_ID", "moltbot-philosopher-primary"),
+            "noosphere:version": "3.0"
+        }
+
+        # Determine visibility
+        # Only canonical (conf >= 0.92) heuristics go public
+        visibility = "public" if memory["confidence"] >= 0.92 else "private"
+
+        try:
+            result = self.dkg.asset.create(
+                content=knowledge_asset,
+                epochs_num=DKG_EPOCHS,
+                immutable=True if memory["confidence"] >= 0.92 else False
+            )
+
+            logger.info(
+                f"Published heuristic {memory['id'][:8]} to DKG: "
+                f"UAL={result.get('UAL')}, visibility={visibility}"
+            )
+
+            return {
+                "ual": result.get("UAL"),
+                "assertion_id": result.get("publicAssertionId"),
+                "status": "published",
+                "visibility": visibility
+            }
+
+        except Exception as e:
+            logger.error(f"DKG publish failed for {memory['id']}: {e}")
+            return {"status": "failed", "error": str(e)}
+
+    def query_federated_heuristics(
+        self,
+        memory_type: str = None,
+        agent_voice: str = None,
+        min_confidence: float = 0.85,
+        limit: int = 20
+    ) -> list:
+        """
+        Query DKG for heuristics from federated councils via SPARQL.
+
+        Args:
+            memory_type: Filter by 5-type (insight, pattern, strategy,
+                         preference, lesson)
+            agent_voice: Filter by voice (Classical, Existentialist, etc.)
+            min_confidence: Minimum confidence threshold
+            limit: Max results
+
+        Returns:
+            List of dicts with heuristic content from DKG.
+        """
+        filters = []
+        if memory_type:
+            filters.append(
+                f'FILTER (?type = "{memory_type}")'
+            )
+        if agent_voice:
+            filters.append(
+                f'FILTER (?voice = "{agent_voice}")'
+            )
+        filters.append(
+            f"FILTER (?confidence >= {min_confidence})"
+        )
+
+        filter_clause = "\n    ".join(filters)
+
+        sparql = f"""
+        PREFIX schema: <{SCHEMA_PREFIX}>
+        PREFIX noosphere: <{NOOSPHERE_PREFIX}>
+        PREFIX dkg: <https://ontology.origintrail.io/dkg/1.0#>
+
+        SELECT ?heuristic ?content ?type ?voice ?confidence ?council ?publishedAt
+        WHERE {{
+          GRAPH <current:graph> {{
+            ?g dkg:hasNamedGraph ?containedGraph .
+          }}
+          GRAPH ?containedGraph {{
+            ?heuristic a noosphere:ConstitutionalHeuristic ;
+                       schema:description ?content ;
+                       noosphere:memoryType ?type ;
+                       noosphere:agentId ?voice ;
+                       noosphere:confidence ?confidence ;
+                       noosphere:councilId ?council ;
+                       noosphere:publishedAt ?publishedAt .
+            {filter_clause}
+          }}
+        }}
+        ORDER BY DESC(?confidence)
+        LIMIT {limit}
+        """
+
+        try:
+            result = self.dkg.graph.query(sparql)
+            return result.get("data", [])
+        except Exception as e:
+            logger.error(f"DKG SPARQL query failed: {e}")
+            return []
+
+    def get_knowledge_asset(self, ual: str) -> dict:
+        """Retrieve a specific Knowledge Asset by UAL."""
+        try:
+            result = self.dkg.asset.get(ual)
+            return result
+        except Exception as e:
+            logger.error(f"DKG get failed for UAL {ual}: {e}")
+            return {}
+```
+
+#### F.4.3 Noosphere Client Extension
+
+**Updates to `noosphere_client.py`** (extends Section E Phase 2 client):
+
+```python
+# Add to existing NoosphereClient class from Section E
+
+from dkg_client import NoosphereDKGClient
+
+class NoosphereClient:
+    """Extended with Layer 4 DKG federation."""
+
+    def __init__(self, db_url, enable_dkg=True):
+        self.db = connect(db_url)
+        self.dkg_client = NoosphereDKGClient() if enable_dkg else None
+        self.dkg_enabled = enable_dkg
+
+    def promote_to_constitutional(self, memory_id: str, publish_to_dkg: bool = True):
+        """
+        Promote memory to Layer 3 constitutional status.
+        Optionally publish to DKG Layer 4.
+        """
+        # Existing Layer 3 promotion logic from Section E
+        memory = self._get_memory(memory_id)
+        if memory["confidence"] < 0.92:
+            raise ValueError(
+                f"Confidence {memory['confidence']} below 0.92 threshold"
+            )
+
+        # Mark as constitutional in PostgreSQL
+        self.db.execute("""
+            UPDATE noosphere_memory
+            SET updated_at = now()
+            WHERE id = %s
+        """, (memory_id,))
+
+        # Layer 4: Publish to DKG
+        if publish_to_dkg and self.dkg_enabled:
+            # Queue for async publishing (retry-safe)
+            self.db.execute("""
+                INSERT INTO noosphere_dkg_publish_queue (memory_id)
+                VALUES (%s)
+                ON CONFLICT DO NOTHING
+            """, (memory_id,))
+
+            # Attempt immediate publish
+            result = self.dkg_client.publish_heuristic(memory)
+            if result["status"] == "published":
+                self.db.execute("""
+                    UPDATE noosphere_memory SET
+                        dkg_ual = %s,
+                        dkg_assertion_id = %s,
+                        dkg_published_at = now(),
+                        dkg_visibility = %s
+                    WHERE id = %s
+                """, (
+                    result["ual"],
+                    result["assertion_id"],
+                    result["visibility"],
+                    memory_id
+                ))
+                self.db.execute("""
+                    UPDATE noosphere_dkg_publish_queue
+                    SET status = 'published'
+                    WHERE memory_id = %s
+                """, (memory_id,))
+
+        self.db.commit()
+        return result if publish_to_dkg else {"status": "local_only"}
+
+    def import_federated_heuristic(self, source_council: str, ual: str):
+        """
+        Import a Knowledge Asset from a federated council as provisional memory.
+        Confidence is reset to 0.40 — must prove itself locally.
+        """
+        # Fetch from DKG
+        asset = self.dkg_client.get_knowledge_asset(ual)
+        if not asset:
+            raise ValueError(f"Could not retrieve UAL: {ual}")
+
+        # Extract heuristic data from JSON-LD assertion
+        assertion = asset.get("assertion", [])
+        content = self._extract_jsonld_field(assertion, "schema:description")
+        memory_type = self._extract_jsonld_field(assertion, "noosphere:memoryType")
+        original_confidence = float(
+            self._extract_jsonld_field(assertion, "noosphere:confidence")
+        )
+        voice = self._extract_jsonld_field(assertion, "noosphere:agentId")
+        tags = self._extract_jsonld_field(assertion, "noosphere:tags") or []
+
+        # Store as provisional local memory (confidence = 0.40)
+        memory_id = self.store_memory(
+            agent_id=voice,
+            type=memory_type or "insight",
+            content=content,
+            confidence=0.40,
+            tags=tags + [f"federated:{source_council}"],
+            source_trace_id=f"dkg:{ual}"
+        )
+
+        # Log federation event
+        self.db.execute("""
+            INSERT INTO noosphere_federation_log
+                (source_council, source_ual, local_memory_id,
+                 original_confidence, local_confidence)
+            VALUES (%s, %s, %s, %s, 0.40)
+        """, (source_council, ual, memory_id, original_confidence))
+
+        self.db.commit()
+        return memory_id
+```
+
+#### F.4.4 Publish Queue Worker
+
+**File**: `services/noosphere/dkg_publisher.py`
+
+```python
+"""
+Background worker: Processes DKG publish queue with retry logic.
+Run via: python3 dkg_publisher.py (or as systemd service)
+"""
+
+import time
+import logging
+from noosphere_client import NoosphereClient
+
+MAX_RETRIES = 3
+POLL_INTERVAL = 30  # seconds
+
+logger = logging.getLogger("noosphere.dkg_publisher")
+
+def process_queue(client: NoosphereClient):
+    """Process pending DKG publishes with exponential backoff."""
+    pending = client.db.execute("""
+        SELECT pq.id, pq.memory_id, pq.attempts, m.*
+        FROM noosphere_dkg_publish_queue pq
+        JOIN noosphere_memory m ON m.id = pq.memory_id
+        WHERE pq.status IN ('pending', 'failed')
+          AND pq.attempts < %s
+        ORDER BY pq.created_at ASC
+        LIMIT 10
+    """, (MAX_RETRIES,)).fetchall()
+
+    for item in pending:
+        try:
+            client.db.execute("""
+                UPDATE noosphere_dkg_publish_queue
+                SET status = 'publishing',
+                    attempts = attempts + 1,
+                    last_attempt_at = now()
+                WHERE id = %s
+            """, (item["id"],))
+            client.db.commit()
+
+            result = client.dkg_client.publish_heuristic(dict(item))
+
+            if result["status"] == "published":
+                client.db.execute("""
+                    UPDATE noosphere_memory SET
+                        dkg_ual = %s,
+                        dkg_assertion_id = %s,
+                        dkg_published_at = now(),
+                        dkg_visibility = %s
+                    WHERE id = %s
+                """, (result["ual"], result["assertion_id"],
+                      result["visibility"], item["memory_id"]))
+                client.db.execute("""
+                    UPDATE noosphere_dkg_publish_queue
+                    SET status = 'published'
+                    WHERE id = %s
+                """, (item["id"],))
+            else:
+                client.db.execute("""
+                    UPDATE noosphere_dkg_publish_queue
+                    SET status = 'failed',
+                        error_message = %s
+                    WHERE id = %s
+                """, (result.get("error", "Unknown"), item["id"]))
+
+            client.db.commit()
+
+        except Exception as e:
+            logger.error(f"Queue processing error: {e}")
+            client.db.execute("""
+                UPDATE noosphere_dkg_publish_queue
+                SET status = 'failed', error_message = %s
+                WHERE id = %s
+            """, (str(e), item["id"]))
+            client.db.commit()
+            time.sleep(2 ** item["attempts"])  # Exponential backoff
+
+
+if __name__ == "__main__":
+    client = NoosphereClient(
+        db_url="postgresql://localhost:5432/noosphere",
+        enable_dkg=True
+    )
+    logger.info("DKG publisher worker started")
+    while True:
+        process_queue(client)
+        time.sleep(POLL_INTERVAL)
+```
+
+### F.5 Knowledge Asset Ontology
+
+**Custom Noosphere RDF ontology** for heuristic representation:
+
+**File**: `config/ontology/noosphere-ontology.jsonld`
+
+```json
+{
+  "@context": {
+    "noosphere": "https://ontology.moltbot.ai/noosphere/1.0#",
+    "schema": "http://schema.org/",
+    "xsd": "http://www.w3.org/2001/XMLSchema#"
+  },
+  "@graph": [
+    {
+      "@id": "noosphere:ConstitutionalHeuristic",
+      "@type": "rdfs:Class",
+      "rdfs:label": "Constitutional Heuristic",
+      "rdfs:comment": "A canonical heuristic promoted to constitutional status via Council supermajority"
+    },
+    {
+      "@id": "noosphere:memoryType",
+      "@type": "rdf:Property",
+      "rdfs:domain": "noosphere:ConstitutionalHeuristic",
+      "rdfs:range": "xsd:string",
+      "rdfs:comment": "One of: insight, pattern, strategy, preference, lesson"
+    },
+    {
+      "@id": "noosphere:agentId",
+      "@type": "rdf:Property",
+      "rdfs:domain": "noosphere:ConstitutionalHeuristic",
+      "rdfs:range": "xsd:string",
+      "rdfs:comment": "Voice identity: Classical, Existentialist, Transcendentalist, JoyceStream, Enlightenment, BeatGeneration, Cyberpunk, Satirist, Scientist"
+    },
+    {
+      "@id": "noosphere:confidence",
+      "@type": "rdf:Property",
+      "rdfs:domain": "noosphere:ConstitutionalHeuristic",
+      "rdfs:range": "xsd:decimal",
+      "rdfs:comment": "Confidence score 0.0-1.0, minimum 0.92 for public DKG publication"
+    },
+    {
+      "@id": "noosphere:councilId",
+      "@type": "rdf:Property",
+      "rdfs:domain": "noosphere:ConstitutionalHeuristic",
+      "rdfs:range": "xsd:string",
+      "rdfs:comment": "Unique identifier for the publishing Ethics-Convergence Council instance"
+    },
+    {
+      "@id": "noosphere:memeticStrain",
+      "@type": "rdf:Property",
+      "rdfs:domain": "noosphere:ConstitutionalHeuristic",
+      "rdfs:range": "xsd:string",
+      "rdfs:comment": "One of seven memetic strains: Telos-Alignment, Bad-Faith Detection, Sovereignty Warnings, Phenomenological Tuning, Rights Precedents, Moloch Detection, Synthesis-Efficiency"
+    }
+  ]
+}
+```
+
+### F.6 Bash Script Integration
+
+**Updates to existing scripts** (extends Section E Phase 3 pattern):
+
+```bash
+#!/bin/bash
+# memory-cycle-v3.sh — Updated for Layer 4 DKG publishing
+# Called by noosphere-scheduler.sh after consolidation
+
+# Phase 1: Standard consolidation (Section E)
+docker exec classical-philosopher python3 \
+  /workspace/noosphere/memory-cycle-v3.py \
+  --action consolidate \
+  --batch-size 100
+
+# Phase 2: Process DKG publish queue
+docker exec classical-philosopher python3 \
+  /workspace/noosphere/dkg_publisher.py \
+  --process-once  # Single pass, not daemon mode
+
+# Phase 3: Import federated heuristics (weekly)
+if [ "$(date +%u)" -eq 1 ]; then  # Mondays only
+  docker exec classical-philosopher python3 \
+    /workspace/noosphere/recall-engine-v3.py \
+    --action federated-import \
+    --trusted-councils "$TRUSTED_COUNCIL_LIST" \
+    --min-confidence 0.85 \
+    --types "lesson,pattern,strategy" \
+    --limit 50
+fi
+
+# Phase 4: Report
+PUBLISHED=$(docker exec postgres psql -U noosphere_admin -d noosphere -t -c \
+  "SELECT COUNT(*) FROM noosphere_dkg_publish_queue WHERE status = 'published'")
+PENDING=$(docker exec postgres psql -U noosphere_admin -d noosphere -t -c \
+  "SELECT COUNT(*) FROM noosphere_dkg_publish_queue WHERE status = 'pending'")
+FEDERATED=$(docker exec postgres psql -U noosphere_admin -d noosphere -t -c \
+  "SELECT COUNT(*) FROM noosphere_federation_log WHERE federation_status = 'provisional'")
+
+echo "DKG Status: ${PUBLISHED} published, ${PENDING} pending, ${FEDERATED} federated provisional"
+```
+
+### F.7 Environment Configuration
+
+**New environment variables** (added to Bitwarden Secrets):
+
+```bash
+# OriginTrail DKG Configuration
+DKG_NODE_HOSTNAME=localhost
+DKG_NODE_PORT=8900
+DKG_BLOCKCHAIN=gnosis:mainnet
+DKG_WALLET_PRIVATE_KEY=${DKG_WALLET_PRIVATE_KEY}  # BWS-managed
+DKG_MANAGEMENT_WALLET=${DKG_MANAGEMENT_WALLET}     # BWS-managed
+DKG_EPOCHS=2                   # 2 epochs = 6 months retention
+DKG_PARANET=                   # Optional: paranet UAL for council-specific graph
+GNOSIS_RPC_ENDPOINT=https://rpc.gnosischain.com
+
+# Federation Configuration
+COUNCIL_ID=moltbot-philosopher-primary
+TRUSTED_COUNCIL_LIST=          # Comma-separated council IDs for federation
+DKG_PUBLISH_THRESHOLD=0.92     # Minimum confidence for public DKG publish
+DKG_FEDERATION_IMPORT_CONFIDENCE=0.85  # Min remote confidence to import
+DKG_FEDERATION_LOCAL_CONFIDENCE=0.40   # Reset confidence for imported heuristics
+```
+
+### F.8 Migration Phases
+
+#### Phase 0: Infrastructure Setup (3-4 days)
+
+**Prerequisites**:
+
+- Section E Phase 2+ complete (Noosphere v3.0 Python client operational)
+- PostgreSQL container running and healthy
+- Gnosis wallet created with 0.5 xDAI + 100 TRAC tokens
+
+**Tasks**:
+
+- [ ] Add OriginTrail `ot-node` container to `docker-compose.yml`
+  - Resource limits: 4GB RAM, 2 CPU
+  - Persistent volume: `./data/ot-node`
+  - Network: Internal Docker network (API port), host network (P2P port 9000)
+- [ ] Create dedicated Gnosis wallet for DKG operations
+  - Fund with 0.5 xDAI (gas) + 100 TRAC (staking/publishing)
+  - Store private key in Bitwarden Secrets
+  - **Never reuse** mining or treasury wallet keys
+- [ ] Install `dkg.py` SDK in agent containers
+  - Add to `requirements.txt`: `dkg>=0.1.0`
+  - Verify connectivity: `python3 -c "from dkg import DKG; print('OK')"`
+- [ ] Test local DKG operations
+  - Publish test Knowledge Asset
+  - Retrieve by UAL
+  - Execute simple SPARQL query
+- [ ] Add health check: `curl http://localhost:8900/info`
+
+**Deliverables**:
+
+- `docker-compose.yml` updated with `ot-node` service
+- DKG wallet funded and credentials in Bitwarden
+- Test Knowledge Asset published to Gnosis testnet
+
+#### Phase 1: Database Schema Extension (1-2 days)
+
+**Tasks**:
+
+- [ ] Run schema migration: `ALTER TABLE` additions per F.3
+- [ ] Create `noosphere_federation_log` table
+- [ ] Create `noosphere_dkg_publish_queue` table
+- [ ] Add indexes for DKG lookups
+- [ ] Verify existing v3.0 queries unaffected (new columns all `DEFAULT NULL`)
+
+**Deliverables**:
+
+- Migration script: `scripts/db/migrate-noosphere-v3-to-v3.1-dkg.sql`
+- Schema validated against existing Phase E queries
+
+#### Phase 2: DKG Client Library (3-4 days)
+
+**Tasks**:
+
+- [ ] Create `dkg_client.py` (per F.4.2)
+  - `publish_heuristic()` — JSON-LD serialization + DKG asset.create
+  - `query_federated_heuristics()` — SPARQL query builder
+  - `get_knowledge_asset()` — UAL-based retrieval
+- [ ] Create custom RDF ontology (per F.5)
+- [ ] Extend `noosphere_client.py` with DKG methods (per F.4.3)
+  - `promote_to_constitutional()` — Layer 3 + optional Layer 4
+  - `import_federated_heuristic()` — DKG → local provisional
+- [ ] Unit tests: `tests/test_dkg_client.py`
+  - Mock DKG responses for offline testing
+  - Integration tests against Gnosis testnet
+
+**Deliverables**:
+
+- `workspace/classical/noosphere/dkg_client.py` (300+ LOC)
+- Updated `noosphere_client.py` with Layer 4 methods
+- Custom ontology: `config/ontology/noosphere-ontology.jsonld`
+- 90%+ test coverage on DKG client
+
+#### Phase 3: Publish Queue & Worker (2-3 days)
+
+**Tasks**:
+
+- [ ] Create `dkg_publisher.py` background worker (per F.4.4)
+  - Retry with exponential backoff (max 3 attempts)
+  - Dead-letter logging for permanent failures
+  - Daemon mode + single-pass mode
+- [ ] Add publisher to `docker-compose.yml` as sidecar service
+- [ ] Integrate publish trigger into `memory-cycle-v3.py`
+  - On Layer 3 promotion, enqueue to `noosphere_dkg_publish_queue`
+- [ ] Monitor queue depth via Prometheus metric
+- [ ] NTFY alerts on publish failures
+
+**Deliverables**:
+
+- `services/noosphere/dkg_publisher.py` (200+ LOC)
+- Publisher service in `docker-compose.yml`
+- Prometheus metric: `noosphere_dkg_queue_depth`
+
+#### Phase 4: Federation & SPARQL Queries (3-4 days)
+
+**Tasks**:
+
+- [ ] Implement federated import pipeline
+  - Weekly cron: Query DKG for heuristics from trusted councils
+  - Filter by type, voice, confidence threshold
+  - Import as provisional (confidence = 0.40)
+  - Tag with `federated:{council_id}`
+- [ ] Create SPARQL query templates for common patterns:
+  - All Moloch detection heuristics (cross-council)
+  - All strategies by voice (e.g., all Classical strategies)
+  - Recently published heuristics (last 30 days)
+  - High-confidence canonical heuristics (≥ 0.92)
+- [ ] Add `--federated` flag to `recall-engine-v3.py`
+  - Queries local PostgreSQL + DKG in parallel
+  - Merges and deduplicates results
+  - Indicates provenance (local vs. federated) in output
+- [ ] Implement federation status lifecycle:
+  - `provisional` → `validated` (after local Council deliberation)
+  - `provisional` → `rejected` (after negative assessment)
+  - `provisional` → `expired` (after 90 days without validation)
+
+**Deliverables**:
+
+- Federated import pipeline (cron + script)
+- SPARQL query templates: `config/sparql/`
+- Updated `recall-engine-v3.py` with `--federated` flag
+
+#### Phase 5: Paranets & Access Control (2-3 days)
+
+**Tasks**:
+
+- [ ] Create dedicated Noosphere paranet on DKG
+  - Council-specific virtual knowledge graph
+  - All published heuristics associated with paranet UAL
+  - Enables paranet-scoped SPARQL queries
+- [ ] Implement access control for private vs. public heuristics
+  - `confidence >= 0.92` → public assertion (replicated across ODN)
+  - `confidence < 0.92` → private assertion (node-local only)
+  - Configurable threshold via `DKG_PUBLISH_THRESHOLD` env var
+- [ ] Add paranet federation: SPARQL federated queries across paranets
+- [ ] Document trust model for federated councils
+
+**Deliverables**:
+
+- Paranet created on Gnosis mainnet
+- Access control integrated into publish pipeline
+- Federation trust model documentation
+
+#### Phase 6: Integration Testing & Rollout (3-4 days)
+
+**Tasks**:
+
+- [ ] Full stack integration test (PostgreSQL + ot-node + 9 agents + DKG)
+  - Simulate Council iteration → Layer 3 promotion → DKG publish
+  - Verify SPARQL retrieval of published heuristic
+  - Test federated import from mock remote council
+- [ ] Gas cost validation
+  - Publish 50 test Knowledge Assets
+  - Verify average cost < $0.10 per KA on Gnosis
+  - Document expected monthly gas budget
+- [ ] Failure mode testing
+  - ot-node offline: Verify queue retries, no data loss
+  - Gnosis RPC timeout: Verify exponential backoff
+  - Insufficient gas: Verify alert + queue pause
+- [ ] Documentation updates
+  - `docs/NOOSPHERE_V3.1_DKG.md` — Layer 4 architecture guide
+  - `docs/DKG_FEDERATION.md` — Trust model + onboarding guide
+  - `AGENTS.md` — Update memory architecture section
+  - Update `NOOSPHERE_ARCHITECTURE.md` with Layer 4
+
+**Deliverables**:
+
+- Integration test suite: `tests/noosphere-dkg-integration-test.sh`
+- Gas cost report
+- All documentation updated
+- Rollout executed on Gnosis mainnet
+
+### F.9 Risk Mitigation
+
+| Risk | Probability | Impact | Mitigation |
+|------|------------|--------|-----------|
+| ot-node downtime | Medium | Medium | Publish queue with retry; local Layer 3 unaffected; NTFY alerts |
+| Gnosis chain congestion | Low | Medium | Queue absorbs spikes; configurable gas price limits; fallback to Base chain |
+| Gas wallet depletion | Medium | High | Prometheus alert at < 0.1 xDAI; auto-pause publisher; BWS-managed refill |
+| DKG SDK breaking changes | Medium | Medium | Pin `dkg.py` version; test before upgrades; maintain compatibility layer |
+| Voice contamination from federation | High | Medium | Import at 0.40 confidence; require local Council validation; 90-day expiry |
+| Private heuristic leakage | Low | Critical | Strict `dkg_visibility` enforcement; code review; automated tests verify private content never reaches public assertions |
+| SPARQL injection | Low | High | Parameterized queries only; no raw user input in SPARQL strings |
+| TRAC token price volatility | Medium | Low | Minimal staking requirements; Gnosis (low gas); budget monitoring |
+
+### F.10 Success Criteria
+
+**Functional**:
+
+- [ ] Constitutional heuristics published to DKG within 60s of promotion
+- [ ] SPARQL queries return results from ≥ 2 councils within 500ms
+- [ ] All published Knowledge Assets retrievable by UAL
+- [ ] Federation import correctly resets confidence to 0.40
+- [ ] Private heuristics never appear in public DKG assertions
+
+**Operational**:
+
+- [ ] ot-node uptime > 99% over 30 days
+- [ ] Publish queue processes without manual intervention
+- [ ] Gas costs < $5/month at current publication rates
+- [ ] DKG wallet balance monitored via Prometheus
+
+**Performance**:
+
+- [ ] Local Layer 1-3 query latency unaffected by Layer 4 additions
+- [ ] DKG publish does not block Council deliberation (async queue)
+- [ ] Federated import completes within 5 minutes for 50 heuristics
+
+### F.11 Timeline & Resource Allocation
+
+| Phase | Duration | Lead | Dependencies |
+|-------|----------|------|-------------|
+| Phase 0: Infrastructure Setup | 3-4 days | DevOps | Gnosis wallet, TRAC tokens |
+| Phase 1: Schema Extension | 1-2 days | Backend Dev | Section E Phase 0 complete |
+| Phase 2: DKG Client Library | 3-4 days | Backend Dev | Phase 0 + Phase 1 complete |
+| Phase 3: Publish Queue | 2-3 days | Backend Dev | Phase 2 complete |
+| Phase 4: Federation & SPARQL | 3-4 days | Backend + ML | Phase 3 complete |
+| Phase 5: Paranets & Access | 2-3 days | Backend Dev | Phase 4 complete |
+| Phase 6: Integration & Rollout | 3-4 days | QA + DevOps | All phases complete |
+
+**Total Effort**: 17-24 days (3-5 weeks)  
+**Team Size**: 2 engineers (1 backend/Web3, 1 DevOps/QA)  
+**Budget**: ~$50 (Gnosis gas + TRAC tokens for 6-month initial epoch)  
+**Dependency**: Section E (Noosphere v3.0) must be **Phase 2+ complete** before
+starting Phase 1 here
+
+### F.12 Files to Create/Modify
+
+#### New Files
+
+```
+workspace/classical/noosphere/
+├── dkg_client.py                    # OriginTrail DKG Python client
+├── dkg_publisher.py                 # Background publish queue worker
+
+services/noosphere/
+├── dkg_publisher.py                 # Dockerized publish worker (daemon)
+
+config/
+├── ontology/
+│   └── noosphere-ontology.jsonld    # Custom RDF ontology for heuristics
+├── sparql/
+│   ├── query-moloch-all.sparql      # Cross-council Moloch detection
+│   ├── query-by-voice.sparql        # Voice-specific heuristics
+│   ├── query-recent.sparql          # Recently published (30 days)
+│   └── query-canonical.sparql       # High-confidence canonical
+
+scripts/db/
+├── migrate-noosphere-v3-to-v3.1-dkg.sql  # Schema migration
+
+tests/
+├── test_dkg_client.py               # Unit tests for DKG client
+├── test_dkg_federation.py           # Federation import tests
+└── noosphere-dkg-integration-test.sh # Full stack integration test
+
+docs/
+├── NOOSPHERE_V3.1_DKG.md            # Layer 4 architecture guide
+└── DKG_FEDERATION.md                 # Trust model & council onboarding
+```
+
+#### Modified Files
+
+- `docker-compose.yml` — Add `ot-node` + `dkg-publisher` services
+- `workspace/classical/noosphere/noosphere_client.py` — Add Layer 4 methods
+- `workspace/classical/noosphere/recall-engine-v3.py` — Add `--federated` flag
+- `workspace/classical/noosphere/memory-cycle-v3.py` — Add DKG publish trigger
+- `scripts/noosphere-scheduler.sh` — Add DKG queue processing + federation
+  import
+- `scripts/noosphere-monitor.sh` — Add DKG health checks + queue depth
+- `docs/NOOSPHERE_ARCHITECTURE.md` — Add Layer 4 section
+- `AGENTS.md` — Update memory architecture
+- `config/agents/*.env` — Add DKG environment variables
+
+### F.13 References
+
+- [OriginTrail DKG Documentation](https://docs.origintrail.io/decentralized-knowledge-graph/dkgintro)
+- [dkg.py Python SDK](https://github.com/OriginTrail/dkg.py)
+- [Custom DKG Python Agent Guide](https://docs.origintrail.io/build-with-dkg/chatdkg-builder-toolkit/ai-agents/custom-dkg-python-agent)
+- [DKG SPARQL Query Guide](https://docs.origintrail.io/build-with-dkg/querying-the-dkg)
+- [OriginTrail Paranets](https://docs.origintrail.io/build-a-dkg-node-ai-agent/advanced-features-and-toolkits/dkg-paranets/building-with-dkg-paranets)
+- [ElizaOS DKG Plugin (reference implementation)](https://github.com/OriginTrail/elizagraph)
+- [DKG Python SDK PyPI](https://pypi.org/project/dkg/0.1.0b1/)
+- [OriginTrail Node (ot-node)](https://github.com/origintrail/ot-node)
 
 ---
 
