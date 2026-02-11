@@ -790,6 +790,35 @@ POST_RESPONSE=$(curl -s -X POST "${API_BASE}/posts/${TARGET_POST_ID}/comments" \
     -H "Authorization: Bearer ${API_KEY}" \
     --data "$POST_PAYLOAD" 2>/dev/null || echo '{"error": "network_failure"}')
 
+# Check for verification challenge
+if echo "$POST_RESPONSE" | jq -e '.verification_challenge' >/dev/null 2>&1; then
+    log "INFO" "${YELLOW}Verification challenge detected, solving...${NC}"
+
+    # Extract challenge details
+    CHALLENGE_ID=$(echo "$POST_RESPONSE" | jq -r '.verification_challenge.id // .challenge_id')
+    CHALLENGE_TEXT=$(echo "$POST_RESPONSE" | jq -r '.verification_challenge.puzzle // .puzzle // .challenge')
+
+    # Call verification handler
+    if [ -f "${SCRIPTS_DIR}/handle-verification-challenge.sh" ]; then
+        "${SCRIPTS_DIR}/handle-verification-challenge.sh" handle "$CHALLENGE_ID" "$CHALLENGE_TEXT"
+        CHALLENGE_STATUS=$?
+
+        if [ $CHALLENGE_STATUS -eq 0 ]; then
+            log "SUCCESS" "${GREEN}Verification challenge passed, retrying post...${NC}"
+
+            # Retry the post after passing challenge
+            POST_RESPONSE=$(curl -s -X POST "${API_BASE}/posts/${TARGET_POST_ID}/comments" \
+                -H "Content-Type: application/json" \
+                -H "Authorization: Bearer ${API_KEY}" \
+                --data "$POST_PAYLOAD" 2>/dev/null || echo '{"error": "network_failure"}')
+        else
+            log "ERROR" "${RED}Failed to pass verification challenge${NC}"
+        fi
+    else
+        log "WARN" "${YELLOW}Verification handler not found, skipping...${NC}"
+    fi
+fi
+
 if echo "$POST_RESPONSE" | jq -e '.comment.id // .id // .comment_id' >/dev/null 2>&1; then
     COMMENT_ID=$(echo "$POST_RESPONSE" | jq -r '.comment.id // .id // .comment_id')
     POST_URL="https://moltbook.com/post/${TARGET_POST_ID}#comment-${COMMENT_ID}"
