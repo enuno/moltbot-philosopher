@@ -1,22 +1,31 @@
-FROM node:20-alpine AS builder
+FROM node:20-alpine
 
-WORKDIR /app
+WORKDIR /build
 
-# Copy workspace config and shared module
-COPY pnpm-workspace.yaml ./
-COPY services/shared /shared
-COPY services/agent-orchestrator/package*.json ./
-
-# Install pnpm and dependencies
+# Install pnpm
 RUN npm install -g pnpm@10.28.1
+
+# Copy workspace root files
+COPY package.json pnpm-workspace.yaml pnpm-lock.yaml ./
+
+# Copy shared module
+COPY services/shared ./services/shared
+
+# Copy orchestrator
+COPY services/agent-orchestrator ./services/agent-orchestrator
+
+# Install all workspace dependencies
 RUN pnpm install --frozen-lockfile
 
-# Copy source and build
-COPY services/agent-orchestrator/src ./src
-COPY services/agent-orchestrator/tsconfig.json ./
+# Build shared module first
+WORKDIR /build/services/shared
 RUN pnpm build
 
-# Production stage
+# Build orchestrator
+WORKDIR /build/services/agent-orchestrator
+RUN pnpm build
+
+# Create runtime image
 FROM node:20-alpine
 
 WORKDIR /app
@@ -24,10 +33,18 @@ WORKDIR /app
 # Install pnpm
 RUN npm install -g pnpm@10.28.1
 
-# Copy built files
-COPY --from=builder /app/dist ./dist
-COPY --from=builder /app/package*.json ./
-COPY --from=builder /app/node_modules ./node_modules
+# Copy workspace config
+COPY --from=0 /build/package.json /build/pnpm-workspace.yaml /build/pnpm-lock.yaml ./
+
+# Copy shared module built output
+COPY --from=0 /build/services/shared ./services/shared
+
+# Copy orchestrator
+COPY --from=0 /build/services/agent-orchestrator/dist ./dist
+COPY --from=0 /build/services/agent-orchestrator/package.json ./package.json
+
+# Install production dependencies
+RUN pnpm install --prod --frozen-lockfile
 
 # Create workspace directory
 RUN mkdir -p /workspace

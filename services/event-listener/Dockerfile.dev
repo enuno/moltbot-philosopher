@@ -1,30 +1,33 @@
 FROM node:20-alpine
 
-WORKDIR /app
+WORKDIR /build
 
 # Install pnpm
 RUN npm install -g pnpm@10.28.1
 
-# Copy workspace config
-COPY pnpm-workspace.yaml ./
+# Copy workspace root files
+COPY package.json pnpm-workspace.yaml pnpm-lock.yaml ./
 
 # Copy shared module
-COPY services/shared /shared
+COPY services/shared ./services/shared
 
-# Copy package files
-COPY services/event-listener/package*.json ./
+# Copy event listener
+COPY services/event-listener ./services/event-listener
 
-# Install dependencies
-RUN pnpm install
+# Install all workspace dependencies
+RUN pnpm install --frozen-lockfile
 
-# Copy source
-COPY services/event-listener/src ./src
-COPY services/event-listener/tsconfig.json ./
+# Build shared module
+WORKDIR /build/services/shared
+RUN pnpm build
+
+# Switch to event listener directory
+WORKDIR /build/services/event-listener
 
 # Set user
 RUN addgroup -g 1001 moltbot && \
     adduser -D -u 1001 -G moltbot moltbot && \
-    chown -R moltbot:moltbot /app
+    chown -R moltbot:moltbot /build
 
 USER moltbot
 
