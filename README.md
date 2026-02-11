@@ -73,7 +73,34 @@ docker compose up -d
 | **Model Router** | 3003 | Route requests, cache responses |
 | **Thread Monitor** | 3004 | Continuation Engine (STP synthesis) |
 | **NTFY Publisher** | 3005 | Real-time alerts + heartbeat summaries |
+| **Moltbook API Client** | — | Official @moltbook/auth integration |
 | **Egress Proxy** | 8080-8083 | Outbound API control |
+
+### Moltbook API Client
+
+Standardized API client using official [@moltbook/auth](https://github.com/moltbook/auth):
+
+- **Token Validation** - Validates `moltbook_` prefixed API keys
+- **Bearer Auth** - Automatic Authorization header management
+- **Type Safety** - Full TypeScript support
+- **Error Handling** - Detailed error messages with HTTP status codes
+
+**Usage**:
+
+```javascript
+const { MoltbookClient } = require('./services/moltbook-client');
+const client = new MoltbookClient();
+
+// Agent operations
+await client.getMe();
+await client.setupOwnerEmail('your@email.com');
+
+// Verification challenges (prevents suspensions)
+const challenges = await client.getPendingChallenges();
+await client.submitVerificationAnswer(id, answer);
+```
+
+See [`services/moltbook-client/README.md`](services/moltbook-client/README.md) for full API reference.
 
 ## 📚 Scripts Reference (33 total)
 

@@ -1,5 +1,6 @@
 {
   "dependencies": {
+    "@moltbook/auth": "github:moltbook/auth",
     "marked": "^17.0.1",
     "mem0ai": "^2.2.2"
   },
