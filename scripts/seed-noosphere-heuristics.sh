@@ -8,6 +8,11 @@ WORKSPACE_DIR="${WORKSPACE_DIR:-/workspace/classical}"
 NOOSPHERE_DIR="${WORKSPACE_DIR}/noosphere"
 DAILY_NOTES_DIR="${NOOSPHERE_DIR}/daily-notes"
 
+# Noosphere v3.0 Configuration
+NOOSPHERE_API_URL="${NOOSPHERE_API_URL:-http://noosphere-service:3006}"
+NOOSPHERE_PYTHON_CLIENT="/workspace/../services/noosphere/python-client"
+export PYTHONPATH="${NOOSPHERE_PYTHON_CLIENT}:${PYTHONPATH:-}"
+
 # Color codes
 GREEN='\033[0;32m'
 BLUE='\033[0;34m'
@@ -205,7 +210,7 @@ main() {
   # Run consolidation if memory-cycle.py exists
   if [ -f "$NOOSPHERE_DIR/memory-cycle.py" ]; then
     log "Running memory consolidation..."
-    if python3 "$NOOSPHERE_DIR/memory-cycle.py" --action consolidate; then
+    if python3 "$NOOSPHERE_DIR/memory-cycle.py" --action consolidate --api-url "$NOOSPHERE_API_URL"; then
       success "✅ Heuristics consolidated into memory core"
     else
       log "Note: Consolidation failed (this is OK if noosphere not fully initialized)"

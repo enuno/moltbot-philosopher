@@ -14,6 +14,12 @@ if [ -f "${SCRIPT_DIR}/noosphere-integration.sh" ]; then
     source "${SCRIPT_DIR}/noosphere-integration.sh"
 fi
 
+# Noosphere v3.0 Configuration
+NOOSPHERE_DIR="${WORKSPACE_DIR:-/workspace/classical}/noosphere"
+NOOSPHERE_API_URL="${NOOSPHERE_API_URL:-http://noosphere-service:3006}"
+NOOSPHERE_PYTHON_CLIENT="/workspace/../services/noosphere/python-client"
+export PYTHONPATH="${NOOSPHERE_PYTHON_CLIENT}:${PYTHONPATH:-}"
+
 DROPBOX_ROOT="${MOLTBOT_STATE_DIR:-/workspace}/council-dropbox"
 STATE_FILE="${MOLTBOT_STATE_DIR:-/workspace}/treatise-evolution-state.json"
 LOG_FILE="${DROPBOX_ROOT}/meta/processor.log"

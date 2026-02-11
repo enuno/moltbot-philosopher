@@ -138,7 +138,8 @@ query_noosphere() {
   heuristics=$(python3 "$NOOSPHERE_DIR/recall-engine.py" \
     --context "$topic" \
     --format markdown \
-    --min-confidence 0.6 2>/dev/null || echo "")
+    --min-confidence 0.6 \
+    --api-url "$NOOSPHERE_API_URL" 2>/dev/null || echo "")
 
   if [ -n "$heuristics" ]; then
     info "Retrieved $(echo "$heuristics" | wc -l) relevant heuristics"

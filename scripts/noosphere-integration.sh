@@ -20,6 +20,11 @@ MEMORY_CYCLE="${NOOSPHERE_DIR}/memory-cycle.py"
 CLAWHUB_MCP="${NOOSPHERE_DIR}/clawhub-mcp.py"
 MANIFEST="${NOOSPHERE_DIR}/manifest.md"
 
+# Noosphere v3.0 Configuration
+NOOSPHERE_API_URL="${NOOSPHERE_API_URL:-http://noosphere-service:3006}"
+NOOSPHERE_PYTHON_CLIENT="/workspace/../services/noosphere/python-client"
+export PYTHONPATH="${NOOSPHERE_PYTHON_CLIENT}:${PYTHONPATH:-}"
+
 # Logging functions
 log_noosphere() {
     local level="$1"

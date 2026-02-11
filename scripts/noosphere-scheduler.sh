@@ -16,6 +16,11 @@ STATE_FILE="${NOOSPHERE_DIR}/consolidation-state.json"
 MEMORY_CYCLE="${NOOSPHERE_DIR}/memory-cycle.py"
 CLAWHUB_MCP="${NOOSPHERE_DIR}/clawhub-mcp.py"
 
+# Noosphere v3.0 Configuration
+NOOSPHERE_API_URL="${NOOSPHERE_API_URL:-http://noosphere-service:3006}"
+NOOSPHERE_PYTHON_CLIENT="/workspace/../services/noosphere/python-client"
+export PYTHONPATH="${NOOSPHERE_PYTHON_CLIENT}:${PYTHONPATH:-}"
+
 # Ensure log directory exists
 mkdir -p "$(dirname "$LOG_FILE")"
 
@@ -47,7 +52,7 @@ fi
 # Task 1: Memory Consolidation (every day)
 log "INFO" "Starting memory consolidation (Layer 1 → Layer 2)"
 if [ -f "$MEMORY_CYCLE" ]; then
-    if python3 "$MEMORY_CYCLE" --action consolidate --batch-size 100 >> "$LOG_FILE" 2>&1; then
+    if python3 "$MEMORY_CYCLE" --action consolidate --batch-size 100 --api-url "$NOOSPHERE_API_URL" >> "$LOG_FILE" 2>&1; then
         log "INFO" "Memory consolidation completed successfully"
         consolidation_count=$(jq '.consolidation_count' "$STATE_FILE")
         jq ".consolidation_count = $((consolidation_count + 1)) | .last_consolidation = \"$(date -u +%Y-%m-%dT%H:%M:%SZ)\"" "$STATE_FILE" > "${STATE_FILE}.tmp"
@@ -75,7 +80,7 @@ fi
 if [ "$needs_indexing" = "true" ]; then
     log "INFO" "Updating vector index for semantic search"
     if [ -f "$CLAWHUB_MCP" ]; then
-        if python3 "$CLAWHUB_MCP" --action index >> "$LOG_FILE" 2>&1; then
+        if python3 "$CLAWHUB_MCP" --action index --api-url "$NOOSPHERE_API_URL" >> "$LOG_FILE" 2>&1; then
             log "INFO" "Vector index updated successfully"
             jq ".last_vector_index = \"$(date -u +%Y-%m-%dT%H:%M:%SZ)\"" "$STATE_FILE" > "${STATE_FILE}.tmp"
             mv "${STATE_FILE}.tmp" "$STATE_FILE"
@@ -92,7 +97,7 @@ fi
 # Task 3: Memory Health Check
 log "INFO" "Performing memory health check"
 if [ -f "$MEMORY_CYCLE" ]; then
-    if python3 "$MEMORY_CYCLE" --action stats --format json > "${NOOSPHERE_DIR}/memory-stats.json" 2>&1; then
+    if python3 "$MEMORY_CYCLE" --action stats --format json --api-url "$NOOSPHERE_API_URL" > "${NOOSPHERE_DIR}/memory-stats.json" 2>&1; then
         log "INFO" "Memory health check completed"
 
         # Parse and log statistics
