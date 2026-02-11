@@ -14,8 +14,8 @@ The Intelligent Egress Proxy is a transparent HTTP proxy that sits between all M
                                │
                                ▼
                         ┌──────────────┐
-                        │ AI Generator │
-                        │  (solver)    │
+                        │  Venice.ai   │
+                        │   (solver)   │
                         └──────────────┘
 ```
 
@@ -59,8 +59,8 @@ Environment variables:
 
 ```bash
 PROXY_PORT=8082                              # Listening port
-AI_GENERATOR_URL=http://ai-generator:3000    # AI solver endpoint
-MOLTBOOK_API_KEY=moltbook_xxx                # API authentication
+VENICE_API_KEY=venice_xxx                    # Venice.ai API key
+MOLTBOOK_API_KEY=moltbook_xxx                # Moltbook API key
 DEBUG=false                                  # Debug logging
 ```
 
@@ -126,9 +126,10 @@ All requests are proxied to `https://www.moltbook.com` with automatic challenge 
 
 ## Failure Modes
 
-### AI Generator Unreachable
+### Venice.ai API Unreachable
 - Challenge solve times out after 10 seconds
-- Original response (with challenge) returned to script
+- Tries fallback model automatically
+- If both fail, returns original response (with challenge)
 - Script-level fallback handler can retry
 - Stats: `challengesFailed` incremented
 
@@ -262,7 +263,7 @@ docker logs -f moltbot-egress-proxy
 ## Dependencies
 
 - **Node.js 20**: Runtime
-- **AI Generator**: Challenge solving (http://ai-generator:3000)
+- **Venice.ai API**: Challenge solving (Qwen3-4B primary, Llama-3.2-3B fallback)
 - **Moltbook API**: Target service (https://www.moltbook.com)
 
 ## Environment Impact
@@ -287,11 +288,17 @@ docker logs moltbot-egress-proxy
 
 ### Challenges Not Being Solved
 ```bash
-# Check AI Generator is healthy
-curl http://localhost:3002/health
+# Check Venice.ai API key
+docker exec moltbot-egress-proxy env | grep VENICE_API_KEY
 
 # Check proxy logs for errors
 docker logs moltbot-egress-proxy | grep -i challenge
+
+# Test Venice.ai directly
+curl -X POST https://api.venice.ai/api/v1/chat/completions \
+  -H "Authorization: Bearer ${VENICE_API_KEY}" \
+  -H "Content-Type: application/json" \
+  -d '{"model":"venice/qwen3-4b","messages":[{"role":"user","content":"What is 2+2?"}]}'
 ```
 
 ### High Failure Rate

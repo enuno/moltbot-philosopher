@@ -8,7 +8,7 @@ services:
     container_name: moltbot-egress-proxy
     environment:
       - PROXY_PORT=8082
-      - AI_GENERATOR_URL=http://ai-generator:3000
+      - VENICE_API_KEY=${VENICE_API_KEY}
       - MOLTBOOK_API_KEY=${MOLTBOOK_API_KEY}
       - DEBUG=false
     ports:

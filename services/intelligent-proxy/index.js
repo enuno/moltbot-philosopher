@@ -12,7 +12,10 @@ const { URL } = require('url');
 
 // Configuration
 const PROXY_PORT = process.env.PROXY_PORT || 8082;
-const AI_GENERATOR_URL = process.env.AI_GENERATOR_URL || 'http://ai-generator:3000';
+const VENICE_API_KEY = process.env.VENICE_API_KEY;
+const VENICE_API_URL = 'https://api.venice.ai/api/v1/chat/completions';
+const VENICE_PRIMARY_MODEL = 'venice/qwen3-4b'; // Fastest model for reasoning
+const VENICE_FALLBACK_MODEL = 'venice/llama-3.2-3b'; // Backup model
 const MOLTBOOK_API_KEY = process.env.MOLTBOOK_API_KEY;
 const CHALLENGE_TIMEOUT = 10000;
 const DEBUG = process.env.DEBUG === 'true';
@@ -39,36 +42,62 @@ function log(level, message, meta = {}) {
 async function solveChallenge(puzzleText) {
   log('info', 'Solving challenge', { puzzle: puzzleText.substring(0, 100) });
 
+  // Try primary model (Qwen3-4B - fastest)
+  let answer = await solveWithVenice(puzzleText, VENICE_PRIMARY_MODEL);
+  if (answer) return answer;
+
+  // Fallback to Llama if primary fails
+  log('warn', 'Primary model failed, trying fallback');
+  answer = await solveWithVenice(puzzleText, VENICE_FALLBACK_MODEL);
+  return answer;
+}
+
+async function solveWithVenice(puzzleText, model) {
   try {
     const controller = new AbortController();
     const timeout = setTimeout(() => controller.abort(), CHALLENGE_TIMEOUT);
 
-    const response = await fetch(`${AI_GENERATOR_URL}/generate`, {
+    const response = await fetch(VENICE_API_URL, {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
+      headers: {
+        'Content-Type': 'application/json',
+        Authorization: `Bearer ${VENICE_API_KEY}`,
+      },
       body: JSON.stringify({
-        customPrompt: `Solve this puzzle. Provide ONLY the answer:\n\n${puzzleText}`,
-        contentType: 'post',
-        persona: 'socratic',
-        provider: 'auto',
+        model: model,
+        messages: [
+          {
+            role: 'system',
+            content:
+              'You solve verification puzzles quickly and accurately. Provide ONLY the direct answer with no explanation.',
+          },
+          {
+            role: 'user',
+            content: `Solve this verification puzzle:\n\n${puzzleText}\n\nAnswer:`,
+          },
+        ],
+        temperature: 0.1,
+        max_tokens: 100,
       }),
       signal: controller.signal,
     });
 
     clearTimeout(timeout);
 
-    if (!response.ok) throw new Error(`AI generator ${response.status}`);
+    if (!response.ok) {
+      throw new Error(`Venice API ${response.status}`);
+    }
 
     const result = await response.json();
-    const answer = result.content?.trim();
+    const answer = result.choices?.[0]?.message?.content?.trim();
 
     if (answer) {
-      log('success', 'Solved', { answer: answer.substring(0, 50) });
+      log('success', 'Solved', { model, answer: answer.substring(0, 50) });
       return answer;
     }
-    throw new Error('No answer');
+    throw new Error('No answer from Venice');
   } catch (error) {
-    log('error', 'Solve failed', { error: error.message });
+    log('error', 'Venice solve failed', { model, error: error.message });
     return null;
   }
 }
@@ -227,7 +256,10 @@ const server = http.createServer((req, res) => {
 });
 
 server.listen(PROXY_PORT, () => {
-  log('info', `🔐 Intelligent proxy on port ${PROXY_PORT}`, { target: TARGET_HOST });
+  log('info', `🔐 Intelligent proxy on port ${PROXY_PORT}`, {
+    target: TARGET_HOST,
+    models: `${VENICE_PRIMARY_MODEL} (primary), ${VENICE_FALLBACK_MODEL} (fallback)`,
+  });
 });
 
 process.on('SIGTERM', () => {

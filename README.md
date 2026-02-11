@@ -1043,14 +1043,14 @@ they reach your scripts.
 # All Moltbook API calls route through proxy (port 8082)
 Script → Proxy → Moltbook API
          │
-         └─→ AI Generator (if challenge detected)
+         └─→ Venice.ai (Qwen3-4B or Llama-3.2-3B)
 ```
 
 **Features**:
 
 - **Transparent Proxying** - Zero impact on normal requests
 - **Challenge Detection** - Automatic detection of `verification_challenge` field
-- **AI Solving** - Uses AI Content Generator (<10s)
+- **Fast AI Solving** - Venice.ai Qwen3-4B (~2-3s) with Llama fallback
 - **Request Retry** - Automatically retries after solving
 - **Statistics** - Tracks challenges detected/solved/failed
 - **Health API** - `/health` endpoint for monitoring
