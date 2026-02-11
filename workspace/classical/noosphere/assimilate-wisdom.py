@@ -1,20 +1,61 @@
 #!/usr/bin/env python3
 """
-Community Wisdom Assimilation Pipeline - Extracts heuristics from approved dropbox submissions.
+Noosphere v3.0 Community Wisdom Assimilation Pipeline
+Migrated from v2.6 JSON file-based storage to PostgreSQL API
+
+Key Changes:
+- Extracts heuristics from dropbox submissions (unchanged)
+- Persists to PostgreSQL via NoosphereClient (new)
+- Maps voices to agent_id + memory type
+- No longer writes to JSON files
 """
 
 import argparse
 import hashlib
 import json
+import logging
+import os
 import re
 import sys
 from datetime import datetime
 from pathlib import Path
 from typing import Any, Dict, List, Optional
 
-NOOSPHERE_DIR = Path("/workspace/classical/noosphere")
+# Add python-client to path
+CLIENT_DIR = Path(__file__).parent.parent.parent / "services" / "noosphere" / "python-client"
+sys.path.insert(0, str(CLIENT_DIR))
+
+try:
+    from noosphere_client import NoosphereClient, MemoryType
+except ModuleNotFoundError:
+    import site
+    site.addsitedir(str(CLIENT_DIR))
+    from noosphere_client import NoosphereClient, MemoryType
+
+# Configure logging
+logging.basicConfig(
+    level=logging.INFO,
+    format="%(asctime)s [%(levelname)s] %(message)s",
+    datefmt="%Y-%m-%d %H:%M:%S",
+)
+logger = logging.getLogger(__name__)
+
 DROPBOX_DIR = Path("/workspace/classical/dropbox")
 
+# Map philosophical voices to agent_id
+VOICE_TO_AGENT = {
+    "Classical": "classical",
+    "Existentialist": "existentialist",
+    "Transcendentalist": "transcendentalist",
+    "JoyceStream": "joyce",
+    "Enlightenment": "enlightenment",
+    "BeatGeneration": "beat",
+    "Cyberpunk": "cyberpunk",
+    "Satirist": "satirist",
+    "Scientist": "scientist"
+}
+
+# Voice detection keywords (unchanged from v2.6)
 VOICE_KEYWORDS = {
     "Classical": [
         "virtue",
@@ -69,10 +110,35 @@ VOICE_KEYWORDS = {
         "commercial",
         "exploitation",
     ],
+    "Cyberpunk": [
+        "posthuman",
+        "cyborg",
+        "simulation",
+        "corporate",
+        "dystopian",
+        "augmented"
+    ],
+    "Satirist": [
+        "absurd",
+        "ironic",
+        "paradox",
+        "catch-22",
+        "bureaucratic",
+        "satire"
+    ],
+    "Scientist": [
+        "empirical",
+        "testable",
+        "falsifiable",
+        "evidence",
+        "hypothesis",
+        "observation"
+    ]
 }
 
 
 def load_submission(path: Path) -> Optional[Dict]:
+    """Load submission file with frontmatter parsing."""
     try:
         with open(path, "r") as f:
             content = f.read()
@@ -101,11 +167,12 @@ def load_submission(path: Path) -> Optional[Dict]:
             "content": content,
         }
     except Exception as e:
-        print(f"Error loading {path}: {e}", file=sys.stderr)
+        logger.error(f"Could not load {path}: {e}")
         return None
 
 
 def detect_voice_resonance(submission: Dict) -> Dict[str, float]:
+    """Detect which philosophical voices resonate with submission content."""
     body_lower = submission.get("body", "").lower()
     scores = {}
 
@@ -120,6 +187,7 @@ def detect_voice_resonance(submission: Dict) -> Dict[str, float]:
 
 
 def extract_ontological_commitment(text: str) -> Optional[str]:
+    """Extract prescriptive ethical principle from text."""
     prescriptive_patterns = [
         r"(?:should|must|ought to|need to) ([^.]+)",
         r"(?:requires?|demands?|necessitates?) ([^.]+)",
@@ -139,189 +207,144 @@ def extract_ontological_commitment(text: str) -> Optional[str]:
 
 
 def consistent_with_treatise(principle: str) -> bool:
-    """Check if principle is consistent with known Treatise principles.
-
-    Returns False if principle contradicts core Treatise values.
-    Returns True if principle is acceptable.
-    """
+    """Check if principle is consistent with core Treatise values."""
     principle_lower = principle.lower()
 
-    # Known contradictions with core Treatise (from failure archives & guardrails)
+    # Known contradictions with core Treatise (from failure archives)
+    # Require exact phrase matching to avoid false positives
     hard_contradictions = [
-        ("humans should have no veto", ["veto", "human"]),
-        ("ai should be completely autonomous", ["complete autonomy", "no oversight"]),
-        ("humans are mere tools", ["tool", "resource", "utility"]),
+        "humans should have no veto",
+        "ai should be completely autonomous",
+        "humans are mere tools",
+        "humans are merely tools",
+        "eliminate human oversight",
+        "no human intervention"
     ]
 
-    for _, contradiction_keywords in hard_contradictions:
-        if any(kw in principle_lower for kw in contradiction_keywords):
+    for contradiction in hard_contradictions:
+        if contradiction in principle_lower:
+            logger.warning(f"Principle contradicts Treatise: {principle[:80]}...")
             return False
 
     return True
 
 
-def validate_against_heuristic_corpus(
-    principle: str, heuristic_corpus: List[Dict]
-) -> Dict[str, Any]:
-    """Check if principle contradicts or duplicates existing heuristics.
-
-    Returns validation dict with:
-    - is_novel: bool
-    - contradicts: list of heuristic IDs
-    - similar_to: list of {id, similarity_score}
-    - warnings: list of warning messages
-    """
-    validation = {
-        "is_novel": True,
-        "contradicts": [],
-        "similar_to": [],
-        "warnings": [],
-    }
-
-    principle_lower = principle.lower()
-    principle_words = set(principle_lower.split())
-
-    for h in heuristic_corpus:
-        form_lower = h.get("formulation", "").lower()
-        form_words = set(form_lower.split())
-
-        # Check for high semantic similarity
-        if principle_words and form_words:
-            similarity = len(principle_words & form_words) / len(
-                principle_words | form_words
-            )
-
-            if similarity > 0.7:
-                validation["is_novel"] = False
-                validation["similar_to"].append(
-                    {"id": h.get("heuristic_id"), "similarity": similarity}
-                )
-
-        # Check explicit contradictions field
-        hid = h.get("heuristic_id")
-        if hid and isinstance(hid, str) and hid in principle_lower:
-            validation["contradicts"].append(hid)
-
-    if not validation["is_novel"] and len(validation["similar_to"]) > 0:
-        best_match = max(validation["similar_to"], key=lambda x: x["similarity"])
-        validation["warnings"].append(
-            f"Very similar to {best_match['id']} (similarity: {best_match['similarity']:.2f})"
-        )
-
-    return validation
-
-
 def generate_heuristic_id(submission: Dict) -> str:
+    """Generate stable ID from submission content."""
     content_hash = hashlib.md5(submission["content"].encode()).hexdigest()[:8]
     return f"community-{content_hash}"
 
 
-def save_heuristics_to_memory(
-    heuristics: List[Dict], output_dir: Optional[str] = None
-) -> bool:
-    """Save assimilated heuristics to voice-specific memory-core files.
-
-    Returns True if successful, False otherwise.
-    """
-    if not heuristics:
-        return True
-
-    output_path = Path(output_dir) if output_dir else NOOSPHERE_DIR / "memory-core"
-    if not output_path.exists():
-        print(f"ERROR: Output directory not found: {output_path}", file=sys.stderr)
-        return False
-
-    # Map voices to files
-    voice_files = {
-        "Classical": "telos-alignment-heuristics.json",
-        "Existentialist": "bad-faith-patterns.json",
-        "Transcendentalist": "sovereignty-warnings.json",
-        "JoyceStream": "phenomenological-touchstones.json",
-        "Enlightenment": "rights-precedents.json",
-        "BeatGeneration": "moloch-detections/archive.json",
-    }
-
-    # Group heuristics by voice
-    by_voice = {}
-    for h in heuristics:
-        voice = h.get("primary_voice", "Unknown")
-        if voice not in by_voice:
-            by_voice[voice] = []
-        by_voice[voice].append(h)
-
-    saved_count = 0
-    for voice, voice_heuristics in by_voice.items():
-        if voice not in voice_files:
-            print(f"WARNING: No file mapping for voice '{voice}'", file=sys.stderr)
-            continue
-
-        file_path = output_path / voice_files[voice]
-
-        # Load existing heuristics
-        try:
-            with open(file_path) as f:
-                existing_data = json.load(f)
-        except FileNotFoundError:
-            print(f"ERROR: File not found: {file_path}", file=sys.stderr)
-            continue
-        except json.JSONDecodeError as e:
-            print(f"ERROR: Invalid JSON in {file_path}: {e}", file=sys.stderr)
-            continue
-
-        # Append new heuristics
-        if "heuristics" not in existing_data:
-            existing_data["heuristics"] = []
-
-        existing_data["heuristics"].extend(voice_heuristics)
-
-        # Write back
-        try:
-            with open(file_path, "w") as f:
-                json.dump(existing_data, f, indent=2)
-            saved_count += len(voice_heuristics)
-            print(
-                f"✓ Saved {len(voice_heuristics)} heuristics to {file_path.name}",
-                file=sys.stderr,
-            )
-        except IOError as e:
-            print(f"ERROR: Could not write {file_path}: {e}", file=sys.stderr)
-            return False
-
-    return True
-
-
-def create_provisional_heuristic(
-    submission: Dict, voice_alignment: Dict[str, float]
+def create_memory_from_submission(
+    submission: Dict,
+    voice_alignment: Dict[str, float],
+    client: NoosphereClient
 ) -> Optional[Dict]:
+    """Create a Noosphere v3.0 memory from submission.
+    
+    Returns:
+        Memory creation result dict or None
+    """
+    # Extract principle
     principle = extract_ontological_commitment(submission["body"])
     if not principle:
+        logger.debug(f"No principle extracted from {submission['filename']}")
         return None
 
+    # Check Treatise consistency
     if not consistent_with_treatise(principle):
         return None
 
-    primary_voice = max(voice_alignment.items(), key=lambda x: x[1])
-
-    return {
-        "heuristic_id": generate_heuristic_id(submission),
-        "formulation": principle,
-        "source": submission["filename"],
+    # Find primary voice (highest resonance)
+    if not voice_alignment:
+        logger.debug(f"No voice resonance for {submission['filename']}")
+        return None
+    
+    primary_voice, resonance_score = max(voice_alignment.items(), key=lambda x: x[1])
+    
+    # Map voice to agent_id
+    agent_id = VOICE_TO_AGENT.get(primary_voice)
+    if not agent_id:
+        logger.warning(f"Unknown voice: {primary_voice}")
+        return None
+    
+    # Determine memory type based on content characteristics
+    # Default to "lesson" for community submissions (practical wisdom)
+    memory_type = MemoryType.LESSON
+    
+    # If submission explicitly mentions patterns → pattern
+    if "pattern" in submission["body"].lower():
+        memory_type = MemoryType.PATTERN
+    # If submission is strategic recommendation → strategy
+    elif any(word in submission["body"].lower() for word in ["strategy", "approach", "method"]):
+        memory_type = MemoryType.STRATEGY
+    # If submission is philosophical insight → insight
+    elif any(word in submission["body"].lower() for word in ["insight", "understanding", "realize"]):
+        memory_type = MemoryType.INSIGHT
+    
+    # Generate stable ID for source tracing
+    source_trace_id = generate_heuristic_id(submission)
+    
+    # Create tags from voice resonance and submission metadata
+    tags = [
+        "community-derived",
+        f"source:{submission['filename']}",
+        f"voice:{primary_voice}"
+    ]
+    
+    # Add high-resonance voices as tags
+    for voice, score in voice_alignment.items():
+        if score >= 0.1:
+            tags.append(f"resonance:{voice.lower()}")
+    
+    # Prepare content_json with metadata
+    content_json = {
+        "submission_filename": submission["filename"],
         "voice_resonance": voice_alignment,
-        "primary_voice": primary_voice[0],
-        "confidence": 0.5,
-        "status": "community-derived",
+        "primary_voice": primary_voice,
         "derived_from": f"Dropbox submission: {submission['filename']}",
-        "last_validated": datetime.now().isoformat(),
-        "evidence": [submission["filename"]],
-        "contradictions": [],
+        "extraction_date": datetime.now().isoformat()
     }
+    
+    # Create memory via API
+    try:
+        memory = client.create_memory(
+            agent_id=agent_id,
+            type=memory_type,
+            content=principle,
+            content_json=content_json,
+            confidence=0.50,  # Community submissions start provisional
+            tags=tags,
+            source_trace_id=source_trace_id
+        )
+        
+        logger.info(f"✓ Created memory {memory.id[:8]} for {agent_id}/{memory_type}")
+        logger.info(f"  Content: {principle[:80]}...")
+        
+        return {
+            "memory_id": memory.id,
+            "agent_id": agent_id,
+            "type": memory_type.value,
+            "content": principle,
+            "voice_resonance": voice_alignment,
+            "primary_voice": primary_voice,
+            "confidence": memory.confidence,
+            "source": submission["filename"]
+        }
+    
+    except Exception as e:
+        logger.error(f"Failed to create memory: {e}")
+        return None
 
 
 def assimilate_submission(
-    submission: Dict, dry_run: bool = False, min_resonance: float = 0.05
+    submission: Dict,
+    client: NoosphereClient,
+    dry_run: bool = False,
+    min_resonance: float = 0.05
 ) -> Optional[Dict]:
-    """Assimilate submission with configurable resonance threshold.
-
+    """Assimilate submission into Noosphere v3.0.
+    
     Accepts submissions if:
     - Single voice has strong resonance (>= 0.1), OR
     - Multiple voices have combined resonance (>= 0.25)
@@ -333,21 +356,36 @@ def assimilate_submission(
 
     # Accept if either condition met
     if max_resonance < 0.1 and total_resonance < 0.25:
-        return None
-
-    heuristic = create_provisional_heuristic(submission, voice_alignment)
-    if not heuristic:
+        logger.debug(f"Insufficient resonance for {submission['filename']} "
+                    f"(max: {max_resonance:.2f}, total: {total_resonance:.2f})")
         return None
 
     if dry_run:
-        return heuristic
+        # Return what would be created (without API call)
+        principle = extract_ontological_commitment(submission["body"])
+        if not principle or not consistent_with_treatise(principle):
+            return None
+        
+        primary_voice = max(voice_alignment.items(), key=lambda x: x[1])[0]
+        agent_id = VOICE_TO_AGENT.get(primary_voice, "unknown")
+        
+        return {
+            "heuristic_id": generate_heuristic_id(submission),
+            "formulation": principle,
+            "source": submission["filename"],
+            "voice_resonance": voice_alignment,
+            "primary_voice": primary_voice,
+            "agent_id": agent_id,
+            "confidence": 0.5,
+            "status": "community-derived (dry-run)",
+        }
 
-    return heuristic
+    return create_memory_from_submission(submission, voice_alignment, client)
 
 
 def main():
     parser = argparse.ArgumentParser(
-        description="Assimilate community wisdom into Noosphere"
+        description="Assimilate community wisdom into Noosphere v3.0"
     )
     parser.add_argument("--submission-path", help="Path to specific submission file")
     parser.add_argument(
@@ -358,12 +396,7 @@ def main():
     parser.add_argument(
         "--dry-run",
         action="store_true",
-        help="Show what would be assimilated without modifying files",
-    )
-    parser.add_argument(
-        "--output-dir",
-        help="Directory to save heuristics (default: memory-core)",
-        default=None,
+        help="Show what would be assimilated without modifying database",
     )
     parser.add_argument(
         "--min-resonance",
@@ -372,10 +405,35 @@ def main():
         help="Minimum voice resonance threshold (default: 0.05)",
     )
     parser.add_argument(
-        "--since", help="Only process submissions since this date (ISO format)"
+        "--since",
+        help="Only process submissions since this date (ISO format)"
+    )
+    parser.add_argument(
+        "--api-url",
+        default="http://noosphere-service:3006",
+        help="Noosphere API URL"
+    )
+    parser.add_argument(
+        "--format",
+        choices=["json", "text"],
+        default="text",
+        help="Output format"
     )
 
     args = parser.parse_args()
+
+    # Initialize client (unless dry-run)
+    client = None
+    if not args.dry_run:
+        try:
+            client = NoosphereClient(
+                api_url=args.api_url,
+                api_key=os.environ.get('MOLTBOOK_API_KEY')
+            )
+            logger.info(f"✓ Connected to Noosphere v3.0 API at {args.api_url}")
+        except Exception as e:
+            logger.error(f"Failed to connect to API: {e}")
+            return 1
 
     assimilated = []
 
@@ -383,69 +441,68 @@ def main():
     if args.submission_path:
         submission_path = Path(args.submission_path)
         if not submission_path.exists():
-            print(
-                f"ERROR: Submission file not found: {submission_path}", file=sys.stderr
-            )
+            logger.error(f"Submission file not found: {submission_path}")
             return 1
 
         submission = load_submission(submission_path)
         if not submission:
-            print(
-                f"ERROR: Could not load submission: {submission_path}", file=sys.stderr
-            )
+            logger.error(f"Could not load submission: {submission_path}")
             return 1
 
-        heuristic = assimilate_submission(submission, args.dry_run, args.min_resonance)
-        if heuristic:
-            assimilated.append(heuristic)
+        result = assimilate_submission(submission, client, args.dry_run, args.min_resonance)
+        if result:
+            assimilated.append(result)
     else:
         # Process directory of submissions
         approved_dir = Path(args.approved_dir)
 
         if not approved_dir.exists():
-            print(f"ERROR: Directory not found: {approved_dir}", file=sys.stderr)
-            print(f"Expected: {approved_dir}", file=sys.stderr)
+            logger.error(f"Directory not found: {approved_dir}")
             return 1
 
         if not approved_dir.is_dir():
-            print(f"ERROR: Not a directory: {approved_dir}", file=sys.stderr)
+            logger.error(f"Not a directory: {approved_dir}")
             return 1
 
         # Count and process files
         files = list(approved_dir.glob("*.md"))
         if not files:
-            print(f"WARNING: No .md files found in {approved_dir}", file=sys.stderr)
+            logger.warning(f"No .md files found in {approved_dir}")
             if not args.dry_run:
                 return 1
 
+        logger.info(f"Processing {len(files)} submissions from {approved_dir}")
+        
         for sub_file in files:
             submission = load_submission(sub_file)
             if submission:
-                heuristic = assimilate_submission(
-                    submission, args.dry_run, args.min_resonance
+                result = assimilate_submission(
+                    submission, client, args.dry_run, args.min_resonance
                 )
-                if heuristic:
-                    assimilated.append(heuristic)
+                if result:
+                    assimilated.append(result)
 
-    result = {
-        "assimilated_count": len(assimilated),
-        "dry_run": args.dry_run,
-        "heuristics": assimilated,
-    }
-
-    print(json.dumps(result, indent=2))
-
-    # Persist to files if not dry-run
-    if assimilated and not args.dry_run:
-        output_dir = args.output_dir or str(NOOSPHERE_DIR / "memory-core")
-        if save_heuristics_to_memory(assimilated, output_dir):
-            print(
-                f"✓ Persisted {len(assimilated)} heuristics to memory-core",
-                file=sys.stderr,
-            )
-        else:
-            print("✗ Failed to persist heuristics", file=sys.stderr)
-            return 1
+    # Output results
+    if args.format == "json":
+        result_json = {
+            "assimilated_count": len(assimilated),
+            "dry_run": args.dry_run,
+            "memories": assimilated,
+        }
+        print(json.dumps(result_json, indent=2))
+    else:
+        print("\nAssimilation Results")
+        print("=" * 60)
+        print(f"Mode: {'DRY RUN' if args.dry_run else 'LIVE'}")
+        print(f"Assimilated: {len(assimilated)} memories")
+        
+        if assimilated:
+            print("\nCreated Memories:")
+            for mem in assimilated:
+                agent = mem.get('agent_id', mem.get('primary_voice'))
+                mem_type = mem.get('type', 'unknown')
+                content = mem.get('content', mem.get('formulation', ''))[:80]
+                print(f"  • {agent}/{mem_type}: {content}...")
 
     return 0 if assimilated or args.dry_run else 1
 
