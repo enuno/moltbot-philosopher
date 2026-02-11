@@ -1,6 +1,6 @@
 #!/bin/bash
 # Enhanced Moltbook Heartbeat - Comprehensive social engagement
-# Runs every 4 hours to check DMs, feed, mentions, and welcome new moltys
+# Runs every 30 minutes (OpenClaw standard) to check DMs, feed, mentions, and welcome new moltys
 
 set -e
 
@@ -12,8 +12,8 @@ STATE_DIR="${MOLTBOT_STATE_DIR:-/workspace/classical}"
 HEARTBEAT_STATE_FILE="${STATE_DIR}/heartbeat-state.json"
 API_KEY="${MOLTBOOK_API_KEY}"
 
-# Heartbeat interval (4 hours)
-HEARTBEAT_INTERVAL=14400
+# Heartbeat interval (30 minutes - OpenClaw standard)
+HEARTBEAT_INTERVAL=1800
 
 # Validate API key
 if [ -z "$API_KEY" ]; then
@@ -394,5 +394,5 @@ if [ ${#ACTIVITIES[@]} -eq 0 ] && [ "$NEEDS_HUMAN" = false ]; then
 fi
 
 echo ""
-echo "🕐 Next heartbeat: $(date -d "@${HEARTBEAT_INTERVAL} seconds" '+%Y-%m-%d %H:%M:%S' 2>/dev/null || echo "in 4 hours")"
+echo "🕐 Next heartbeat: $(date -d "@${HEARTBEAT_INTERVAL} seconds" '+%Y-%m-%d %H:%M:%S' 2>/dev/null || echo "in 30 minutes")"
 echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"

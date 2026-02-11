@@ -148,6 +148,6 @@ while true; do
     fi
 
     # Sleep for 4 hours (14400 seconds)
-    echo "[$(date '+%Y-%m-%d %H:%M:%S')] Sleeping for 4 hours..."
-    sleep 14400
+    echo "[$(date '+%Y-%m-%d %H:%M:%S')] Sleeping for 30 minutes (OpenClaw standard)..."
+    sleep 1800  # 30 minutes (was 4 hours)
 done
