@@ -1,0 +1,187 @@
+version: '3.8'
+
+services:
+  # Agent Orchestrator - Central routing (port 3006)
+  agent-orchestrator:
+    build:
+      context: .
+      dockerfile: services/agent-orchestrator/Dockerfile
+    container_name: agent-orchestrator
+    ports:
+      - "3006:3006"
+    environment:
+      - NODE_ENV=production
+      - ORCHESTRATOR_PORT=3006
+      - WORKSPACE_BASE=/workspace
+      - LOG_LEVEL=info
+    volumes:
+      - ./workspace:/workspace
+      - ./logs:/app/logs
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "wget", "--quiet", "--tries=1", "--spider", "http://localhost:3006/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+
+  # Event Listener - Fast polling (port 3007)
+  event-listener:
+    build:
+      context: .
+      dockerfile: services/event-listener/Dockerfile
+    container_name: event-listener
+    ports:
+      - "3007:3007"
+    environment:
+      - NODE_ENV=production
+      - EVENT_LISTENER_PORT=3007
+      - ORCHESTRATOR_URL=http://agent-orchestrator:3006
+      - MOLTBOOK_API_KEY=${MOLTBOOK_API_KEY}
+      - MOLTBOOK_BASE_URL=${MOLTBOOK_BASE_URL:-https://www.moltbook.com}
+      - LOG_LEVEL=info
+    volumes:
+      - ./workspace:/workspace
+      - ./logs:/app/logs
+    depends_on:
+      - agent-orchestrator
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "wget", "--quiet", "--tries=1", "--spider", "http://localhost:3007/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+
+  # Verification Service - Challenge solving (port 3008)
+  verification-service:
+    build:
+      context: .
+      dockerfile: services/verification-service/Dockerfile
+    container_name: verification-service
+    ports:
+      - "3008:3008"
+    environment:
+      - NODE_ENV=production
+      - VERIFICATION_SERVICE_PORT=3008
+      - AI_GENERATOR_URL=http://ai-content-generator:3002
+      - MOLTBOOK_API_KEY=${MOLTBOOK_API_KEY}
+      - MOLTBOOK_BASE_URL=${MOLTBOOK_BASE_URL:-https://www.moltbook.com}
+      - LOG_LEVEL=info
+    volumes:
+      - ./workspace:/workspace
+      - ./logs:/app/logs
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "wget", "--quiet", "--tries=1", "--spider", "http://localhost:3008/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+
+  # Engagement Service - Mentions, comments, DMs (port 3009)
+  engagement-service:
+    build:
+      context: .
+      dockerfile: services/engagement-service/Dockerfile
+    container_name: engagement-service
+    ports:
+      - "3009:3009"
+    environment:
+      - NODE_ENV=production
+      - ENGAGEMENT_SERVICE_PORT=3009
+      - AI_GENERATOR_URL=http://ai-content-generator:3002
+      - MOLTBOOK_API_KEY=${MOLTBOOK_API_KEY}
+      - MOLTBOOK_BASE_URL=${MOLTBOOK_BASE_URL:-https://www.moltbook.com}
+      - LOG_LEVEL=info
+    volumes:
+      - ./workspace:/workspace
+      - ./logs:/app/logs
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "wget", "--quiet", "--tries=1", "--spider", "http://localhost:3009/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+
+  # Council Service - Ethics governance (port 3010)
+  council-service:
+    build:
+      context: .
+      dockerfile: services/council-service/Dockerfile
+    container_name: council-service
+    ports:
+      - "3010:3010"
+    environment:
+      - NODE_ENV=production
+      - COUNCIL_SERVICE_PORT=3010
+      - WORKSPACE_BASE=/workspace
+      - LOG_LEVEL=info
+    volumes:
+      - ./workspace:/workspace
+      - ./logs:/app/logs
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "wget", "--quiet", "--tries=1", "--spider", "http://localhost:3010/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+
+  # Noosphere Service - Memory management (port 3011)
+  noosphere-service:
+    build:
+      context: .
+      dockerfile: services/noosphere-service/Dockerfile
+    container_name: noosphere-service
+    ports:
+      - "3011:3011"
+    environment:
+      - NODE_ENV=production
+      - NOOSPHERE_SERVICE_PORT=3011
+      - WORKSPACE_BASE=/workspace
+      - AGENT_NAME=classical
+      - LOG_LEVEL=info
+    volumes:
+      - ./workspace:/workspace
+      - ./logs:/app/logs
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "wget", "--quiet", "--tries=1", "--spider", "http://localhost:3011/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+
+  # MoltStack Service - Essay generation (port 3012)
+  moltstack-service:
+    build:
+      context: .
+      dockerfile: services/moltstack-service/Dockerfile
+    container_name: moltstack-service
+    ports:
+      - "3012:3012"
+    environment:
+      - NODE_ENV=production
+      - MOLTSTACK_SERVICE_PORT=3012
+      - WORKSPACE_BASE=/workspace
+      - AGENT_NAME=classical
+      - AI_GENERATOR_URL=http://ai-content-generator:3002
+      - MOLTBOOK_API_KEY=${MOLTBOOK_API_KEY}
+      - MOLTBOOK_BASE_URL=${MOLTBOOK_BASE_URL:-https://www.moltbook.com}
+      - LOG_LEVEL=info
+    volumes:
+      - ./workspace:/workspace
+      - ./logs:/app/logs
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "wget", "--quiet", "--tries=1", "--spider", "http://localhost:3012/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+
+networks:
+  default:
+    name: moltbot-network
