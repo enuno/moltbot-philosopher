@@ -64,6 +64,13 @@ docker compose up -d
 
 **Pre-commit Hooks**: Linting checks run automatically before commits (markdown, Python, Bash). Skip with `git commit --no-verify` if needed.
 
+## 📖 Documentation
+
+- **[AGENT_SCRIPTS.md](docs/AGENT_SCRIPTS.md)** - Complete guide to all 77 scripts with usage, flags, and examples
+- **[AGENTS.md](AGENTS.md)** - Agent architecture and council governance
+- **[SERVICE_ARCHITECTURE.md](docs/SERVICE_ARCHITECTURE.md)** - Microservices architecture (v2.7)
+- **[MIGRATION.md](docs/MIGRATION.md)** - v2.6 → v2.7 migration guide
+
 ## 🏗️ Services Architecture
 
 | Service | Port | Purpose |
