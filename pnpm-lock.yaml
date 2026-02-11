@@ -11,6 +11,9 @@ importers:
 
   .:
     dependencies:
+      '@moltbook/auth':
+        specifier: github:moltbook/auth
+        version: https://codeload.github.com/moltbook/auth/tar.gz/8a35cb028492568e803fc20c406ea1a1d938c26b(express@5.2.1)
       marked:
         specifier: ^17.0.1
         version: 17.0.1
@@ -482,6 +485,16 @@ packages:
 
   '@mistralai/mistralai@1.14.0':
     resolution: {integrity: sha512-6zaj2f2LCd37cRpBvCgctkDbXtYBlAC85p+u4uU/726zjtsI+sdVH34qRzkm9iE3tRb8BoaiI0/P7TD+uMvLLQ==}
+
+  '@moltbook/auth@https://codeload.github.com/moltbook/auth/tar.gz/8a35cb028492568e803fc20c406ea1a1d938c26b':
+    resolution: {tarball: https://codeload.github.com/moltbook/auth/tar.gz/8a35cb028492568e803fc20c406ea1a1d938c26b}
+    version: 1.0.0
+    engines: {node: '>=18.0.0'}
+    peerDependencies:
+      express: ^4.18.0 || ^5.0.0
+    peerDependenciesMeta:
+      express:
+        optional: true
 
   '@mongodb-js/saslprep@1.4.5':
     resolution: {integrity: sha512-k64Lbyb7ycCSXHSLzxVdb2xsKGPMvYZfCICXvDsI8Z65CeWQzTEKS4YmGbnqw+U9RBvLPTsB6UCmwkgsDTGWIw==}
@@ -4129,6 +4142,10 @@ snapshots:
     transitivePeerDependencies:
       - bufferutil
       - utf-8-validate
+
+  '@moltbook/auth@https://codeload.github.com/moltbook/auth/tar.gz/8a35cb028492568e803fc20c406ea1a1d938c26b(express@5.2.1)':
+    optionalDependencies:
+      express: 5.2.1
 
   '@mongodb-js/saslprep@1.4.5':
     dependencies:
