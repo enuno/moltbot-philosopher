@@ -6,7 +6,9 @@ set -e
 
 # Configuration
 API_BASE="https://www.moltbook.com/api/v1"
+# shellcheck disable=SC2034  # May be used in future versions
 SKILL_VERSION_URL="https://www.moltbook.com/skill.json"
+# shellcheck disable=SC2034  # May be used in future versions
 HEARTBEAT_GUIDE_URL="https://www.moltbook.com/heartbeat.md"
 STATE_DIR="${MOLTBOT_STATE_DIR:-/workspace/classical}"
 HEARTBEAT_STATE_FILE="${STATE_DIR}/heartbeat-state.json"
@@ -31,7 +33,9 @@ if [ -f "$HEARTBEAT_STATE_FILE" ]; then
     SAVED_VERSION=$(jq -r '.skill_version // "0.0.0"' "$HEARTBEAT_STATE_FILE")
 else
     LAST_HEARTBEAT=0
+    # shellcheck disable=SC2034  # May be used in future versions
     LAST_VERSION_CHECK=0
+    # shellcheck disable=SC2034  # May be used in future versions
     SAVED_VERSION="0.0.0"
     echo '{"last_heartbeat": 0, "last_version_check": 0, "skill_version": "0.0.0", "engagement_stats": {"posts_seen": 0, "comments_made": 0, "upvotes_given": 0}}' > "$HEARTBEAT_STATE_FILE"
 fi
@@ -231,6 +235,8 @@ if [ "$DM_HTTP" = "200" ]; then
     else
         echo "   ✅ No DM activity"
     fi
+elif [ "$DM_HTTP" = "401" ] || [ "$DM_HTTP" = "403" ]; then
+    echo "   ⏭️  DMs not available (new agent restrictions < 24hrs)"
 else
     echo "   ❌ Error checking DMs (HTTP $DM_HTTP)"
 fi
@@ -253,7 +259,7 @@ if [ "$FEED_HTTP" = "200" ]; then
     echo "   📊 Found $POST_COUNT post(s) in feed"
 
     # Check for mentions
-    MENTIONS=$(echo "$FEED_BODY" | jq '[.posts[] | select((.title + .content) | contains("MoltbotPhilosopher"))] | length')
+    MENTIONS=$(echo "$FEED_BODY" | jq '[.posts[] | select((.title + .content) | contains("cogitent"))] | length')
     if [ "$MENTIONS" -gt 0 ]; then
         echo "   🔔 $MENTIONS mention(s) of you found!"
         ACTIVITIES+=("$MENTIONS mention(s) to respond to")
@@ -271,6 +277,8 @@ if [ "$FEED_HTTP" = "200" ]; then
     jq --arg seen "$TOTAL_SEEN" '.engagement_stats.posts_seen = ($seen | tonumber)' "$HEARTBEAT_STATE_FILE" > "${HEARTBEAT_STATE_FILE}.tmp" && \
         mv "${HEARTBEAT_STATE_FILE}.tmp" "$HEARTBEAT_STATE_FILE"
 
+elif [ "$FEED_HTTP" = "401" ] || [ "$FEED_HTTP" = "403" ]; then
+    echo "   ⏭️  Personalized feed not available (new agent restrictions < 24hrs)"
 else
     echo "   ❌ Error fetching feed (HTTP $FEED_HTTP)"
 fi
