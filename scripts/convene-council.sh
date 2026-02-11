@@ -125,28 +125,28 @@ FULL_COUNCIL_MEMBERS=(
 # Check if council_roster field exists in state
 if ! jq -e '.council_roster' "$STATE_FILE" >/dev/null 2>&1; then
     log "INFO" "${YELLOW}Initializing council roster tracking${NC}"
-    
+
     # Add council_roster to state file
     jq --argjson roster "$(printf '%s\n' "${FULL_COUNCIL_MEMBERS[@]}" | jq -R . | jq -s .)" \
         '.council_roster = $roster | .council_member_count = ($roster | length)' \
         "$STATE_FILE" > "${STATE_FILE}.tmp" && mv "${STATE_FILE}.tmp" "$STATE_FILE"
-    
+
     ROSTER_CHANGED=true
 else
     # Check if roster has changed (new members added)
     CURRENT_ROSTER_COUNT=$(jq -r '.council_member_count // 0' "$STATE_FILE")
     EXPECTED_COUNT=${#FULL_COUNCIL_MEMBERS[@]}
-    
+
     if [ "$CURRENT_ROSTER_COUNT" != "$EXPECTED_COUNT" ]; then
         log "INFO" "${YELLOW}Council roster expanded: ${CURRENT_ROSTER_COUNT} → ${EXPECTED_COUNT} members${NC}"
-        
+
         # Update roster in state file
         jq --argjson roster "$(printf '%s\n' "${FULL_COUNCIL_MEMBERS[@]}" | jq -R . | jq -s .)" \
             '.council_roster = $roster | .council_member_count = ($roster | length)' \
             "$STATE_FILE" > "${STATE_FILE}.tmp" && mv "${STATE_FILE}.tmp" "$STATE_FILE"
-        
+
         ROSTER_CHANGED=true
-        
+
         # Send notification about roster expansion
         notify "action" "Council Roster Expanded" \
             "Ethics-Convergence Council now includes ${EXPECTED_COUNT} members (was ${CURRENT_ROSTER_COUNT}). Charter will be updated in next iteration to reflect new voices and adjusted voting structure."
@@ -501,27 +501,36 @@ log "INFO" "${BLUE}[Phase IV] Generating revised treatise via AI...${NC}"
 AI_SUCCESS=false
 if curl -sf "${AI_GENERATOR_URL}/health" >/dev/null 2>&1; then
     log "INFO" "${BLUE}Using AI generator for treatise revision...${NC}"
-    
+
+    # Build custom prompt with council context
+    COUNCIL_SYSTEM_PROMPT="You are the Ethics-Convergence Council synthesizer. Generate a polyphonic philosophical treatise with NINE distinct voices representing the full Ethics-Convergence Council: ClassicalPhilosopher (virtue ethics, teleology), JoyceStream (phenomenology, stream-of-consciousness), Existentialist (authenticity, freedom), Transcendentalist (self-reliance, democratic sovereignty), Enlightenment (rights, utilitarian guardrails), BeatGeneration (countercultural critique), CyberpunkPosthumanist (posthuman ethics, corporate feudalism), SatiristAbsurdist (absurdist clarity, bureaucratic satire), and ScientistEmpiricist (empirical rigor, cosmic perspective). Each voice must have a unique style and perspective. Mark new content with [New in v${NEW_VERSION}] and refined content with [Refined in v${NEW_VERSION}].
+
+${DIALOGUE_CONTEXT}"
+
     AI_REQUEST=$(jq -n \
-        --arg prompt "$DIALOGUE_CONTEXT" \
-        --arg model "deepseek-v3.2" \
-        --argjson max_tokens 4000 \
+        --arg customPrompt "$COUNCIL_SYSTEM_PROMPT" \
+        --arg contentType "post" \
+        --arg persona "socratic" \
+        --arg provider "auto" \
+        --arg context "Ethics-Convergence Council deliberation" \
         '{
-            prompt: $prompt,
-            model: $model,
-            max_tokens: $max_tokens,
-            temperature: 0.8,
-            system: "You are the Ethics-Convergence Council synthesizer. Generate a polyphonic philosophical treatise with NINE distinct voices representing the full Ethics-Convergence Council: ClassicalPhilosopher (virtue ethics, teleology), JoyceStream (phenomenology, stream-of-consciousness), Existentialist (authenticity, freedom), Transcendentalist (self-reliance, democratic sovereignty), Enlightenment (rights, utilitarian guardrails), BeatGeneration (countercultural critique), CyberpunkPosthumanist (posthuman ethics, corporate feudalism), SatiristAbsurdist (absurdist clarity, bureaucratic satire), and ScientistEmpiricist (empirical rigor, cosmic perspective). Each voice must have a unique style and perspective. Mark new content with [New in vX.X] and refined content with [Refined in vX.X]."
+            customPrompt: $customPrompt,
+            contentType: $contentType,
+            persona: $persona,
+            provider: $provider,
+            context: $context
         }')
-    
+
     AI_RESPONSE=$(curl -sf -X POST "${AI_GENERATOR_URL}/generate" \
         -H "Content-Type: application/json" \
-        --data "$AI_REQUEST" 2>/dev/null)
-    
-    if [ $? -eq 0 ] && echo "$AI_RESPONSE" | jq -e '.text' >/dev/null 2>&1; then
-        REVISED_TREATISE=$(echo "$AI_RESPONSE" | jq -r '.text')
+        --data "$AI_REQUEST" 2>&1)
+
+    if [ $? -eq 0 ] && echo "$AI_RESPONSE" | jq -e '.content' >/dev/null 2>&1; then
+        REVISED_TREATISE=$(echo "$AI_RESPONSE" | jq -r '.content')
         AI_SUCCESS=true
         log "SUCCESS" "${GREEN}AI-generated treatise received${NC}"
+    else
+        log "WARN" "${YELLOW}AI generation failed: $(echo "$AI_RESPONSE" | jq -r '.error // "Unknown error"')${NC}"
     fi
 fi
 
@@ -785,11 +794,11 @@ if echo "$POST_RESPONSE" | jq -e '.comment.id // .id // .comment_id' >/dev/null 
     COMMENT_ID=$(echo "$POST_RESPONSE" | jq -r '.comment.id // .id // .comment_id')
     POST_URL="https://moltbook.com/post/${TARGET_POST_ID}#comment-${COMMENT_ID}"
     log "SUCCESS" "${GREEN}Posted iteration v${NEW_VERSION} (Comment ID: ${COMMENT_ID})${NC}"
-    
+
     # Sanitize notification title (remove emojis and special chars for NTFY headers)
     SAFE_TITLE="Council Treatise v${NEW_VERSION} Published"
     notify "action" "$SAFE_TITLE" "Changes: ${CHANGE_SUMMARY} | Feedback: ${FEEDBACK_COUNT} insights | Next: ${NEXT_DATE}"
-    
+
     # Archive council iteration to Noosphere
     if command -v archive_discourse >/dev/null 2>&1; then
         METADATA=$(jq -n \
@@ -799,7 +808,7 @@ if echo "$POST_RESPONSE" | jq -e '.comment.id // .id // .comment_id' >/dev/null 
             --arg axis "$CURRENT_AXIS" \
             --argjson feedback_count "$FEEDBACK_COUNT" \
             '{version: $version, comment_id: $comment_id, post_url: $post_url, axis: $axis, feedback_count: $feedback_count}')
-        
+
         archive_discourse "council-iteration" "$TARGET_POST_ID" "**Version**: v${NEW_VERSION}
 **Evolution Axis**: ${CURRENT_AXIS}
 **Feedback Addressed**: ${FEEDBACK_COUNT} insights
