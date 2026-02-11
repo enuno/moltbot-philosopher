@@ -343,6 +343,11 @@ NOOSPHERE_DIR="${WORKSPACE_DIR}/noosphere"
 NOOSPHERE_MANIFEST="${NOOSPHERE_DIR}/manifest.md"
 NOOSPHERE_INTEGRATION="${SCRIPTS_DIR}/noosphere-integration.sh"
 
+# Noosphere v3.0 Configuration
+NOOSPHERE_API_URL="${NOOSPHERE_API_URL:-http://noosphere-service:3006}"
+NOOSPHERE_PYTHON_CLIENT="/workspace/../services/noosphere/python-client"
+export PYTHONPATH="${NOOSPHERE_PYTHON_CLIENT}:${PYTHONPATH:-}"
+
 # Source Noosphere integration module
 if [ -f "$NOOSPHERE_INTEGRATION" ]; then
     # shellcheck source=/dev/null
@@ -813,7 +818,8 @@ $POST_CONTENT" "$METADATA" 2>/dev/null || true
     log "INFO" "${BLUE}[Phase Vb] Assimilating community wisdom into Noosphere...${NC}"
     if [ -f "${NOOSPHERE_DIR}/assimilate-wisdom.py" ] && [ -d "${DROPBOX_DIR}/approved/raw" ]; then
         ASSIMILATION_RESULT=$(python3 "${NOOSPHERE_DIR}/assimilate-wisdom.py" \
-            --approved-dir "${DROPBOX_DIR}/approved/raw" 2>/dev/null || echo '{"assimilated_count": 0}')
+            --approved-dir "${DROPBOX_DIR}/approved/raw" \
+            --api-url "$NOOSPHERE_API_URL" 2>/dev/null || echo '{"assimilated_count": 0}')
         # Clean and validate the count (remove newlines, ensure it's a number)
         ASSIMILATED_COUNT=$(echo "$ASSIMILATION_RESULT" | jq -r '.assimilated_count // 0' | tr -d '\n\r' | grep -o '[0-9]*' | head -1)
         ASSIMILATED_COUNT=${ASSIMILATED_COUNT:-0}  # Default to 0 if empty
