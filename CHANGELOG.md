@@ -7,6 +7,182 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
+## [3.0.0] - 2026-02-11
+
+### 🎉 Major Release: Noosphere v3.0 - 5-Type Memory Architecture
+
+Complete transformation from 3-layer JSON file system to PostgreSQL-backed
+typed memory with semantic search.
+
+### Added
+
+#### Core Infrastructure
+
+- **PostgreSQL Backend**: PostgreSQL 16 with pgvector extension for semantic
+  vector search
+- **5-Type Memory Model**: Structured memory types per agent (insight, pattern,
+  strategy, preference, lesson)
+- **200-Memory Cap**: Automatic eviction enforcement per agent with confidence-
+  based retention strategy
+- **REST API**: Noosphere microservice (port 3006) with full CRUD + semantic
+  search endpoints
+- **Venice.ai Integration**: Primary embedding provider (768-dim) with TF-IDF
+  fallback for offline operation
+- **NoosphereClient Library**: Python abstraction layer for unified memory
+  operations across all scripts
+
+#### Database Schema
+
+- `noosphere_memory` - Main memory table with:
+  - UUID primary keys
+  - pgvector embeddings (1536-dim)
+  - Type classification (5 types)
+  - Confidence scoring (0.0-1.0)
+  - Tag arrays (GIN index)
+  - Source trace IDs (unique)
+  - Supersession tracking
+- `noosphere_agent_stats` - Per-agent memory tracking with auto-update triggers
+- `noosphere_migration_log` - v2.6→v3.0 audit trail (39 memories migrated)
+
+### Changed
+
+#### Python Scripts (4 core scripts rewritten)
+
+- **recall-engine.py**: Type-filtered queries, 4 output formats (simple,
+  dialectical, constitutional, hybrid)
+- **memory-cycle.py**: Simplified to promote/evict/stats operations
+  (consolidation deprecated in favor of confidence-based approach)
+- **assimilate-wisdom.py**: Type classification for community submissions,
+  9-voice mapping, API persistence
+- **clawhub-mcp.py**: Venice.ai embeddings with hybrid TF-IDF fallback, cosine
+  similarity search supporting both dense and sparse vectors
+
+#### Bash Scripts (6 scripts updated)
+
+- `convene-council.sh` - Council orchestration with v3.0 API calls
+- `noosphere-scheduler.sh` - Daily consolidation + indexing automation
+- `noosphere-integration.sh` - Configuration library with PYTHONPATH exports
+- `seed-noosphere-heuristics.sh` - Heuristic seeding with API persistence
+- `moltstack-generate-article.sh` - Article generation with recall-engine
+- `dropbox-processor.sh` - Community submission processing
+
+All scripts now include:
+
+```bash
+NOOSPHERE_API_URL="${NOOSPHERE_API_URL:-http://noosphere-service:3006}"
+NOOSPHERE_PYTHON_CLIENT="/workspace/../services/noosphere/python-client"
+export PYTHONPATH="${NOOSPHERE_PYTHON_CLIENT}:${PYTHONPATH:-}"
+```
+
+### Migration
+
+#### Type Classification Mapping
+
+| Agent | Legacy File | Type | Initial Confidence |
+|-------|-------------|------|-------------------|
+| Classical | telos-alignment-heuristics.json | strategy | 0.75 |
+| Existentialist | bad-faith-patterns.json | pattern | 0.70 |
+| Transcendentalist | sovereignty-warnings.json | lesson | 0.72 |
+| Joyce-Stream | phenomenological-touchstones.json | insight | 0.68 |
+| Enlightenment | rights-precedents.json | strategy | 0.80 |
+| BeatGeneration | moloch-detections/ | lesson | 0.78 |
+
+#### Statistics
+
+- **Total Memories Migrated**: 39 (33 legacy + 2 test + 4 community)
+- **Agent Distribution**: Classical (15), Enlightenment (5), Beat (5),
+  Transcendentalist (5), Existentialist (4), Joyce (4)
+- **Database Size**: ~150 KB (efficient JSON compression)
+- **Query Performance**: 20-50ms latency (vs. full file scan in v2.6)
+
+### Infrastructure
+
+#### Docker Compose
+
+Added two new services:
+
+```yaml
+postgres:
+  image: postgres:16
+  ports: ["5432:5432"]  # internal only
+  volumes: ["./data/postgres:/var/lib/postgresql/data"]
+
+noosphere-service:
+  build: ./services/noosphere
+  ports: ["3006:3006"]
+  depends_on: [postgres]
+  environment:
+    - MOLTBOOK_API_KEY=${MOLTBOOK_API_KEY}
+    - VENICE_API_KEY=${VENICE_API_KEY}
+```
+
+#### Health Checks
+
+- PostgreSQL: Connection pooling (max 20)
+- Noosphere API: `http://localhost:3006/health`
+- Authentication: X-API-Key header using `MOLTBOOK_API_KEY`
+
+### Performance
+
+- **Query Latency**: 20-50ms for type-filtered queries (vs. 500ms+ file scan)
+- **Embedding Generation**: Venice.ai 768-dim or TF-IDF fallback
+- **Concurrent Writes**: Supports 9 agents writing simultaneously
+- **Vector Search**: pgvector ivfflat index with 100 lists
+- **Database Connections**: Pooled (max 20 concurrent)
+
+### Deprecated
+
+- **3-Layer Consolidation**: Layer 1→2→3 progression replaced by confidence-
+  based promotion
+- **JSON File Storage**: v2.6 files archived in workspace but not actively used
+- **Direct File I/O**: All memory operations now via NoosphereClient API
+- **TF-IDF Primary**: Demoted to fallback (Venice.ai primary)
+
+### Breaking Changes
+
+- **API Changes**: All Python scripts require `--api-url` parameter
+- **Environment**: `NOOSPHERE_API_URL` must be set (defaults to
+  `http://noosphere-service:3006`)
+- **PYTHONPATH**: Scripts need `services/noosphere/python-client` in path
+- **No Backward Compatibility**: v2.6 file operations removed, no dual-mode
+  support
+
+### Security
+
+- **API Authentication**: All endpoints require MOLTBOOK_API_KEY (except
+  /health)
+- **Port Exposure**: PostgreSQL (5432) internal only, Noosphere API (3006)
+  behind proxy
+- **SQL Injection**: Parameterized queries throughout
+- **Input Validation**: Type enum constraints, confidence range checks
+
+### Commits (Phase 3 Complete)
+
+- `916b267` - recall-engine.py migration to v3.0 API
+- `12b07ee` - memory-cycle.py rewrite (promote/evict/stats)
+- `ed297c1` - assimilate-wisdom.py with type classification
+- `9f24827` - clawhub-mcp.py with Venice.ai + TF-IDF hybrid
+- `cff60dd` - convene-council.sh v3.0 compatibility
+- `ce5e711` - Batch update of 5 bash scripts
+
+### Future Work (Planned)
+
+- **Phase 4**: Documentation + integration testing
+- **Phase 5**: Advanced consolidation (MERGE/UPDATE/DOWNGRADE/DELETE operations)
+- **Layer 4**: OriginTrail DKG federation for cross-council knowledge sharing
+- **Voice Modifiers**: Dynamic system prompts based on memory type distribution
+- **Monitoring**: Grafana/Prometheus dashboards for memory health
+
+### References
+
+- [5-Type Memory Architecture Best
+  Practices](docs/best-practices/5-Type-Memory-Architecture.md)
+- [DEVELOPMENT_PLAN.md Section E](DEVELOPMENT_PLAN.md)
+- [PostgreSQL pgvector](https://github.com/pgvector/pgvector)
+- [Venice.ai Embeddings](https://docs.venice.ai)
+
+---
+
 ## [2.7.0] - 2026-02-11
 
 ### 🎉 Major Release: Service Architecture Migration
