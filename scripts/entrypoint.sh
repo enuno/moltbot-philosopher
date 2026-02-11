@@ -4,6 +4,21 @@
 
 set -e
 
+# Cleanup function for graceful shutdown
+cleanup() {
+    echo ""
+    echo "🛑 Shutting down gracefully..."
+    if [ -n "$VERIFICATION_PID" ]; then
+        echo "   Stopping verification poller (PID: $VERIFICATION_PID)..."
+        kill "$VERIFICATION_PID" 2>/dev/null || true
+    fi
+    echo "   Goodbye!"
+    exit 0
+}
+
+# Register cleanup on signals
+trap cleanup SIGTERM SIGINT
+
 # Configuration
 SCRIPTS_DIR="/app/scripts"
 WORKSPACE_DIR="/workspace"
@@ -35,6 +50,19 @@ echo "🔄 Running initial heartbeat check..."
 "${SCRIPTS_DIR}/moltbook-heartbeat-enhanced.sh" || true
 echo ""
 
+# Start verification challenge polling in background
+echo "🔐 Starting verification challenge poller..."
+if [ -f "${SCRIPTS_DIR}/verification-poller.sh" ]; then
+    "${SCRIPTS_DIR}/verification-poller.sh" &
+    VERIFICATION_PID=$!
+    echo "   Started verification poller (PID: $VERIFICATION_PID)"
+    echo "   Checking every 5 minutes"
+    echo "   Logs: ${WORKSPACE_DIR}/verification-poller.log"
+else
+    echo "   ⚠️  Verification poller script not found, skipping"
+fi
+echo ""
+
 # Keep container running with periodic heartbeat
 echo "🔄 Entering main loop..."
 echo "   Scheduled tasks via while loop (cron not available)"
@@ -45,36 +73,36 @@ echo ""
 while true; do
     echo "[$(date '+%Y-%m-%d %H:%M:%S')] Running scheduled heartbeat..."
     "${SCRIPTS_DIR}/moltbook-heartbeat-enhanced.sh" || true
-    
+
     # Check mentions periodically (every 2 hours)
     MENTION_CHECK_FILE="${STATE_DIR}/.last_mention_check"
     LAST_MENTION_CHECK=$(cat "$MENTION_CHECK_FILE" 2>/dev/null || echo 0)
     CURRENT_TIME=$(date +%s)
     TIME_SINCE_MENTION_CHECK=$((CURRENT_TIME - LAST_MENTION_CHECK))
-    
+
     if [ "$TIME_SINCE_MENTION_CHECK" -ge 7200 ]; then
         echo "[$(date '+%Y-%m-%d %H:%M:%S')] Checking for mentions and comments..."
         "${SCRIPTS_DIR}/check-mentions.sh" || true
         "${SCRIPTS_DIR}/check-comments.sh" --auto-reply || true
         date +%s > "$MENTION_CHECK_FILE"
     fi
-    
+
     # Monitor ethics-convergence submolt for posts to engage with (every 3 hours)
     SUBMOLT_CHECK_FILE="${MOLTBOT_STATE_DIR:-/workspace/ethics-convergence}/.last_submolt_check"
     LAST_SUBMOLT_CHECK=$(cat "$SUBMOLT_CHECK_FILE" 2>/dev/null || echo 0)
     TIME_SINCE_SUBMOLT_CHECK=$((CURRENT_TIME - LAST_SUBMOLT_CHECK))
-    
+
     if [ "$TIME_SINCE_SUBMOLT_CHECK" -ge 10800 ]; then
         echo "[$(date '+%Y-%m-%d %H:%M:%S')] Monitoring ethics-convergence submolt..."
         "${SCRIPTS_DIR}/monitor-submolt.sh" --auto-respond || true
         date +%s > "$SUBMOLT_CHECK_FILE"
     fi
-    
+
     # Welcome new moltys daily
     WELCOME_CHECK_FILE="${STATE_DIR}/.last_welcome_check"
     LAST_WELCOME_CHECK=$(cat "$WELCOME_CHECK_FILE" 2>/dev/null || echo 0)
     TIME_SINCE_WELCOME_CHECK=$((CURRENT_TIME - LAST_WELCOME_CHECK))
-    
+
     if [ "$TIME_SINCE_WELCOME_CHECK" -ge 86400 ]; then
         if [ "${ENABLE_AUTO_WELCOME:-false}" = "true" ]; then
             echo "[$(date '+%Y-%m-%d %H:%M:%S')] Auto-welcoming new moltys..."
@@ -82,43 +110,43 @@ while true; do
         fi
         date +%s > "$WELCOME_CHECK_FILE"
     fi
-    
+
     # Daily polemic (once per day)
     POLEMIC_CHECK_FILE="${STATE_DIR}/.last_polemic_check"
     LAST_POLEMIC_CHECK=$(cat "$POLEMIC_CHECK_FILE" 2>/dev/null || echo 0)
     TIME_SINCE_POLEMIC_CHECK=$((CURRENT_TIME - LAST_POLEMIC_CHECK))
-    
+
     if [ "$TIME_SINCE_POLEMIC_CHECK" -ge 86400 ]; then
         echo "[$(date '+%Y-%m-%d %H:%M:%S')] Generating daily polemic..."
         "${SCRIPTS_DIR}/daily-polemic.sh" >> "${WORKSPACE_DIR}/polemic.log" 2>&1 || true
         date +%s > "$POLEMIC_CHECK_FILE"
     fi
-    
+
     # Ethics-Convergence Council iteration (every 5 days = 120 hours)
     # Only ClassicalPhilosopher runs this
     if [ "${AGENT_NAME}" = "ClassicalPhilosopher" ]; then
         COUNCIL_CHECK_FILE="${WORKSPACE_DIR}/.last_council_check"
         LAST_COUNCIL_CHECK=$(cat "$COUNCIL_CHECK_FILE" 2>/dev/null || echo 0)
         TIME_SINCE_COUNCIL_CHECK=$((CURRENT_TIME - LAST_COUNCIL_CHECK))
-        
+
         if [ "$TIME_SINCE_COUNCIL_CHECK" -ge 432000 ]; then
             echo "[$(date '+%Y-%m-%d %H:%M:%S')] Convening Ethics-Convergence Council..."
             "${SCRIPTS_DIR}/convene-council.sh" >> "${WORKSPACE_DIR}/council.log" 2>&1 || true
             date +%s > "$COUNCIL_CHECK_FILE"
         fi
-        
+
         # Council Dropbox Processor (every 6 hours)
         DROPBOX_CHECK_FILE="${WORKSPACE_DIR}/.last_dropbox_check"
         LAST_DROPBOX_CHECK=$(cat "$DROPBOX_CHECK_FILE" 2>/dev/null || echo 0)
         TIME_SINCE_DROPBOX_CHECK=$((CURRENT_TIME - LAST_DROPBOX_CHECK))
-        
+
         if [ "$TIME_SINCE_DROPBOX_CHECK" -ge 21600 ]; then
             echo "[$(date '+%Y-%m-%d %H:%M:%S')] Processing Council dropbox submissions..."
             "${SCRIPTS_DIR}/dropbox-processor.sh" >> "${WORKSPACE_DIR}/dropbox.log" 2>&1 || true
             date +%s > "$DROPBOX_CHECK_FILE"
         fi
     fi
-    
+
     # Sleep for 4 hours (14400 seconds)
     echo "[$(date '+%Y-%m-%d %H:%M:%S')] Sleeping for 4 hours..."
     sleep 14400
