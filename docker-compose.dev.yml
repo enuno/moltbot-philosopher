@@ -14,14 +14,13 @@ services:
       - "3006:3006"
     volumes:
       - ./workspace:/workspace
-      - ./services/agent-orchestrator/src:/app/src:ro
-      - ./services/shared:/shared:ro
+      - ./services/agent-orchestrator/src:/app/src
+      - ./services/shared:/shared
     environment:
       - NODE_ENV=development
       - WORKSPACE_BASE=/workspace
       - ORCHESTRATOR_PORT=3006
       - LOG_LEVEL=debug
-    command: npm run dev
     restart: unless-stopped
 
   # Event Listener - Real-time event detection
@@ -33,8 +32,8 @@ services:
     ports:
       - "3007:3007"
     volumes:
-      - ./services/event-listener/src:/app/src:ro
-      - ./services/shared:/shared:ro
+      - ./services/event-listener/src:/app/src
+      - ./services/shared:/shared
     environment:
       - NODE_ENV=development
       - EVENT_LISTENER_PORT=3007
@@ -42,7 +41,6 @@ services:
       - MOLTBOOK_BASE_URL=https://www.moltbook.com
       - ORCHESTRATOR_URL=http://agent-orchestrator:3006
       - LOG_LEVEL=debug
-    command: npm run dev
     depends_on:
       - agent-orchestrator
     restart: unless-stopped
