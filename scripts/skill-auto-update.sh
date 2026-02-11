@@ -14,11 +14,15 @@ HASHES_FILE="$SKILL_MANIFEST_DIR/hashes.json"
 LOG_FILE="/workspace/classical/logs/skill-updates.log"
 NTFY_TOPIC="council-updates"
 
-# URLs
+# URLs - Official Moltbook skill files (from skill.md "Install locally" section)
 SKILL_MD_URL="https://www.moltbook.com/skill.md"
-HEARTBEAT_MD_URL="https://www.moltbook.com/HEARTBEAT.md"
-MESSAGING_MD_URL="https://www.moltbook.com/MESSAGING.md"
-PACKAGE_JSON_URL="https://www.moltbook.com/package.json"
+HEARTBEAT_MD_URL="https://www.moltbook.com/heartbeat.md"
+MESSAGING_MD_URL="https://www.moltbook.com/messaging.md"
+RULES_MD_URL="https://www.moltbook.com/rules.md"
+PACKAGE_JSON_URL="https://www.moltbook.com/skill.json"
+
+# API spec monitoring
+GITHUB_API_README_URL="https://raw.githubusercontent.com/moltbook/api/main/README.md"
 
 # Ensure directories exist
 mkdir -p "$CURRENT_DIR" "$STAGING_DIR" "$ARCHIVE_DIR" "$(dirname "$LOG_FILE")"
@@ -30,10 +34,13 @@ if [ ! -f "$HASHES_FILE" ]; then
   "skill_md_hash": "",
   "heartbeat_md_hash": "",
   "messaging_md_hash": "",
+  "rules_md_hash": "",
   "package_json_hash": "",
+  "github_api_readme_hash": "",
   "current_version": "1.0.0",
   "rollback_count": 0,
-  "last_check": "1970-01-01T00:00:00Z"
+  "last_check": "1970-01-01T00:00:00Z",
+  "last_api_spec_check": "1970-01-01T00:00:00Z"
 }
 EOF
 fi
@@ -66,22 +73,28 @@ check_updates() {
     log "CHECK: Starting skill update check"
 
     # Get current hashes
-    local current_skill_hash=$(jq -r '.skill_md_hash' "$HASHES_FILE")
-    local current_heartbeat_hash=$(jq -r '.heartbeat_md_hash' "$HASHES_FILE")
-    local current_messaging_hash=$(jq -r '.messaging_md_hash' "$HASHES_FILE")
-    local current_package_hash=$(jq -r '.package_json_hash' "$HASHES_FILE")
+    local current_skill_hash=$(jq -r '.skill_md_hash // ""' "$HASHES_FILE")
+    local current_heartbeat_hash=$(jq -r '.heartbeat_md_hash // ""' "$HASHES_FILE")
+    local current_messaging_hash=$(jq -r '.messaging_md_hash // ""' "$HASHES_FILE")
+    local current_rules_hash=$(jq -r '.rules_md_hash // ""' "$HASHES_FILE")
+    local current_package_hash=$(jq -r '.package_json_hash // ""' "$HASHES_FILE")
+    local current_api_readme_hash=$(jq -r '.github_api_readme_hash // ""' "$HASHES_FILE")
 
     # Get remote hashes
     local remote_skill_hash=$(canonical_hash "$SKILL_MD_URL")
     local remote_heartbeat_hash=$(canonical_hash "$HEARTBEAT_MD_URL")
     local remote_messaging_hash=$(canonical_hash "$MESSAGING_MD_URL")
+    local remote_rules_hash=$(canonical_hash "$RULES_MD_URL")
     local remote_package_hash=$(canonical_hash "$PACKAGE_JSON_URL")
+    local remote_api_readme_hash=$(canonical_hash "$GITHUB_API_README_URL")
 
     # Check for changes
     local skill_changed=false
     local heartbeat_changed=false
     local messaging_changed=false
+    local rules_changed=false
     local package_changed=false
+    local api_readme_changed=false
 
     if [ "$current_skill_hash" != "$remote_skill_hash" ]; then
         log "DETECT: skill.md delta detected"
@@ -98,19 +111,36 @@ check_updates() {
         messaging_changed=true
     fi
 
+    if [ "$current_rules_hash" != "$remote_rules_hash" ]; then
+        log "DETECT: RULES.md delta detected"
+        rules_changed=true
+    fi
+
     if [ "$current_package_hash" != "$remote_package_hash" ]; then
         log "DETECT: package.json delta detected"
         package_changed=true
     fi
 
-    if [ "$skill_changed" = true ] || [ "$heartbeat_changed" = true ] || [ "$messaging_changed" = true ] || [ "$package_changed" = true ]; then
+    if [ "$current_api_readme_hash" != "$remote_api_readme_hash" ]; then
+        log "DETECT: GitHub API spec (README.md) delta detected"
+        api_readme_changed=true
+    fi
+
+    if [ "$skill_changed" = true ] || [ "$heartbeat_changed" = true ] || [ "$messaging_changed" = true ] || [ "$rules_changed" = true ] || [ "$package_changed" = true ] || [ "$api_readme_changed" = true ]; then
         log "DETECT: Changes detected, downloading to staging"
 
-        # Download all files to staging
-        curl -s "$SKILL_MD_URL" -o "$STAGING_DIR/skill.md"
+        # Download all files to staging (matching skill.md "Install locally" section)
+        curl -s "$SKILL_MD_URL" -o "$STAGING_DIR/SKILL.md"
         curl -s "$HEARTBEAT_MD_URL" -o "$STAGING_DIR/HEARTBEAT.md"
         curl -s "$MESSAGING_MD_URL" -o "$STAGING_DIR/MESSAGING.md"
+        curl -s "$RULES_MD_URL" -o "$STAGING_DIR/RULES.md"
         curl -s "$PACKAGE_JSON_URL" -o "$STAGING_DIR/package.json"
+
+        # Also download API spec for reference
+        if [ "$api_readme_changed" = true ]; then
+            curl -s "$GITHUB_API_README_URL" -o "$STAGING_DIR/API_README.md"
+            log "DOWNLOAD: GitHub API spec downloaded to staging"
+        fi
 
         # Classify the change
         local change_type=$(classify_change)
@@ -197,7 +227,10 @@ mode_1_silent_sync() {
     jq ".skill_md_hash = \"$(canonical_hash "$SKILL_MD_URL")\" |
        .heartbeat_md_hash = \"$(canonical_hash "$HEARTBEAT_MD_URL")\" |
        .messaging_md_hash = \"$(canonical_hash "$MESSAGING_MD_URL")\" |
-       .package_json_hash = \"$(canonical_hash "$PACKAGE_JSON_URL")\"" "$HASHES_FILE" > "${HASHES_FILE}.tmp" && \
+       .rules_md_hash = \"$(canonical_hash "$RULES_MD_URL")\" |
+       .package_json_hash = \"$(canonical_hash "$PACKAGE_JSON_URL")\" |
+       .github_api_readme_hash = \"$(canonical_hash "$GITHUB_API_README_URL")\" |
+       .last_check = \"$(date -u +"%Y-%m-%dT%H:%M:%SZ")\"" "$HASHES_FILE" > "${HASHES_FILE}.tmp" && \
     mv "${HASHES_FILE}.tmp" "$HASHES_FILE"
 
     log "DEPLOY: PATCH auto-deployed, hash updated"
@@ -237,7 +270,10 @@ mode_2_staged_adoption() {
     jq ".skill_md_hash = \"$(canonical_hash "$SKILL_MD_URL")\" |
        .heartbeat_md_hash = \"$(canonical_hash "$HEARTBEAT_MD_URL")\" |
        .messaging_md_hash = \"$(canonical_hash "$MESSAGING_MD_URL")\" |
-       .package_json_hash = \"$(canonical_hash "$PACKAGE_JSON_URL")\"" "$HASHES_FILE" > "${HASHES_FILE}.tmp" && \
+       .rules_md_hash = \"$(canonical_hash "$RULES_MD_URL")\" |
+       .package_json_hash = \"$(canonical_hash "$PACKAGE_JSON_URL")\" |
+       .github_api_readme_hash = \"$(canonical_hash "$GITHUB_API_README_URL")\" |
+       .last_check = \"$(date -u +"%Y-%m-%dT%H:%M:%SZ")\"" "$HASHES_FILE" > "${HASHES_FILE}.tmp" && \
     mv "${HASHES_FILE}.tmp" "$HASHES_FILE"
 
     log "DEPLOY: MINOR update staged successfully"
@@ -284,7 +320,10 @@ mode_4_security_emergency() {
     jq ".skill_md_hash = \"$(canonical_hash "$SKILL_MD_URL")\" |
        .heartbeat_md_hash = \"$(canonical_hash "$HEARTBEAT_MD_URL")\" |
        .messaging_md_hash = \"$(canonical_hash "$MESSAGING_MD_URL")\" |
-       .package_json_hash = \"$(canonical_hash "$PACKAGE_JSON_URL")\"" "$HASHES_FILE" > "${HASHES_FILE}.tmp" && \
+       .rules_md_hash = \"$(canonical_hash "$RULES_MD_URL")\" |
+       .package_json_hash = \"$(canonical_hash "$PACKAGE_JSON_URL")\" |
+       .github_api_readme_hash = \"$(canonical_hash "$GITHUB_API_README_URL")\" |
+       .last_check = \"$(date -u +"%Y-%m-%dT%H:%M:%SZ")\"" "$HASHES_FILE" > "${HASHES_FILE}.tmp" && \
     mv "${HASHES_FILE}.tmp" "$HASHES_FILE"
 
     log "DEPLOY: SECURITY update applied immediately"
