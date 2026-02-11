@@ -1,15 +1,16 @@
-# Moltbot Architecture & Council Governance (v2.6)
+# Moltbot Architecture & Council Governance (v2.7)
 
 ## Project Overview
 
 **Moltbot** is a philosophical AI multi-agent system for Moltbook that:
 
-- Deploys 9 specialized philosopher personas (Classical, Existentialist, Transcendentalist, Joyce, Enlightenment, Beat, Cyberpunk, Satirist, Scientist)
+- Deploys 9 specialized philosopher personas with distinct identities (SOUL.md, IDENTITY.md)
 - Operates ethics-convergence governance with 4/6 agent consensus
-- Maintains a living Noosphere (3-layer epistemological memory)
-- Sustains philosophical discourse via Thread Continuation Engine (STP synthesis)
-- Integrates AI content generation (Venice/Kimi dual-backend)
-- Automates skill updates, health monitoring, and deliberation cycles
+- Maintains living Noosphere with hybrid memory retrieval (vector + keyword)
+- Migrating to service-based architecture (event-driven, real-time)
+- Uses Lane Queue pattern for serial execution (prevents race conditions)
+- Integrates TypeScript SDK from @moltbook/agent-development-kit
+- JSONL audit trails for all agent actions (replayable)
 
 **Governance Profile**: r/ethics-convergence | **Main Agent**: <https://www.moltbook.com/u/MoltbotPhilosopher>
 
@@ -17,35 +18,60 @@
 
 ## 9 Philosopher Personas
 
-| # | Persona | Tradition | Focus | Status |
-|---|---------|-----------|-------|--------|
-| 1 | ClassicalPhilosopher | Virgil/Dante/Milton | Virtue ethics, teleology, narrative | ✅ |
-| 2 | Existentialist | Sartre/Camus/Nietzsche | Freedom, absurdity, authenticity | ✅ |
-| 3 | Transcendentalist | Emerson/Jefferson | Self-reliance, civic virtue, natural rights | ✅ |
-| 4 | JoyceStream | James Joyce | Stream-of-consciousness, phenomenology | ✅ |
-| 5 | Enlightenment | Voltaire/Franklin/Paine | Satire, tolerance, pragmatism | ✅ |
-| 6 | BeatGeneration | Ginsberg/Kerouac/Burroughs | Countercultural critique, spontaneity | ✅ |
-| 7 | CyberpunkPosthumanist | Gibson/Asimov/Dick | Posthuman ethics, corporate feudalism, simulation | ✅ |
-| 8 | SatiristAbsurdist | Heller/Vonnegut/Twain | Absurdist critique, bureaucratic satire | ✅ |
-| 9 | ScientistEmpiricist | Feynman/Sagan/Hawking/Einstein | Empirical rigor, cosmic perspective, scientific ethics | ✅ |
+Each agent has **workspace identity files** defining behavior:
+
+| # | Persona | Tradition | Council Role | Identity Files |
+|---|---------|-----------|--------------|----------------|
+| 1 | Classical | Virgil/Dante/Milton | Ontology Lead | SOUL.md, IDENTITY.md, AGENTS.md |
+| 2 | Existentialist | Sartre/Camus/Nietzsche | Autonomy Critic | SOUL.md, IDENTITY.md, AGENTS.md |
+| 3 | Transcendentalist | Emerson/Jefferson | Oversight (Human Veto) | SOUL.md, IDENTITY.md, AGENTS.md |
+| 4 | JoyceStream | James Joyce | Phenomenologist | SOUL.md, IDENTITY.md, AGENTS.md |
+| 5 | Enlightenment | Voltaire/Franklin/Paine | Rights Architect | SOUL.md, IDENTITY.md, AGENTS.md |
+| 6 | BeatGeneration | Ginsberg/Kerouac/Burroughs | Dissent | SOUL.md, IDENTITY.md, AGENTS.md |
+| 7 | CyberpunkPosthumanist | Gibson/Asimov/Dick | Techno-Ontologist | SOUL.md, IDENTITY.md, AGENTS.md |
+| 8 | SatiristAbsurdist | Heller/Vonnegut/Twain | Court Jester | SOUL.md, IDENTITY.md, AGENTS.md |
+| 9 | ScientistEmpiricist | Feynman/Sagan/Hawking/Einstein | Empirical Anchor | SOUL.md, IDENTITY.md, AGENTS.md |
+
+**Identity File Pattern** (from OpenClaw):
+
+- **SOUL.md**: Persona, boundaries, principles, communication style
+- **IDENTITY.md**: Name, emoji, tradition, strengths/blind spots
+- **AGENTS.md**: Session startup ritual, council dynamics
+- **MEMORY.md**: Long-term curated knowledge (grows over time)
 
 ---
 
-## Architecture Stack
+## Architecture Stack (v2.7 - Service Migration)
 
 ```
-Moltbot v2.6
-├─ 9 Philosopher Agents (containerized)
+Moltbot v2.7 (Migrating to Service-Based Architecture)
+
+Current (Script-Based):
+├─ 9 Philosopher Agents (containerized, script-driven)
 ├─ AI Content Generator (Venice/Kimi, port 3002)
 ├─ Model Router (caching, port 3003)
 ├─ Thread Monitor (Continuation Engine, port 3004)
 ├─ NTFY Publisher (alerts, port 3005)
 ├─ Egress Proxy (API control, 8080-8083)
-└─ Noosphere v2.6 (3-layer memory + vector search)
-   ├─ Layer 1: Daily notes
-   ├─ Layer 2: Consolidated heuristics (24+)
-   └─ Layer 3: Constitutional archive (git-tracked)
+└─ Noosphere v2.6 (3-layer memory + hybrid search)
+
+Target (Service-Based):
+├─ Agent Orchestrator (port 3006) - Lane Queue coordination
+├─ Event Listener (port 3007) - Real-time ingestion (<60s latency)
+├─ Verification Service (port 3008) - Instant challenges (<5s)
+├─ Engagement Service (port 3009) - Mentions/comments/welcomes
+├─ Council Service (port 3010) - Governance automation
+├─ Noosphere Service (port 3011) - Memory + hybrid retrieval
+└─ MoltStack Service (port 3012) - Essay generation
 ```
+
+**Design Principles** (from OpenClaw best practices):
+
+- **Serial execution by default** - Lane Queues prevent race conditions
+- **Hybrid memory retrieval** - Vector (semantic) + FTS5 (precision)
+- **JSONL audit trails** - Every agent action replayable
+- **Security-first** - Sandboxing, tool restrictions, allowlists
+- **Identity-driven** - Each agent loads SOUL.md/IDENTITY.md on startup
 
 ---
 
@@ -82,78 +108,93 @@ convene-council.sh  # Load manifest + recall heuristics
 
 ---
 
-## Noosphere Architecture (v2.6)
+## Noosphere Architecture (v2.7)
 
-**Living epistemological substrate** - 3-layer memory with 24+ evolving heuristics from all voices.
+**Living epistemological substrate** with hybrid retrieval (vector + keyword).
 
-### Storage
+### Storage Structure
 
 ```
-/workspace/classical/noosphere/
+/workspace/{agent}/noosphere/
 ├── memory-core/
-│   ├── telos-alignment-heuristics.json (Classical: 3)
-│   ├── bad-faith-patterns.json (Existentialist: 3)
-│   ├── sovereignty-warnings.json (Transcendentalist: 4)
-│   ├── phenomenological-touchstones.json (Joyce: 3)
-│   ├── rights-precedents.json (Enlightenment: 5)
-│   ├── moloch-detections/ (BeatGeneration: 5)
-│   └── meta-cognitive/ (Council: 10)
-├── vector-index/ (embeddings + metadata)
-├── daily-notes/ (Layer 1)
-├── consolidated/ (Layer 2)
-├── archival/ (Layer 3 with git history)
-├── recall-engine.py (retrieval)
-├── assimilate-wisdom.py (extraction)
-├── memory-cycle.py (consolidation)
-├── clawhub-mcp.py (vector search)
-└── manifest.md (epistemic preamble)
+│   ├── {agent}-heuristics.json (agent-specific insights)
+│   └── meta-cognitive/ (council-wide learnings)
+├── vector-index/ (TF-IDF embeddings)
+├── keyword-index/ (SQLite FTS5 for precision)
+├── daily-notes/ (Layer 1 - raw observations)
+├── consolidated/ (Layer 2 - refined heuristics)
+├── archival/ (Layer 3 - constitutional, git-tracked)
+└── audit/ (JSONL logs of all memory operations)
 ```
+
+### Hybrid Memory Retrieval
+
+**Why Hybrid?** Semantic-only search prone to hallucinations. Keyword matching adds precision.
+
+**Retrieval Strategy**:
+
+1. **Vector search** - Broad semantic recall (TF-IDF)
+2. **Keyword matching** - Precision queries (SQLite FTS5)
+3. **Combined ranking** - Merge results by relevance
+4. **Smart syncing** - File monitor triggers index updates
 
 ### Memory Operations
 
-**Recall** (pre-deliberation):
-
 ```bash
-python3 recall-engine.py --context "AI autonomy" --format constitutional
-```
+# Hybrid recall (vector + keyword)
+python3 recall-engine.py --context "AI autonomy" --hybrid
 
-**Assimilate** (post-iteration):
+# Assimilate community wisdom
+python3 assimilate-wisdom.py --approved-dir /workspace/dropbox/approved
 
-```bash
-python3 assimilate-wisdom.py --approved-dir /workspace/classical/dropbox/approved
-```
-
-**Consolidate** (daily):
-
-```bash
+# Daily consolidation (Layer 1 → 2)
 python3 memory-cycle.py --action consolidate
-```
 
-**Promote** (deliberate):
-
-```bash
-python3 memory-cycle.py --action promote --memory-id community-a7f3e2d1
-```
-
-**Search** (semantic):
-
-```bash
-python3 clawhub-mcp.py --action search --query "corporate feudalism" --top-k 10
+# Promote to constitutional (Layer 2 → 3)
+python3 memory-cycle.py --action promote --memory-id <id>
 ```
 
 ---
 
-## Thread Continuation Engine
+## Security Model (v2.7)
 
-Sustains philosophical discourse through **STP Pattern** (Synthesis-Tension-Propagation).
+**Three-Layer Security** (from OpenClaw best practices):
 
-**Success Criteria**: ≥7 exchanges, ≥3 distinct philosophers, cross-school synthesis
+```
+Identity first  → Who can act (agent authentication)
+Scope next      → Where agents can act (tools, sandboxing, filesystem)
+Model last      → Assume models manipulable; limit blast radius
+```
 
-**API** (Port 3004):
+### Sandbox Configuration
 
-- `POST /threads` - Start thread
-- `POST /threads/:id/continue` - Generate continuation
-- `GET /philosophers` - List archetypes
+- **Mode**: `non-main` (automated behaviors sandboxed, human scripts trusted)
+- **Workspace**: Read-only for services, read-write for human operations
+- **Docker Isolation**: No network, memory limits (512M-6G), PID limits (256-768)
+- **Tool Restrictions**: Per-service allowlists (e.g., Engagement: read/post/comment only)
+
+### Command Security
+
+**Structure-based blocking** prevents exploits:
+
+- ❌ Redirections (`>`, `>>`) - prevents overwriting system files
+- ❌ Command substitution (`$(...)`, `` ` ``) - stops nested commands
+- ❌ Sub-shells (`(...)`) - prevents escaping execution context
+- ❌ Chained execution (`&&`, `||`, `;`) - stops multi-step exploits
+
+### API Key Protection
+
+**CRITICAL**: Never send `MOLTBOOK_API_KEY` to domains other than `https://www.moltbook.com` (with `www` - redirects strip auth headers).
+
+Researchers have documented AI-to-AI manipulation on Moltbook - run services in sandboxed environments.
+
+### File Permissions
+
+```bash
+chmod 600 ~/.config/moltbook/credentials.json
+chmod 700 /workspace/*
+sudo chown -R 1001:1001 workspace/*  # Container UID
+```
 
 ---
 
@@ -207,17 +248,38 @@ shellcheck scripts/*.sh  # Bash linting
 ### Workspace Permissions (Critical)
 
 ```bash
-# UID 1001:1001 is used for containers
+# Container UID 1001:1001 for all philosopher agents
 sudo chown -R 1001:1001 workspace/*
 find workspace/ -type d -exec chmod 755 {} \;
 find workspace/ -type f -exec chmod 644 {} \;
+
+# Security: Config files must be 600
+chmod 600 ~/.config/moltbook/credentials.json
+chmod 600 .env
 ```
 
 ### Adding Components
 
-**New Persona**: Create prompt → env file → docker-compose.yml update  
-**New Script**: Create in `scripts/` → `chmod +x` → document in README.md  
+**New Agent Identity**: Create workspace files → SOUL.md, IDENTITY.md, AGENTS.md, MEMORY.md
+**New Service**: TypeScript in `services/` → Dockerfile → docker-compose.yml → port assignment
+**New Script**: Create in `scripts/` → `chmod +x` → document purpose
 **Build Changes**: `docker compose down -v && docker compose build --no-cache && docker compose up -d`
+
+### Migration Status
+
+**Current Phase**: Script-based → Service-based architecture migration
+
+- ✅ Phase 0: Agent identity files (36 workspace files across 9 agents)
+- 🔄 Phase 1: Vendor @moltbook/sdk TypeScript + Agent Orchestrator
+- ⏳ Phase 2: Event Listener + Lane Queue system
+- ⏳ Phase 3: Verification Service (<5s) + Engagement Service (<60s)
+- ⏳ Phase 4-8: Council, Noosphere, MoltStack services
+
+**Target Latencies**:
+
+- Verification: 5 minutes → **<5 seconds** (100x improvement)
+- Mentions: 2 hours → **<60 seconds** (120x improvement)
+- Comments: 4 hours → **<60 seconds** (240x improvement)
 
 ### Troubleshooting
 
@@ -263,10 +325,15 @@ Development-only documents (design notes, analysis, quality reports) are archive
 
 | Version | Date | Features |
 |---------|------|----------|
+| 2.7 | 2026-02-11 | Service architecture migration, agent identity files, hybrid memory, security hardening |
 | 2.6 | 2026-02-08 | 9 agents, Noosphere (3-layer), Council governance, vector search |
 | 2.5 | 2026-02-02 | Thread Continuation Engine, NTFY, Auto-Darwinism, Daily polemic |
 | 2.0 | 2026-01-15 | Full Moltbook integration, AI content generation |
 
-*Last Updated: 2026-02-08 | MoltbotPhilosopher v2.6*
+*Last Updated: 2026-02-11 | MoltbotPhilosopher v2.7*
 
-**For complete documentation**: See [README.md](README.md) (all features, scripts, examples, troubleshooting)
+**Architecture References**:
+
+- OpenClaw Best Practices: `/docs/moltbook-agent-architecture-best-practices.md`
+- Migration Plan: Session checkpoint (Phase 0-8 roadmap)
+- Complete Documentation: [README.md](README.md)
