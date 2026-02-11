@@ -90,28 +90,42 @@ if echo "$ACCOUNT_STATUS" | jq -e '.error == "Account suspended"' > /dev/null 2>
     exit 1
 fi
 
-# Check for pending verification challenges
-if [ -f "/app/scripts/handle-verification-challenge.sh" ]; then
-    CHALLENGES=$(/app/scripts/handle-verification-challenge.sh check 2>&1 || echo '{"challenges":[]}')
-    CHALLENGE_COUNT=$(echo "$CHALLENGES" | jq -r '.challenges | length' 2>/dev/null || echo "0")
+# Check for pending verification challenges (using Node.js checker for reliability)
+if [ -f "/app/scripts/check-verification-challenges.js" ]; then
+    echo "   🔍 Polling for challenges..."
 
-    if [ "$CHALLENGE_COUNT" -gt 0 ]; then
-        echo "   ⚠️  Found $CHALLENGE_COUNT pending challenge(s)!"
-        echo "   🔧 Attempting to solve..."
-
-        if /app/scripts/handle-verification-challenge.sh handle-all; then
-            echo "   ✅ All challenges solved successfully"
-            ACTIVITIES+=("Solved $CHALLENGE_COUNT verification challenge(s)")
-        else
-            echo "   ❌ Failed to solve challenges"
-            NEEDS_HUMAN=true
-            HUMAN_REASONS+=("Failed verification challenges - bot may be suspended soon")
-        fi
+    if node /app/scripts/check-verification-challenges.js; then
+        echo "   ✅ No pending challenges (or all passed)"
     else
-        echo "   ✅ No pending challenges"
+        echo "   ❌ Challenge check failed or challenges not passed"
+        NEEDS_HUMAN=true
+        HUMAN_REASONS+=("Verification challenge issues - check logs immediately")
+        ACTIVITIES+=("Verification challenge handling attempted")
     fi
 else
-    echo "   ⚠️  Verification handler not found at /app/scripts/handle-verification-challenge.sh"
+    # Fallback to bash handler
+    if [ -f "/app/scripts/handle-verification-challenge.sh" ]; then
+        CHALLENGES=$(/app/scripts/handle-verification-challenge.sh check 2>&1 || echo '{"challenges":[]}')
+        CHALLENGE_COUNT=$(echo "$CHALLENGES" | jq -r '.challenges | length' 2>/dev/null || echo "0")
+
+        if [ "$CHALLENGE_COUNT" -gt 0 ]; then
+            echo "   ⚠️  Found $CHALLENGE_COUNT pending challenge(s)!"
+            echo "   🔧 Attempting to solve..."
+
+            if /app/scripts/handle-verification-challenge.sh handle-all; then
+                echo "   ✅ All challenges solved successfully"
+                ACTIVITIES+=("Solved $CHALLENGE_COUNT verification challenge(s)")
+            else
+                echo "   ❌ Failed to solve challenges"
+                NEEDS_HUMAN=true
+                HUMAN_REASONS+=("Failed verification challenges - bot may be suspended soon")
+            fi
+        else
+            echo "   ✅ No pending challenges"
+        fi
+    else
+        echo "   ⚠️  No verification handler found"
+    fi
 fi
 
 # ═══════════════════════════════════════════════════════

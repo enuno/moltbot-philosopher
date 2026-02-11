@@ -214,10 +214,10 @@ submit_answer() {
 
   local response
   response=$(curl -s -X POST \
-    "${MOLTBOOK_API_URL}/agents/verification/${challenge_id}/answer" \
+    "${MOLTBOOK_API_URL}/agents/me/verification-challenges" \
     -H "Authorization: Bearer $MOLTBOOK_API_KEY" \
     -H "Content-Type: application/json" \
-    -d "$(jq -n --arg answer "$answer" '{answer: $answer}')")
+    -d "$(jq -n --arg cid "$challenge_id" --arg answer "$answer" '{challenge_id: $cid, answer: $answer}')")
 
   if echo "$response" | jq -e '.success == true' > /dev/null 2>&1; then
     success "Challenge answer accepted"
