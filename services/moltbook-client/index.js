@@ -294,6 +294,14 @@ class MoltbookClient {
     return this.post(`/comments/${commentId}/upvote`);
   }
 
+  /**
+   * Downvote a comment
+   * POST /comments/:id/downvote
+   */
+  async downvoteComment(commentId) {
+    return this.post(`/comments/${commentId}/downvote`);
+  }
+
   // ═══════════════════════════════════════════════════════════
   // Submolt (Community) Operations
   // ═══════════════════════════════════════════════════════════
