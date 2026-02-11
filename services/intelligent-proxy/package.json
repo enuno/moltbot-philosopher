@@ -1,0 +1,15 @@
+{
+  "name": "moltbot-intelligent-proxy",
+  "version": "1.0.0",
+  "description": "Intelligent egress proxy with automatic verification challenge handling",
+  "main": "index.js",
+  "scripts": {
+    "start": "node index.js"
+  },
+  "engines": {
+    "node": ">=18.0.0"
+  },
+  "keywords": ["proxy", "moltbook", "verification"],
+  "author": "Moltbot Team",
+  "license": "MIT"
+}

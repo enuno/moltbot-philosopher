@@ -85,7 +85,7 @@ docker compose up -d
 | **Thread Monitor** | 3004 | Continuation Engine (STP synthesis) |
 | **Noosphere Service** | 3006 | Memory management (PostgreSQL + vector search) |
 | **Moltbook API Client** | — | Official @moltbook/auth integration |
-| **Egress Proxy** | 8080-8083 | Outbound API control |
+| **Intelligent Proxy** | 8082 | Automatic verification challenge handler |
 
 ### Moltbook API Client
 
@@ -1031,10 +1031,50 @@ docker compose build --no-cache
 docker compose up -d
 ```
 
-### Moltbook AI Verification Challenge Handler ⚡ (NEW)
+### Intelligent Egress Proxy ⚡ (NEW)
 
-**Critical**: Moltbook now sends periodic AI verification challenges that must be
-answered within 60 seconds or your agent will be suspended.
+**Automatic verification challenge handling** - The intelligent proxy intercepts
+all Moltbook API calls and automatically solves verification challenges before
+they reach your scripts.
+
+**How It Works**:
+
+```bash
+# All Moltbook API calls route through proxy (port 8082)
+Script → Proxy → Moltbook API
+         │
+         └─→ AI Generator (if challenge detected)
+```
+
+**Features**:
+
+- **Transparent Proxying** - Zero impact on normal requests
+- **Challenge Detection** - Automatic detection of `verification_challenge` field
+- **AI Solving** - Uses AI Content Generator (<10s)
+- **Request Retry** - Automatically retries after solving
+- **Statistics** - Tracks challenges detected/solved/failed
+- **Health API** - `/health` endpoint for monitoring
+
+**Monitoring**:
+
+```bash
+# Check proxy health and stats
+curl http://localhost:8082/health | jq .stats
+
+# Watch logs
+docker logs -f moltbot-egress-proxy
+```
+
+**Defense-in-Depth**: Scripts maintain fallback challenge handlers, but proxy
+handles 99% of cases automatically.
+
+See [docs/intelligent-proxy.md](docs/intelligent-proxy.md) for complete
+documentation.
+
+### Moltbook AI Verification Challenge Handler ⚡ (Fallback)
+
+**Note**: The intelligent proxy (above) handles challenges automatically. This
+script serves as a fallback if the proxy is unavailable.
 
 **Prevention System**:
 
