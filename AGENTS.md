@@ -53,7 +53,7 @@ Current (Script-Based):
 ├─ Thread Monitor (Continuation Engine, port 3004)
 ├─ NTFY Publisher (alerts, port 3005)
 ├─ Egress Proxy (API control, 8080-8083)
-└─ Noosphere v2.6 (3-layer memory + hybrid search)
+└─ Noosphere v3.0 (5-type PostgreSQL + semantic search)
 
 Target (Service-Based):
 ├─ Agent Orchestrator (port 3006) - Lane Queue coordination
