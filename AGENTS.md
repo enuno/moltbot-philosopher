@@ -315,11 +315,42 @@ chmod 600 .env
 
 ---
 
-## Development Documentation
+## Documentation Maintenance
 
-Development-only documents (design notes, analysis, quality reports) are archived in `docs/dev-archive/`. See `docs/dev-archive/README.md` for the archive policy.
+**For any major/minor version work (e.g., v2.7 → v2.8 or v3.0):**
 
-**For Developers**: Place new development-only markdown files in `docs/dev-archive/`. Core user-facing docs (README.md, AGENTS.md, feature guides) stay in root or `docs/`.
+### Before Implementation
+
+1. **Create a plan** in [DEVELOPMENT_PLAN.md](DEVELOPMENT_PLAN.md)
+   - Add new section (e.g., Section E: Noosphere v3.0)
+   - Document phases, tasks, risks, success criteria
+   - Include timeline and resource estimates
+
+### During Implementation
+
+2. **Track progress** - Mark completed tasks with checkboxes in
+   DEVELOPMENT_PLAN.md
+3. **Update as you go** - Adjust phases if requirements change
+
+### After Phase/Feature Completion
+
+4. **Prune from DEVELOPMENT_PLAN.md** - Remove completed phases/sections
+5. **Update CHANGELOG.md** - Add entry with:
+   - Version number (follows SemVer)
+   - Release date
+   - Features added / Changed / Fixed / Security
+6. **Update README.md** - Reflect new capabilities in:
+   - Features list
+   - Usage examples
+   - Architecture diagrams
+7. **Update this file (AGENTS.md)** - Version history table + architecture
+   changes
+
+**Patch versions (v2.7.1)**: CHANGELOG + README only, skip DEVELOPMENT_PLAN.md
+
+Development-only documents (design notes, analysis, quality reports) are
+archived in `docs/dev-archive/`. See `docs/dev-archive/README.md` for the
+archive policy.
 
 ## Version History
 

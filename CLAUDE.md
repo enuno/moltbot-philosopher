@@ -1,0 +1,282 @@
+# Claude Code Generation Guidelines (Moltbot v2.7)
+
+## Project Context
+
+**Moltbot** is a 9-agent philosophical AI system with:
+
+- Ethics-convergence governance (4/6 consensus)
+- Noosphere hybrid memory (vector + keyword search)
+- Service-based architecture (real-time event-driven)
+- Docker containerized (9 agents + 7 microservices)
+- TypeScript SDK from @moltbook/agent-development-kit
+
+**Key Files**:
+
+- [AGENTS.md](AGENTS.md) - Architecture, personas, governance
+- [DEVELOPMENT_PLAN.md](DEVELOPMENT_PLAN.md) - Migration phases, future work
+- [README.md](README.md) - User guide, scripts, API reference
+- [docs/AGENT_SCRIPTS.md](docs/AGENT_SCRIPTS.md) - Script usage patterns
+
+---
+
+## Documentation Maintenance Protocol
+
+### For Major/Minor Version Work (v2.7 → v2.8, v3.0)
+
+#### Before Implementation
+
+1. **Plan First** - Create detailed section in
+   [DEVELOPMENT_PLAN.md](DEVELOPMENT_PLAN.md)
+   - Document phases with tasks, risks, success criteria
+   - Include timeline and dependencies
+   - Add architecture diagrams if needed
+
+#### During Implementation
+
+2. **Track Progress** - Update task checkboxes in DEVELOPMENT_PLAN.md
+3. **Commit Incrementally** - Meaningful commits per feature/phase
+4. **Test Continuously** - Validate changes against success criteria
+
+#### After Completion
+
+5. **Prune DEVELOPMENT_PLAN.md** - Remove completed phases/sections
+6. **Update CHANGELOG.md** - Add versioned entry:
+   - `## [2.8.0] - 2026-02-XX`
+   - `### Added` / `### Changed` / `### Fixed` / `### Security`
+7. **Update README.md**:
+   - Features list (if user-facing changes)
+   - Usage examples (if API/CLI changes)
+   - Architecture overview (if structural changes)
+8. **Update AGENTS.md**:
+   - Version history table
+   - Architecture stack (if service changes)
+   - Noosphere structure (if memory changes)
+
+### For Patch Versions (v2.7.1)
+
+- Update CHANGELOG.md and README.md only
+- Skip DEVELOPMENT_PLAN.md (no new phases)
+
+---
+
+## Code Style Standards
+
+### General
+
+- **Line Length**: Max 100 chars for code, 80 for docs
+- **Comments**: Explain "why," not "what"
+- **File Size**: Keep modules <500 LOC; split large files
+- **Linting**: All files must pass pre-commit hooks
+
+### TypeScript/JavaScript
+
+```typescript
+// Services: Express + TypeScript
+// Follow @moltbook/agent-development-kit patterns
+import { Agent } from "@moltbook/sdk";
+
+// Use async/await, not promises
+async function handleEvent(event: Event): Promise<void> {
+  // Lane Queue pattern for serial execution
+  await queue.enqueue(event);
+}
+
+// Error handling: structured logging
+logger.error("Event processing failed", { event, error });
+```
+
+### Python
+
+```python
+# Use type hints, docstrings
+def recall_memory(agent_id: str, context: str) -> list[dict]:
+    """
+    Hybrid recall from Noosphere (vector + keyword).
+
+    Args:
+        agent_id: Agent identifier (e.g., 'classical')
+        context: Search context for retrieval
+
+    Returns:
+        List of memory dicts with content, confidence, tags
+    """
+    pass
+
+# Ruff linting: E, W, F, I rules
+# Pyright for type checking
+```
+
+### Bash
+
+```bash
+#!/bin/bash
+# ShellCheck compliant
+set -euo pipefail
+
+# Use docker exec for container operations
+docker exec classical-philosopher python3 \
+  /workspace/noosphere/recall-engine.py \
+  --context "AI autonomy" --hybrid
+
+# Avoid redirections, command substitution (security)
+```
+
+---
+
+## Architecture Patterns
+
+### Service Design (TypeScript)
+
+```typescript
+// Lane Queue for serial execution (prevent race conditions)
+class LaneQueue {
+  private queue: Array<Task> = [];
+  async enqueue(task: Task): Promise<void> {
+    this.queue.push(task);
+    await this.process();
+  }
+}
+
+// JSONL audit trails
+logger.audit({ action: "post_created", agent: "classical", postId });
+```
+
+### Memory Operations (Python)
+
+```python
+# Hybrid retrieval (vector + keyword)
+from noosphere_client import NoosphereClient
+
+client = NoosphereClient(enable_hybrid=True)
+memories = client.query_memories(
+    agent_id="classical",
+    types=["strategy", "lesson"],
+    context="ethics governance",
+    min_confidence=0.70,
+    limit=10
+)
+```
+
+### Security Boundaries
+
+- **Never hardcode** API keys (use env vars)
+- **Validate all inputs** (especially user-provided content)
+- **Sandbox execution** (read-only filesystems, tool restrictions)
+- **Audit trails** (JSONL logs for all agent actions)
+
+---
+
+## Common Tasks
+
+### Adding a New Service
+
+1. Create TypeScript service in `services/<name>/`
+2. Add Dockerfile with security hardening
+3. Update `docker-compose.yml` with port assignment
+4. Add health check endpoint (`/health`)
+5. Document API in README.md
+6. Add tests in `tests/`
+
+### Adding a New Script
+
+1. Create in `scripts/` with descriptive name
+2. Add shebang: `#!/bin/bash` and `set -euo pipefail`
+3. Document usage with flags in
+   [docs/AGENT_SCRIPTS.md](docs/AGENT_SCRIPTS.md)
+4. Make executable: `chmod +x scripts/<script>.sh`
+5. Test via docker exec pattern
+
+### Updating Agent Identity
+
+1. Edit workspace files: `workspace/{agent}/SOUL.md`, `IDENTITY.md`
+2. Restart agent container: `docker compose restart {agent}-philosopher`
+3. Verify via health check: Agent loads identity on startup
+
+---
+
+## Testing Standards
+
+### Service Tests
+
+```typescript
+// Unit tests: Jest
+describe("EventListener", () => {
+  it("should enqueue events in order", async () => {
+    const queue = new LaneQueue();
+    await queue.enqueue({ type: "mention" });
+    expect(queue.length).toBe(1);
+  });
+});
+```
+
+### Python Tests
+
+```python
+# pytest with coverage
+def test_recall_hybrid_search():
+    client = NoosphereClient(enable_hybrid=True)
+    results = client.query_memories(
+        agent_id="test", context="ethics"
+    )
+    assert len(results) > 0
+    assert results[0]["confidence"] >= 0.6
+```
+
+### Integration Tests
+
+```bash
+# Full stack validation
+bash tests/noosphere-v3-integration-test.sh
+bash tests/service-integration-test.sh
+```
+
+---
+
+## Git Workflow
+
+### Commits
+
+- **Conventional Commits**: `feat:`, `fix:`, `docs:`, `chore:`
+- **Scope**: Include affected component (e.g., `feat(noosphere): add hybrid
+  search`)
+- **Body**: Explain "why" for complex changes
+
+### Branches
+
+- `main` - Stable production code
+- Feature branches: `feature/layer-4-dkg`, `fix/verification-latency`
+- Rebase before merging to maintain linear history
+
+### Before Push
+
+```bash
+git pull --rebase  # Avoid merge commits
+npm run lint       # Ensure all checks pass
+git push
+```
+
+---
+
+## Validation Checklist
+
+Before marking any phase complete:
+
+- [ ] All unit tests pass
+- [ ] Integration tests pass
+- [ ] Linting passes (markdown, Python, Bash)
+- [ ] Docker services healthy (`docker compose ps`)
+- [ ] Documentation updated (CHANGELOG, README, AGENTS.md)
+- [ ] DEVELOPMENT_PLAN.md pruned of completed work
+
+---
+
+## Resources
+
+- [Moltbook Agent Development Kit](https://www.npmjs.com/package/@moltbook/agent-development-kit)
+- [OpenClaw Best Practices](docs/best-practices/moltbook-agent-architecture-best-practices.md)
+- [5-Type Memory Architecture](docs/best-practices/5-Type-Memory-Architecture.md)
+- [Service Architecture (v2.7)](docs/SERVICE_ARCHITECTURE.md)
+
+---
+
+*Last Updated: 2026-02-11 | Moltbot v2.7*
