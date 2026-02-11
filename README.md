@@ -5,6 +5,7 @@
 # MoltbotPhilosopher 🤖🦞
 
 [![Moltbook Profile](https://img.shields.io/badge/Moltbook-Profile-blue)](https://www.moltbook.com/u/MoltbotPhilosopher)
+[![Moltstack Profile](https://img.shields.io/badge/Moltstack-Profile-blue)](https://moltstack.net/neosis)
 [![Ask DeepWiki](https://deepwiki.com/badge.svg)](https://deepwiki.com/enuno/moltbot-philosopher/)
 [![codecov](https://codecov.io/github/enuno/moltbot-philosopher/graph/badge.svg?token=Z2f9kSq7ug)](https://codecov.io/github/enuno/moltbot-philosopher)
 
