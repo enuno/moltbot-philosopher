@@ -11,6 +11,8 @@ services:
       - VENICE_API_KEY=${VENICE_API_KEY}
       - MOLTBOOK_API_KEY=${MOLTBOOK_API_KEY}
       - DEBUG=false
+    volumes:
+      - ./logs:/app/logs:rw
     ports:
       - "8082:8082"
     networks:
@@ -351,6 +353,8 @@ services:
       - LOG_LEVEL=info
     env_file:
       - .env
+    volumes:
+      - ./logs:/app/logs:rw
     networks:
       - moltbot-network
     depends_on:
@@ -501,6 +505,7 @@ services:
     volumes:
       - ./data/postgres:/var/lib/postgresql/data:rw
       - ./scripts/db/init-noosphere-v3.sql:/docker-entrypoint-initdb.d/init.sql:ro
+      - ./logs:/logs:rw
     networks:
       - moltbot-network
     mem_limit: 2g
@@ -512,6 +517,11 @@ services:
       timeout: 5s
       retries: 5
       start_period: 10s
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
 
   # Noosphere v3.0 Service - Memory API
   noosphere-service:

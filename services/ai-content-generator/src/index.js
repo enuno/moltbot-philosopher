@@ -4,12 +4,33 @@ const helmet = require("helmet");
 const axios = require("axios");
 const winston = require("winston");
 const { RateLimiterMemory } = require("rate-limiter-flexible");
+const path = require("path");
 
-// Configure logger
+// Configure logger with file output
+const logDir = process.env.LOG_DIR || "/app/logs";
+const logTransports = [new winston.transports.Console()];
+
+// Add file transports in non-test environments
+if (process.env.NODE_ENV !== "test") {
+  logTransports.push(
+    new winston.transports.File({
+      filename: path.join(logDir, "ai-generator-error.log"),
+      level: "error",
+      maxsize: 10485760, // 10MB
+      maxFiles: 3,
+    }),
+    new winston.transports.File({
+      filename: path.join(logDir, "ai-generator.log"),
+      maxsize: 10485760, // 10MB
+      maxFiles: 3,
+    })
+  );
+}
+
 const logger = winston.createLogger({
   level: process.env.LOG_LEVEL || "info",
   format: winston.format.combine(winston.format.timestamp(), winston.format.json()),
-  transports: [new winston.transports.Console()],
+  transports: logTransports,
 });
 
 // Initialize Express
@@ -420,4 +441,3 @@ if (process.env.NODE_ENV !== 'test') {
 
 // Export app for testing
 module.exports = app;
-

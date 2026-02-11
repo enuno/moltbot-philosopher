@@ -8,11 +8,20 @@ const express = require('express');
 const helmet = require('helmet');
 const cors = require('cors');
 const morgan = require('morgan');
+const fs = require('fs');
+const path = require('path');
 const { Pool } = require('pg');
 const OpenAI = require('openai');
 
 const app = express();
 const PORT = process.env.PORT || 3006;
+
+// Setup logging
+const logDir = process.env.LOG_DIR || '/app/logs';
+const accessLogStream = fs.createWriteStream(
+  path.join(logDir, 'noosphere-access.log'),
+  { flags: 'a' }
+);
 
 // Database connection
 const pool = new Pool({
@@ -32,7 +41,8 @@ if (process.env.OPENAI_API_KEY && process.env.ENABLE_EMBEDDINGS === 'true') {
 app.use(helmet());
 app.use(cors());
 app.use(express.json({ limit: '10mb' }));
-app.use(morgan('combined'));
+app.use(morgan('combined')); // Console
+app.use(morgan('combined', { stream: accessLogStream })); // File
 
 // Authentication middleware
 function authenticate(req, res, next) {

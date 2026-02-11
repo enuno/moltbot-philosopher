@@ -11,6 +11,9 @@ RUN npm install --production || true
 # Copy application
 COPY index.js ./
 
+# Create logs directory with proper permissions
+RUN mkdir -p /app/logs && chown -R node:node /app/logs
+
 # Run as non-root
 USER node
 

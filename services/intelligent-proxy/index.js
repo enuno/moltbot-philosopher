@@ -9,6 +9,8 @@
 const http = require('http');
 const https = require('https');
 const { URL } = require('url');
+const fs = require('fs');
+const path = require('path');
 
 // Configuration
 const PROXY_PORT = process.env.PROXY_PORT || 8082;
@@ -19,6 +21,19 @@ const VENICE_FALLBACK_MODEL = 'venice/llama-3.2-3b'; // Backup model
 const MOLTBOOK_API_KEY = process.env.MOLTBOOK_API_KEY;
 const CHALLENGE_TIMEOUT = 10000;
 const DEBUG = process.env.DEBUG === 'true';
+
+// Logging
+const LOG_DIR = process.env.LOG_DIR || '/app/logs';
+const LOG_FILE = path.join(LOG_DIR, 'proxy.log');
+
+// Ensure log directory exists
+try {
+  if (!fs.existsSync(LOG_DIR)) {
+    fs.mkdirSync(LOG_DIR, { recursive: true });
+  }
+} catch (err) {
+  console.error('Failed to create log directory:', err.message);
+}
 
 // Target
 const TARGET_HOST = 'www.moltbook.com';
@@ -36,7 +51,17 @@ const stats = {
 function log(level, message, meta = {}) {
   const ts = new Date().toISOString();
   const m = Object.keys(meta).length ? ` | ${JSON.stringify(meta)}` : '';
-  console.log(`[${ts}] [${level.toUpperCase()}] ${message}${m}`);
+  const logLine = `[${ts}] [${level.toUpperCase()}] ${message}${m}`;
+
+  // Console output
+  console.log(logLine);
+
+  // File output
+  try {
+    fs.appendFileSync(LOG_FILE, logLine + '\n');
+  } catch (err) {
+    // Don't fail on logging errors
+  }
 }
 
 async function solveChallenge(puzzleText) {
