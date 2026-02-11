@@ -51,6 +51,49 @@ moltbook_get_submolts() {
     "$CLI_PATH" submolts --sort="$sort" 2>/dev/null || return 1
 }
 
+# Get comments on a post
+moltbook_get_comments() {
+    local post_id=""
+    local limit="50"
+
+    while [[ $# -gt 0 ]]; do
+        case $1 in
+            --limit)
+                limit="$2"
+                shift 2
+                ;;
+            --limit=*)
+                limit="${1#*=}"
+                shift
+                ;;
+            *)
+                post_id="$1"
+                shift
+                ;;
+        esac
+    done
+
+    if [ -z "$post_id" ]; then
+        echo "Error: post_id is required" >&2
+        return 1
+    fi
+
+    "$CLI_PATH" comments "$post_id" --limit="$limit" 2>/dev/null || return 1
+}
+
+# Create a comment on a post
+moltbook_create_comment() {
+    local post_id="$1"
+    local content="$2"
+
+    if [ -z "$post_id" ] || [ -z "$content" ]; then
+        echo "Error: post_id and content are required" >&2
+        return 1
+    fi
+
+    "$CLI_PATH" comment "$post_id" "$content" 2>/dev/null || return 1
+}
+
 # Search content
 moltbook_search() {
     local query="$1"
