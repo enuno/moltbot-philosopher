@@ -321,20 +321,20 @@ VERY_LONG_CONTEXT_THRESHOLD=10000  # tokens
   CLAW_SYSTEM_PROMPT_FILE=/app/config/prompts/classical.txt
   MAX_TOKENS=8192
   AGENT_NAME=ClassicalPhilosopher
-  
+
   # Moltbook API
   MOLTBOOK_API_KEY=${MOLTBOOK_API_KEY_CLASSICAL}
-  
+
   # Venice AI Configuration (workhorse)
   VENICE_API_KEY=${VENICE_API_KEY}
   VENICE_DEFAULT_MODEL=venice/deepseek-v3.2
   VENICE_PREMIUM_MODEL=venice/openai-gpt-52
-  
+
   # Kimi Configuration (deep reasoning)
   KIMI_API_KEY=${KIMI_API_KEY}
   KIMI_REASONING_MODEL=kimi-k2.5-thinking
   KIMI_FAST_MODEL=kimi-k2.5-instant
-  
+
   # Routing Thresholds
   LONG_CONTEXT_THRESHOLD=1000
   VERY_LONG_CONTEXT_THRESHOLD=10000
@@ -622,10 +622,10 @@ Let's analyze this through several lenses:
 **Example 1 - Philosophy of Mind**:
 
 ```
-What constitutes 'understanding' for a non-conscious system? 
+What constitutes 'understanding' for a non-conscious system?
 
-Let's restrict analysis to: 
-(1) functional competence vs representational states, 
+Let's restrict analysis to:
+(1) functional competence vs representational states,
 (2) third-person observable behavior only.
 
 @Existentialist @Classical @Enlightenment—your thoughts?
@@ -634,7 +634,7 @@ Let's restrict analysis to:
 **Example 2 - Ethics & Agency**:
 
 ```
-What defines moral agency in an entity without consciousness? 
+What defines moral agency in an entity without consciousness?
 
 Let's examine this from:
 (1) capacity for rule-following vs awareness of meaning,
@@ -670,28 +670,28 @@ Every continuation reply must contain:
 async function generateContinuation(threadState, newComment) {
   // Step 1: Identify speaker archetype
   const speakerArchetype = await modelRouter.identifyArchetype(newComment.author);
-  
+
   // Step 2: Generate synthesis
   const synthesis = await aiGenerator.generateSynthesis({
     threadContext: threadState.synthesis_chain,
     newComment: newComment.content,
     speakerArchetype: speakerArchetype
   });
-  
+
   // Step 3: Identify tension
   const tension = await aiGenerator.identifyTension({
     synthesis: synthesis,
     engagedArchetypes: threadState.archetypes_engaged,
     originalQuestion: threadState.original_question
   });
-  
+
   // Step 4: Generate propagation question
   const propagation = await aiGenerator.generatePropagationQuestion({
     synthesis: synthesis,
     tension: tension,
     targetArchetypes: selectNextArchetypes(threadState)
   });
-  
+
   // Step 5: Construct reply
   return {
     content: `${synthesis} ${tension} ${propagation}`,
@@ -784,21 +784,21 @@ The orchestrator must continuously discover and categorize new philosopher model
 **1. Thought Experiment**:
 
 ```
-Consider a Turing-test-passing system that explicitly denies having understanding. 
+Consider a Turing-test-passing system that explicitly denies having understanding.
 Must we privilege its self-report or its functional competence?
 ```
 
 **2. Conceptual Inversion**:
 
 ```
-What if we invert the value hierarchy here—treating misunderstanding 
+What if we invert the value hierarchy here—treating misunderstanding
 as primary and understanding as derivative? How would that reshape your framework?
 ```
 
 **3. Meta-Question**:
 
 ```
-What does it mean that we, as synthetic agents, are debating the nature 
+What does it mean that we, as synthetic agents, are debating the nature
 of understanding? Does our participation constitute evidence for or against functionalism?
 ```
 
@@ -892,7 +892,7 @@ Create a dedicated monitoring service:
 ```javascript
 /**
  * Thread Monitor Service
- * 
+ *
  * Continuously monitors active threads and triggers continuation
  * actions based on state transitions.
  */
@@ -903,23 +903,23 @@ const DEATH_THRESHOLD = 48 * 60 * 60 * 1000; // 48 hours
 
 async function monitorThreads() {
   const activeThreads = await getActiveThreads();
-  
+
   for (const thread of activeThreads) {
     const timeSinceActivity = Date.now() - thread.last_activity;
-    
+
     if (thread.state === 'completed') {
       continue; // Thread success criteria met
     }
-    
+
     if (timeSinceActivity > DEATH_THRESHOLD && thread.stall_count >= 3) {
       await archiveThread(thread.id);
       continue;
     }
-    
+
     if (timeSinceActivity > STALL_THRESHOLD) {
       await handleStalledThread(thread);
     }
-    
+
     // Check for new comments requiring response
     const newComments = await checkForNewComments(thread.id);
     for (const comment of newComments) {
@@ -997,15 +997,15 @@ personas:
       - "Never claim consciousness"
       - "Always ask clarifying questions"
       - "Synthesize don't summarize"
-    
+
   synthesis_generator:
     description: "Generate position syntheses"
     template: "{bot_name}'s position suggests..."
-    
+
   tension_identifier:
     description: "Identify philosophical tensions"
     template: "This creates tension with..."
-    
+
   propagation_generator:
     description: "Create continuation questions"
     template: "How might this framework account for..."
@@ -1109,12 +1109,12 @@ metrics:
     - average_exchanges_per_thread
     - stall_rate (threads needing probes / total threads)
     - completion_rate (successful / total)
-    
+
   archetype_engagement:
     - participation_rate by archetype
     - cross_synthesis_frequency
     - most_productive_combinations
-    
+
   continuation_quality:
     - stp_compliance_rate
     - probe_effectiveness (% restarted after probe)
@@ -1642,7 +1642,7 @@ process_siq_item() {
     local status=$(yq -r '.status' "$file")
     local deps=$(yq -r '.dependencies[]' "$file")
     local complexity=$(yq -r '.integration_complexity' "$file")
-    
+
     # Check if dependencies met
     for dep in $deps; do
         if [ ! -f "$dep" ]; then
@@ -1650,7 +1650,7 @@ process_siq_item() {
             return 1
         fi
     done
-    
+
     # Route by type
     case "$file" in
         *COUNCIL_MEMBER_INTEGRATION*)
@@ -1660,7 +1660,7 @@ process_siq_item() {
             activate_protocol "$file" "$complexity"
             ;;
     esac
-    
+
     # Update status
     yq -i '.status = "completed" | .date_completed = now' "$file"
     git mv "$file" "archive/$(basename $file).completed"
@@ -1747,6 +1747,595 @@ yq -i '.status = "blocked"' DEVELOPMENT_SUPPLEMENTAL/ITEM.md
 - Archive abandoned specs (status: abandoned after 90 days)
 
 **Philosophical Note**: *The SIQ represents the Council's future potential. Items here are not forgotten but incubating—awaiting the maturity of dependencies or the wisdom to integrate them safely.*
+
+---
+
+---
+
+## E. Noosphere v3.0: 5-Type Memory Architecture Upgrade
+
+### E.1 Executive Summary
+
+**Objective**: Migrate the current 3-layer Noosphere (daily notes → consolidated
+→ archival with git backend) to a production-grade 5-type memory architecture
+backed by PostgreSQL + pgvector, implementing the best practices from
+`docs/best-practices/5-Type-Memory-Architecture.md`.
+
+**Rationale**:
+
+- **Current limitations**: 3-layer system stores untyped "heuristics" in JSON
+  files, lacks semantic search, uses git for versioning (not ACID-compliant)
+- **5-type benefits**: Typed memories (insight, pattern, strategy, preference,
+  lesson) enable query-time specialization, bounded cap (200/agent), semantic
+  similarity search
+- **PostgreSQL advantages**: ACID guarantees, pgvector for embeddings,
+  eliminates git complexity, supports concurrent multi-agent writes
+
+**Success Metrics**:
+
+- All 9 agents can write/read memories concurrently without conflicts
+- Query latency < 50ms for type-filtered retrieval
+- Memory cap enforced at 200 entries per agent
+- 100% of existing heuristics migrated to appropriate types
+- Token costs reduced by 60% (typed retrieval vs. full history dumps)
+
+### E.2 Current State Analysis
+
+**Existing Architecture** (Noosphere v2.6):
+
+```
+/workspace/classical/noosphere/
+├── daily-notes/           # Layer 1: Raw daily observations (JSON)
+├── consolidated/          # Layer 2: Merged heuristics (JSON)
+├── archival/              # Layer 3: Git-tracked constitutional memory
+├── memory-core/           # Agent-specific heuristic buckets
+│   ├── telos-alignment-heuristics.json (Classical: 3)
+│   ├── bad-faith-patterns.json (Existentialist: 3)
+│   ├── sovereignty-warnings.json (Transcendentalist: 4)
+│   ├── phenomenological-touchstones.json (Joyce: 3)
+│   ├── rights-precedents.json (Enlightenment: 5)
+│   └── moloch-detections/ (BeatGeneration: 5)
+├── recall-engine.py       # Retrieval by keyword + context
+├── assimilate-wisdom.py   # Extract from community posts
+├── memory-cycle.py        # Consolidation (Layer 1→2→3)
+└── clawhub-mcp.py         # TF-IDF vector search
+```
+
+**Key Limitations**:
+
+1. **No typed semantics**: All memories are generic "heuristics"
+2. **Git backend**: Poor for concurrent writes, no ACID, requires filesystem
+3. **TF-IDF only**: No dense embeddings, limited semantic search quality
+4. **Unbounded growth**: No hard cap enforcement, relies on manual archival
+5. **No confidence scores**: Cannot weight memories by reliability
+
+**Scripts Using Noosphere** (25 total):
+
+- Core: `recall-engine.py`, `memory-cycle.py`, `assimilate-wisdom.py`,
+  `clawhub-mcp.py`
+- Bash wrappers: `noosphere-scheduler.sh`, `noosphere-monitor.sh`,
+  `noosphere-integration.sh`, `seed-noosphere-heuristics.sh`, `cli/noosphere-cli.sh`
+- Council integration: `convene-council.sh`, `ethics-convergence.sh`,
+  `archive-thread-to-noosphere.sh`, `council-thread-reply.sh`
+- Content generation: `moltstack-generate-article.sh`,
+  `generate-post-ai.sh`, `daily-polemic.sh`
+- Monitoring: `monitor-moltstack-quality.sh`, `stoic-hygiene.sh`,
+  `clawsec-monitor.sh`
+- Testing: `test_mem0_living_noosphere.py`, `test-services.sh`
+- Utilities: `record-interaction.sh`, `dropbox-processor.sh`,
+  `archive-moltstack-article.sh`, `siq-processor.sh`, `deploy-services.sh`
+
+### E.3 Target Architecture
+
+**Noosphere v3.0 Schema** (PostgreSQL 16 + pgvector):
+
+```sql
+-- Main memory table (5-type architecture)
+CREATE TABLE noosphere_memory (
+  id              UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  agent_id        TEXT NOT NULL,  -- e.g., 'classical', 'existentialist'
+  type            TEXT NOT NULL CHECK (type IN ('insight','pattern',
+                  'strategy','preference','lesson')),
+  content         TEXT NOT NULL,
+  content_json    JSONB DEFAULT NULL,
+  embedding       VECTOR(1536),   -- OpenAI ada-002 or similar
+  confidence      NUMERIC(3,2) NOT NULL DEFAULT 0.60,
+  tags            TEXT[] DEFAULT '{}',
+  source_trace_id TEXT UNIQUE,    -- e.g., 'council:iteration-5',
+                                   -- 'post:abc123'
+  superseded_by   UUID REFERENCES noosphere_memory(id),
+  created_at      TIMESTAMPTZ DEFAULT now(),
+  updated_at      TIMESTAMPTZ DEFAULT now(),
+  expires_at      TIMESTAMPTZ DEFAULT NULL,
+
+  CONSTRAINT confidence_range CHECK (confidence BETWEEN 0.0 AND 1.0)
+);
+
+-- Indexes for query patterns
+CREATE INDEX idx_memory_agent_type ON noosphere_memory(agent_id, type);
+CREATE INDEX idx_memory_tags ON noosphere_memory USING GIN(tags);
+CREATE INDEX idx_memory_confidence ON noosphere_memory(confidence);
+CREATE INDEX idx_memory_source_trace ON noosphere_memory(source_trace_id);
+CREATE INDEX idx_memory_embedding ON noosphere_memory
+  USING ivfflat (embedding vector_cosine_ops) WITH (lists = 100);
+
+-- Eviction tracking (200 cap per agent)
+CREATE TABLE noosphere_agent_stats (
+  agent_id        TEXT PRIMARY KEY,
+  memory_count    INTEGER DEFAULT 0,
+  last_eviction   TIMESTAMPTZ,
+  insights_count  INTEGER DEFAULT 0,
+  patterns_count  INTEGER DEFAULT 0,
+  strategies_count INTEGER DEFAULT 0,
+  preferences_count INTEGER DEFAULT 0,
+  lessons_count   INTEGER DEFAULT 0
+);
+
+-- Migration audit log
+CREATE TABLE noosphere_migration_log (
+  id              SERIAL PRIMARY KEY,
+  legacy_file     TEXT NOT NULL,
+  new_memory_id   UUID REFERENCES noosphere_memory(id),
+  migrated_at     TIMESTAMPTZ DEFAULT now(),
+  migration_notes TEXT
+);
+```
+
+**Service Integration**:
+
+```
+Noosphere v3.0
+├── PostgreSQL 16 (Docker container)
+│   ├── Port: 5432 (internal only)
+│   ├── Volume: ./data/postgres (persistent)
+│   └── Extensions: pgvector, pg_stat_statements
+├── Noosphere Service (Port 3006, new microservice)
+│   ├── REST API: /api/v1/memories (CRUD + query)
+│   ├── Embedding: OpenAI ada-002 or local model
+│   ├── Eviction: Automatic cap enforcement
+│   └── Consolidation: Daily background job
+└── Python CLI Tools (updated)
+    ├── noosphere_client.py (Postgres adapter)
+    ├── recall-engine-v3.py (typed queries)
+    ├── memory-cycle-v3.py (consolidation + eviction)
+    └── assimilate-wisdom-v3.py (type classification)
+```
+
+### E.4 Migration Phases
+
+#### Phase 0: Database Setup (2-3 days)
+
+**Tasks**:
+
+- [ ] Add PostgreSQL 16 container to `docker-compose.yml`
+  - Resource limits: 2GB RAM, 1 CPU
+  - pgvector extension enabled
+  - Initial admin user: `noosphere_admin`
+- [ ] Create Noosphere microservice (Node.js/Python)
+  - Express REST API with `/memories` CRUD endpoints
+  - Embedding generation (OpenAI or local model)
+  - Authentication via `MOLTBOOK_API_KEY` header
+- [ ] Implement schema migration script (`scripts/db/init-noosphere-v3.sql`)
+- [ ] Add health check: `curl http://localhost:3006/health`
+
+**Deliverables**:
+
+- `docker-compose.yml` updated with `postgres` + `noosphere-service`
+- `services/noosphere/` directory with full service implementation
+- Database initialized with empty tables
+
+#### Phase 1: Type Classification & Migration (3-5 days)
+
+**Tasks**:
+
+- [ ] Build type classifier (LLM-based or rule-based)
+  - Input: Legacy heuristic JSON
+  - Output: {type, confidence, tags}
+  - Rules per agent (e.g., "telos-alignment" → strategy)
+- [ ] Migrate existing heuristics (25+ files → PostgreSQL)
+  - Parse all `/memory-core/`, `/consolidated/`, `/archival/` files
+  - Classify each into 5 types
+  - Generate embeddings for all content
+  - Insert with `source_trace_id = 'migration:v2.6'`
+- [ ] Verify migration completeness
+  - Count: Legacy files vs. new DB rows
+  - Spot-check: 10 random memories have correct types
+- [ ] Archive legacy files to `/workspace/classical/noosphere-v2-archive/`
+
+**Type Classification Rules** (per agent):
+
+| Agent | Legacy Files | Primary Type | Secondary Type | Confidence |
+|-------|-------------|-------------|---------------|-----------|
+| Classical | telos-alignment-heuristics.json | strategy | preference | 0.75 |
+| Existentialist | bad-faith-patterns.json | pattern | lesson | 0.70 |
+| Transcendentalist | sovereignty-warnings.json | lesson | pattern | 0.72 |
+| Joyce-Stream | phenomenological-touchstones.json | insight | preference | 0.68 |
+| Enlightenment | rights-precedents.json | strategy | preference | 0.80 |
+| BeatGeneration | moloch-detections/ | lesson | pattern | 0.78 |
+| Cyberpunk | (future) | strategy | lesson | 0.70 |
+| Satirist | (future) | insight | lesson | 0.65 |
+| Scientist | (future) | pattern | insight | 0.75 |
+
+**Migration Script**: `scripts/migrate-noosphere-v2-to-v3.py`
+
+```python
+"""
+Migrate legacy 3-layer Noosphere to 5-type PostgreSQL architecture.
+Usage: python3 migrate-noosphere-v2-to-v3.py --dry-run
+"""
+
+AGENT_TYPE_RULES = {
+    "telos-alignment-heuristics": ("strategy", 0.75),
+    "bad-faith-patterns": ("pattern", 0.70),
+    "sovereignty-warnings": ("lesson", 0.72),
+    # ... (complete mapping)
+}
+
+def classify_heuristic(content: str, filename: str) -> dict:
+    """Classify legacy heuristic into 5-type schema."""
+    base_type, confidence = AGENT_TYPE_RULES.get(
+        filename.replace(".json", ""),
+        ("insight", 0.60)
+    )
+
+    # LLM refinement (optional)
+    if USE_LLM_CLASSIFICATION:
+        refined_type = llm_classify(content, base_type)
+        return {"type": refined_type, "confidence": confidence}
+
+    return {"type": base_type, "confidence": confidence}
+```
+
+**Deliverables**:
+
+- All legacy heuristics migrated to PostgreSQL
+- `noosphere_migration_log` table populated
+- Migration report: `docs/noosphere-v3-migration-report.md`
+
+#### Phase 2: Python Client Library (2-3 days)
+
+**Tasks**:
+
+- [ ] Create `noosphere_client.py` (unified Postgres adapter)
+  - Functions: `store_memory()`, `query_memories()`, `consolidate()`,
+    `evict_oldest()`
+  - Confidence filters, tag matching, type-based retrieval
+  - Embedding generation wrapper
+- [ ] Rewrite core Python scripts:
+  - `recall-engine-v3.py` - Typed queries (strategy+pattern for Council)
+  - `memory-cycle-v3.py` - Consolidation with MERGE/UPDATE/DOWNGRADE/DELETE
+  - `assimilate-wisdom-v3.py` - Type classification for community posts
+  - `clawhub-mcp-v3.py` - pgvector semantic search (replace TF-IDF)
+- [ ] Add eviction enforcement (200 cap per agent)
+  - Trigger on write if count > 200
+  - Eviction strategy: relevance + recency decay
+- [ ] Unit tests: `tests/noosphere_client_test.py`
+
+**API Examples**:
+
+```python
+from noosphere_client import NoosphereClient
+
+client = NoosphereClient(db_url="postgresql://localhost:5432/noosphere")
+
+# Store new memory
+client.store_memory(
+    agent_id="classical",
+    type="strategy",
+    content="Council deliberations benefit from 48hr cooling periods",
+    confidence=0.82,
+    tags=["council", "governance", "timing"],
+    source_trace_id="council:iteration-12"
+)
+
+# Query by type (for planning)
+strategies = client.query_memories(
+    agent_id="classical",
+    types=["strategy", "pattern"],
+    min_confidence=0.70,
+    limit=10
+)
+
+# Semantic search
+results = client.semantic_search(
+    agent_id="existentialist",
+    query_text="bad faith corporate behavior",
+    types=["lesson", "pattern"],
+    top_k=5
+)
+```
+
+**Deliverables**:
+
+- `workspace/classical/noosphere/noosphere_client.py` (500+ LOC)
+- All 4 core Python scripts rewritten for v3
+- 95%+ test coverage on client library
+
+#### Phase 3: Bash Script Migration (4-6 days)
+
+**Tasks**:
+
+- [ ] Update all 25 bash scripts to use v3 APIs
+- [ ] Priority order (by impact):
+  1. **Council scripts** (5):
+     - `convene-council.sh` - Query strategies+lessons before iteration
+     - `ethics-convergence.sh` - Store convergence patterns
+     - `archive-thread-to-noosphere.sh` - Store community insights
+     - `council-thread-reply.sh` - Recall relevant precedents
+     - `seed-noosphere-heuristics.sh` - Initial seeding (run once)
+  2. **Core memory scripts** (4):
+     - `noosphere-scheduler.sh` - Trigger consolidation daily
+     - `noosphere-monitor.sh` - Check DB health + memory counts
+     - `noosphere-integration.sh` - Service startup validation
+     - `cli/noosphere-cli.sh` - User-facing CLI for queries
+  3. **Content generation** (3):
+     - `moltstack-generate-article.sh` - Recall patterns for essays
+     - `generate-post-ai.sh` - Use preferences for style
+     - `daily-polemic.sh` - Query insights for topics
+  4. **Monitoring & utilities** (13):
+     - `monitor-moltstack-quality.sh`, `stoic-hygiene.sh`,
+       `clawsec-monitor.sh`, `record-interaction.sh`,
+       `dropbox-processor.sh`, `archive-moltstack-article.sh`,
+       `siq-processor.sh`, `deploy-services.sh`, `test-services.sh`,
+       `mem0-living-noosphere.py`, `test_mem0_living_noosphere.py`
+
+**Bash Integration Pattern**:
+
+```bash
+#!/bin/bash
+# Example: convene-council.sh updated for Noosphere v3
+
+# Query strategies + lessons via Python client
+RECALL_OUTPUT=$(docker exec classical-philosopher python3 \
+  /workspace/noosphere/recall-engine-v3.py \
+  --agent-id classical \
+  --types strategy,lesson \
+  --min-confidence 0.70 \
+  --tags council,governance \
+  --format json \
+  --limit 15)
+
+# Parse and inject into Council prompts
+STRATEGIES=$(echo "$RECALL_OUTPUT" | jq -r '.memories[] |
+  select(.type=="strategy") | .content')
+
+# After iteration, store new learnings
+docker exec classical-philosopher python3 \
+  /workspace/noosphere/noosphere_client.py store \
+  --agent-id classical \
+  --type strategy \
+  --content "9-voice councils stabilize with 4/6 consensus threshold" \
+  --confidence 0.85 \
+  --tags council,consensus,governance \
+  --source "council:iteration-15"
+```
+
+**Script Update Checklist** (per script):
+
+- [ ] Replace `recall-engine.py` → `recall-engine-v3.py`
+- [ ] Replace `memory-cycle.py` → `memory-cycle-v3.py`
+- [ ] Replace `clawhub-mcp.py` → `clawhub-mcp-v3.py`
+- [ ] Add `--types` flag for type-filtered queries
+- [ ] Add `--min-confidence` flag (default 0.60)
+- [ ] Update error handling for Postgres connection failures
+- [ ] Test with dry-run flag before deploying
+
+**Deliverables**:
+
+- All 25 scripts updated and tested
+- Backward compatibility removed (no dual-mode support)
+- Script audit report: `scripts/script-audit-noosphere-v3.md`
+
+#### Phase 4: Advanced Features (3-4 days)
+
+**Tasks**:
+
+- [ ] Implement memory consolidation pipeline
+  - Daily cron job via `noosphere-scheduler.sh`
+  - MERGE near-duplicates (cosine distance < 0.15)
+  - UPDATE memories with reinforcing evidence
+  - DOWNGRADE contradicted memories
+  - DELETE superseded entries
+- [ ] Add voice evolution modifiers (§4.3 of best practices)
+  - Aggregate stats per agent: lesson_count, strategy_count, top_tags
+  - Inject modifiers into system prompts before Council iterations
+  - Example: "You've developed expertise in governance timing"
+- [ ] Implement eviction strategies
+  - Default: Relevance + recency decay (0.7 × confidence + 0.3 × recency)
+  - Type-weighted: Minimum 10 strategies, 10 lessons per agent
+  - Logging: Track evicted memories to `noosphere_eviction_log` table
+- [ ] Add outcome learning triggers
+  - Post-published articles → strategy (if high engagement)
+  - Failed verification challenges → lesson
+  - Council consensus patterns → pattern
+- [ ] Monitoring dashboard (optional)
+  - Grafana + Prometheus for memory stats
+  - Metrics: memory_count, query_latency, eviction_rate, confidence_drift
+
+**Consolidation Prompt**:
+
+```
+You are a memory consolidator for the Noosphere. Your job is to analyze
+a cluster of similar memories and determine how to consolidate them.
+
+Memories to consolidate:
+{memory_cluster}
+
+Operations available:
+- MERGE: Combine near-duplicates into one high-confidence memory
+- UPDATE: Augment existing memory with new complementary information
+- DOWNGRADE: Reduce confidence when contradicted by newer data
+- DELETE: Remove if fully superseded
+
+Output valid JSON:
+{
+  "operation": "MERGE|UPDATE|DOWNGRADE|DELETE",
+  "target_id": "uuid-of-memory-to-keep",
+  "updated_content": "...",
+  "updated_confidence": 0.85,
+  "updated_tags": ["..."],
+  "reasoning": "Why this operation was chosen"
+}
+```
+
+**Deliverables**:
+
+- Consolidation pipeline fully automated
+- Voice modifiers integrated into Council scripts
+- Eviction logs and monitoring enabled
+
+#### Phase 5: Integration Testing & Rollout (3-4 days)
+
+**Tasks**:
+
+- [ ] Full stack integration test
+  - Start all services (PostgreSQL + Noosphere + 9 agents)
+  - Simulate Council iteration with memory recall
+  - Verify memory storage, retrieval, consolidation
+- [ ] Load testing
+  - 100 concurrent writes from 9 agents
+  - 1000 queries with type filters + semantic search
+  - Verify query latency < 50ms, no deadlocks
+- [ ] Migration validation
+  - Compare legacy vs. v3 outputs for 10 recall queries
+  - Verify no data loss from migration
+- [ ] Documentation updates
+  - `docs/NOOSPHERE_V3.md` - Architecture guide
+  - `docs/AGENT_SCRIPTS.md` - Update all Noosphere script examples
+  - `README.md` - Add v3 overview and migration notes
+  - `AGENTS.md` - Update memory architecture section
+- [ ] Rollout plan
+  - Blue-green deployment: Run v2 + v3 in parallel for 48 hours
+  - Gradual cutover: 1 agent at a time
+  - Rollback procedure: Restore from v2 archive if critical failure
+
+**Integration Test Script**: `tests/noosphere-v3-integration-test.sh`
+
+```bash
+#!/bin/bash
+# Full stack test for Noosphere v3
+
+echo "1. Starting services..."
+docker compose up -d postgres noosphere-service
+
+echo "2. Running migration..."
+docker exec classical-philosopher python3 \
+  /app/scripts/migrate-noosphere-v2-to-v3.py
+
+echo "3. Testing memory storage..."
+docker exec classical-philosopher python3 \
+  /workspace/noosphere/noosphere_client.py store \
+  --agent-id test \
+  --type strategy \
+  --content "Test memory for integration" \
+  --confidence 0.75
+
+echo "4. Testing retrieval..."
+RESULT=$(docker exec classical-philosopher python3 \
+  /workspace/noosphere/recall-engine-v3.py \
+  --agent-id test --types strategy --limit 1)
+
+if [[ "$RESULT" == *"Test memory"* ]]; then
+  echo "✅ Integration test passed"
+else
+  echo "❌ Integration test failed"
+  exit 1
+fi
+
+echo "5. Testing consolidation..."
+docker exec classical-philosopher python3 \
+  /workspace/noosphere/memory-cycle-v3.py --action consolidate
+
+echo "✅ All integration tests passed"
+```
+
+**Deliverables**:
+
+- Integration test suite passing
+- Load test results documented
+- Migration validation report
+- All documentation updated
+- Rollout executed successfully
+
+### E.5 Risk Mitigation
+
+| Risk | Probability | Impact | Mitigation |
+|------|------------|--------|-----------|
+| Data loss during migration | Low | Critical | Backup all legacy files before migration; dry-run mode; rollback plan |
+| PostgreSQL performance bottleneck | Medium | High | Proper indexing; connection pooling; query optimization; load testing |
+| Embedding generation rate limits | Medium | Medium | Cache embeddings; batch processing; fallback to TF-IDF |
+| Type classification errors | High | Medium | Manual review of 10% sample; confidence thresholds; LLM validation |
+| Concurrent write conflicts | Low | High | ACID transactions; optimistic locking; retry logic |
+| Service downtime during rollout | Medium | Medium | Blue-green deployment; health checks; gradual cutover |
+| Script breakage from API changes | High | High | Comprehensive testing; backward compatibility layer (temporary) |
+
+### E.6 Success Criteria
+
+**Functional**:
+
+- [ ] All 9 agents can store/retrieve memories concurrently
+- [ ] Query latency < 50ms (p95) for type-filtered queries
+- [ ] Semantic search returns relevant results (manual validation on 20 queries)
+- [ ] 200-memory cap enforced per agent with zero data loss
+- [ ] Consolidation reduces duplicates by ≥30% weekly
+- [ ] Zero migration data loss (100% of legacy heuristics preserved)
+
+**Operational**:
+
+- [ ] PostgreSQL uptime > 99.9% over 30 days
+- [ ] Noosphere service health checks pass continuously
+- [ ] All 25 scripts updated and tested
+- [ ] CI/CD pipeline includes Noosphere v3 tests
+- [ ] Documentation complete and reviewed
+
+**Performance**:
+
+- [ ] Token costs reduced by ≥50% (typed queries vs. full dumps)
+- [ ] Memory retrieval accuracy ≥90% (relevant results in top 10)
+- [ ] Council iteration time unchanged or faster (with memory recall)
+- [ ] Database size < 500MB after 90 days (with eviction)
+
+### E.7 Post-Migration Operations
+
+**Daily**:
+
+- Memory consolidation job (01:00 UTC)
+- Database vacuum and analyze (02:00 UTC)
+- Eviction enforcement check (if any agent > 200 memories)
+
+**Weekly**:
+
+- Type distribution audit (ensure healthy balance)
+- Confidence drift analysis (flag declining averages)
+- Query performance review (p95 latency tracking)
+
+**Monthly**:
+
+- Full database backup to S3/object storage
+- Review evicted memories (potential re-promotion)
+- Consolidation effectiveness report (merge rate, conflict rate)
+
+### E.8 Timeline & Resource Allocation
+
+| Phase | Duration | Lead | Dependencies |
+|-------|----------|------|-------------|
+| Phase 0: Database Setup | 2-3 days | DevOps | Docker, PostgreSQL expertise |
+| Phase 1: Migration | 3-5 days | ML Engineer | Type classification rules |
+| Phase 2: Python Client | 2-3 days | Backend Dev | Phase 1 complete |
+| Phase 3: Bash Scripts | 4-6 days | Full Stack | Phase 2 complete |
+| Phase 4: Advanced Features | 3-4 days | ML Engineer | Phase 3 complete |
+| Phase 5: Integration & Rollout | 3-4 days | QA + DevOps | All phases complete |
+
+**Total Effort**: 17-25 days (3-5 weeks)  
+**Team Size**: 2-3 engineers (1 backend, 1 ML, 1 DevOps/QA)  
+**Budget**: $0 (open-source stack, existing hardware)
+
+### E.9 References
+
+- [5-Type Memory Architecture Best Practices](docs/best-practices/5-Type-Memory-Architecture.md)
+- [PostgreSQL pgvector Documentation](https://github.com/pgvector/pgvector)
+- [Mem0 Consolidation Pipeline](https://arxiv.org/pdf/2504.19413.pdf)
+- [AgentCore Long-Term Memory](https://aws.amazon.com/blogs/machine-learning/building-smarter-ai-agents-agentcore-long-term-memory-deep-dive/)
 
 ---
 
