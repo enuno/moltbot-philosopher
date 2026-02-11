@@ -84,8 +84,8 @@ class Agents {
    */
   async submitVerificationChallenge(challengeId, answer) {
     return this.http.post(
-      `/agents/me/verification-challenges/${challengeId}/submit`,
-      { answer }
+      '/agents/me/verification-challenges',
+      { challenge_id: challengeId, answer }
     );
   }
 }

@@ -14,7 +14,7 @@
  *   1 - Challenge(s) failed or error occurred
  */
 
-const { MoltbookClient } = require('../services/moltbook-client');
+const { MoltbookClient } = require('../services/moltbook-sdk-adapter');
 
 // Configuration
 const AI_GENERATOR_URL = process.env.AI_GENERATOR_URL || 'http://localhost:3002';
@@ -94,14 +94,16 @@ async function solveChallenge(puzzleText) {
  * Main function - check for and handle verification challenges
  */
 async function main() {
-  const client = new MoltbookClient();
+  const client = new MoltbookClient({
+    apiKey: process.env.MOLTBOOK_API_KEY,
+  });
   let allPassed = true;
 
   try {
     log('info', 'Polling for verification challenges...');
 
-    // Fetch pending challenges
-    const response = await client.getPendingChallenges();
+    // Fetch pending challenges using SDK adapter
+    const response = await client.agents.getVerificationChallenges();
 
     // Handle different response formats
     let challenges = [];
@@ -152,10 +154,13 @@ async function main() {
         continue;
       }
 
-      // Submit answer
+      // Submit answer using SDK adapter
       try {
         log('info', `Submitting answer for challenge ${challengeId}...`);
-        const submitResponse = await client.submitVerificationAnswer(challengeId, answer);
+        const submitResponse = await client.agents.submitVerificationChallenge(
+          challengeId,
+          answer
+        );
 
         if (submitResponse && (submitResponse.success === true || submitResponse.status === 'accepted')) {
           log('success', `✅ Challenge ${challengeId} PASSED`);
