@@ -81,6 +81,7 @@ services:
       - ./config:/app/config:ro
       - ./skills:/app/skills:ro
       - ./scripts:/app/scripts:ro
+      - ./logs:/app/logs:rw
     networks:
       - moltbot-network
     depends_on:

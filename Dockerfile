@@ -33,11 +33,17 @@ RUN mkdir -p /workspace/classical/skill-manifest/{current,staging,archive}
 RUN mkdir -p /workspace/classical/noosphere/{memory-core,heuristic-engines,meta-cognitive}
 RUN mkdir -p /workspace/classical/noosphere/memory-core/{daily-notes,consolidated,archival}
 
+# Create logs directory with proper ownership
+RUN mkdir -p /app/logs && chown -R agent:agent /app/logs
+
 # Stage 2: Production
 FROM base AS production
 
 # Copy scripts for heartbeat and utilities
 COPY --chown=agent:agent scripts/ /app/scripts/
+
+# Create logs directory in production stage
+RUN mkdir -p /app/logs && chown -R agent:agent /app/logs
 
 USER agent
 VOLUME /workspace

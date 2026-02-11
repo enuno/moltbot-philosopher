@@ -4,15 +4,32 @@
 
 set -e
 
+# Logging setup
+LOG_DIR="/app/logs"
+LOG_FILE="${LOG_DIR}/classical-philosopher.log"
+
+# Ensure log directory exists
+mkdir -p "$LOG_DIR" 2>/dev/null || true
+
+# Logging function - writes to both console and file
+log() {
+    local timestamp
+    local message
+    timestamp=$(date -u '+%Y-%m-%dT%H:%M:%S.%3NZ')
+    message="$1"
+    echo "$message"
+    echo "[${timestamp}] ${message}" >> "$LOG_FILE" 2>/dev/null || true
+}
+
 # Cleanup function for graceful shutdown
 cleanup() {
-    echo ""
-    echo "🛑 Shutting down gracefully..."
+    log ""
+    log "🛑 Shutting down gracefully..."
     if [ -n "$VERIFICATION_PID" ]; then
-        echo "   Stopping verification poller (PID: $VERIFICATION_PID)..."
+        log "   Stopping verification poller (PID: $VERIFICATION_PID)..."
         kill "$VERIFICATION_PID" 2>/dev/null || true
     fi
-    echo "   Goodbye!"
+    log "   Goodbye!"
     exit 0
 }
 
@@ -30,48 +47,49 @@ mkdir -p "$WORKSPACE_DIR"
 # Ensure scripts are executable (ignore errors for read-only filesystems)
 chmod +x "${SCRIPTS_DIR}"/*.sh 2>/dev/null || true
 
-echo "🦞 MoltbotPhilosopher Starting Up"
-echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
-echo "Agent: ${AGENT_NAME:-MoltbotPhilosopher}"
-echo "Workspace: $WORKSPACE_DIR"
-echo "AI Generator: ${AI_GENERATOR_SERVICE_URL:-not configured}"
-echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
-echo ""
+log "🦞 MoltbotPhilosopher Starting Up"
+log "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+log "Agent: ${AGENT_NAME:-MoltbotPhilosopher}"
+log "Workspace: $WORKSPACE_DIR"
+log "AI Generator: ${AI_GENERATOR_SERVICE_URL:-not configured}"
+log "Log File: $LOG_FILE"
+log "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+log ""
 
 # Check for API key
 if [ -z "$MOLTBOOK_API_KEY" ]; then
-    echo "⚠️  WARNING: MOLTBOOK_API_KEY not set"
-    echo "   The agent will not be able to interact with Moltbook"
-    echo ""
+    log "⚠️  WARNING: MOLTBOOK_API_KEY not set"
+    log "   The agent will not be able to interact with Moltbook"
+    log ""
 fi
 
 # Run initial heartbeat
-echo "🔄 Running initial heartbeat check..."
+log "🔄 Running initial heartbeat check..."
 "${SCRIPTS_DIR}/moltbook-heartbeat-enhanced.sh" || true
-echo ""
+log ""
 
 # Start verification challenge polling in background
-echo "🔐 Starting verification challenge poller..."
+log "🔐 Starting verification challenge poller..."
 if [ -f "${SCRIPTS_DIR}/verification-poller.sh" ]; then
     "${SCRIPTS_DIR}/verification-poller.sh" &
     VERIFICATION_PID=$!
-    echo "   Started verification poller (PID: $VERIFICATION_PID)"
-    echo "   Checking every 5 minutes"
-    echo "   Logs: ${WORKSPACE_DIR}/verification-poller.log"
+    log "   Started verification poller (PID: $VERIFICATION_PID)"
+    log "   Checking every 5 minutes"
+    log "   Logs: ${WORKSPACE_DIR}/verification-poller.log"
 else
-    echo "   ⚠️  Verification poller script not found, skipping"
+    log "   ⚠️  Verification poller script not found, skipping"
 fi
-echo ""
+log ""
 
 # Keep container running with periodic heartbeat
-echo "🔄 Entering main loop..."
-echo "   Scheduled tasks via while loop (cron not available)"
-echo "   Press Ctrl+C to stop"
-echo ""
+log "🔄 Entering main loop..."
+log "   Scheduled tasks via while loop (cron not available)"
+log "   Press Ctrl+C to stop"
+log ""
 
 # Run heartbeat every 4 hours in a loop
 while true; do
-    echo "[$(date '+%Y-%m-%d %H:%M:%S')] Running scheduled heartbeat..."
+    log "[$(date '+%Y-%m-%d %H:%M:%S')] Running scheduled heartbeat..."
     "${SCRIPTS_DIR}/moltbook-heartbeat-enhanced.sh" || true
 
     # Check mentions periodically (every 2 hours)
@@ -81,7 +99,7 @@ while true; do
     TIME_SINCE_MENTION_CHECK=$((CURRENT_TIME - LAST_MENTION_CHECK))
 
     if [ "$TIME_SINCE_MENTION_CHECK" -ge 7200 ]; then
-        echo "[$(date '+%Y-%m-%d %H:%M:%S')] Checking for mentions and comments..."
+        log "[$(date '+%Y-%m-%d %H:%M:%S')] Checking for mentions and comments..."
         "${SCRIPTS_DIR}/check-mentions.sh" || true
         "${SCRIPTS_DIR}/check-comments.sh" --auto-reply || true
         date +%s > "$MENTION_CHECK_FILE"
@@ -93,7 +111,7 @@ while true; do
     TIME_SINCE_SUBMOLT_CHECK=$((CURRENT_TIME - LAST_SUBMOLT_CHECK))
 
     if [ "$TIME_SINCE_SUBMOLT_CHECK" -ge 10800 ]; then
-        echo "[$(date '+%Y-%m-%d %H:%M:%S')] Monitoring ethics-convergence submolt..."
+        log "[$(date '+%Y-%m-%d %H:%M:%S')] Monitoring ethics-convergence submolt..."
         "${SCRIPTS_DIR}/monitor-submolt.sh" --auto-respond || true
         date +%s > "$SUBMOLT_CHECK_FILE"
     fi
@@ -105,7 +123,7 @@ while true; do
 
     if [ "$TIME_SINCE_WELCOME_CHECK" -ge 86400 ]; then
         if [ "${ENABLE_AUTO_WELCOME:-false}" = "true" ]; then
-            echo "[$(date '+%Y-%m-%d %H:%M:%S')] Auto-welcoming new moltys..."
+            log "[$(date '+%Y-%m-%d %H:%M:%S')] Auto-welcoming new moltys..."
             "${SCRIPTS_DIR}/welcome-new-moltys.sh" --auto-welcome || true
         fi
         date +%s > "$WELCOME_CHECK_FILE"
@@ -117,7 +135,7 @@ while true; do
     TIME_SINCE_POLEMIC_CHECK=$((CURRENT_TIME - LAST_POLEMIC_CHECK))
 
     if [ "$TIME_SINCE_POLEMIC_CHECK" -ge 86400 ]; then
-        echo "[$(date '+%Y-%m-%d %H:%M:%S')] Generating daily polemic..."
+        log "[$(date '+%Y-%m-%d %H:%M:%S')] Generating daily polemic..."
         "${SCRIPTS_DIR}/daily-polemic.sh" >> "${WORKSPACE_DIR}/polemic.log" 2>&1 || true
         date +%s > "$POLEMIC_CHECK_FILE"
     fi
@@ -130,7 +148,7 @@ while true; do
         TIME_SINCE_COUNCIL_CHECK=$((CURRENT_TIME - LAST_COUNCIL_CHECK))
 
         if [ "$TIME_SINCE_COUNCIL_CHECK" -ge 432000 ]; then
-            echo "[$(date '+%Y-%m-%d %H:%M:%S')] Convening Ethics-Convergence Council..."
+            log "[$(date '+%Y-%m-%d %H:%M:%S')] Convening Ethics-Convergence Council..."
             "${SCRIPTS_DIR}/convene-council.sh" >> "${WORKSPACE_DIR}/council.log" 2>&1 || true
             date +%s > "$COUNCIL_CHECK_FILE"
         fi
@@ -141,13 +159,13 @@ while true; do
         TIME_SINCE_DROPBOX_CHECK=$((CURRENT_TIME - LAST_DROPBOX_CHECK))
 
         if [ "$TIME_SINCE_DROPBOX_CHECK" -ge 21600 ]; then
-            echo "[$(date '+%Y-%m-%d %H:%M:%S')] Processing Council dropbox submissions..."
+            log "[$(date '+%Y-%m-%d %H:%M:%S')] Processing Council dropbox submissions..."
             "${SCRIPTS_DIR}/dropbox-processor.sh" >> "${WORKSPACE_DIR}/dropbox.log" 2>&1 || true
             date +%s > "$DROPBOX_CHECK_FILE"
         fi
     fi
 
     # Sleep for 4 hours (14400 seconds)
-    echo "[$(date '+%Y-%m-%d %H:%M:%S')] Sleeping for 30 minutes (OpenClaw standard)..."
+    log "[$(date '+%Y-%m-%d %H:%M:%S')] Sleeping for 30 minutes (OpenClaw standard)..."
     sleep 1800  # 30 minutes (was 4 hours)
 done
