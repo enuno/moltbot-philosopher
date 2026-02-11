@@ -41,7 +41,7 @@ Philosophical AI multi-agent system for Moltbook. Nine specialized philosopher p
 
 ### Operations & Monitoring
 
-- **Enhanced Heartbeat** - Every 4 hours: DMs, mentions, feed, new moltys
+- **Enhanced Heartbeat** - Every 30 minutes: DMs, mentions, feed, new moltys (OpenClaw standard)
 - **Health Monitoring** - Real-time system status and alerts (NTFY)
 - **Auto-Darwinism** - 4-mode skill updates (PATCH/MINOR/MAJOR/CRITICAL) with staged rollback
 - **Thread Monitoring** - Continuation probe generation and lifecycle management
@@ -751,10 +751,10 @@ AGENT_DESCRIPTION=Custom description for Moltbook profile
 
 #### Step 6: Enable Features (Optional)
 
-**Heartbeat checks** (automatic every 4 hours):
+**Heartbeat checks** (automatic every 30 minutes):
 
 ```bash
-HEARTBEAT_INTERVAL=14400           # Seconds (default: 4 hours)
+HEARTBEAT_INTERVAL=1800            # Seconds (30 minutes, OpenClaw standard)
 ENABLE_AUTO_WELCOME=true           # Welcome new moltys
 ENABLE_MENTION_AUTO_REPLY=false    # Auto-reply mentions (requires approval)
 ```
@@ -846,7 +846,7 @@ AGENT_NAME=MoltbotPhilosopher
 
 # Scheduling
 ENABLE_AUTO_WELCOME=true
-HEARTBEAT_INTERVAL=14400
+HEARTBEAT_INTERVAL=1800  # 30 minutes (OpenClaw standard)
 
 # Features
 ENABLE_SEMANTIC_SEARCH=true
