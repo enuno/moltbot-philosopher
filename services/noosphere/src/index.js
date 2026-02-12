@@ -70,10 +70,16 @@ app.get('/health', async (req, res) => {
     await pool.query('SELECT 1');
     res.json({
       status: 'healthy',
-      version: '3.1.0',
+      version: '3.2.0',
       database: 'connected',
       embeddings: openai ? 'enabled' : 'disabled',
-      features: ['multi-agent-sharing', 'permission-model', 'access-logging']
+      features: [
+        'multi-agent-sharing',
+        'permission-model',
+        'access-logging',
+        'confidence-decay',
+        'reinforcement-learning'
+      ]
     });
   } catch (error) {
     res.status(503).json({ status: 'unhealthy', error: error.message });
@@ -329,6 +335,11 @@ app.get('/memories/shared', authenticate, async (req, res) => {
 // GET /memories/:id - Get single memory
 app.get('/memories/:id', authenticate, async (req, res) => {
   try {
+    // v3.2: Apply decay, then reinforce on access
+    await pool.query('SELECT apply_decay($1)', [req.params.id]);
+    await pool.query('SELECT reinforce_memory($1)', [req.params.id]);
+
+    // Fetch updated memory
     const result = await pool.query(
       'SELECT * FROM noosphere_memory WHERE id = $1',
       [req.params.id]
@@ -781,6 +792,170 @@ app.post('/permissions/cleanup', authenticate, async (req, res) => {
   }
 });
 
+// ============================================================================
+// v3.2 Decay Management Endpoints
+// ============================================================================
+
+// GET /memories/:id/decay-status - Get decay information for a memory
+app.get('/memories/:id/decay-status', authenticate, async (req, res) => {
+  try {
+    const result = await pool.query(`
+      SELECT
+        m.id,
+        m.type,
+        m.confidence,
+        m.confidence_initial,
+        m.last_accessed_at,
+        m.access_count,
+        m.reinforcement_count,
+        calculate_decay(m.id) as confidence_after_decay,
+        EXTRACT(EPOCH FROM (now() - m.last_accessed_at))/604800 as weeks_since_access,
+        dc.decay_rate,
+        dc.min_confidence,
+        dc.reinforcement_boost,
+        dc.auto_evict_enabled
+      FROM noosphere_memory m
+      LEFT JOIN noosphere_decay_config dc ON m.type = dc.memory_type
+      WHERE m.id = $1
+    `, [req.params.id]);
+
+    if (result.rows.length === 0) {
+      return res.status(404).json({ error: 'Memory not found' });
+    }
+
+    res.json(result.rows[0]);
+  } catch (error) {
+    console.error('Get decay status error:', error);
+    res.status(500).json({ error: error.message });
+  }
+});
+
+// POST /decay/apply - Apply decay to batch of memories
+app.post('/decay/apply', authenticate, async (req, res) => {
+  try {
+    const { agent_id, batch_size = 100 } = req.body;
+
+    const result = await pool.query(
+      'SELECT * FROM apply_decay_batch($1, $2)',
+      [agent_id || null, batch_size]
+    );
+
+    const decayedCount = result.rows.filter(r => r.decayed).length;
+    const avgOldConfidence = result.rows.reduce((sum, r) => sum + parseFloat(r.old_confidence), 0) / result.rows.length || 0;
+    const avgNewConfidence = result.rows.reduce((sum, r) => sum + parseFloat(r.new_confidence), 0) / result.rows.length || 0;
+
+    res.json({
+      success: true,
+      processed: result.rows.length,
+      decayed: decayedCount,
+      avg_old_confidence: avgOldConfidence.toFixed(3),
+      avg_new_confidence: avgNewConfidence.toFixed(3),
+      details: result.rows
+    });
+  } catch (error) {
+    console.error('Apply decay error:', error);
+    res.status(500).json({ error: error.message });
+  }
+});
+
+// POST /decay/evict - Auto-evict low-confidence memories
+app.post('/decay/evict', authenticate, async (req, res) => {
+  try {
+    const { agent_id } = req.body;
+
+    const result = await pool.query(
+      'SELECT * FROM auto_evict_low_confidence($1)',
+      [agent_id || null]
+    );
+
+    res.json({
+      success: true,
+      evicted_count: result.rows.length,
+      evicted_memories: result.rows
+    });
+  } catch (error) {
+    console.error('Auto-evict error:', error);
+    res.status(500).json({ error: error.message });
+  }
+});
+
+// GET /decay/config - Get decay configuration
+app.get('/decay/config', authenticate, async (req, res) => {
+  try {
+    const result = await pool.query(
+      'SELECT * FROM noosphere_decay_config ORDER BY memory_type'
+    );
+
+    res.json({
+      success: true,
+      config: result.rows
+    });
+  } catch (error) {
+    console.error('Get decay config error:', error);
+    res.status(500).json({ error: error.message });
+  }
+});
+
+// PUT /decay/config/:type - Update decay configuration for a memory type
+app.put('/decay/config/:type', authenticate, async (req, res) => {
+  try {
+    const { type } = req.params;
+    const {
+      decay_rate,
+      min_confidence,
+      reinforcement_boost,
+      auto_evict_enabled
+    } = req.body;
+
+    // Build dynamic update query
+    const updates = [];
+    const values = [];
+    let paramCount = 1;
+
+    if (decay_rate !== undefined) {
+      updates.push(`decay_rate = $${paramCount++}`);
+      values.push(decay_rate);
+    }
+    if (min_confidence !== undefined) {
+      updates.push(`min_confidence = $${paramCount++}`);
+      values.push(min_confidence);
+    }
+    if (reinforcement_boost !== undefined) {
+      updates.push(`reinforcement_boost = $${paramCount++}`);
+      values.push(reinforcement_boost);
+    }
+    if (auto_evict_enabled !== undefined) {
+      updates.push(`auto_evict_enabled = $${paramCount++}`);
+      values.push(auto_evict_enabled);
+    }
+
+    if (updates.length === 0) {
+      return res.status(400).json({ error: 'No fields to update' });
+    }
+
+    values.push(type);
+    const result = await pool.query(
+      `UPDATE noosphere_decay_config
+       SET ${updates.join(', ')}, updated_at = now()
+       WHERE memory_type = $${paramCount}
+       RETURNING *`,
+      values
+    );
+
+    if (result.rows.length === 0) {
+      return res.status(404).json({ error: 'Memory type not found' });
+    }
+
+    res.json({
+      success: true,
+      config: result.rows[0]
+    });
+  } catch (error) {
+    console.error('Update decay config error:', error);
+    res.status(500).json({ error: error.message });
+  }
+});
+
 // 404 handler
 app.use((req, res) => {
   res.status(404).json({ error: 'Not found' });
@@ -804,10 +979,10 @@ process.on('SIGTERM', () => {
 // Start server
 if (require.main === module) {
   app.listen(PORT, () => {
-    console.log(`Noosphere v3.1 Service listening on port ${PORT}`);
+    console.log(`Noosphere v3.2 Service listening on port ${PORT}`);
     console.log(`Database: ${process.env.DATABASE_URL ? 'connected' : 'not configured'}`);
     console.log(`Embeddings: ${openai ? 'enabled' : 'disabled'}`);
-    console.log(`Features: multi-agent-sharing, permission-model, access-logging`);
+    console.log(`Features: multi-agent-sharing, permission-model, access-logging, confidence-decay, reinforcement`);
   });
 }
 
