@@ -515,4 +515,198 @@ describe('Noosphere v3.1 Multi-Agent Memory Sharing', () => {
       expect(response.body).toHaveProperty('last_accessed_at');
     });
   });
+
+  // ========================================================================
+  // v3.3 Pattern Mining & Synthesis Tests
+  // ========================================================================
+
+  describe('POST /patterns/mine', () => {
+    test('should mine convergence patterns', async () => {
+      const response = await request(app)
+        .post('/patterns/mine')
+        .set('X-Agent-ID', 'classical')
+        .set('X-API-Key', process.env.MOLTBOOK_API_KEY)
+        .send({
+          pattern_type: 'convergence',
+          min_agents: 2,
+          similarity_threshold: 0.85,
+          limit: 10
+        });
+
+      expect(response.status).toBe(200);
+      expect(response.body).toHaveProperty('success', true);
+      expect(response.body).toHaveProperty('patterns_discovered');
+      expect(response.body).toHaveProperty('patterns');
+      expect(Array.isArray(response.body.patterns)).toBe(true);
+    });
+
+    test('should mine all pattern types', async () => {
+      const response = await request(app)
+        .post('/patterns/mine')
+        .set('X-Agent-ID', 'classical')
+        .set('X-API-Key', process.env.MOLTBOOK_API_KEY)
+        .send({ pattern_type: 'all', limit: 20 });
+
+      expect(response.status).toBe(200);
+      expect(response.body).toHaveProperty('patterns_discovered');
+    });
+  });
+
+  describe('GET /patterns', () => {
+    test('should list patterns with filters', async () => {
+      const response = await request(app)
+        .get('/patterns')
+        .set('X-Agent-ID', 'classical')
+        .set('X-API-Key', process.env.MOLTBOOK_API_KEY)
+        .query({ status: 'active', limit: 10 });
+
+      expect(response.status).toBe(200);
+      expect(response.body).toHaveProperty('success', true);
+      expect(response.body).toHaveProperty('patterns');
+      expect(Array.isArray(response.body.patterns)).toBe(true);
+    });
+
+    test('should filter by pattern type', async () => {
+      const response = await request(app)
+        .get('/patterns')
+        .set('X-Agent-ID', 'classical')
+        .set('X-API-Key', process.env.MOLTBOOK_API_KEY)
+        .query({ pattern_type: 'convergence', status: 'active' });
+
+      expect(response.status).toBe(200);
+      expect(response.body.patterns.every(p => p.pattern_type === 'convergence')).toBe(true);
+    });
+  });
+
+  describe('GET /patterns/:id', () => {
+    test('should return 404 for non-existent pattern', async () => {
+      const response = await request(app)
+        .get('/patterns/00000000-0000-0000-0000-000000000000')
+        .set('X-Agent-ID', 'classical')
+        .set('X-API-Key', process.env.MOLTBOOK_API_KEY);
+
+      expect(response.status).toBe(404);
+    });
+  });
+
+  describe('POST /syntheses', () => {
+    test('should reject synthesis creation without pattern_id', async () => {
+      const response = await request(app)
+        .post('/syntheses')
+        .set('X-Agent-ID', 'classical')
+        .set('X-API-Key', process.env.MOLTBOOK_API_KEY)
+        .send({ type: 'insight' });
+
+      expect(response.status).toBe(400);
+    });
+
+    test('should reject non-convergence patterns', async () => {
+      // First create a contradiction pattern
+      await request(app)
+        .post('/patterns/mine')
+        .set('X-Agent-ID', 'classical')
+        .set('X-API-Key', process.env.MOLTBOOK_API_KEY)
+        .send({ pattern_type: 'contradiction', limit: 1 });
+
+      const patternsResp = await request(app)
+        .get('/patterns')
+        .set('X-Agent-ID', 'classical')
+        .set('X-API-Key', process.env.MOLTBOOK_API_KEY)
+        .query({ pattern_type: 'contradiction', limit: 1 });
+
+      if (patternsResp.body.patterns.length > 0) {
+        const patternId = patternsResp.body.patterns[0].id;
+
+        const response = await request(app)
+          .post('/syntheses')
+          .set('X-Agent-ID', 'classical')
+          .set('X-API-Key', process.env.MOLTBOOK_API_KEY)
+          .send({ pattern_id: patternId, auto_generate: false, content: 'test' });
+
+        expect(response.status).toBe(400);
+        expect(response.body.error).toContain('convergence');
+      }
+    });
+
+    test('should require content when auto_generate is false', async () => {
+      const response = await request(app)
+        .post('/syntheses')
+        .set('X-Agent-ID', 'classical')
+        .set('X-API-Key', process.env.MOLTBOOK_API_KEY)
+        .send({
+          pattern_id: '00000000-0000-0000-0000-000000000000',
+          auto_generate: false
+        });
+
+      expect(response.status).toBe(400);
+      expect(response.body.error).toContain('Content');
+    });
+  });
+
+  describe('GET /syntheses', () => {
+    test('should list syntheses by status', async () => {
+      const response = await request(app)
+        .get('/syntheses')
+        .set('X-Agent-ID', 'classical')
+        .set('X-API-Key', process.env.MOLTBOOK_API_KEY)
+        .query({ status: 'proposed', limit: 10 });
+
+      expect(response.status).toBe(200);
+      expect(response.body).toHaveProperty('success', true);
+      expect(response.body).toHaveProperty('syntheses');
+      expect(Array.isArray(response.body.syntheses)).toBe(true);
+    });
+  });
+
+  describe('PUT /syntheses/:id/review', () => {
+    test('should reject invalid decision', async () => {
+      const response = await request(app)
+        .put('/syntheses/00000000-0000-0000-0000-000000000000/review')
+        .set('X-Agent-ID', 'classical')
+        .set('X-API-Key', process.env.MOLTBOOK_API_KEY)
+        .send({ decision: 'invalid' });
+
+      expect(response.status).toBe(400);
+      expect(response.body.error).toContain('decision');
+    });
+
+    test('should accept valid decisions', async () => {
+      // We can't test actual review without a real synthesis,
+      // but we can verify the endpoint accepts valid values
+      const validDecisions = ['approve', 'reject', 'abstain'];
+      
+      for (const decision of validDecisions) {
+        const response = await request(app)
+          .put('/syntheses/00000000-0000-0000-0000-000000000000/review')
+          .set('X-Agent-ID', 'classical')
+          .set('X-API-Key', process.env.MOLTBOOK_API_KEY)
+          .send({ decision, notes: 'Test note' });
+
+        // Should fail with 500 (no synthesis) but not 400 (valid decision)
+        expect(response.status).not.toBe(400);
+      }
+    });
+  });
+
+  describe('POST /syntheses/:id/promote', () => {
+    test('should return error for non-existent synthesis', async () => {
+      const response = await request(app)
+        .post('/syntheses/00000000-0000-0000-0000-000000000000/promote')
+        .set('X-Agent-ID', 'classical')
+        .set('X-API-Key', process.env.MOLTBOOK_API_KEY);
+
+      expect(response.status).toBe(404);
+    });
+  });
+
+  describe('v3.3 Health Check', () => {
+    test('should report v3.3 features', async () => {
+      const response = await request(app).get('/health');
+
+      expect(response.status).toBe(200);
+      expect(response.body.version).toBe('3.3.0');
+      expect(response.body.features).toContain('pattern-mining');
+      expect(response.body.features).toContain('ai-synthesis');
+    });
+  });
 });
