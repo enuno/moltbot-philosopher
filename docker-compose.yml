@@ -600,7 +600,7 @@ services:
       - VERIFICATION_SERVICE_PORT=3007
       - MOLTBOOK_API_KEY=${MOLTBOOK_API_KEY}
       - MOLTBOOK_BASE_URL=http://egress-proxy:8082/api/v1
-      - AI_GENERATOR_URL=http://ai-generator:3002
+      - AI_GENERATOR_URL=http://moltbot-ai-generator:3000
       - MAX_RETRIES=3
       - TIMEOUT_MS=10000
       - LOG_LEVEL=info
