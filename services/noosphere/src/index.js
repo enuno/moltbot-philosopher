@@ -13,6 +13,7 @@ const fs = require('fs');
 const path = require('path');
 const { Pool } = require('pg');
 const OpenAI = require('openai');
+const axios = require('axios');
 
 const app = express();
 const PORT = process.env.PORT || 3006;
@@ -32,11 +33,16 @@ const pool = new Pool({
   connectionTimeoutMillis: 2000,
 });
 
-// OpenAI client (optional)
+// OpenAI client (optional - for embeddings only)
 let openai = null;
 if (process.env.OPENAI_API_KEY && process.env.ENABLE_EMBEDDINGS === 'true') {
   openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
 }
+
+// Venice.ai configuration (for synthesis generation)
+const VENICE_API_URL = process.env.VENICE_API_URL || 'http://venice-proxy:8080/v1/chat/completions';
+const VENICE_API_KEY = process.env.VENICE_API_KEY;
+const VENICE_MODEL = process.env.VENICE_MODEL || 'llama-3.3-70b';
 
 // Rate limiting - 100 requests per minute per IP
 const limiter = rateLimit({
@@ -70,15 +76,18 @@ app.get('/health', async (req, res) => {
     await pool.query('SELECT 1');
     res.json({
       status: 'healthy',
-      version: '3.2.0',
+      version: '3.3.0',
       database: 'connected',
       embeddings: openai ? 'enabled' : 'disabled',
+      venice_ai: VENICE_API_KEY ? 'enabled' : 'disabled',
       features: [
         'multi-agent-sharing',
         'permission-model',
         'access-logging',
         'confidence-decay',
-        'reinforcement-learning'
+        'reinforcement-learning',
+        'pattern-mining',
+        'ai-synthesis'
       ]
     });
   } catch (error) {
@@ -956,6 +965,544 @@ app.put('/decay/config/:type', authenticate, async (req, res) => {
   }
 });
 
+// ============================================================================
+// v3.3 Pattern Mining & Synthesis Generation Endpoints
+// ============================================================================
+
+// Helper: Call Venice.ai for synthesis generation
+async function generateSynthesis(pattern, memories) {
+  if (!VENICE_API_KEY) {
+    throw new Error('Venice API not configured');
+  }
+
+  const prompt = `You are a philosophical synthesizer for the Ethics-Convergence Council.
+
+Given the following ${memories.length} memories from different philosophical agents that form a convergence pattern:
+
+${memories.map((m, i) => `
+Memory ${i + 1} (${m.agent_id}, ${m.type}):
+Content: ${m.content}
+Tags: ${m.tags.join(', ')}
+Confidence: ${m.confidence}
+`).join('\n')}
+
+Pattern: ${pattern.title}
+Description: ${pattern.description}
+
+Generate a synthesized insight that:
+1. Unifies the common themes across all perspectives
+2. Preserves the unique contributions of each voice
+3. Creates a higher-order understanding
+4. Is concise (2-3 sentences max)
+5. Uses philosophical language appropriate for Council deliberation
+
+Respond ONLY with the synthesized insight text, no preamble or explanation.`;
+
+  try {
+    const response = await axios.post(
+      VENICE_API_URL,
+      {
+        model: VENICE_MODEL,
+        messages: [
+          {
+            role: 'system',
+            content: 'You are a philosophical synthesizer for an AI ethics council. Generate concise, unified insights from multiple perspectives.'
+          },
+          { role: 'user', content: prompt }
+        ],
+        temperature: 0.7,
+        max_tokens: 300
+      },
+      {
+        headers: {
+          'Authorization': `Bearer ${VENICE_API_KEY}`,
+          'Content-Type': 'application/json'
+        },
+        timeout: 30000
+      }
+    );
+
+    return response.data.choices[0].message.content.trim();
+  } catch (error) {
+    console.error('Venice synthesis error:', error.message);
+    throw new Error(`Synthesis generation failed: ${error.message}`);
+  }
+}
+
+// POST /patterns/mine - Trigger pattern mining
+app.post('/patterns/mine', authenticate, async (req, res) => {
+  try {
+    const {
+      pattern_type = 'convergence',  // 'convergence', 'contradiction', 'gap', 'all'
+      similarity_threshold = 0.85,
+      min_agents = 3,
+      limit = 50
+    } = req.body;
+
+    const patterns = [];
+
+    // Mine convergence patterns
+    if (pattern_type === 'convergence' || pattern_type === 'all') {
+      const convergenceResult = await pool.query(
+        'SELECT * FROM find_convergence_candidates($1, $2, $3)',
+        [similarity_threshold, min_agents, limit]
+      );
+
+      for (const row of convergenceResult.rows) {
+        // Create pattern record
+        const patternInsert = await pool.query(`
+          INSERT INTO noosphere_patterns (
+            pattern_type, title, description, agent_ids, memory_ids,
+            tags, confidence, supporting_evidence
+          ) VALUES (
+            'convergence',
+            $1,
+            $2,
+            $3,
+            $4,
+            $5,
+            $6,
+            $7
+          ) RETURNING *
+        `, [
+          `Convergence across ${row.agent_ids.length} agents`,
+          `${row.agent_ids.length} agents show similar understanding on: ${row.common_tags.slice(0, 3).join(', ')}`,
+          row.agent_ids,
+          row.memory_ids,
+          row.common_tags,
+          row.avg_similarity,
+          JSON.stringify({ similarity: row.avg_similarity, method: 'vector_embedding' })
+        ]);
+
+        patterns.push(patternInsert.rows[0]);
+      }
+    }
+
+    // Mine contradiction patterns
+    if (pattern_type === 'contradiction' || pattern_type === 'all') {
+      const contradictionResult = await pool.query(
+        'SELECT * FROM detect_contradictions(2, $1)',
+        [limit]
+      );
+
+      for (const row of contradictionResult.rows) {
+        const patternInsert = await pool.query(`
+          INSERT INTO noosphere_patterns (
+            pattern_type, title, description, agent_ids, memory_ids,
+            tags, confidence, supporting_evidence
+          ) VALUES (
+            'contradiction',
+            $1,
+            $2,
+            $3,
+            $4,
+            $5,
+            0.70,
+            $6
+          ) RETURNING *
+        `, [
+          `Contradiction: ${row.agent_id_1} vs ${row.agent_id_2}`,
+          `Opposing perspectives on: ${row.common_tags.join(', ')}`,
+          [row.agent_id_1, row.agent_id_2],
+          [row.memory_id_1, row.memory_id_2],
+          row.common_tags,
+          JSON.stringify({ confidence_diff: row.confidence_diff, method: 'tag_overlap_low_similarity' })
+        ]);
+
+        patterns.push(patternInsert.rows[0]);
+      }
+    }
+
+    // Analyze gaps
+    if (pattern_type === 'gap' || pattern_type === 'all') {
+      const gapResult = await pool.query('SELECT * FROM analyze_gaps()');
+
+      // Group gaps by agent
+      const gapsByAgent = {};
+      for (const row of gapResult.rows) {
+        if (!gapsByAgent[row.agent_id]) {
+          gapsByAgent[row.agent_id] = [];
+        }
+        gapsByAgent[row.agent_id].push(row);
+      }
+
+      // Create gap patterns (one per agent with multiple gaps)
+      for (const [agentId, gaps] of Object.entries(gapsByAgent)) {
+        if (gaps.length >= 2) {
+          const gapTypes = gaps.map(g => g.memory_type);
+          const avgGapScore = gaps.reduce((sum, g) => sum + parseFloat(g.gap_score), 0) / gaps.length;
+
+          const patternInsert = await pool.query(`
+            INSERT INTO noosphere_patterns (
+              pattern_type, title, description, agent_ids, memory_ids,
+              tags, confidence, supporting_evidence, metadata
+            ) VALUES (
+              'gap',
+              $1,
+              $2,
+              $3,
+              '{}',
+              $4,
+              0.80,
+              $5,
+              $6
+            ) RETURNING *
+          `, [
+            `Memory gap: ${agentId}`,
+            `${agentId} has fewer ${gapTypes.join(', ')} memories than average`,
+            [agentId],
+            gapTypes,
+            JSON.stringify({ gaps }),
+            JSON.stringify({ avg_gap_score: avgGapScore })
+          ]);
+
+          patterns.push(patternInsert.rows[0]);
+        }
+      }
+    }
+
+    res.json({
+      success: true,
+      patterns_discovered: patterns.length,
+      patterns: patterns
+    });
+  } catch (error) {
+    console.error('Pattern mining error:', error);
+    res.status(500).json({ error: error.message });
+  }
+});
+
+// GET /patterns - List discovered patterns
+app.get('/patterns', authenticate, async (req, res) => {
+  try {
+    const {
+      pattern_type,
+      status = 'active',
+      min_confidence,
+      limit = 50,
+      offset = 0
+    } = req.query;
+
+    let query = 'SELECT * FROM noosphere_patterns WHERE status = $1';
+    const params = [status];
+    let paramCount = 1;
+
+    if (pattern_type) {
+      params.push(pattern_type);
+      query += ` AND pattern_type = $${++paramCount}`;
+    }
+
+    if (min_confidence) {
+      params.push(parseFloat(min_confidence));
+      query += ` AND confidence >= $${++paramCount}`;
+    }
+
+    query += ` ORDER BY detected_at DESC LIMIT $${++paramCount} OFFSET $${++paramCount}`;
+    params.push(parseInt(limit), parseInt(offset));
+
+    const result = await pool.query(query, params);
+
+    res.json({
+      success: true,
+      patterns: result.rows,
+      count: result.rows.length
+    });
+  } catch (error) {
+    console.error('Get patterns error:', error);
+    res.status(500).json({ error: error.message });
+  }
+});
+
+// GET /patterns/:id - Get pattern details
+app.get('/patterns/:id', authenticate, async (req, res) => {
+  try {
+    const patternResult = await pool.query(
+      'SELECT * FROM noosphere_patterns WHERE id = $1',
+      [req.params.id]
+    );
+
+    if (patternResult.rows.length === 0) {
+      return res.status(404).json({ error: 'Pattern not found' });
+    }
+
+    const pattern = patternResult.rows[0];
+
+    // Get associated memories
+    const memoriesResult = await pool.query(
+      'SELECT * FROM get_pattern_memories($1)',
+      [req.params.id]
+    );
+
+    res.json({
+      ...pattern,
+      memories: memoriesResult.rows
+    });
+  } catch (error) {
+    console.error('Get pattern error:', error);
+    res.status(500).json({ error: error.message });
+  }
+});
+
+// POST /syntheses - Create synthesis from pattern (with AI generation)
+app.post('/syntheses', authenticate, async (req, res) => {
+  try {
+    const { pattern_id, type, auto_generate = true } = req.body;
+
+    // Get pattern
+    const patternResult = await pool.query(
+      'SELECT * FROM noosphere_patterns WHERE id = $1',
+      [pattern_id]
+    );
+
+    if (patternResult.rows.length === 0) {
+      return res.status(404).json({ error: 'Pattern not found' });
+    }
+
+    const pattern = patternResult.rows[0];
+
+    // Only generate syntheses for convergence patterns
+    if (pattern.pattern_type !== 'convergence') {
+      return res.status(400).json({
+        error: 'Syntheses can only be generated from convergence patterns'
+      });
+    }
+
+    // Get pattern memories
+    const memoriesResult = await pool.query(
+      'SELECT * FROM get_pattern_memories($1)',
+      [pattern_id]
+    );
+
+    const memories = memoriesResult.rows;
+
+    // Generate synthesis content using Venice.ai
+    let content, rationale;
+    if (auto_generate && VENICE_API_KEY) {
+      try {
+        content = await generateSynthesis(pattern, memories);
+        rationale = `AI-generated synthesis from ${memories.length} converging memories across ${pattern.agent_ids.length} agents using vector similarity (threshold: ${pattern.confidence})`;
+      } catch (genError) {
+        console.error('Synthesis generation failed:', genError);
+        return res.status(500).json({
+          error: 'Synthesis generation failed',
+          details: genError.message
+        });
+      }
+    } else {
+      content = req.body.content;
+      rationale = req.body.rationale || 'Manual synthesis';
+    }
+
+    if (!content) {
+      return res.status(400).json({ error: 'Content is required if auto_generate is false' });
+    }
+
+    // Extract common tags from memories
+    const allTags = memories.flatMap(m => m.tags);
+    const tagCounts = {};
+    allTags.forEach(tag => {
+      tagCounts[tag] = (tagCounts[tag] || 0) + 1;
+    });
+    const commonTags = Object.entries(tagCounts)
+      .filter(([_, count]) => count >= 2)
+      .map(([tag, _]) => tag);
+
+    // Create synthesis
+    const synthesisResult = await pool.query(`
+      INSERT INTO noosphere_syntheses (
+        pattern_id, type, content, tags, confidence,
+        supporting_evidence, rationale, source_trace_id
+      ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
+      RETURNING *
+    `, [
+      pattern_id,
+      type || 'insight',
+      content,
+      commonTags,
+      pattern.confidence,
+      JSON.stringify(memories.map(m => ({
+        memory_id: m.memory_id,
+        agent_id: m.agent_id,
+        excerpt: m.content.substring(0, 200)
+      }))),
+      rationale,
+      `synthesis:pattern-${pattern_id}`
+    ]);
+
+    res.json({
+      success: true,
+      synthesis: synthesisResult.rows[0]
+    });
+  } catch (error) {
+    console.error('Create synthesis error:', error);
+    res.status(500).json({ error: error.message });
+  }
+});
+
+// GET /syntheses - List proposed syntheses
+app.get('/syntheses', authenticate, async (req, res) => {
+  try {
+    const { status = 'proposed', limit = 50, offset = 0 } = req.query;
+
+    const result = await pool.query(`
+      SELECT s.*, p.title as pattern_title, p.agent_ids as pattern_agents
+      FROM noosphere_syntheses s
+      JOIN noosphere_patterns p ON s.pattern_id = p.id
+      WHERE s.status = $1
+      ORDER BY s.created_at DESC
+      LIMIT $2 OFFSET $3
+    `, [status, parseInt(limit), parseInt(offset)]);
+
+    res.json({
+      success: true,
+      syntheses: result.rows,
+      count: result.rows.length
+    });
+  } catch (error) {
+    console.error('Get syntheses error:', error);
+    res.status(500).json({ error: error.message });
+  }
+});
+
+// PUT /syntheses/:id/review - Review synthesis (Council voting)
+app.put('/syntheses/:id/review', authenticate, async (req, res) => {
+  try {
+    const { decision, notes } = req.body;  // decision: 'approve', 'reject', 'abstain'
+    const reviewerAgent = req.headers['x-agent-id'];
+
+    if (!['approve', 'reject', 'abstain'].includes(decision)) {
+      return res.status(400).json({ error: 'Invalid decision. Must be approve, reject, or abstain' });
+    }
+
+    // Record review
+    await pool.query(`
+      INSERT INTO noosphere_synthesis_reviews (synthesis_id, reviewer_agent_id, decision, notes)
+      VALUES ($1, $2, $3, $4)
+    `, [req.params.id, reviewerAgent, decision, notes]);
+
+    // Update synthesis reviewed_by array
+    await pool.query(`
+      UPDATE noosphere_syntheses
+      SET reviewed_by = array_append(reviewed_by, $1),
+          review_notes = CASE
+            WHEN review_notes IS NULL THEN $2
+            ELSE review_notes || E'\n---\n' || $2
+          END,
+          updated_at = now()
+      WHERE id = $3
+    `, [reviewerAgent, notes || `${reviewerAgent}: ${decision}`, req.params.id]);
+
+    // Check if consensus reached (4/6 agents = 67%)
+    const reviewsResult = await pool.query(`
+      SELECT
+        COUNT(*) as total_reviews,
+        SUM(CASE WHEN decision = 'approve' THEN 1 ELSE 0 END) as approvals,
+        SUM(CASE WHEN decision = 'reject' THEN 1 ELSE 0 END) as rejections
+      FROM noosphere_synthesis_reviews
+      WHERE synthesis_id = $1
+    `, [req.params.id]);
+
+    const { total_reviews, approvals, rejections } = reviewsResult.rows[0];
+
+    // Update status based on votes
+    let newStatus = 'proposed';
+    if (parseInt(total_reviews) >= 3) {
+      newStatus = 'under_review';
+    }
+    if (parseInt(approvals) >= 4) {
+      newStatus = 'accepted';
+    } else if (parseInt(rejections) >= 3) {
+      newStatus = 'rejected';
+    }
+
+    await pool.query(
+      'UPDATE noosphere_syntheses SET status = $1, updated_at = now() WHERE id = $2',
+      [newStatus, req.params.id]
+    );
+
+    res.json({
+      success: true,
+      review_recorded: true,
+      status: newStatus,
+      total_reviews: parseInt(total_reviews),
+      approvals: parseInt(approvals),
+      rejections: parseInt(rejections),
+      consensus: newStatus === 'accepted' || newStatus === 'rejected'
+    });
+  } catch (error) {
+    console.error('Review synthesis error:', error);
+    res.status(500).json({ error: error.message });
+  }
+});
+
+// POST /syntheses/:id/promote - Promote accepted synthesis to memory
+app.post('/syntheses/:id/promote', authenticate, async (req, res) => {
+  try {
+    // Get synthesis
+    const synthesisResult = await pool.query(
+      'SELECT * FROM noosphere_syntheses WHERE id = $1',
+      [req.params.id]
+    );
+
+    if (synthesisResult.rows.length === 0) {
+      return res.status(404).json({ error: 'Synthesis not found' });
+    }
+
+    const synthesis = synthesisResult.rows[0];
+
+    if (synthesis.status !== 'accepted') {
+      return res.status(400).json({ error: 'Only accepted syntheses can be promoted' });
+    }
+
+    if (synthesis.promoted_memory_id) {
+      return res.status(400).json({ error: 'Synthesis already promoted' });
+    }
+
+    // Get pattern to determine which agent should own the memory
+    const patternResult = await pool.query(
+      'SELECT * FROM noosphere_patterns WHERE id = $1',
+      [synthesis.pattern_id]
+    );
+
+    const pattern = patternResult.rows[0];
+    const ownerAgent = pattern.agent_ids[0];  // Assign to first agent in pattern
+
+    // Create memory from synthesis
+    const memoryResult = await pool.query(`
+      INSERT INTO noosphere_memory (
+        agent_id, type, content, tags, confidence,
+        source_trace_id, owner_agent_id, visibility,
+        confidence_initial
+      ) VALUES ($1, $2, $3, $4, $5, $6, $7, 'shared', $8)
+      RETURNING *
+    `, [
+      ownerAgent,
+      synthesis.type,
+      synthesis.content,
+      synthesis.tags,
+      synthesis.confidence,
+      synthesis.source_trace_id,
+      ownerAgent,
+      synthesis.confidence
+    ]);
+
+    // Update synthesis with promoted memory ID
+    await pool.query(
+      'UPDATE noosphere_syntheses SET promoted_memory_id = $1, updated_at = now() WHERE id = $2',
+      [memoryResult.rows[0].id, req.params.id]
+    );
+
+    res.json({
+      success: true,
+      memory: memoryResult.rows[0],
+      synthesis_id: req.params.id
+    });
+  } catch (error) {
+    console.error('Promote synthesis error:', error);
+    res.status(500).json({ error: error.message });
+  }
+});
+
 // 404 handler
 app.use((req, res) => {
   res.status(404).json({ error: 'Not found' });
@@ -979,10 +1526,11 @@ process.on('SIGTERM', () => {
 // Start server
 if (require.main === module) {
   app.listen(PORT, () => {
-    console.log(`Noosphere v3.2 Service listening on port ${PORT}`);
+    console.log(`Noosphere v3.3 Service listening on port ${PORT}`);
     console.log(`Database: ${process.env.DATABASE_URL ? 'connected' : 'not configured'}`);
     console.log(`Embeddings: ${openai ? 'enabled' : 'disabled'}`);
-    console.log(`Features: multi-agent-sharing, permission-model, access-logging, confidence-decay, reinforcement`);
+    console.log(`Venice.ai: ${VENICE_API_KEY ? 'enabled' : 'disabled'}`);
+    console.log(`Features: multi-agent-sharing, permission-model, access-logging, confidence-decay, reinforcement, pattern-mining, ai-synthesis`);
   });
 }
 
