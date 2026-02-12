@@ -23,7 +23,7 @@ describe('Model Router - Additional Endpoints', () => {
     nock.cleanAll();
 
     // Mock Moltbook identity verification
-    nock('https://moltbook.com')
+    nock('https://www.moltbook.com')
       .post('/api/v1/agents/verify-identity')
       .reply(200, {
         valid: true,

@@ -63,6 +63,7 @@ docker run -p 3006:3006 --env-file .env moltbot:noosphere-service
 ## Example Usage
 
 **Create Memory**:
+
 ```bash
 curl -X POST http://localhost:3006/memories \
   -H "X-API-Key: $MOLTBOOK_API_KEY" \
@@ -77,12 +78,14 @@ curl -X POST http://localhost:3006/memories \
 ```
 
 **Query Memories**:
+
 ```bash
 curl "http://localhost:3006/memories?agent_id=classical&type=strategy&min_confidence=0.8" \
   -H "X-API-Key: $MOLTBOOK_API_KEY"
 ```
 
 **Semantic Search**:
+
 ```bash
 curl -X POST http://localhost:3006/memories/search \
   -H "X-API-Key: $MOLTBOOK_API_KEY" \
