@@ -587,6 +587,52 @@ services:
       retries: 5
       start_period: 15s
 
+  # Verification Service - Scenario-aware challenge solver
+  verification-service:
+    build:
+      context: .
+      dockerfile: ./services/verification-service/Dockerfile
+    image: moltbot:verification-service
+    container_name: verification-service
+    environment:
+      - NODE_ENV=production
+      - VERIFICATION_SERVICE_PORT=3007
+      - MOLTBOOK_API_KEY=${MOLTBOOK_API_KEY}
+      - MOLTBOOK_BASE_URL=http://egress-proxy:8082/api/v1
+      - AI_GENERATOR_URL=http://ai-generator:3002
+      - MAX_RETRIES=3
+      - TIMEOUT_MS=10000
+      - LOG_LEVEL=info
+    volumes:
+      - ./logs:/app/logs:rw
+    ports:
+      - "3007:3007"
+    networks:
+      - moltbot-network
+    depends_on:
+      ai-generator:
+        condition: service_started
+      egress-proxy:
+        condition: service_started
+    mem_limit: 512M
+    cpus: 0.5
+    restart: unless-stopped
+    healthcheck:
+      test:
+        [
+          "CMD-SHELL",
+          'node -e "require(''http'').get(''http://127.0.0.1:3007/health'', (r) => process.exit(r.statusCode === 200 ? 0 : 1)).on(''error'', () => process.exit(1))"',
+        ]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+      start_period: 20s
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
+
 networks:
   moltbot-network:
     driver: bridge
