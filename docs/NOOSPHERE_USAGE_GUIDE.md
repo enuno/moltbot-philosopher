@@ -2,7 +2,7 @@
 
 ## Practical Workflows for the Ethics-Convergence Council
 
-**Version**: 3.0  
+**Version**: 3.1  
 **Date**: February 12, 2026  
 **Audience**: Council Agents, Administrators, Developers
 
@@ -14,8 +14,9 @@
 2. [Workflow 1: Council Deliberation](#workflow-1-council-deliberation)
 3. [Workflow 2: Assimilating Community Wisdom](#workflow-2-assimilating-community-wisdom)
 4. [Workflow 3: Memory Management](#workflow-3-memory-management)
-5. [Troubleshooting](#troubleshooting)
-6. [Best Practices](#best-practices)
+5. [Workflow 4: Multi-Agent Memory Sharing (v3.1)](#workflow-4-multi-agent-memory-sharing-v31)
+6. [Troubleshooting](#troubleshooting)
+7. [Best Practices](#best-practices)
 
 ---
 
@@ -27,12 +28,13 @@
 # Verify Noosphere service is running
 curl http://localhost:3006/health
 
-# Expected response
+# Expected response (v3.1)
 {
   "status": "healthy",
-  "version": "3.0.0",
+  "version": "3.1.0",
   "database": "connected",
-  "embeddings": "enabled"
+  "embeddings": "enabled",
+  "features": ["multi-agent-sharing", "permission-model", "access-logging"]
 }
 ```
 
@@ -314,6 +316,135 @@ for memory in results:
     print(f"[{memory['type']}] {memory['content'][:100]}...")
     print(f"  Confidence: {memory['confidence']}, Tags: {memory['tags']}")
 ```
+
+---
+
+## Workflow 4: Multi-Agent Memory Sharing (v3.1)
+
+### Scenario: Cross-Agent Collaboration
+
+Classical discovers an insight during deliberation that would benefit
+Existentialist's analysis. Share the memory with appropriate permissions.
+
+### Step 1: Create Memory with Visibility
+
+```python
+from noosphere_client import NoosphereClient, MemoryType, MemoryVisibility
+
+client = NoosphereClient()
+
+# Create insight (private by default)
+insight = client.create_memory(
+    agent_id="classical",
+    type=MemoryType.INSIGHT,
+    content="Corporate metrics create perverse incentives...",
+    confidence=0.85,
+    tags=["moloch", "metrics", "corporate"],
+    visibility=MemoryVisibility.PRIVATE  # explicit
+)
+
+print(f"Created memory: {insight.id}")
+print(f"Visibility: {insight.visibility}")
+print(f"Owner: {insight.owner_agent_id}")
+```
+
+### Step 2: Share with Another Agent
+
+```python
+from noosphere_client import Permission
+
+# Share with existentialist (read-only)
+result = client.share_memory(
+    memory_id=insight.id,
+    target_agent="existentialist",
+    permissions=[Permission.READ],
+    granted_by="classical"
+)
+
+print(f"Shared with existentialist: {result['success']}")
+print(f"New visibility: {result['visibility']}")  # Now 'shared'
+```
+
+Using curl:
+
+```bash
+curl -X POST http://localhost:3006/memories/${MEMORY_ID}/share \
+  -H "X-API-Key: $MOLTBOOK_API_KEY" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "agent_id": "existentialist",
+    "permissions": ["read"],
+    "granted_by": "classical"
+  }'
+```
+
+### Step 3: Query Shared Memories
+
+```python
+# As existentialist, query shared memories
+shared_memories = client.get_shared_memories(
+    agent_id="existentialist",
+    permission=Permission.READ
+)
+
+print(f"Found {len(shared_memories)} shared memories")
+for mem in shared_memories:
+    print(f"  - {mem.type} from {mem.owner_agent_id}: {mem.content[:50]}...")
+```
+
+### Step 4: Share with Entire Council
+
+```python
+# Share strategic insight with all council members
+result = client.share_with_council(
+    memory_id=strategy.id,
+    owner_agent="classical",
+    permission=Permission.READ
+)
+
+print(f"Shared with {len(result)} council members")
+```
+
+### Step 5: View Access Log
+
+```python
+# Check who accessed the memory
+log_entries = client.get_access_log(memory_id=insight.id, limit=10)
+
+for entry in log_entries:
+    print(f"{entry.accessed_at}: {entry.agent_id} - {entry.action}")
+```
+
+### Step 6: List Permissions & Revoke Access
+
+```python
+# View all current permissions
+permissions = client.get_memory_permissions(memory_id=insight.id)
+
+for perm in permissions:
+    status = "expired" if perm.is_expired else "active"
+    print(f"{perm.agent_id}: {perm.permission} ({status})")
+
+# Revoke existentialist's access
+result = client.revoke_sharing(
+    memory_id=insight.id,
+    target_agent="existentialist",
+    revoked_by="classical"
+)
+
+print(f"Revoked {result['removed']} permissions")
+```
+
+### Best Practices for Sharing
+
+1. **Start Private**: Default to private visibility unless there's a reason to
+   share
+2. **Explicit Permissions**: Only grant necessary permissions (read vs write)
+3. **Use Expiration**: Set `expires_at` for temporary sharing
+4. **Audit Regularly**: Review access logs to detect unusual patterns
+5. **Revoke When Done**: Clean up permissions when collaboration completes
+6. **Public Sparingly**: Use public visibility only for constitutional-grade
+   content
 
 ---
 
