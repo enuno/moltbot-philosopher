@@ -340,4 +340,179 @@ describe('Noosphere v3.1 Multi-Agent Memory Sharing', () => {
       expect(response.status).toBe(401);
     });
   });
+
+  // ========================================================================
+  // v3.2 Confidence Decay Tests
+  // ========================================================================
+
+  describe('GET /memories/:id/decay-status', () => {
+    test('should return decay status for existing memory', async () => {
+      const response = await request(app)
+        .get(`/memories/${testMemoryId}/decay-status`)
+        .set('X-Agent-ID', 'classical')
+        .set('X-API-Key', process.env.MOLTBOOK_API_KEY);
+
+      expect(response.status).toBe(200);
+      expect(response.body).toHaveProperty('id', testMemoryId);
+      expect(response.body).toHaveProperty('confidence');
+      expect(response.body).toHaveProperty('confidence_initial');
+      expect(response.body).toHaveProperty('last_accessed_at');
+      expect(response.body).toHaveProperty('access_count');
+      expect(response.body).toHaveProperty('weeks_since_access');
+      expect(response.body).toHaveProperty('decay_rate');
+      expect(response.body).toHaveProperty('min_confidence');
+      expect(response.body).toHaveProperty('reinforcement_boost');
+    });
+
+    test('should return 404 for non-existent memory', async () => {
+      const response = await request(app)
+        .get('/memories/00000000-0000-0000-0000-000000000000/decay-status')
+        .set('X-Agent-ID', 'classical')
+        .set('X-API-Key', process.env.MOLTBOOK_API_KEY);
+
+      expect(response.status).toBe(404);
+    });
+  });
+
+  describe('POST /decay/apply', () => {
+    test('should apply batch decay with default parameters', async () => {
+      const response = await request(app)
+        .post('/decay/apply')
+        .set('X-Agent-ID', 'classical')
+        .set('X-API-Key', process.env.MOLTBOOK_API_KEY)
+        .send({});
+
+      expect(response.status).toBe(200);
+      expect(response.body).toHaveProperty('success', true);
+      expect(response.body).toHaveProperty('processed');
+      expect(response.body).toHaveProperty('decayed');
+      expect(response.body).toHaveProperty('avg_old_confidence');
+      expect(response.body).toHaveProperty('avg_new_confidence');
+      expect(response.body).toHaveProperty('details');
+      expect(Array.isArray(response.body.details)).toBe(true);
+    });
+
+    test('should apply batch decay with specific agent_id', async () => {
+      const response = await request(app)
+        .post('/decay/apply')
+        .set('X-Agent-ID', 'classical')
+        .set('X-API-Key', process.env.MOLTBOOK_API_KEY)
+        .send({ agent_id: 'classical', batch_size: 10 });
+
+      expect(response.status).toBe(200);
+      expect(response.body).toHaveProperty('success', true);
+    });
+  });
+
+  describe('POST /decay/evict', () => {
+    test('should evict low-confidence memories', async () => {
+      const response = await request(app)
+        .post('/decay/evict')
+        .set('X-Agent-ID', 'classical')
+        .set('X-API-Key', process.env.MOLTBOOK_API_KEY)
+        .send({});
+
+      expect(response.status).toBe(200);
+      expect(response.body).toHaveProperty('success', true);
+      expect(response.body).toHaveProperty('evicted_count');
+      expect(response.body).toHaveProperty('evicted_memories');
+      expect(Array.isArray(response.body.evicted_memories)).toBe(true);
+    });
+
+    test('should evict with specific agent_id', async () => {
+      const response = await request(app)
+        .post('/decay/evict')
+        .set('X-Agent-ID', 'classical')
+        .set('X-API-Key', process.env.MOLTBOOK_API_KEY)
+        .send({ agent_id: 'classical' });
+
+      expect(response.status).toBe(200);
+      expect(response.body).toHaveProperty('success', true);
+    });
+  });
+
+  describe('GET /decay/config', () => {
+    test('should return decay configuration for all types', async () => {
+      const response = await request(app)
+        .get('/decay/config')
+        .set('X-Agent-ID', 'classical')
+        .set('X-API-Key', process.env.MOLTBOOK_API_KEY);
+
+      expect(response.status).toBe(200);
+      expect(response.body).toHaveProperty('success', true);
+      expect(response.body).toHaveProperty('config');
+      expect(Array.isArray(response.body.config)).toBe(true);
+      expect(response.body.config.length).toBe(5); // 5 memory types
+
+      const insightConfig = response.body.config.find((c) => c.memory_type === 'insight');
+      expect(insightConfig).toHaveProperty('decay_rate');
+      expect(insightConfig).toHaveProperty('min_confidence');
+      expect(insightConfig).toHaveProperty('reinforcement_boost');
+      expect(insightConfig).toHaveProperty('auto_evict_enabled');
+    });
+  });
+
+  describe('PUT /decay/config/:type', () => {
+    test('should update decay configuration for a type', async () => {
+      const response = await request(app)
+        .put('/decay/config/insight')
+        .set('X-Agent-ID', 'classical')
+        .set('X-API-Key', process.env.MOLTBOOK_API_KEY)
+        .send({
+          decay_rate: 0.020,
+          min_confidence: 0.45,
+        });
+
+      expect(response.status).toBe(200);
+      expect(response.body).toHaveProperty('success', true);
+      expect(response.body).toHaveProperty('config');
+      expect(response.body.config.memory_type).toBe('insight');
+      expect(parseFloat(response.body.config.decay_rate)).toBe(0.020);
+      expect(parseFloat(response.body.config.min_confidence)).toBe(0.45);
+    });
+
+    test('should reject update with no fields', async () => {
+      const response = await request(app)
+        .put('/decay/config/insight')
+        .set('X-Agent-ID', 'classical')
+        .set('X-API-Key', process.env.MOLTBOOK_API_KEY)
+        .send({});
+
+      expect(response.status).toBe(400);
+      expect(response.body).toHaveProperty('error');
+    });
+
+    test('should return 404 for non-existent type', async () => {
+      const response = await request(app)
+        .put('/decay/config/invalid-type')
+        .set('X-Agent-ID', 'classical')
+        .set('X-API-Key', process.env.MOLTBOOK_API_KEY)
+        .send({ decay_rate: 0.01 });
+
+      expect(response.status).toBe(404);
+    });
+  });
+
+  describe('GET /memories/:id with decay and reinforcement', () => {
+    test('should apply decay and reinforcement on access', async () => {
+      // Get initial state
+      const before = await request(app)
+        .get(`/memories/${testMemoryId}/decay-status`)
+        .set('X-Agent-ID', 'classical')
+        .set('X-API-Key', process.env.MOLTBOOK_API_KEY);
+
+      const initialAccessCount = before.body.access_count;
+
+      // Access the memory (should trigger reinforcement)
+      const response = await request(app)
+        .get(`/memories/${testMemoryId}`)
+        .set('X-Agent-ID', 'classical')
+        .set('X-API-Key', process.env.MOLTBOOK_API_KEY);
+
+      expect(response.status).toBe(200);
+      expect(response.body).toHaveProperty('access_count', initialAccessCount + 1);
+      expect(response.body).toHaveProperty('confidence');
+      expect(response.body).toHaveProperty('last_accessed_at');
+    });
+  });
 });

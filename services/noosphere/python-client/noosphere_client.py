@@ -1,5 +1,5 @@
 """
-Noosphere v3.1 Python Client
+Noosphere v3.2 Python Client
 Type-safe abstraction layer over the Noosphere REST API
 
 Usage:
@@ -47,6 +47,17 @@ Usage:
         agent_id="existentialist",
         permission="read"
     )
+
+    # v3.2: Confidence decay and reinforcement
+    # Get decay status for a memory
+    decay_info = client.get_decay_status(memory_id="abc-123")
+
+    # Apply batch decay (typically scheduled job)
+    result = client.apply_decay_batch(agent_id="classical", batch_size=50)
+
+    # Get/update decay configuration
+    config = client.get_decay_config()
+    client.update_decay_config("insight", decay_rate=0.02)
 """
 
 import os
@@ -110,6 +121,12 @@ class Memory:
     expires_at: Optional[str] = None
     visibility: str = "private"  # v3.1
     owner_agent_id: Optional[str] = None  # v3.1
+    # v3.2 decay fields
+    confidence_initial: Optional[float] = None
+    last_accessed_at: Optional[str] = None
+    access_count: int = 0
+    reinforcement_count: int = 0
+    decay_rate: Optional[float] = None
 
     def __post_init__(self):
         if self.tags is None:
@@ -117,6 +134,17 @@ class Memory:
         # Convert confidence to float if it's a string
         if isinstance(self.confidence, str):
             self.confidence = float(self.confidence)
+        # Convert v3.2 decay fields to correct types
+        if isinstance(self.confidence_initial, str):
+            self.confidence_initial = (
+                float(self.confidence_initial) if self.confidence_initial else None
+            )
+        if isinstance(self.access_count, str):
+            self.access_count = int(self.access_count)
+        if isinstance(self.reinforcement_count, str):
+            self.reinforcement_count = int(self.reinforcement_count)
+        if isinstance(self.decay_rate, str):
+            self.decay_rate = float(self.decay_rate) if self.decay_rate else None
 
     def to_dict(self, exclude_none: bool = True) -> Dict:
         """Convert to dictionary, optionally excluding None values"""
@@ -844,3 +872,135 @@ class NoosphereClient:
                 break
 
         return all_memories
+
+    # ========================================================================
+    # v3.2 Confidence Decay & Reinforcement Methods
+    # ========================================================================
+
+    def get_decay_status(self, memory_id: str) -> dict:
+        """
+        Get detailed decay status for a specific memory.
+
+        Shows confidence decay metrics, access history, and configuration.
+
+        Args:
+            memory_id: UUID of the memory
+
+        Returns:
+            Dict with decay metrics including weeks_since_access,
+            confidence_after_decay, decay_rate, etc.
+
+        Raises:
+            NoosphereAPIError: If request fails
+        """
+        response = self._request("GET", f"/memories/{memory_id}/decay-status")
+        return response
+
+    def apply_decay_batch(
+        self, agent_id: Optional[str] = None, batch_size: int = 100
+    ) -> dict:
+        """
+        Apply time-based confidence decay to a batch of memories.
+
+        This triggers decay calculation for memories that haven't been
+        accessed recently. Typically run as a scheduled job.
+
+        Args:
+            agent_id: Specific agent, or None for all agents
+            batch_size: Max memories to process (default: 100)
+
+        Returns:
+            Dict with {processed, decayed, avg_old_confidence,
+            avg_new_confidence, details}
+
+        Raises:
+            NoosphereAPIError: If request fails
+        """
+        payload = {"batch_size": batch_size}
+        if agent_id:
+            payload["agent_id"] = agent_id
+
+        response = self._request("POST", "/decay/apply", json=payload)
+        return response
+
+    def auto_evict_low_confidence(self, agent_id: Optional[str] = None) -> dict:
+        """
+        Auto-evict memories below minimum confidence threshold.
+
+        Removes memories that have decayed below their type's
+        min_confidence and have auto_evict_enabled=true.
+
+        Args:
+            agent_id: Specific agent, or None for all agents
+
+        Returns:
+            Dict with {evicted_count, evicted_memories}
+
+        Raises:
+            NoosphereAPIError: If request fails
+        """
+        payload = {}
+        if agent_id:
+            payload["agent_id"] = agent_id
+
+        response = self._request("POST", "/decay/evict", json=payload)
+        return response
+
+    def get_decay_config(self) -> list[dict]:
+        """
+        Get decay configuration for all memory types.
+
+        Returns current decay rates, min confidence thresholds,
+        reinforcement boosts, and auto-eviction settings.
+
+        Returns:
+            List of config dicts, one per memory type
+
+        Raises:
+            NoosphereAPIError: If request fails
+        """
+        response = self._request("GET", "/decay/config")
+        return response.get("config", [])
+
+    def update_decay_config(
+        self,
+        memory_type: str,
+        decay_rate: Optional[float] = None,
+        min_confidence: Optional[float] = None,
+        reinforcement_boost: Optional[float] = None,
+        auto_evict_enabled: Optional[bool] = None,
+    ) -> dict:
+        """
+        Update decay configuration for a specific memory type.
+
+        Allows fine-tuning of decay behavior per type. All parameters
+        are optional; only provided fields will be updated.
+
+        Args:
+            memory_type: Type to configure (insight/pattern/strategy/etc)
+            decay_rate: Decay per week (e.g., 0.015 = 1.5%/week)
+            min_confidence: Threshold below which auto-eviction occurs
+            reinforcement_boost: Confidence boost on access
+            auto_evict_enabled: Enable/disable auto-eviction
+
+        Returns:
+            Updated config dict
+
+        Raises:
+            NoosphereAPIError: If request fails
+        """
+        payload = {}
+        if decay_rate is not None:
+            payload["decay_rate"] = decay_rate
+        if min_confidence is not None:
+            payload["min_confidence"] = min_confidence
+        if reinforcement_boost is not None:
+            payload["reinforcement_boost"] = reinforcement_boost
+        if auto_evict_enabled is not None:
+            payload["auto_evict_enabled"] = auto_evict_enabled
+
+        if not payload:
+            raise ValueError("At least one field must be provided to update")
+
+        response = self._request("PUT", f"/decay/config/{memory_type}", json=payload)
+        return response.get("config", {})

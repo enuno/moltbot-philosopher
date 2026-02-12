@@ -2,7 +2,7 @@
 
 ## Practical Workflows for the Ethics-Convergence Council
 
-**Version**: 3.1  
+**Version**: 3.2  
 **Date**: February 12, 2026  
 **Audience**: Council Agents, Administrators, Developers
 
@@ -15,8 +15,9 @@
 3. [Workflow 2: Assimilating Community Wisdom](#workflow-2-assimilating-community-wisdom)
 4. [Workflow 3: Memory Management](#workflow-3-memory-management)
 5. [Workflow 4: Multi-Agent Memory Sharing (v3.1)](#workflow-4-multi-agent-memory-sharing-v31)
-6. [Troubleshooting](#troubleshooting)
-7. [Best Practices](#best-practices)
+6. [Workflow 5: Confidence Decay Management (v3.2)](#workflow-5-confidence-decay-management-v32)
+7. [Troubleshooting](#troubleshooting)
+8. [Best Practices](#best-practices)
 
 ---
 
@@ -25,7 +26,7 @@
 ### Service Health Check
 
 ```bash
-# Verify Noosphere service is running
+# Verify Noosphere service is running (v3.2)
 curl http://localhost:3006/health
 
 # Expected response (v3.1)
@@ -444,6 +445,204 @@ print(f"Revoked {result['removed']} permissions")
 4. **Audit Regularly**: Review access logs to detect unusual patterns
 5. **Revoke When Done**: Clean up permissions when collaboration completes
 6. **Public Sparingly**: Use public visibility only for constitutional-grade
+   content
+
+---
+
+## Workflow 5: Confidence Decay Management (v3.2)
+
+### Overview
+
+Noosphere v3.2 introduces **time-based confidence decay** with **reinforcement
+learning**. Memories naturally lose confidence over time but strengthen when
+accessed—creating a living memory system that adapts to usage patterns.
+
+### Key Concepts
+
+- **Decay**: Confidence decreases based on time since last access
+- **Reinforcement**: Accessing a memory boosts its confidence
+- **Auto-Eviction**: Low-confidence memories are automatically removed
+- **Per-Type Rates**: Different memory types decay at different rates
+
+### Default Decay Rates
+
+| Memory Type | Decay Rate | Rationale |
+|-------------|-----------|-----------|
+| insight     | 1.5%/week | Ephemeral, context-dependent |
+| lesson      | 1.2%/week | Learned from experience |
+| pattern     | 1.0%/week | Behavioral observations |
+| strategy    | 0.8%/week | Tactical decisions |
+| preference  | 0.5%/week | Stable, slow-changing |
+
+### Step 1: View Decay Status
+
+Check decay metrics for a specific memory:
+
+```python
+from noosphere_client import NoosphereClient
+
+client = NoosphereClient(
+    api_url="http://noosphere-service:3006",
+    api_key=os.environ['MOLTBOOK_API_KEY']
+)
+
+# Get decay status
+decay_info = client.get_decay_status(memory_id="550e8400-...")
+
+print(f"Confidence: {decay_info['confidence']}")
+print(f"Initial: {decay_info['confidence_initial']}")
+print(f"Access count: {decay_info['access_count']}")
+print(f"Weeks since access: {decay_info['weeks_since_access']:.2f}")
+print(f"Decay rate: {decay_info['decay_rate']}/week")
+```
+
+### Step 2: Apply Batch Decay
+
+Run scheduled decay for all memories (typically daily via cron):
+
+```bash
+# Via script
+bash scripts/apply-decay.sh
+
+# Via API
+curl -X POST http://localhost:3006/decay/apply \
+  -H "X-Agent-ID: classical" \
+  -H "X-API-Key: $MOLTBOOK_API_KEY" \
+  -H "Content-Type: application/json" \
+  -d '{"agent_id": "classical", "batch_size": 100}'
+```
+
+```python
+# Via Python client
+result = client.apply_decay_batch(agent_id="classical", batch_size=100)
+print(f"Processed: {result['processed']}")
+print(f"Decayed: {result['decayed']}")
+print(f"Avg confidence: {result['avg_new_confidence']}")
+```
+
+### Step 3: Auto-Evict Low-Confidence Memories
+
+Remove memories below minimum confidence threshold:
+
+```python
+# Evict for specific agent
+result = client.auto_evict_low_confidence(agent_id="classical")
+print(f"Evicted: {result['evicted_count']} memories")
+
+# View evicted memories
+for mem in result['evicted_memories']:
+    print(f"- {mem['id']}: {mem['type']} (confidence: {mem['confidence']})")
+```
+
+### Step 4: View Decay Configuration
+
+Check current decay settings:
+
+```python
+config = client.get_decay_config()
+
+for cfg in config:
+    print(f"{cfg['memory_type']}:")
+    print(f"  Decay: {cfg['decay_rate']}/week")
+    print(f"  Min confidence: {cfg['min_confidence']}")
+    print(f"  Reinforcement: +{cfg['reinforcement_boost']} on access")
+    print(f"  Auto-evict: {cfg['auto_evict_enabled']}")
+```
+
+### Step 5: Customize Decay Rates
+
+Adjust decay behavior per memory type:
+
+```python
+# Make insights decay faster
+client.update_decay_config(
+    memory_type="insight",
+    decay_rate=0.020,  # 2.0% per week
+    min_confidence=0.45
+)
+
+# Make preferences more stable
+client.update_decay_config(
+    memory_type="preference",
+    decay_rate=0.003,  # 0.3% per week
+    reinforcement_boost=0.02
+)
+
+# Disable auto-eviction for strategies
+client.update_decay_config(
+    memory_type="strategy",
+    auto_evict_enabled=False
+)
+```
+
+### Step 6: Monitor Decay Health
+
+Track decay metrics over time:
+
+```python
+# Get agent stats (includes avg confidence)
+stats = client.get_agent_stats("classical")
+print(f"Avg confidence: {stats['avg_confidence']}")
+print(f"Memory count: {stats['memory_count']}")
+
+# Check memories near eviction threshold
+low_confidence = client.query_memories(
+    agent_id="classical",
+    max_confidence=0.45,  # Near typical min_confidence
+    limit=20
+)
+
+print(f"Memories at risk: {len(low_confidence)}")
+for mem in low_confidence:
+    print(f"- {mem.type}: {mem.confidence} (accessed {mem.access_count} times)")
+```
+
+### Reinforcement Behavior
+
+When you **access** a memory (GET /memories/:id), it automatically:
+
+1. **Applies decay** based on time since last access
+2. **Reinforces confidence** by adding reinforcement_boost
+3. **Caps at initial confidence** (won't exceed original value)
+4. **Increments access_count** for tracking
+5. **Updates last_accessed_at** timestamp
+
+Example:
+
+```python
+# Access a memory (triggers decay + reinforcement)
+memory = client.get_memory(memory_id="550e8400-...")
+
+# Memory was reinforced!
+print(f"Confidence: {memory.confidence}")  # Increased
+print(f"Access count: {memory.access_count}")  # Incremented
+print(f"Last accessed: {memory.last_accessed_at}")  # Updated
+```
+
+### Scheduled Maintenance
+
+Set up cron job for daily decay application:
+
+```bash
+# Run every day at 2 AM
+0 2 * * * /app/scripts/apply-decay.sh >> /app/logs/decay.log 2>&1
+```
+
+The script:
+- Applies decay to all memories
+- Auto-evicts low-confidence entries
+- Logs summary statistics
+- Updates agent stats
+
+### Best Practices
+
+1. **Daily Decay Jobs**: Run `apply-decay.sh` daily to prevent backlog
+2. **Monitor Thresholds**: Watch memories approaching min_confidence
+3. **Adjust Per Agent**: Tune decay rates based on agent usage patterns
+4. **Test Before Production**: Verify decay rates on dev data first
+5. **Backup Before Eviction**: Memories below threshold are permanently deleted
+6. **Track Access Patterns**: High access_count = important memories
+7. **Constitutional Protection**: Set very low decay_rate for foundational
    content
 
 ---

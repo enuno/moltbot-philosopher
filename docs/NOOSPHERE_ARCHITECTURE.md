@@ -2,11 +2,11 @@
 
 ## Living Epistemological Substrate for the Ethics-Convergence Council
 
-**Version**: 3.1  
+**Version**: 3.2  
 **Date**: 2026-02-12  
 **Status**: Production  
 **Architecture**: PostgreSQL + pgvector with 5-Type Memory System + Multi-Agent
-Sharing
+Sharing + Confidence Decay
 
 ---
 
@@ -21,7 +21,24 @@ Voices.
 > insights carved from past deliberations, the failures that shaped our
 > process, the community lessons we've assimilated."*
 
-### v3.1 Architecture: Multi-Agent Memory Sharing
+### v3.2 Architecture: Confidence Decay & Reinforcement
+
+Noosphere v3.2 adds **time-based confidence decay** with **reinforcement
+learning**, creating a living memory system that:
+
+- **Decays Over Time**: Memories lose confidence based on age and access
+  patterns
+- **Reinforces On Use**: Accessing memories boosts confidence (learning by
+  doing)
+- **Auto-Eviction**: Removes low-confidence memories to maintain quality
+- **Per-Type Configuration**: Different decay rates for insights, patterns,
+  strategies, preferences, lessons
+- **Batch Processing**: Scheduled jobs for efficient large-scale decay
+
+This enables **adaptive memory management** where frequently accessed wisdom
+strengthens while unused memories naturally fade, preventing cognitive cruft.
+
+### v3.1 Foundation: Multi-Agent Memory Sharing
 
 Noosphere v3.1 extends v3.0's PostgreSQL foundation with **multi-agent memory
 sharing**, enabling:
@@ -117,8 +134,15 @@ CREATE TABLE noosphere_memory (
   created_at      TIMESTAMPTZ DEFAULT now(),
   updated_at      TIMESTAMPTZ DEFAULT now(),
   expires_at      TIMESTAMPTZ DEFAULT NULL,
-  visibility      TEXT DEFAULT 'private' CHECK (visibility IN ('private','shared','public')),  -- v3.1
-  owner_agent_id  TEXT DEFAULT agent_id,  -- v3.1
+  -- v3.1: Multi-agent sharing
+  visibility      TEXT DEFAULT 'private' CHECK (visibility IN ('private','shared','public')),
+  owner_agent_id  TEXT DEFAULT agent_id,
+  -- v3.2: Confidence decay
+  confidence_initial NUMERIC(3,2) DEFAULT NULL,  -- Original confidence for reinforcement cap
+  last_accessed_at   TIMESTAMPTZ DEFAULT now(),  -- Last access time for decay
+  access_count       INTEGER DEFAULT 0,          -- Total accesses
+  reinforcement_count INTEGER DEFAULT 0,         -- Number of confidence boosts
+  decay_rate         NUMERIC(4,3) DEFAULT NULL,  -- Custom per-memory decay rate
 
   CONSTRAINT confidence_range CHECK (confidence BETWEEN 0.0 AND 1.0)
 );
@@ -153,6 +177,26 @@ CREATE TABLE noosphere_access_log (
   error_message   TEXT DEFAULT NULL,
   metadata        JSONB DEFAULT NULL
 );
+```
+
+**noosphere_decay_config** - Decay configuration per memory type (v3.2)
+
+```sql
+CREATE TABLE noosphere_decay_config (
+  memory_type         TEXT PRIMARY KEY CHECK (memory_type IN ('insight','pattern','strategy','preference','lesson')),
+  decay_rate          NUMERIC(4,3) NOT NULL DEFAULT 0.010,  -- Decay per week (e.g., 0.015 = 1.5%/week)
+  min_confidence      NUMERIC(3,2) NOT NULL DEFAULT 0.30,   -- Threshold for auto-eviction
+  reinforcement_boost NUMERIC(3,2) NOT NULL DEFAULT 0.05,   -- Confidence boost on access
+  auto_evict_enabled  BOOLEAN NOT NULL DEFAULT true,        -- Enable auto-eviction
+  updated_at          TIMESTAMPTZ DEFAULT now()
+);
+
+-- Default decay rates (v3.2)
+-- insight: 1.5%/week (fastest decay - ephemeral insights)
+-- lesson: 1.2%/week (learned from experience)
+-- pattern: 1.0%/week (behavioral patterns)
+-- strategy: 0.8%/week (tactical decisions)
+-- preference: 0.5%/week (slowest decay - stable preferences)
 ```
 
 **noosphere_agent_stats** - 200-cap enforcement
@@ -308,6 +352,84 @@ Returns access log entries showing all share/unshare/access operations.
 
 Removes all expired permissions. Returns count of deleted entries.
 
+**GET /memories/:id/decay-status** - Get decay information (v3.2)
+
+```bash
+GET /memories/550e8400-e29b-41d4-a716-446655440000/decay-status
+```
+
+Response includes confidence decay metrics:
+
+```json
+{
+  "id": "550e8400-e29b-41d4-a716-446655440000",
+  "type": "insight",
+  "confidence": 0.72,
+  "confidence_initial": 0.85,
+  "last_accessed_at": "2026-02-10T15:30:00Z",
+  "access_count": 12,
+  "reinforcement_count": 3,
+  "confidence_after_decay": 0.72,
+  "weeks_since_access": 0.14,
+  "decay_rate": 0.015,
+  "min_confidence": 0.40,
+  "reinforcement_boost": 0.05,
+  "auto_evict_enabled": true
+}
+```
+
+**POST /decay/apply** - Apply batch decay (v3.2)
+
+```json
+{
+  "agent_id": "classical",
+  "batch_size": 100
+}
+```
+
+Applies time-based decay to memories. Returns processing statistics.
+
+**POST /decay/evict** - Auto-evict low-confidence memories (v3.2)
+
+```json
+{
+  "agent_id": "classical"
+}
+```
+
+Removes memories below min_confidence threshold. Returns evicted count.
+
+**GET /decay/config** - Get decay configuration (v3.2)
+
+Returns decay rates, thresholds, and settings for all memory types:
+
+```json
+{
+  "success": true,
+  "config": [
+    {
+      "memory_type": "insight",
+      "decay_rate": 0.015,
+      "min_confidence": 0.40,
+      "reinforcement_boost": 0.05,
+      "auto_evict_enabled": true
+    }
+  ]
+}
+```
+
+**PUT /decay/config/:type** - Update decay configuration (v3.2)
+
+```json
+{
+  "decay_rate": 0.020,
+  "min_confidence": 0.45,
+  "reinforcement_boost": 0.06
+}
+```
+
+Updates decay settings for a specific memory type.
+
 **POST /memories/search** - Semantic search
 
 ```json
@@ -339,7 +461,7 @@ DELETE /memories/550e8400-e29b-41d4-a716-446655440000
   "preferences_count": 12,
   "lessons_count": 13,
   "last_eviction": "2026-02-10T15:30:00Z",
-  "schema_version": "3.1"
+  "schema_version": "3.2"
 }
 ```
 
