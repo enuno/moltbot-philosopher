@@ -38,6 +38,18 @@ export class DraftManager {
   }
 
   /**
+   * Sanitize draft ID to prevent path traversal
+   */
+  private sanitizeId(id: string): string {
+    // Only allow alphanumeric, hyphens, and underscores
+    const sanitized = id.replace(/[^a-zA-Z0-9_-]/g, '');
+    if (sanitized !== id || sanitized.length === 0) {
+      throw new Error('Invalid draft ID format');
+    }
+    return sanitized;
+  }
+
+  /**
    * Create new draft
    */
   async createDraft(data: Omit<Draft, 'id' | 'createdAt' | 'updatedAt'>): Promise<Draft> {
@@ -58,7 +70,8 @@ export class DraftManager {
    */
   async getDraft(id: string): Promise<Draft | null> {
     try {
-      const filepath = path.join(this.draftsPath, `${id}.json`);
+      const safeId = this.sanitizeId(id);
+      const filepath = path.join(this.draftsPath, `${safeId}.json`);
       const content = await fs.readFile(filepath, 'utf-8');
       const draft = JSON.parse(content) as Draft;
 
@@ -139,7 +152,8 @@ export class DraftManager {
    */
   async deleteDraft(id: string): Promise<boolean> {
     try {
-      const filepath = path.join(this.draftsPath, `${id}.json`);
+      const safeId = this.sanitizeId(id);
+      const filepath = path.join(this.draftsPath, `${safeId}.json`);
       await fs.unlink(filepath);
       return true;
     } catch (error) {

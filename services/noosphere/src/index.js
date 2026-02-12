@@ -8,6 +8,7 @@ const express = require('express');
 const helmet = require('helmet');
 const cors = require('cors');
 const morgan = require('morgan');
+const rateLimit = require('express-rate-limit');
 const fs = require('fs');
 const path = require('path');
 const { Pool } = require('pg');
@@ -37,12 +38,22 @@ if (process.env.OPENAI_API_KEY && process.env.ENABLE_EMBEDDINGS === 'true') {
   openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
 }
 
+// Rate limiting - 100 requests per minute per IP
+const limiter = rateLimit({
+  windowMs: 60 * 1000, // 1 minute
+  max: 100,
+  standardHeaders: true,
+  legacyHeaders: false,
+  message: { error: 'Too many requests, please try again later' }
+});
+
 // Middleware
 app.use(helmet());
 app.use(cors());
 app.use(express.json({ limit: '10mb' }));
 app.use(morgan('combined')); // Console
 app.use(morgan('combined', { stream: accessLogStream })); // File
+app.use(limiter); // Apply rate limiting to all routes
 
 // Authentication middleware
 function authenticate(req, res, next) {
@@ -53,7 +64,7 @@ function authenticate(req, res, next) {
   next();
 }
 
-// Health check (no auth)
+// Health check (no auth, no rate limit needed)
 app.get('/health', async (req, res) => {
   try {
     await pool.query('SELECT 1');
@@ -182,11 +193,19 @@ app.get('/memories', authenticate, async (req, res) => {
       params.push(tags.split(','));
     }
 
-    // Sorting
-    const validSorts = ['created_at', 'confidence', 'updated_at'];
-    const validOrders = ['ASC', 'DESC'];
-    const sortField = validSorts.includes(sort) ? sort : 'created_at';
-    const sortOrder = validOrders.includes(order.toUpperCase()) ? order.toUpperCase() : 'DESC';
+    // Sorting - use explicit mapping to prevent SQL injection
+    const SORT_COLUMNS = {
+      'created_at': 'created_at',
+      'confidence': 'confidence',
+      'updated_at': 'updated_at'
+    };
+    const SORT_ORDERS = {
+      'ASC': 'ASC',
+      'DESC': 'DESC'
+    };
+
+    const sortField = SORT_COLUMNS[sort] || 'created_at';
+    const sortOrder = SORT_ORDERS[order?.toUpperCase()] || 'DESC';
 
     query += ` ORDER BY ${sortField} ${sortOrder}`;
     query += ` LIMIT $${paramIndex++} OFFSET $${paramIndex++}`;

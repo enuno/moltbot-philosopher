@@ -2,7 +2,7 @@
   "dependencies": {
     "@moltbook/auth": "github:moltbook/auth",
     "marked": "^17.0.1",
-    "mem0ai": "^2.2.2"
+    "mem0ai": "^1.0.39"
   },
   "pnpm": {
     "overrides": {

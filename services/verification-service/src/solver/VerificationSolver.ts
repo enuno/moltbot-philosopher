@@ -40,8 +40,59 @@ export interface SolverConfig {
  * Verification Solver
  */
 export class VerificationSolver extends EventEmitter {
+  private readonly ALLOWED_HOSTS: Set<string>;
+
   constructor(private readonly config: SolverConfig) {
     super();
+
+    // Validate and whitelist allowed hosts during construction
+    this.ALLOWED_HOSTS = new Set();
+
+    try {
+      const aiUrl = new URL(this.config.aiGeneratorUrl);
+      const moltbookUrl = new URL(this.config.moltbookBaseUrl);
+
+      // Only allow specific known hosts
+      if (aiUrl.hostname === 'ai-generator' || aiUrl.hostname === 'localhost') {
+        this.ALLOWED_HOSTS.add(aiUrl.host);
+      } else {
+        throw new Error(`AI Generator URL not allowed: ${aiUrl.hostname}`);
+      }
+
+      if (moltbookUrl.hostname.endsWith('.moltbook.com') || moltbookUrl.hostname === 'localhost') {
+        this.ALLOWED_HOSTS.add(moltbookUrl.host);
+      } else {
+        throw new Error(`Moltbook URL not allowed: ${moltbookUrl.hostname}`);
+      }
+    } catch (error) {
+      throw new Error(`Invalid configuration URLs: ${error instanceof Error ? error.message : String(error)}`);
+    }
+  }
+
+  /**
+   * Validate URL to prevent SSRF
+   */
+  private validateUrl(url: string): void {
+    try {
+      const parsed = new URL(url);
+
+      // Check if host is in whitelist
+      if (!this.ALLOWED_HOSTS.has(parsed.host)) {
+        throw new Error(`URL host not allowed: ${parsed.host}`);
+      }
+
+      // Prevent accessing internal IPs
+      if (parsed.hostname === '127.0.0.1' ||
+          parsed.hostname === '::1' ||
+          parsed.hostname.startsWith('169.254.') ||
+          parsed.hostname.startsWith('10.') ||
+          parsed.hostname.startsWith('172.16.') ||
+          parsed.hostname.startsWith('192.168.')) {
+        throw new Error('Cannot access internal IP addresses');
+      }
+    } catch (error) {
+      throw new Error(`URL validation failed: ${error instanceof Error ? error.message : String(error)}`);
+    }
   }
 
   /**
@@ -124,11 +175,14 @@ export class VerificationSolver extends EventEmitter {
    * Get AI answer for question
    */
   private async getAIAnswer(question: string): Promise<string> {
+    const url = `${this.config.aiGeneratorUrl}/generate`;
+    this.validateUrl(url); // Validate before making request
+
     const controller = new AbortController();
     const timeoutId = setTimeout(() => controller.abort(), this.config.timeoutMs);
 
     try {
-      const response = await fetch(`${this.config.aiGeneratorUrl}/generate`, {
+      const response = await fetch(url, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -163,17 +217,17 @@ export class VerificationSolver extends EventEmitter {
    * Submit answer to Moltbook
    */
   private async submitAnswer(challengeId: string, answer: string): Promise<boolean> {
-    const response = await fetch(
-      `${this.config.moltbookBaseUrl}/api/v1/agents/me/verification-challenges/${challengeId}/answer`,
-      {
-        method: 'POST',
-        headers: {
-          'Authorization': `Bearer ${this.config.moltbookApiKey}`,
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({ answer }),
-      }
-    );
+    const url = `${this.config.moltbookBaseUrl}/api/v1/agents/me/verification-challenges/${challengeId}/answer`;
+    this.validateUrl(url); // Validate before making request
+
+    const response = await fetch(url, {
+      method: 'POST',
+      headers: {
+        'Authorization': `Bearer ${this.config.moltbookApiKey}`,
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({ answer }),
+    });
 
     if (!response.ok) {
       console.error(`[VerificationSolver] Submit failed: HTTP ${response.status}`);
