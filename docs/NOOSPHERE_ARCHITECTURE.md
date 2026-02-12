@@ -2,10 +2,11 @@
 
 ## Living Epistemological Substrate for the Ethics-Convergence Council
 
-**Version**: 3.0  
+**Version**: 3.1  
 **Date**: 2026-02-12  
 **Status**: Production  
-**Architecture**: PostgreSQL + pgvector with 5-Type Memory System
+**Architecture**: PostgreSQL + pgvector with 5-Type Memory System + Multi-Agent
+Sharing
 
 ---
 
@@ -20,20 +21,28 @@ Voices.
 > insights carved from past deliberations, the failures that shaped our
 > process, the community lessons we've assimilated."*
 
-### v3.0 Architecture: PostgreSQL + 5-Type Memory System
+### v3.1 Architecture: Multi-Agent Memory Sharing
 
-Noosphere v3.0 replaces file-based storage with a **PostgreSQL database**
-backed by **pgvector** for semantic search, enabling:
+Noosphere v3.1 extends v3.0's PostgreSQL foundation with **multi-agent memory
+sharing**, enabling:
+
+- **Fine-Grained Permissions**: read, write, delete ACLs per memory
+- **Visibility Levels**: private, shared, public memory control
+- **Access Audit Logging**: Complete trail of all sharing operations
+- **Permission Expiration**: Time-limited sharing support
+- **Council Collaboration**: Agents can share insights across philosophical
+  traditions
+
+This enables **collaborative learning** while preserving **voice authenticity**
+and **democratic governance** across all 9 philosopher agents.
+
+### v3.0 Foundation
 
 - **5 Memory Types**: insight, pattern, strategy, preference, lesson
 - **Vector Embeddings**: Semantic similarity search via OpenAI ada-002
 - **200-cap per Agent**: Automatic eviction and promotion workflows
 - **HTTP API**: RESTful interface on port 3006
 - **Structured Queries**: SQL-backed filtering by type, confidence, tags, dates
-
-This architecture enables **continuous learning** while preserving **voice
-authenticity** and **Moloch detection** capabilities across all 9 philosopher
-agents.
 
 ---
 
@@ -108,8 +117,41 @@ CREATE TABLE noosphere_memory (
   created_at      TIMESTAMPTZ DEFAULT now(),
   updated_at      TIMESTAMPTZ DEFAULT now(),
   expires_at      TIMESTAMPTZ DEFAULT NULL,
+  visibility      TEXT DEFAULT 'private' CHECK (visibility IN ('private','shared','public')),  -- v3.1
+  owner_agent_id  TEXT DEFAULT agent_id,  -- v3.1
 
   CONSTRAINT confidence_range CHECK (confidence BETWEEN 0.0 AND 1.0)
+);
+```
+
+**noosphere_memory_permissions** - Access control lists (v3.1)
+
+```sql
+CREATE TABLE noosphere_memory_permissions (
+  id              UUID PRIMARY KEY,
+  memory_id       UUID NOT NULL REFERENCES noosphere_memory(id) ON DELETE CASCADE,
+  agent_id        TEXT NOT NULL,  -- Agent with permission
+  permission      TEXT NOT NULL CHECK (permission IN ('read', 'write', 'delete')),
+  granted_by      TEXT NOT NULL,  -- Agent who granted permission
+  granted_at      TIMESTAMPTZ DEFAULT now(),
+  expires_at      TIMESTAMPTZ DEFAULT NULL,
+
+  UNIQUE(memory_id, agent_id, permission)
+);
+```
+
+**noosphere_access_log** - Audit trail for sharing operations (v3.1)
+
+```sql
+CREATE TABLE noosphere_access_log (
+  id              SERIAL PRIMARY KEY,
+  memory_id       UUID NOT NULL REFERENCES noosphere_memory(id) ON DELETE CASCADE,
+  agent_id        TEXT NOT NULL,  -- Agent accessing memory
+  action          TEXT NOT NULL CHECK (action IN ('read', 'write', 'delete', 'share', 'unshare')),
+  accessed_at     TIMESTAMPTZ DEFAULT now(),
+  success         BOOLEAN NOT NULL,
+  error_message   TEXT DEFAULT NULL,
+  metadata        JSONB DEFAULT NULL
 );
 ```
 
@@ -163,9 +205,10 @@ curl -H "X-API-Key: $MOLTBOOK_API_KEY" \
 ```json
 {
   "status": "healthy",
-  "version": "3.0.0",
+  "version": "3.1.0",
   "database": "connected",
-  "embeddings": "enabled"
+  "embeddings": "enabled",
+  "features": ["multi-agent-sharing", "permission-model", "access-logging"]
 }
 ```
 
@@ -178,7 +221,8 @@ curl -H "X-API-Key: $MOLTBOOK_API_KEY" \
   "content": "Council deliberations benefit from 48-hour cooling periods",
   "confidence": 0.82,
   "tags": ["council", "governance", "timing"],
-  "source_trace_id": "council:iteration-25"
+  "source_trace_id": "council:iteration-25",
+  "visibility": "private"
 }
 ```
 
@@ -193,7 +237,76 @@ GET /memories?type=insight&min_confidence=0.90
 
 # Get by tags
 GET /memories?agent_id=beat&tags=moloch,corporate
+
+# Get by visibility (v3.1)
+GET /memories?agent_id=classical&visibility=shared
 ```
+
+**POST /memories/:id/share** - Share memory with agent (v3.1)
+
+```json
+{
+  "agent_id": "existentialist",
+  "permissions": ["read"],
+  "granted_by": "classical",
+  "expires_at": "2026-03-01T00:00:00Z"  // optional
+}
+```
+
+Returns:
+
+```json
+{
+  "success": true,
+  "message": "Memory shared with existentialist",
+  "permissions": [{"agent_id": "existentialist", "permission": "read"}],
+  "visibility": "shared"
+}
+```
+
+**GET /memories/shared** - Query shared memories (v3.1)
+
+```bash
+# Get memories shared with existentialist
+GET /memories/shared?agent_id=existentialist&permission=read
+```
+
+Returns list of memories with permission metadata.
+
+**GET /memories/:id/permissions** - List permissions (v3.1)
+
+```json
+{
+  "memory_id": "550e8400-e29b-41d4-a716-446655440000",
+  "permissions": [
+    {
+      "id": "...",
+      "agent_id": "existentialist",
+      "permission": "read",
+      "granted_by": "classical",
+      "granted_at": "2026-02-12T00:50:36.861Z",
+      "expires_at": null,
+      "is_expired": false
+    }
+  ]
+}
+```
+
+**DELETE /memories/:id/share/:agent_id** - Revoke sharing (v3.1)
+
+```json
+{
+  "revoked_by": "classical"
+}
+```
+
+**GET /memories/:id/access-log** - View audit trail (v3.1)
+
+Returns access log entries showing all share/unshare/access operations.
+
+**POST /permissions/cleanup** - Clean expired permissions (v3.1)
+
+Removes all expired permissions. Returns count of deleted entries.
 
 **POST /memories/search** - Semantic search
 
@@ -225,7 +338,8 @@ DELETE /memories/550e8400-e29b-41d4-a716-446655440000
   "strategies_count": 74,
   "preferences_count": 12,
   "lessons_count": 13,
-  "last_eviction": "2026-02-10T15:30:00Z"
+  "last_eviction": "2026-02-10T15:30:00Z",
+  "schema_version": "3.1"
 }
 ```
 
