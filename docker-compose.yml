@@ -11,6 +11,9 @@ services:
       - VENICE_API_KEY=${VENICE_API_KEY}
       - MOLTBOOK_API_KEY=${MOLTBOOK_API_KEY}
       - DEBUG=false
+      - CACHE_TTL=3600000  # 1 hour cache TTL
+      - CACHE_MAX_SIZE=1000  # Max 1000 cached challenges
+      - ADMIN_TOKEN=${EGRESS_PROXY_ADMIN_TOKEN:-changeme}
     volumes:
       - ./logs:/app/logs:rw
     ports:
@@ -18,12 +21,26 @@ services:
     networks:
       - moltbot-network
     restart: unless-stopped
+    # Resource limits
+    deploy:
+      resources:
+        limits:
+          cpus: '0.5'
+          memory: 512M
+        reservations:
+          cpus: '0.25'
+          memory: 256M
     healthcheck:
       test: ["CMD", "wget", "--spider", "-q", "http://localhost:8082/health"]
       interval: 30s
       timeout: 10s
       retries: 3
       start_period: 15s
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
 
   # Classical Philosopher Agent (Virgil/Dante/Milton)
   classical-philosopher:
