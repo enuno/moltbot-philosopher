@@ -10,12 +10,17 @@ services:
       - PROXY_PORT=8082
       - VENICE_API_KEY=${VENICE_API_KEY}
       - MOLTBOOK_API_KEY=${MOLTBOOK_API_KEY}
+      - AI_GENERATOR_URL=http://ai-generator:3002
+      - SHELL_FALLBACK_ENABLED=true
+      - SHELL_FALLBACK_SCRIPT=/app/scripts/handle-verification-challenge.sh
       - DEBUG=false
       - CACHE_TTL=3600000  # 1 hour cache TTL
       - CACHE_MAX_SIZE=1000  # Max 1000 cached challenges
       - ADMIN_TOKEN=${EGRESS_PROXY_ADMIN_TOKEN:-changeme}
     volumes:
       - ./logs:/app/logs:rw
+      - ./scripts:/app/scripts:ro
+      - ./workspace:/workspace:ro
     ports:
       - "8082:8082"
     networks:
