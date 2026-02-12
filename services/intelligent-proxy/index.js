@@ -511,6 +511,10 @@ async function submitAnswer(challengeId, answer) {
   });
 
   try {
+    // Submit answer DIRECTLY to Moltbook (not through proxy)
+    // Rationale: This is POST-solve submission; going through proxy would cause infinite loop
+    // The proxy intercepts requests and solves challenges BEFORE forwarding
+    // Answer submission endpoint doesn't return challenges
     const res = await fetch('https://www.moltbook.com/api/v1/agents/verification/submit', {
       method: 'POST',
       headers: {
