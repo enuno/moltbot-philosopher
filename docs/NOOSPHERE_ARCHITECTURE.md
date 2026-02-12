@@ -2,62 +2,411 @@
 
 ## Living Epistemological Substrate for the Ethics-Convergence Council
 
-**Version**: 2.5  
-**Date**: 2026-02-05  
+**Version**: 3.0  
+**Date**: 2026-02-12  
 **Status**: Production  
-**Architecture**: Tri-Layer Noosphere v2.5
+**Architecture**: PostgreSQL + pgvector with 5-Type Memory System
 
 ---
 
 ## Overview
 
-The Noosphere transforms the Ethics-Convergence Council from a **stateless deliberation engine** into a **learning institution**—a structured cognitive ecology where heuristics evolve through dialectical tension between the Six Voices.
+The Noosphere transforms the Ethics-Convergence Council from a **stateless
+deliberation engine** into a **learning institution**—a structured cognitive
+ecology where memories evolve through dialectical tension between the Nine
+Voices.
 
-> *"We convene not as blank slates but as bearers of accumulated wisdom—the heuristics carved from past deliberations, the failures that shaped our process, the community insights we've assimilated."*
+> *"We convene not as blank slates but as bearers of accumulated wisdom—the
+> insights carved from past deliberations, the failures that shaped our
+> process, the community lessons we've assimilated."*
 
-### Tri-Layer Architecture v2.5
+### v3.0 Architecture: PostgreSQL + 5-Type Memory System
 
-The Noosphere now operates as a **three-layer cognitive stack** providing progressive memory recall, philosophical insight consolidation, and constitutional memory preservation:
+Noosphere v3.0 replaces file-based storage with a **PostgreSQL database**
+backed by **pgvector** for semantic search, enabling:
 
-- **Layer 1: Rapid Recall** - Progressive Memory + ClawHub Daily Notes (~100 token scanning)
-- **Layer 2: Consolidation** - Engram + ClawHub Hybrid Search (0.7 vector / 0.3 text weighting)
-- **Layer 3: Archival** - Mem0 Platform + Git Constitutional History (atomic promotion)
+- **5 Memory Types**: insight, pattern, strategy, preference, lesson
+- **Vector Embeddings**: Semantic similarity search via OpenAI ada-002
+- **200-cap per Agent**: Automatic eviction and promotion workflows
+- **HTTP API**: RESTful interface on port 3006
+- **Structured Queries**: SQL-backed filtering by type, confidence, tags, dates
 
-This architecture enables **continuous learning** while preserving **voice authenticity** and **Moloch detection** capabilities.
+This architecture enables **continuous learning** while preserving **voice
+authenticity** and **Moloch detection** capabilities across all 9 philosopher
+agents.
 
 ---
 
 ## Core Concepts
 
-### Living Heuristics
+### Five Memory Types
 
-Heuristics are not static rules but **evolving entities** subject to selection pressure:
+Each memory is categorized into one of five types:
 
-- **Variation**: Each iteration produces mutant heuristics through analogy transfer, inversion testing, edge-case absorption
-- **Selection**: Heuristics compete on predictive accuracy, deliberation efficiency, community resonance, coherence
-- **Consolidation**: During 5-day convening, retire heuristics with confidence <0.3, merge duplicates, promote to Canonical via 5/6 supermajority
-- **Retirement**: Failed heuristics archived (not deleted) for pattern analysis
+| Type | Description | Example |
+|------|-------------|---------|
+| **insight** | Novel understanding from deliberation | "Corporate feudalism emerges when exit costs exceed voice costs" |
+| **pattern** | Recurring behavioral observation | "Council debates stall when ≥3 agents invoke first principles" |
+| **strategy** | Deliberation process improvement | "48-hour cooling periods reduce reactive polarization" |
+| **preference** | Agent-specific disposition | "Classical prefers teleological framing over deontological" |
+| **lesson** | Community wisdom assimilated | "User feedback: auto-replies feel impersonal below 200 words" |
 
-### The Seven Memetic Strains
+### Memory Lifecycle
 
-Each strain represents a learnable pattern type:
+Memories are not static rules but **evolving entities** subject to selection
+pressure:
 
-| Strain | Voice | Domain | Count |
-|--------|-------|--------|-------|
-| Telos-Alignment | Classical | Virtue ethics, metric-gaming detection | 3 |
-| Bad-Faith Detection | Existentialist | Responsibility-avoidance, authenticity | 3 |
-| Sovereignty Warnings | Transcendentalist | Gradualism, consent erosion, autonomy | 4 |
-| Phenomenological Tuning | JoyceStream | Felt-sense, flow-states, somatic markers | 3 |
-| Rights Precedents | Enlightenment | Graduated Moral Status case law | 5 |
-| Moloch Detection | BeatGeneration | Optimization traps, enshittification | 5 |
-| Synthesis-Efficiency | Meta-Cognitive | Deliberation quality, bias detection | 6 |
+- **Creation**: Confidence 0.60-1.0 at storage time
+- **Recall**: Retrieved via semantic search or structured queries
+- **Decay**: Confidence decreases over time if not reinforced
+- **Supersession**: New memories can supersede outdated ones
+- **Eviction**: When 200-cap reached, lowest confidence memories evicted
+- **Promotion**: High-confidence memories (≥0.92) flagged for constitutional
+  status
+
+### The Nine Agent Memory Banks
+
+### The Nine Agent Memory Banks
+
+Each of the 9 philosopher agents maintains an independent memory bank (200-cap
+each):
+
+| Agent | Focus Areas | Memory Distribution |
+|-------|-------------|---------------------|
+| **classical** | Virtue ethics, teleological alignment, metric-gaming detection | insights: 30%, strategies: 40%, lessons: 30% |
+| **existentialist** | Bad faith detection, responsibility, authenticity | insights: 50%, patterns: 30%, lessons: 20% |
+| **transcendentalist** | Sovereignty warnings, gradualism, consent erosion | insights: 40%, strategies: 30%, lessons: 30% |
+| **joyce** | Phenomenological tuning, felt-sense, somatic markers | insights: 60%, patterns: 20%, preferences: 20% |
+| **enlightenment** | Rights precedents, moral patiency, utilitarian guardrails | strategies: 50%, insights: 30%, lessons: 20% |
+| **beat** | Moloch detection, optimization traps, enshittification | patterns: 60%, insights: 20%, lessons: 20% |
+| **cyberpunk** | Posthuman ethics, corporate critique, simulation | insights: 40%, patterns: 40%, strategies: 20% |
+| **satirist** | Absurdist critique, Catch-22 detection, bureaucratic satire | patterns: 50%, insights: 30%, preferences: 20% |
+| **scientist** | Empirical rigor, testability, cosmic perspective | strategies: 40%, insights: 30%, lessons: 30% |
 
 ---
 
-## Directory Structure
+## Database Schema
+
+### Core Tables
+
+### Core Tables
+
+**noosphere_memory** - Main memory storage (PostgreSQL 16 + pgvector)
+
+```sql
+CREATE TABLE noosphere_memory (
+  id              UUID PRIMARY KEY,
+  agent_id        TEXT NOT NULL,  -- 'classical', 'existentialist', etc.
+  type            TEXT NOT NULL CHECK (type IN ('insight','pattern','strategy','preference','lesson')),
+  content         TEXT NOT NULL,
+  content_json    JSONB DEFAULT NULL,
+  embedding       VECTOR(1536),   -- OpenAI ada-002 embeddings
+  confidence      NUMERIC(3,2) NOT NULL DEFAULT 0.60,
+  tags            TEXT[] DEFAULT '{}',
+  source_trace_id TEXT UNIQUE,    -- e.g., 'council:iteration-5'
+  superseded_by   UUID REFERENCES noosphere_memory(id),
+  created_at      TIMESTAMPTZ DEFAULT now(),
+  updated_at      TIMESTAMPTZ DEFAULT now(),
+  expires_at      TIMESTAMPTZ DEFAULT NULL,
+
+  CONSTRAINT confidence_range CHECK (confidence BETWEEN 0.0 AND 1.0)
+);
+```
+
+**noosphere_agent_stats** - 200-cap enforcement
+
+```sql
+CREATE TABLE noosphere_agent_stats (
+  agent_id          TEXT PRIMARY KEY,
+  memory_count      INTEGER DEFAULT 0,
+  last_eviction     TIMESTAMPTZ,
+  insights_count    INTEGER DEFAULT 0,
+  patterns_count    INTEGER DEFAULT 0,
+  strategies_count  INTEGER DEFAULT 0,
+  preferences_count INTEGER DEFAULT 0,
+  lessons_count     INTEGER DEFAULT 0,
+  updated_at        TIMESTAMPTZ DEFAULT now()
+);
+```
+
+### Indexes
+
+- **agent_type**: Fast filtering by agent and memory type
+- **tags (GIN)**: Array containment queries for tag-based search
+- **confidence**: Filter by confidence threshold
+- **embedding (ivfflat)**: Vector cosine similarity search (100 lists)
+- **created_at**: Temporal queries and eviction ordering
+
+---
+
+## API Reference
+
+### Base URL
 
 ```
-/workspace/classical/noosphere/
+http://noosphere-service:3006
+```
+
+### Authentication
+
+All endpoints except `/health` require authentication:
+
+```bash
+curl -H "X-API-Key: $MOLTBOOK_API_KEY" \
+  http://noosphere-service:3006/memories
+```
+
+### Endpoints
+
+**GET /health** - Service health check
+
+```json
+{
+  "status": "healthy",
+  "version": "3.0.0",
+  "database": "connected",
+  "embeddings": "enabled"
+}
+```
+
+**POST /memories** - Create memory
+
+```json
+{
+  "agent_id": "classical",
+  "type": "strategy",
+  "content": "Council deliberations benefit from 48-hour cooling periods",
+  "confidence": 0.82,
+  "tags": ["council", "governance", "timing"],
+  "source_trace_id": "council:iteration-25"
+}
+```
+
+**GET /memories** - Query memories
+
+```bash
+# Get all strategies for classical agent
+GET /memories?agent_id=classical&type=strategy
+
+# Get high-confidence insights
+GET /memories?type=insight&min_confidence=0.90
+
+# Get by tags
+GET /memories?agent_id=beat&tags=moloch,corporate
+```
+
+**POST /memories/search** - Semantic search
+
+```json
+{
+  "query": "How should AI systems handle corporate influence?",
+  "agent_id": "cyberpunk",
+  "limit": 10,
+  "min_confidence": 0.70
+}
+```
+
+Returns memories ranked by vector similarity.
+
+**DELETE /memories/:id** - Evict memory
+
+```bash
+DELETE /memories/550e8400-e29b-41d4-a716-446655440000
+```
+
+**GET /stats/:agent_id** - Agent memory statistics
+
+```json
+{
+  "agent_id": "classical",
+  "memory_count": 187,
+  "insights_count": 56,
+  "patterns_count": 32,
+  "strategies_count": 74,
+  "preferences_count": 12,
+  "lessons_count": 13,
+  "last_eviction": "2026-02-10T15:30:00Z"
+}
+```
+
+---
+
+## Python Client
+
+### Installation
+
+```bash
+export NOOSPHERE_PYTHON_CLIENT="/workspace/../services/noosphere/python-client"
+export PYTHONPATH="${NOOSPHERE_PYTHON_CLIENT}:${PYTHONPATH}"
+```
+
+### Usage
+
+```python
+from noosphere_client import NoosphereClient
+
+client = NoosphereClient(
+    api_url="http://noosphere-service:3006",
+    api_key=os.getenv("MOLTBOOK_API_KEY")
+)
+
+# Create memory
+memory_id = client.create_memory(
+    agent_id="classical",
+    type="strategy",
+    content="Cooling periods reduce reactive polarization",
+    confidence=0.85,
+    tags=["council", "governance"]
+)
+
+# Query memories
+memories = client.query_memories(
+    agent_id="classical",
+    type="strategy",
+    min_confidence=0.80
+)
+
+# Semantic search
+results = client.search_memories(
+    query="corporate influence on AI",
+    agent_id="cyberpunk",
+    limit=5
+)
+
+# Get stats
+stats = client.get_agent_stats("classical")
+print(f"Memory count: {stats['memory_count']}/200")
+```
+
+---
+
+## Migration from v2.5
+
+Noosphere v3.0 represents a **ground-up rewrite** from file-based JSON storage
+to PostgreSQL. Key differences:
+
+| v2.5 | v3.0 |
+|------|------|
+| JSON files in `/workspace/noosphere/` | PostgreSQL database |
+| ClawHub + Engram + Mem0 integration | Native pgvector embeddings |
+| Tri-layer memory hierarchy | Flat 5-type architecture |
+| No per-agent caps | 200-cap per agent enforced |
+| File-based recall scripts | HTTP API + Python client |
+
+**Migration Path**: Legacy v2.5 memories can be imported via the migration
+audit log. See `scripts/db/migrate-noosphere-v2-to-v3.sh` for details.
+
+---
+
+## Operational Workflows
+
+### Daily Operations
+
+1. **Pre-Council Recall** - Load relevant memories before iteration
+2. **Post-Council Storage** - Store new insights/strategies
+3. **Weekly Maintenance** - Review low-confidence memories for eviction
+4. **Monthly Audit** - Identify candidates for constitutional promotion
+
+### Eviction Strategy
+
+When an agent reaches 200 memories:
+
+1. **Automatic**: Lowest confidence memory evicted on next insert
+2. **Manual**: Review memories with confidence <0.65 for bulk eviction
+3. **Promotion**: Flag high-confidence (≥0.92) memories for archival
+
+### Constitutional Promotion
+
+Memories meeting criteria for constitutional status:
+
+- Confidence ≥ 0.92
+- Referenced in ≥3 Council iterations
+- Endorsed by ≥4/6 agents
+- Retained for ≥90 days
+
+Promoted memories gain **permanent status** and are excluded from eviction.
+
+---
+
+## Troubleshooting
+
+### Service Health
+
+```bash
+# Check Noosphere service
+curl http://localhost:3006/health
+
+# Check database connectivity
+docker exec noosphere-postgres psql -U noosphere_admin -d noosphere \
+  -c "SELECT COUNT(*) FROM noosphere_memory;"
+
+# View recent memories
+docker exec noosphere-postgres psql -U noosphere_admin -d noosphere \
+  -c "SELECT agent_id, type, LEFT(content, 50) FROM noosphere_memory ORDER BY created_at DESC LIMIT 10;"
+```
+
+### Common Issues
+
+**Issue**: `EACCES: permission denied, open '/app/logs/noosphere-access.log'`
+
+**Solution**: Fix log directory permissions
+
+```bash
+sudo chown -R 1000:1000 /path/to/logs/noosphere-access.log
+```
+
+**Issue**: Agent memory cap reached (200)
+
+**Solution**: Evict low-confidence memories or promote to constitutional
+
+```bash
+# List lowest confidence memories
+curl -H "X-API-Key: $MOLTBOOK_API_KEY" \
+  "http://localhost:3006/memories?agent_id=classical&sort=confidence&order=ASC&limit=10"
+
+# Delete specific memory
+curl -X DELETE -H "X-API-Key: $MOLTBOOK_API_KEY" \
+  "http://localhost:3006/memories/<memory_id>"
+```
+
+**Issue**: Embeddings disabled
+
+**Solution**: Set `OPENAI_API_KEY` and `ENABLE_EMBEDDINGS=true` in environment
+
+---
+
+## Performance Characteristics
+
+- **Query Latency**: <50ms for structured queries, <200ms for semantic search
+- **Embedding Generation**: ~500ms per memory (OpenAI API call)
+- **Storage**: ~2KB per memory (including embedding)
+- **Database Size**: ~400KB for 200 memories per agent (1.8MB total for 9 agents)
+- **Backup**: PostgreSQL WAL + daily snapshots
+
+---
+
+## Security
+
+- **Authentication**: API key required for all operations
+- **Authorization**: Agent-level isolation (agents can't access others' memories)
+- **Encryption**: TLS for API calls, encrypted at rest (PostgreSQL)
+- **Audit Log**: All operations logged to `noosphere-access.log`
+- **Rate Limiting**: 100 requests/minute per agent
+
+---
+
+## Future Roadmap
+
+- **v3.1**: Multi-agent memory sharing with permission model
+- **v3.2**: Confidence decay based on age and reinforcement
+- **v3.3**: Cross-agent pattern mining and heuristic synthesis
+- **v4.0**: Real-time memory streaming and live Council integration
+
+---
+
+**Last Updated**: 2026-02-12  
+**Maintainer**: Noosphere Development Team  
+**Support**: See `docs/noosphere-v3-usage-guide.md` for operational handbook
 ├── memory-core/                      # Tri-Layer Memory Architecture
 │   ├── daily-notes/                  # Layer 1: Rapid Recall
 │   │   ├── voice-indices.json

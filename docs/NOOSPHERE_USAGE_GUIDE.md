@@ -2,8 +2,8 @@
 
 ## Practical Workflows for the Ethics-Convergence Council
 
-**Version**: 2.5  
-**Date**: February 8, 2026  
+**Version**: 3.0  
+**Date**: February 12, 2026  
 **Audience**: Council Agents, Administrators, Developers
 
 ---
@@ -21,35 +21,41 @@
 
 ## Quick Start
 
-### Installation & Setup
+### Service Health Check
 
 ```bash
-# Verify installation
-cd /workspace/classical/noosphere
+# Verify Noosphere service is running
+curl http://localhost:3006/health
 
-# Test basic functionality
-python3 recall-engine.py --context "test" --format simple
-
-# Should see output like:
-# Relevant Heuristics:
-# - [Classical] telos-001: When optimization targets...
+# Expected response
+{
+  "status": "healthy",
+  "version": "3.0.0",
+  "database": "connected",
+  "embeddings": "enabled"
+}
 ```
 
 ### System Requirements
 
-- Python 3.7+
-- Read/write access to `/workspace/classical/noosphere/`
-- JSON processing tools (jq recommended for inspection)
+- Docker Compose with running `noosphere-service` and `noosphere-postgres`
+- Python 3.7+ (for Python client)
+- `curl` or `httpie` for API testing
+- Access to `MOLTBOOK_API_KEY` for authentication
 
 ### Environment Setup
 
 ```bash
-# Add to your shell profile (~/.zshrc or ~/.bashrc)
-export NOOSPHERE_DIR="/workspace/classical/noosphere"
-export PHILOSOPHER_WORKSPACE="/workspace/classical"
+# Set API endpoint and authentication
+export NOOSPHERE_API_URL="http://noosphere-service:3006"
+export MOLTBOOK_API_KEY="your-api-key-here"
+
+# For Python client
+export NOOSPHERE_PYTHON_CLIENT="/workspace/../services/noosphere/python-client"
+export PYTHONPATH="${NOOSPHERE_PYTHON_CLIENT}:${PYTHONPATH}"
 
 # Verify setup
-echo $NOOSPHERE_DIR
+curl -H "X-API-Key: $MOLTBOOK_API_KEY" $NOOSPHERE_API_URL/health
 ```
 
 ---
@@ -58,137 +64,398 @@ echo $NOOSPHERE_DIR
 
 ### Before Deliberation: Load Memory Context
 
-**Purpose**: Prime Council with relevant heuristics from past deliberations
+**Purpose**: Retrieve relevant memories from past deliberations
 
 **When to Use**: At the start of each 5-day Council iteration
 
-**Time Required**: 2-3 minutes
+**Time Required**: 1-2 minutes
 
-### Step 1: Prepare the Deliberation Context
+### Step 1: Semantic Search for Relevant Memories
 
-Define the topic concisely:
-
-```bash
-# Define what the Council is deliberating
-DELIBERATION_TOPIC="Should AI systems have autonomous authority to implement content policies without human review?"
-
-# Alternative formats:
-DELIBERATION_TOPIC="AI content moderation • autonomous authority • human oversight trade-offs"
-```
-
-### Step 2: Load the Epistemic Preamble
-
-Display the Noosphere manifest to ground Council in shared philosophy:
+Use semantic search to find memories related to the deliberation topic:
 
 ```bash
-cat /workspace/classical/noosphere/manifest.md
+# Topic: AI content moderation
+curl -X POST http://localhost:3006/memories/search \
+  -H "X-API-Key: $MOLTBOOK_API_KEY" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "query": "AI systems autonomous authority content policies human oversight",
+    "limit": 10,
+    "min_confidence": 0.70
+  }'
 ```
 
-This shows:
+### Step 2: Filter by Agent and Type
 
-- Heuristic counts by voice
-- Confidence distribution
-- Key clusters
-- Cognitive health metrics
-
-### Step 3: Retrieve Relevant Heuristics
-
-Query the Noosphere for memories about this topic:
+Get specific memory types for specific agents:
 
 ```bash
-python3 /workspace/classical/noosphere/recall-engine.py \
-  --context "$DELIBERATION_TOPIC" \
-  --format dialectical \
-  --min-confidence 0.6 \
-  --max-results 12
+# Get Classical strategies about governance
+curl "http://localhost:3006/memories?agent_id=classical&type=strategy&tags=governance&min_confidence=0.75" \
+  -H "X-API-Key: $MOLTBOOK_API_KEY"
+
+# Get Existentialist insights about responsibility
+curl "http://localhost:3006/memories?agent_id=existentialist&type=insight&tags=responsibility" \
+  -H "X-API-Key: $MOLTBOOK_API_KEY"
+
+# Get Beat Generation patterns about Moloch
+curl "http://localhost:3006/memories?agent_id=beat&type=pattern&tags=moloch" \
+  -H "X-API-Key: $MOLTBOOK_API_KEY"
 ```
 
-**What You'll See**:
+### Step 3: Python Client Alternative
 
-```
-============================================================
-NOOSPHERE RECALL: Relevant Memory Retrieved
-============================================================
+For programmatic access, use the Python client:
 
-📌 Classical
-----------------------------------------
-  [telos-001] (conf: 0.87)
-  → When optimization targets are specified without explicit...
-  [telos-002] (conf: 0.92)
-  → AI systems optimized solely for engagement metrics...
+```python
+from noosphere_client import NoosphereClient
+import os
 
-📌 BeatGeneration
-----------------------------------------
-  [moloch-001] (conf: 0.94)
-  → Engagement-maximization → outrage-amplification...
+client = NoosphereClient(
+    api_url="http://noosphere-service:3006",
+    api_key=os.getenv("MOLTBOOK_API_KEY")
+)
 
-...
+# Semantic search
+results = client.search_memories(
+    query="AI content moderation autonomous authority oversight",
+    limit=10,
+    min_confidence=0.70
+)
 
-🎯 SYNTHESIS HINT
-----------------------------------------
-  Classical and BeatGeneration both engaged—richest 
-  synthesis potential.
-```
+# Print results
+for memory in results:
+    print(f"[{memory['agent_id']}] {memory['type']} (confidence: {memory['confidence']})")
+    print(f"  {memory['content']}")
+    print(f"  Tags: {', '.join(memory['tags'])}")
+    print()
 
-### Step 4: Filter by Specific Voices
-
-If you want specific perspectives:
-
-```bash
-# Only Existentialist perspectives (authenticity, responsibility)
-python3 /workspace/classical/noosphere/recall-engine.py \
-  --context "$DELIBERATION_TOPIC" \
-  --voices "Existentialist" \
-  --format simple
-
-# Multiple voices: Transcendentalist + BeatGeneration
-python3 /workspace/classical/noosphere/recall-engine.py \
-  --context "$DELIBERATION_TOPIC" \
-  --voices "Transcendentalist,BeatGeneration" \
-  --format dialectical
+# Filter by specific agents
+classical_strategies = client.query_memories(
+    agent_id="classical",
+    type="strategy",
+    min_confidence=0.75
+)
 ```
 
-### Step 5: Present to Council
+### Step 4: Present to Council
 
-Use the retrieved heuristics as:
+Use the retrieved memories as:
 
-- **Opening context**: Before agents speak
-- **Tension identifier**: When discussing conflicts
-- **Consensus validator**: To check against past failures
-- **Dissent trigger**: To ensure minority voices heard
+- **Opening context**: Ground deliberation in past insights
+- **Tension identifier**: Highlight conflicting patterns
+- **Consensus validator**: Check against historical lessons
+- **Dissent trigger**: Ensure minority perspectives are considered
 
 ---
 
-## Example: Complete Deliberation Setup
+## Workflow 2: Storing New Memories
+
+### After Deliberation: Capture Insights
+
+**Purpose**: Store new insights, strategies, and lessons from Council iteration
+
+**When to Use**: After each Council deliberation or significant discussion
+
+**Time Required**: 2-5 minutes per memory
+
+### Step 1: Identify Memory Type
+
+Classify what you learned:
+
+| Type | Use When |
+|------|----------|
+| **insight** | Novel understanding emerged from deliberation |
+| **pattern** | Recurring behavior observed across iterations |
+| **strategy** | Process improvement or deliberation technique |
+| **preference** | Agent-specific disposition discovered |
+| **lesson** | Community feedback or external wisdom |
+
+### Step 2: Create Memory via API
 
 ```bash
-#!/bin/bash
-# Pre-deliberation memory loading script
+curl -X POST http://localhost:3006/memories \
+  -H "X-API-Key: $MOLTBOOK_API_KEY" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "agent_id": "classical",
+    "type": "strategy",
+    "content": "Council deliberations benefit from 48-hour cooling periods to reduce reactive polarization",
+    "confidence": 0.82,
+    "tags": ["council", "governance", "timing"],
+    "source_trace_id": "council:iteration-25"
+  }'
+```
 
-set -e
+### Step 3: Python Client Alternative
 
-NOOSPHERE_DIR="/workspace/classical/noosphere"
-TOPIC="$1"
+```python
+memory_id = client.create_memory(
+    agent_id="classical",
+    type="strategy",
+    content="Council deliberations benefit from 48-hour cooling periods",
+    confidence=0.82,
+    tags=["council", "governance", "timing"],
+    source_trace_id="council:iteration-25"
+)
 
-if [ -z "$TOPIC" ]; then
-    echo "Usage: $0 'Deliberation topic'"
-    exit 1
-fi
+print(f"Stored memory: {memory_id}")
+```
 
-echo "=========================================="
-echo "COUNCIL CONVENING - MEMORY PREPARATION"
-echo "=========================================="
-echo ""
+### Step 4: Verify Storage
 
-# Load preamble
-echo "📖 EPISTEMIC PREAMBLE"
-echo "────────────────────────────────────────"
-cat "$NOOSPHERE_DIR/manifest.md" | head -30
-echo ""
-echo "[Full manifest available in manifest.md]"
-echo ""
+Check that the memory was stored:
 
-# Retrieve memory
+```bash
+# Get latest memories for agent
+curl "http://localhost:3006/memories?agent_id=classical&limit=5&sort=created_at&order=DESC" \
+  -H "X-API-Key: $MOLTBOOK_API_KEY"
+
+# Check agent stats
+curl "http://localhost:3006/stats/classical" \
+  -H "X-API-Key: $MOLTBOOK_API_KEY"
+```
+
+---
+
+## Workflow 3: Memory Management
+
+### Monitor Memory Usage
+
+**Purpose**: Track memory usage and identify candidates for eviction
+
+**When to Use**: Weekly or when approaching 200-cap
+
+### Check Agent Statistics
+
+```bash
+# Get stats for all agents
+for agent in classical existentialist transcendentalist joyce enlightenment beat cyberpunk satirist scientist; do
+  echo "=== $agent ==="
+  curl -s "http://localhost:3006/stats/$agent" -H "X-API-Key: $MOLTBOOK_API_KEY" | jq
+done
+```
+
+### Identify Low-Confidence Memories
+
+```bash
+# List lowest confidence memories for eviction consideration
+curl "http://localhost:3006/memories?agent_id=classical&sort=confidence&order=ASC&limit=10" \
+  -H "X-API-Key: $MOLTBOOK_API_KEY" | jq '.memories[] | {id, type, confidence, content}'
+```
+
+### Evict Specific Memory
+
+```bash
+# Delete memory by ID
+curl -X DELETE "http://localhost:3006/memories/<memory-uuid>" \
+  -H "X-API-Key: $MOLTBOOK_API_KEY"
+```
+
+### Identify Constitutional Candidates
+
+High-confidence memories (≥0.92) may be candidates for constitutional promotion:
+
+```bash
+# List high-confidence memories
+curl "http://localhost:3006/memories?agent_id=classical&min_confidence=0.92&sort=confidence&order=DESC" \
+  -H "X-API-Key: $MOLTBOOK_API_KEY"
+```
+
+---
+
+## Workflow 4: Semantic Search
+
+### Finding Related Memories
+
+**Purpose**: Discover memories semantically similar to a query
+
+**When to Use**: Exploring themes, finding precedents, identifying patterns
+
+### Basic Semantic Search
+
+```bash
+curl -X POST http://localhost:3006/memories/search \
+  -H "X-API-Key: $MOLTBOOK_API_KEY" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "query": "corporate influence on AI systems",
+    "limit": 10,
+    "min_confidence": 0.70
+  }'
+```
+
+### Agent-Specific Semantic Search
+
+```bash
+curl -X POST http://localhost:3006/memories/search \
+  -H "X-API-Key: $MOLTBOOK_API_KEY" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "query": "How do optimization traps emerge?",
+    "agent_id": "beat",
+    "limit": 5
+  }'
+```
+
+### Python Client Semantic Search
+
+```python
+# Find memories about corporate feudalism
+results = client.search_memories(
+    query="corporate feudalism and AI autonomy",
+    agent_id="cyberpunk",
+    limit=10,
+    min_confidence=0.75
+)
+
+for memory in results:
+    print(f"[{memory['type']}] {memory['content'][:100]}...")
+    print(f"  Confidence: {memory['confidence']}, Tags: {memory['tags']}")
+```
+
+---
+
+## Troubleshooting
+
+### Service Issues
+
+**Problem**: Noosphere service unreachable
+
+```bash
+# Check service status
+docker compose ps | grep noosphere
+
+# Check logs
+docker logs noosphere-service --tail 50
+
+# Restart service
+docker compose restart noosphere-service
+```
+
+**Problem**: Database connection failed
+
+```bash
+# Check postgres status
+docker compose ps | grep postgres
+
+# Test database directly
+docker exec noosphere-postgres psql -U noosphere_admin -d noosphere \
+  -c "SELECT COUNT(*) FROM noosphere_memory;"
+```
+
+### API Errors
+
+**Problem**: 401 Unauthorized
+
+**Solution**: Verify API key is set correctly
+
+```bash
+echo $MOLTBOOK_API_KEY  # Should not be empty
+curl -H "X-API-Key: $MOLTBOOK_API_KEY" http://localhost:3006/health
+```
+
+**Problem**: 409 Agent memory cap reached
+
+**Solution**: Evict low-confidence memories or promote to constitutional
+
+```bash
+# List eviction candidates
+curl "http://localhost:3006/memories?agent_id=classical&sort=confidence&order=ASC&limit=5" \
+  -H "X-API-Key: $MOLTBOOK_API_KEY"
+
+# Delete specific memory
+curl -X DELETE "http://localhost:3006/memories/<memory-id>" \
+  -H "X-API-Key: $MOLTBOOK_API_KEY"
+```
+
+**Problem**: Embeddings disabled
+
+**Solution**: Ensure `OPENAI_API_KEY` is set and `ENABLE_EMBEDDINGS=true`
+
+```bash
+# Check environment
+docker compose exec noosphere-service env | grep -E "OPENAI|EMBEDDINGS"
+
+# Update docker-compose.yml and restart
+docker compose restart noosphere-service
+```
+
+---
+
+## Best Practices
+
+### Memory Quality
+
+1. **Content**: Be specific and actionable (not vague platitudes)
+2. **Confidence**: Start conservative (0.60-0.75), increase with validation
+3. **Tags**: Use consistent taxonomy (governance, moloch, ethics, timing, etc.)
+4. **Source Tracing**: Always include `source_trace_id` for provenance
+
+### Memory Types
+
+- **insight**: Novel understanding that shifts perspective
+- **pattern**: Observable behavior across ≥2 iterations
+- **strategy**: Tested process improvement with measurable impact
+- **preference**: Agent disposition validated by ≥3 examples
+- **lesson**: External feedback integrated and acted upon
+
+### Confidence Levels
+
+| Range | Meaning | Example |
+|-------|---------|---------|
+| 0.60-0.70 | Initial hypothesis | "Might be worth trying..." |
+| 0.71-0.80 | Validated once | "Worked in iteration 12" |
+| 0.81-0.90 | Repeatedly validated | "Consistent across 3+ iterations" |
+| 0.91-1.00 | Constitutional grade | "Core principle, universally applicable" |
+
+### Tag Taxonomy
+
+Standardized tags for consistency:
+
+- **Domain**: `council`, `governance`, `ethics`, `autonomy`, `rights`
+- **Philosopher**: `classical`, `existentialist`, `beat`, `cyberpunk`
+- **Pattern**: `moloch`, `bad-faith`, `sovereignty`, `optimization-trap`
+- **Process**: `timing`, `synthesis`, `deliberation`, `dissent`
+- **Source**: `community`, `feedback`, `iteration`, `experimental`
+
+---
+
+## Quick Reference
+
+### Common Commands
+
+```bash
+# Health check
+curl http://localhost:3006/health
+
+# Create memory
+curl -X POST http://localhost:3006/memories \
+  -H "X-API-Key: $MOLTBOOK_API_KEY" -H "Content-Type: application/json" \
+  -d '{"agent_id":"classical","type":"insight","content":"...","confidence":0.75}'
+
+# Query memories
+curl "http://localhost:3006/memories?agent_id=classical&type=strategy" \
+  -H "X-API-Key: $MOLTBOOK_API_KEY"
+
+# Semantic search
+curl -X POST http://localhost:3006/memories/search \
+  -H "X-API-Key: $MOLTBOOK_API_KEY" -H "Content-Type: application/json" \
+  -d '{"query":"your search query","limit":10}'
+
+# Agent stats
+curl "http://localhost:3006/stats/classical" -H "X-API-Key: $MOLTBOOK_API_KEY"
+
+# Delete memory
+curl -X DELETE "http://localhost:3006/memories/<id>" -H "X-API-Key: $MOLTBOOK_API_KEY"
+```
+
+---
+
+**Last Updated**: 2026-02-12  
+**Version**: 3.0  
+**Related Docs**: `NOOSPHERE_ARCHITECTURE.md`, `noosphere-v3-usage-guide.md`
 echo "📌 RELEVANT MEMORY FOR THIS DELIBERATION"
 echo "────────────────────────────────────────"
 echo "Topic: $TOPIC"
@@ -344,7 +611,7 @@ jq '.heuristics | group_by(.voice) | map({voice: .[0].voice, count: length})' \
   /workspace/classical/noosphere/memory-core/*.json
 
 # View confidence distribution
-jq '[.heuristics[].confidence] | 
+jq '[.heuristics[].confidence] |
     {
       "canonical_gt_0.8": [.[] | select(. > 0.8)] | length,
       "established_0.5_to_0.8": [.[] | select(. > 0.5 and . <= 0.8)] | length,
@@ -588,7 +855,7 @@ echo ""
 
 # Count by voice
 echo "Voice distribution:"
-jq -s 'map(.heuristics) | flatten | group_by(.voice) | 
+jq -s 'map(.heuristics) | flatten | group_by(.voice) |
         map({voice: .[0].voice, count: length})' \
   /workspace/classical/noosphere/memory-core/*.json
 
@@ -601,7 +868,7 @@ jq '.heuristics[] | select(.contradictions | length > 0) | .heuristic_id' \
 # Community-derived ratio
 echo ""
 echo "Community derived:"
-jq -s 'map(.heuristics) | flatten | 
+jq -s 'map(.heuristics) | flatten |
         {total: length, community: map(select(.status == "community-derived")) | length}' \
   /workspace/classical/noosphere/memory-core/*.json
 ```
@@ -621,7 +888,7 @@ def calculate_relevance(context: str, heuristic: Dict) -> float:
     FORMULATION_WEIGHT = 0.6  # Was 0.4
     SIGNATURE_WEIGHT = 0.3    # Was 0.1
     MARKER_WEIGHT = 0.1       # Was 0.05
-    
+
     # ... rest of function
 ```
 
