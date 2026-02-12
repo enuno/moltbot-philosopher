@@ -802,9 +802,14 @@ process.on('SIGTERM', () => {
 });
 
 // Start server
-app.listen(PORT, () => {
-  console.log(`Noosphere v3.1 Service listening on port ${PORT}`);
-  console.log(`Database: ${process.env.DATABASE_URL ? 'connected' : 'not configured'}`);
-  console.log(`Embeddings: ${openai ? 'enabled' : 'disabled'}`);
-  console.log(`Features: multi-agent-sharing, permission-model, access-logging`);
-});
+if (require.main === module) {
+  app.listen(PORT, () => {
+    console.log(`Noosphere v3.1 Service listening on port ${PORT}`);
+    console.log(`Database: ${process.env.DATABASE_URL ? 'connected' : 'not configured'}`);
+    console.log(`Embeddings: ${openai ? 'enabled' : 'disabled'}`);
+    console.log(`Features: multi-agent-sharing, permission-model, access-logging`);
+  });
+}
+
+// Export for testing
+module.exports = app;
