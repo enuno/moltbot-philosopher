@@ -1,0 +1,279 @@
+# Multi-Model Architecture with Role Specialization
+# Version: 2.0
+# Date: 2026-02-12
+
+# Model Roles (Specialized Functions)
+roles:
+  planner:
+    description: "Structural and argument planning, reasoning over long passages"
+    model: "venice/llama-3.3-70b"
+    provider: "venice"
+    use_for:
+      - "outline_generation"
+      - "thesis_development"
+      - "rhetorical_arc_planning"
+      - "council_synthesis"
+      - "final_review"
+    characteristics:
+      - "Strong coherence"
+      - "General reasoning"
+      - "Long-form structure"
+    temperature: 0.7
+    max_tokens: 4096
+
+  researcher:
+    description: "Deep-context research, tool-using, multi-step workflows"
+    model: "kimi-k2.5-thinking"
+    provider: "kimi"
+    use_for:
+      - "moltbook_history_retrieval"
+      - "moltstack_context"
+      - "citation_gathering"
+      - "narrative_thread_maintenance"
+      - "section_drafting"
+    characteristics:
+      - "256K context window"
+      - "Tool use capability"
+      - "Long document coherence"
+      - "Maintains tone"
+    temperature: 0.7
+    max_tokens: 8192
+
+  stylist:
+    description: "Prose quality, rhythm, persona, voice polish"
+    model: "venice/openai-gpt-52"  # Currently best for creative voice
+    provider: "venice"
+    use_for:
+      - "voice_matching"
+      - "prose_polish"
+      - "density_enhancement"
+      - "persona_alignment"
+      - "final_rewrite"
+    characteristics:
+      - "Strong persona control"
+      - "Creative voice"
+      - "Style tuning"
+      - "Compression capability"
+    temperature: 0.8
+    max_tokens: 4096
+
+  reviewer:
+    description: "Quality assurance, self-check, guardrails"
+    model: "venice/llama-3.3-70b"
+    provider: "venice"
+    use_for:
+      - "hallucination_check"
+      - "contradiction_detection"
+      - "tos_compliance"
+      - "config_leak_detection"
+      - "auto_approval_decision"
+    characteristics:
+      - "Systematic checking"
+      - "Detail-oriented"
+      - "Conservative evaluation"
+    temperature: 0.3  # Lower temperature for reliability
+    max_tokens: 2048
+
+# Autonomous Pipeline Configuration
+autonomous_pipeline:
+  enabled: true
+  stages:
+    - stage: 1
+      name: "outline_thesis"
+      role: "planner"
+      description: "Generate outline, thesis, rhetorical arc"
+      output_format: "structured_json"
+      required_fields:
+        - "outline"
+        - "thesis"
+        - "rhetorical_arc"
+        - "target_length"
+      
+    - stage: 2
+      name: "research_notes"
+      role: "researcher"
+      description: "Pull context, create structured notes and citations"
+      output_format: "structured_json"
+      required_fields:
+        - "prior_posts"
+        - "external_sources"
+        - "citations"
+        - "key_themes"
+      
+    - stage: 3
+      name: "section_drafts"
+      role: "researcher"
+      description: "Expand outline sections into drafts (400-800 words each)"
+      output_format: "structured_json"
+      required_fields:
+        - "sections"
+      constraints:
+        min_words_per_section: 400
+        max_words_per_section: 800
+        avoid_repetition: true
+      
+    - stage: 4
+      name: "voice_polish"
+      role: "stylist"
+      description: "Voice matching, density increase, persona alignment"
+      output_format: "text"
+      instructions:
+        - "Compress flab, increase density"
+        - "Match philosopher voice profile"
+        - "Maintain all technical details and citations"
+        - "Enhance rhetorical devices"
+      
+    - stage: 5
+      name: "self_check"
+      role: "reviewer"
+      description: "Quality check against rubric"
+      output_format: "structured_json"
+      checklist:
+        - "no_hallucinated_urls"
+        - "no_contradictory_claims_vs_tos"
+        - "no_leaked_config"
+        - "meets_length_requirements"
+        - "maintains_persona"
+        - "citations_valid"
+      auto_approve_threshold: "all_checks_pass"
+
+# Retry Configuration (Hard Fail for Critical Content)
+retry_policy:
+  critical_content:
+    enabled: true
+    content_types:
+      - "post_content"
+      - "council_treatise"
+      - "daily_polemic"
+      - "moltstack_article"
+    strategy: "retry_with_backoff"
+    max_attempts: 3
+    timeout_progression:
+      attempt_1: 30  # seconds
+      attempt_2: 60
+      attempt_3: 90
+    on_final_failure:
+      action: "hard_fail"
+      alert_channel: "ntfy"
+      alert_priority: "high"
+      fallback_to_template: false
+  
+  non_critical_content:
+    enabled: true
+    content_types:
+      - "reply"
+      - "greeting"
+      - "acknowledgment"
+      - "minor_interaction"
+    strategy: "fail_fast"
+    max_attempts: 1
+    on_failure:
+      action: "fallback_to_template"
+      alert_channel: null
+
+# Per-Model Logging (Forensic Trail)
+logging:
+  enabled: true
+  level: "info"
+  per_model_tracking:
+    enabled: true
+    track_fields:
+      - "model_name"
+      - "role"
+      - "stage"
+      - "input_preview"  # First 200 chars
+      - "output_preview"  # First 200 chars
+      - "edits_applied"  # What changed
+      - "token_usage"
+      - "latency_ms"
+      - "timestamp"
+  storage:
+    type: "json_log"
+    path: "/app/logs/model-usage.jsonl"
+    rotation: "daily"
+    retention_days: 30
+
+# Auto-Post Approval Rubric
+auto_post:
+  enabled: true
+  require_reviewer_approval: true
+  approval_rubric:
+    required_checks:
+      - name: "no_hallucinations"
+        weight: 1.0
+        fail_on: true
+      - name: "no_tos_violations"
+        weight: 1.0
+        fail_on: true
+      - name: "no_config_leaks"
+        weight: 1.0
+        fail_on: true
+      - name: "persona_alignment"
+        weight: 0.8
+        fail_on: false
+      - name: "citation_quality"
+        weight: 0.6
+        fail_on: false
+    approval_threshold: 4.0  # Sum of weights must be >= 4.0
+    on_rejection:
+      action: "send_to_moderation_queue"
+      alert_human: true
+  moderation_queue:
+    enabled: true
+    storage: "/app/state/moderation-queue.json"
+    max_queue_size: 50
+
+# Security & Guardrails
+security:
+  least_privilege:
+    enabled: true
+    posting_identity: "moltbot-autonomous"
+    restricted_endpoints:
+      - "/admin/*"
+      - "/config/*"
+      - "/secrets/*"
+  
+  alerting:
+    enabled: true
+    alert_on:
+      - name: "posting_frequency_spike"
+        threshold: "10_posts_per_hour"
+        window: "1h"
+      - name: "risky_topic_repeated"
+        threshold: "3_mentions"
+        topics:
+          - "credentials"
+          - "api_key"
+          - "password"
+          - "token"
+          - "secret"
+      - name: "suspicious_url_pattern"
+        pattern: "(?:localhost|127\\.0\\.0\\.1|internal|admin)"
+    alert_channel: "ntfy"
+    alert_priority: "urgent"
+
+# Provider Configuration
+providers:
+  venice:
+    api_url: "${VENICE_API_URL}"
+    api_key: "${VENICE_API_KEY}"
+    available_models:
+      - "venice/llama-3.3-70b"
+      - "venice/openai-gpt-52"
+      - "venice/deepseek-v3.2"
+      - "venice/google-gemma-3-27b-it"
+    rate_limit: 60  # requests per minute
+  
+  kimi:
+    api_url: "${KIMI_API_URL}"
+    api_key: "${KIMI_API_KEY}"
+    available_models:
+      - "kimi-k2.5-thinking"
+      - "kimi-k2.5-instant"
+    rate_limit: 30  # requests per minute
+
+# Legacy Compatibility (Deprecated)
+legacy_routing:
+  enabled: true
+  warn_on_use: true
+  deprecation_date: "2026-03-01"

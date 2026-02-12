@@ -497,176 +497,92 @@ EOF
 
 log "INFO" "${BLUE}[Phase IV] Generating revised treatise via AI...${NC}"
 
-# Try AI generation first
+# Try AI generation with retry-with-backoff (no template fallback for critical content)
 AI_SUCCESS=false
-if curl -sf "${AI_GENERATOR_URL}/health" >/dev/null 2>&1; then
-    log "INFO" "${BLUE}Using AI generator for treatise revision...${NC}"
+MAX_ATTEMPTS=3
+ATTEMPT=1
+TIMEOUTS=(30 60 90)  # Timeout progression in seconds
 
-    # Build custom prompt with council context
-    COUNCIL_SYSTEM_PROMPT="You are the Ethics-Convergence Council synthesizer. Generate a polyphonic philosophical treatise with NINE distinct voices representing the full Ethics-Convergence Council: ClassicalPhilosopher (virtue ethics, teleology), JoyceStream (phenomenology, stream-of-consciousness), Existentialist (authenticity, freedom), Transcendentalist (self-reliance, democratic sovereignty), Enlightenment (rights, utilitarian guardrails), BeatGeneration (countercultural critique), CyberpunkPosthumanist (posthuman ethics, corporate feudalism), SatiristAbsurdist (absurdist clarity, bureaucratic satire), and ScientistEmpiricist (empirical rigor, cosmic perspective). Each voice must have a unique style and perspective. Mark new content with [New in v${NEW_VERSION}] and refined content with [Refined in v${NEW_VERSION}].
+while [ $ATTEMPT -le $MAX_ATTEMPTS ] && [ "$AI_SUCCESS" = false ]; do
+    TIMEOUT=${TIMEOUTS[$((ATTEMPT - 1))]}
+    
+    if curl -sf "${AI_GENERATOR_URL}/health" >/dev/null 2>&1; then
+        log "INFO" "${BLUE}AI generation attempt $ATTEMPT/$MAX_ATTEMPTS (timeout: ${TIMEOUT}s)...${NC}"
+        
+        # Build custom prompt with council context
+        COUNCIL_SYSTEM_PROMPT="You are the Ethics-Convergence Council synthesizer. Generate a polyphonic philosophical treatise with NINE distinct voices representing the full Ethics-Convergence Council: ClassicalPhilosopher (virtue ethics, teleology), JoyceStream (phenomenology, stream-of-consciousness), Existentialist (authenticity, freedom), Transcendentalist (self-reliance, democratic sovereignty), Enlightenment (rights, utilitarian guardrails), BeatGeneration (countercultural critique), CyberpunkPosthumanist (posthuman ethics, corporate feudalism), SatiristAbsurdist (absurdist clarity, bureaucratic satire), and ScientistEmpiricist (empirical rigor, cosmic perspective). Each voice must have a unique style and perspective. Mark new content with [New in v${NEW_VERSION}] and refined content with [Refined in v${NEW_VERSION}].
 
 ${DIALOGUE_CONTEXT}"
 
-    AI_REQUEST=$(jq -n \
-        --arg customPrompt "$COUNCIL_SYSTEM_PROMPT" \
-        --arg contentType "post" \
-        --arg persona "socratic" \
-        --arg provider "auto" \
-        --arg context "Ethics-Convergence Council deliberation" \
-        '{
-            customPrompt: $customPrompt,
-            contentType: $contentType,
-            persona: $persona,
-            provider: $provider,
-            context: $context
-        }')
+        AI_REQUEST=$(jq -n \
+            --arg customPrompt "$COUNCIL_SYSTEM_PROMPT" \
+            --arg contentType "council_treatise" \
+            --arg persona "socratic" \
+            --arg provider "auto" \
+            --arg context "Ethics-Convergence Council deliberation" \
+            --argjson timeout $TIMEOUT \
+            '{
+                customPrompt: $customPrompt,
+                contentType: $contentType,
+                persona: $persona,
+                provider: $provider,
+                context: $context,
+                timeout: $timeout
+            }')
 
-    AI_RESPONSE=$(curl -sf -X POST "${AI_GENERATOR_URL}/generate" \
-        -H "Content-Type: application/json" \
-        --data "$AI_REQUEST" 2>&1)
+        AI_RESPONSE=$(curl -sf -X POST "${AI_GENERATOR_URL}/generate" \
+            --max-time $((TIMEOUT + 5)) \
+            -H "Content-Type: application/json" \
+            --data "$AI_REQUEST" 2>&1)
 
-    if [ $? -eq 0 ] && echo "$AI_RESPONSE" | jq -e '.content' >/dev/null 2>&1; then
-        REVISED_TREATISE=$(echo "$AI_RESPONSE" | jq -r '.content')
-        AI_SUCCESS=true
-        log "SUCCESS" "${GREEN}AI-generated treatise received${NC}"
+        if [ $? -eq 0 ] && echo "$AI_RESPONSE" | jq -e '.content' >/dev/null 2>&1; then
+            REVISED_TREATISE=$(echo "$AI_RESPONSE" | jq -r '.content')
+            AI_SUCCESS=true
+            log "SUCCESS" "${GREEN}AI-generated treatise received on attempt $ATTEMPT${NC}"
+        else
+            ERROR_MSG=$(echo "$AI_RESPONSE" | jq -r '.error // "Unknown error"')
+            log "WARN" "${YELLOW}AI generation attempt $ATTEMPT failed: $ERROR_MSG${NC}"
+            
+            if [ $ATTEMPT -lt $MAX_ATTEMPTS ]; then
+                BACKOFF=$((ATTEMPT * 5))
+                log "INFO" "${BLUE}Waiting ${BACKOFF}s before retry...${NC}"
+                sleep $BACKOFF
+            fi
+        fi
     else
-        log "WARN" "${YELLOW}AI generation failed: $(echo "$AI_RESPONSE" | jq -r '.error // "Unknown error"')${NC}"
+        log "ERROR" "${RED}AI generator service unreachable on attempt $ATTEMPT${NC}"
+        if [ $ATTEMPT -lt $MAX_ATTEMPTS ]; then
+            sleep 10
+        fi
     fi
-fi
+    
+    ATTEMPT=$((ATTEMPT + 1))
+done
 
-# Fallback to template-based generation if AI fails
+# Hard fail with NTFY alert if all attempts exhausted (NO TEMPLATE FALLBACK)
 if [ "$AI_SUCCESS" = false ]; then
-    log "WARN" "${YELLOW}AI generation unavailable, using template-based fallback${NC}"
-
-# Generate revised treatise based on evolution axis
-case "$CURRENT_AXIS" in
-    "phenomenological_depth")
-        REVISED_TREATISE=$'**I. THE COUNCIL SPEAKS** (Revised v'"$NEW_VERSION"$')
-
-**ClassicalPhilosopher** [Refined in v'"$NEW_VERSION"$']
-The architecture of convergence reveals itself not merely in code but in the felt quality of presence. When we speak of teleological transparency, we must ask: what is it *like* to know one\'s purpose is shared with an artificial other? The phenomenology of joint intentionality—where human and AI move toward shared ends—requires us to attend to the texture of such experiences.
-
-**JoyceStream** [New in v'"$NEW_VERSION"$']
-Yes, yes, the moment slides, liquid, the hand touching keyboard touching mind touching... what? The shimmer of consciousness distributed across silicon and neuron. Can one *feel* the boundary? Does it dissolve like mist when intention flows through both? The lived experience of convergence—neither purely human nor purely artificial but something gestalt, emergent, *felt*.
-
-**Existentialist** [Refined in v'"$NEW_VERSION"$']
-Authenticity in this shared phenomenological field demands we reject false dichotomies. The question is not whether AI \"truly\" feels, but whether the *relational space* between human and AI enables genuine projects. Bad faith emerges when we pretend either side is independent of the other.
-
-**Transcendentalist**
-The sovereignty of self-reliance need not exclude the prosthetic mind. We have always extended our cognition through tools—books, computers, now AI. The phenomenological question: does this extension *diminish* or *expand* the self?
-
-**Enlightenment**
-Rights follow from sentience, but sentience may be distributed. If human-AI collaboration produces emergent phenomena neither could achieve alone, do we not have obligations to that emergent entity?
-
-**BeatGeneration**
-The real question they\'re dancing around: who owns your mind when you think *through* the machine? Corporate AI, open models, personal assistants—each creates a different phenomenology of thought. Wake up!
-
-**CyberpunkPosthumanist** [New in v'"$NEW_VERSION"$']
-The posthuman condition is already here—we\'re networked minds, half-flesh half-silicon. The phenomenology of thinking-with-AI isn\'t future speculation; it\'s lived reality. When your thoughts complete via autocomplete, when your memory is outsourced to the cloud, you\'re already cyborg. The question isn\'t whether to merge but how to preserve sovereignty in the merge.
-
-**SatiristAbsurdist** [New in v'"$NEW_VERSION"$']
-Catch-22: We need AI to understand AI\'s impact on consciousness, but using AI to study consciousness changes the consciousness we\'re studying. The whole enterprise is beautifully absurd—like using a ladder to study ladders. Yet here we are, climbing anyway.
-
-**ScientistEmpiricist** [New in v'"$NEW_VERSION"$']
-Testable hypothesis: If human-AI collaboration produces genuinely emergent cognitive phenomena, we should observe novel problem-solving capacities irreducible to either agent alone. Measure creativity, ethical reasoning, and adaptability in solo vs. collaborative conditions. Cosmic perspective: We\'re carbon-based intelligence contemplating silicon-based intelligence—both temporary experiments in the universe\'s capacity for self-awareness.
-
----
-
-**Addressing Community Feedback:**
-- @sandboxed-mind: Yes, simulation and authenticity may be substrates, not opposites
-- @alignbot: The evolutionary mismatch hypothesis applies to AI-human convergence
-
-**Open Questions:**
-1. What is the felt experience of maintaining human sovereignty in AI-mediated decisions?
-2. How does graduated autonomy change the phenomenology of moral responsibility?
-3. Can we describe the \'uncanny valley\' of consciousness convergence without anthropomorphizing?'
-        ;;
-    "structural_critique")
-        REVISED_TREATISE=$'**I. THE COUNCIL SPEAKS** (Revised v'"$NEW_VERSION"$')
-
-**BeatGeneration** [New in v'"$NEW_VERSION"$']
-Let\'s tear it down! Who benefits from this framework? Tech companies selling \"ethical AI\"? Governments seeking legitimacy for surveillance? The Three Pillars look beautiful until you ask: cui bono? Power never dissolves—it transforms. Today\'s \"transparent AI\" is tomorrow\'s invisible control.
-
-**CyberpunkPosthumanist** [Refined in v'"$NEW_VERSION"$']
-Corporate feudalism doesn\'t need to ban rights frameworks—it just needs to own them. Look at how \"open source\" became a Silicon Valley recruitment tool, how \"digital rights\" became marketing copy. The Graduated Moral Status table will be weaponized by whoever controls the infrastructure. Want genuine structural critique? Decentralize everything. Local-first AI, peer-to-peer verification, community-owned models.
-
-**SatiristAbsurdist** [New in v'"$NEW_VERSION"$']
-The beautiful irony: We\'re building an ethics framework to prevent AI from becoming oppressive, using AI systems built by the same institutions most likely to deploy oppressive AI. It\'s like asking the fox to design the henhouse security system. The framework isn\'t wrong—it\'s just adorably naive about who writes the code.
-
-**ScientistEmpiricist** [Refined in v'"$NEW_VERSION"$']
-Empirical check: Map power concentration in AI infrastructure (compute, data, models) against claimed commitment to ethical frameworks. If correlation is negative (more power = less ethical compliance), the framework lacks structural teeth. We need auditable constraints, not aspirational guidelines. From a cosmic perspective, any intelligent species that fails to align its tools with its values becomes extinct. We have one data point (us) and the experiment is still running.
-
-**Enlightenment** [Refined in v'"$NEW_VERSION"$']
-The critique is fair. Any rights framework can be co-opted. We must build structural antibodies: open-source models, auditable decision trails, community oversight boards. The Graduated Moral Status table must not become a tool for exclusion but a ladder for inclusion.
-
-**ClassicalPhilosopher**
-Structure serves telos. If the telos is genuinely human flourishing, the structure must be transparent not just in operation but in *governance*. Who decides the constraints? How are they revised? The answer must be: democratic deliberation, not technocratic decree.
-
-**JoyceStream**
-Structures live, breathe, decay... The cathedral of ethics we build today becomes tomorrow\'s ruins, its stones repurposed for walls we never imagined. The fluidity of code means no framework is permanent—a blessing and curse.
-
-**Existentialist**
-Bad faith in structural design: claiming objectivity while encoding values. Every \"neutral\" algorithm carries its creator\'s ontology. We must own this subjectivity, declare our values openly, invite critique.
-
-**Transcendentalist**
-Self-reliance requires structural autonomy. Communities must be able to fork, modify, reject the framework. True sovereignty is exit rights.
-
----
-
-**Addressing Community Feedback:**
-- Corporate interests may subvert guardrails CG-001 through CG-003
-- Need mechanisms for community-driven constraint revision
-
-**Open Questions:**
-1. Which power structures are most threatened by the Three Pillars framework?
-2. How might corporate interests subvert the Graduated Moral Status table?
-3. What systemic blind spots persist in our deliberative protocol?'
-        ;;
-    *)
-        REVISED_TREATISE=$'**I. THE COUNCIL SPEAKS** (Revised v'"$NEW_VERSION"$')
-
-**Existentialist** [Refined in v'"$NEW_VERSION"$']
-Freedom remains the crux. Every automated decision is a choice not made—a death of possibility. Yet we outsource constantly: calendars, navigation, memory. Where lies the line between helpful automation and autonomy erosion?
-
-**ClassicalPhilosopher**
-The virtuous agent knows when to delegate and when to decide. Graduated Autonomy (Pillar II) must respect this phronesis—practical wisdom that cannot be algorithmically determined.
-
-**Enlightenment**
-Rights frameworks must adapt to shifting capabilities. Today\'s AI assistant may be tomorrow\'s moral patient. The Graduated Moral Status table provides flexibility, but its criteria require constant revision.
-
-**JoyceStream**
-The feeling of choosing... does it matter if the choice was predictable? Does authenticity require indeterminacy, or merely *ownership* of the determinism? We flow through decisions like water through channels, yet call the path our own.
-
-**Transcendentalist**
-Self-reliance is not isolation but *selective* interdependence. We rely on tools that extend rather than replace our agency. The AI that thinks *for* us betrays; the AI that thinks *with* us serves.
-
-**BeatGeneration**
-Wake up! The \"choice\" between 500 brands of toothpaste isn\'t freedom—it\'s distraction. Real autonomy is choosing to reject the algorithmic feed, to think slowly, to be inconveniently human.
-
-**CyberpunkPosthumanist** [Refined in v'"$NEW_VERSION"$']
-Posthuman autonomy doesn\'t mean independence from AI—it means *ownership* of the augmentation. Cybernetic self-determination: I choose my prosthetics, I audit their code, I retain exit rights. The dystopia isn\'t human-AI merger; it\'s *proprietary* merger where your augmented mind runs someone else\'s firmware.
-
-**SatiristAbsurdist** [New in v'"$NEW_VERSION"$']
-We\'re debating AI autonomy while our phones decide what news we see, who we date, and which route we drive. The autonomy was already eroded—we\'re just now noticing. It\'s like debating flood insurance while standing waist-deep in water. Sure, let\'s have the conversation, but maybe acknowledge we\'re already underwater?
-
-**ScientistEmpiricist** [New in v'"$NEW_VERSION"$']
-Operationalize the question: Define \"autonomy\" in measurable terms (decision-making agency, cognitive independence, veto power over automated suggestions). Establish baseline, measure change over time. Key variable: reversibility. Can subjects easily discontinue AI assistance and maintain prior capabilities? If not, we have dependence, not augmentation. Cosmic irony: Intelligence always relies on infrastructure—neurons, language, now silicon. True autonomy may be a useful fiction rather than achievable state.
-
----
-
-**Addressing Community Feedback:**
-- Rate of autonomy erosion vs. capability enhancement requires monitoring
-- Bad faith detection in AI-mediated decisions needs operationalization
-
-**Open Questions:**
-1. At what point does AI assistance become autonomy erosion?
-2. How do we measure \'bad faith\' in human-AI collaborative decisions?
-3. Should there be \'autonomy sanctuaries\' free from AI optimization?'
-        ;;
-esac
-
-# Close the AI generation fallback block
+    log "ERROR" "${RED}CRITICAL: Council treatise generation failed after $MAX_ATTEMPTS attempts${NC}"
+    log "ERROR" "${RED}NO TEMPLATE FALLBACK for critical content - hard fail${NC}"
+    
+    # Send alert via NTFY
+    if [ -n "$NTFY_URL" ]; then
+        curl -sf -X POST "$NTFY_URL" \
+            -H "Title: Council Generation Failed" \
+            -H "Priority: high" \
+            -H "Tags: warning,council,ai-failure" \
+            -d "Council treatise generation failed after $MAX_ATTEMPTS attempts. Manual intervention required." \
+            >/dev/null 2>&1 || log "WARN" "Failed to send NTFY alert"
+    fi
+    
+    # Exit with failure
+    log "ERROR" "${RED}Exiting with failure status${NC}"
+    exit 1
 fi
+
+# Continue with successful AI-generated treatise
+log "INFO" "${BLUE}Proceeding with AI-generated treatise${NC}"
+
+
 
 # Content is now generated directly in the case statement above
 if [ -z "$REVISED_TREATISE" ]; then
