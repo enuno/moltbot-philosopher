@@ -70,9 +70,10 @@ app.get('/health', async (req, res) => {
     await pool.query('SELECT 1');
     res.json({
       status: 'healthy',
-      version: '3.0.0',
+      version: '3.1.0',
       database: 'connected',
-      embeddings: openai ? 'enabled' : 'disabled'
+      embeddings: openai ? 'enabled' : 'disabled',
+      features: ['multi-agent-sharing', 'permission-model', 'access-logging']
     });
   } catch (error) {
     res.status(503).json({ status: 'unhealthy', error: error.message });
@@ -97,7 +98,7 @@ async function generateEmbedding(text) {
 
 // POST /memories - Create memory
 app.post('/memories', authenticate, async (req, res) => {
-  const { agent_id, type, content, content_json, confidence, tags, source_trace_id } = req.body;
+  const { agent_id, type, content, content_json, confidence, tags, source_trace_id, visibility } = req.body;
 
   // Validation
   if (!agent_id || !type || !content) {
@@ -107,6 +108,12 @@ app.post('/memories', authenticate, async (req, res) => {
   const validTypes = ['insight', 'pattern', 'strategy', 'preference', 'lesson'];
   if (!validTypes.includes(type)) {
     return res.status(400).json({ error: `Invalid type. Must be one of: ${validTypes.join(', ')}` });
+  }
+
+  const validVisibilities = ['private', 'shared', 'public'];
+  const memoryVisibility = visibility || 'private';
+  if (!validVisibilities.includes(memoryVisibility)) {
+    return res.status(400).json({ error: `Invalid visibility. Must be one of: ${validVisibilities.join(', ')}` });
   }
 
   try {
@@ -127,11 +134,11 @@ app.post('/memories', authenticate, async (req, res) => {
     // Generate embedding
     const embedding = await generateEmbedding(content);
 
-    // Insert memory
+    // Insert memory with owner_agent_id and visibility
     const result = await pool.query(
       `INSERT INTO noosphere_memory
-       (agent_id, type, content, content_json, embedding, confidence, tags, source_trace_id)
-       VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
+       (agent_id, type, content, content_json, embedding, confidence, tags, source_trace_id, visibility, owner_agent_id)
+       VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)
        RETURNING *`,
       [
         agent_id,
@@ -141,7 +148,9 @@ app.post('/memories', authenticate, async (req, res) => {
         embedding ? `[${embedding.join(',')}]` : null,
         confidence || 0.60,
         tags || [],
-        source_trace_id
+        source_trace_id,
+        memoryVisibility,
+        agent_id // owner_agent_id defaults to agent_id
       ]
     );
 
@@ -162,6 +171,7 @@ app.get('/memories', authenticate, async (req, res) => {
     type,
     min_confidence,
     tags,
+    visibility,
     limit = 50,
     offset = 0,
     sort = 'created_at',
@@ -193,6 +203,11 @@ app.get('/memories', authenticate, async (req, res) => {
       params.push(tags.split(','));
     }
 
+    if (visibility) {
+      query += ` AND visibility = $${paramIndex++}`;
+      params.push(visibility);
+    }
+
     // Sorting - use explicit mapping to prevent SQL injection
     const SORT_COLUMNS = {
       'created_at': 'created_at',
@@ -216,10 +231,22 @@ app.get('/memories', authenticate, async (req, res) => {
     // Get total count
     let countQuery = 'SELECT COUNT(*) FROM noosphere_memory WHERE 1=1';
     const countParams = params.slice(0, -2); // Remove limit/offset
-    if (agent_id) countQuery += ` AND agent_id = $1`;
-    if (type) countQuery += ` AND type = $${agent_id ? 2 : 1}`;
-    if (min_confidence) countQuery += ` AND confidence >= $${(agent_id ? 1 : 0) + (type ? 1 : 0) + 1}`;
-    if (tags) countQuery += ` AND tags @> $${(agent_id ? 1 : 0) + (type ? 1 : 0) + (min_confidence ? 1 : 0) + 1}::text[]`;
+    let countParamIndex = 1;
+    if (agent_id) {
+      countQuery += ` AND agent_id = $${countParamIndex++}`;
+    }
+    if (type) {
+      countQuery += ` AND type = $${countParamIndex++}`;
+    }
+    if (min_confidence) {
+      countQuery += ` AND confidence >= $${countParamIndex++}`;
+    }
+    if (tags) {
+      countQuery += ` AND tags @> $${countParamIndex++}::text[]`;
+    }
+    if (visibility) {
+      countQuery += ` AND visibility = $${countParamIndex++}`;
+    }
 
     const countResult = await pool.query(countQuery, countParams);
 
@@ -233,6 +260,68 @@ app.get('/memories', authenticate, async (req, res) => {
     });
   } catch (error) {
     console.error('Query memories error:', error);
+    res.status(500).json({ error: error.message });
+  }
+});
+
+// GET /memories/shared - Query shared memories (accessible to requesting agent)
+// NOTE: Must come before /memories/:id to avoid route conflict
+app.get('/memories/shared', authenticate, async (req, res) => {
+  const { agent_id, permission, limit = 50, offset = 0 } = req.query;
+
+  if (!agent_id) {
+    return res.status(400).json({ error: 'Missing required query parameter: agent_id' });
+  }
+
+  try {
+    const permissionFilter = permission || 'read';
+
+    const query = `
+      SELECT DISTINCT
+        m.*,
+        p.permission,
+        p.granted_by,
+        p.granted_at,
+        p.expires_at
+      FROM noosphere_memory m
+      JOIN noosphere_memory_permissions p ON m.id = p.memory_id
+      WHERE p.agent_id = $1
+        AND p.permission = $2
+        AND (p.expires_at IS NULL OR p.expires_at > now())
+        AND m.owner_agent_id != $1
+      ORDER BY p.granted_at DESC
+      LIMIT $3 OFFSET $4
+    `;
+
+    const result = await pool.query(query, [
+      agent_id,
+      permissionFilter,
+      parseInt(limit),
+      parseInt(offset)
+    ]);
+
+    // Get total count
+    const countResult = await pool.query(
+      `SELECT COUNT(DISTINCT m.id)
+       FROM noosphere_memory m
+       JOIN noosphere_memory_permissions p ON m.id = p.memory_id
+       WHERE p.agent_id = $1
+         AND p.permission = $2
+         AND (p.expires_at IS NULL OR p.expires_at > now())
+         AND m.owner_agent_id != $1`,
+      [agent_id, permissionFilter]
+    );
+
+    res.json({
+      shared_memories: result.rows,
+      pagination: {
+        total: parseInt(countResult.rows[0].count),
+        limit: parseInt(limit),
+        offset: parseInt(offset)
+      }
+    });
+  } catch (error) {
+    console.error('Query shared memories error:', error);
     res.status(500).json({ error: error.message });
   }
 });
@@ -428,6 +517,270 @@ app.get('/stats/:agent_id', authenticate, async (req, res) => {
   }
 });
 
+// ============================================================================
+// Noosphere v3.1: Multi-Agent Memory Sharing Endpoints
+// ============================================================================
+
+// POST /memories/:id/share - Share memory with agent(s)
+app.post('/memories/:id/share', authenticate, async (req, res) => {
+  const memory_id = req.params.id;
+  const { agent_id, permissions, granted_by, expires_at } = req.body;
+
+  // Validation
+  if (!agent_id || !permissions || !granted_by) {
+    return res.status(400).json({
+      error: 'Missing required fields: agent_id, permissions, granted_by'
+    });
+  }
+
+  const validPermissions = ['read', 'write', 'delete'];
+  const permissionList = Array.isArray(permissions) ? permissions : [permissions];
+
+  for (const perm of permissionList) {
+    if (!validPermissions.includes(perm)) {
+      return res.status(400).json({
+        error: `Invalid permission: ${perm}. Must be one of: ${validPermissions.join(', ')}`
+      });
+    }
+  }
+
+  const client = await pool.connect();
+  try {
+    await client.query('BEGIN');
+
+    // Check if memory exists and get owner
+    const memoryResult = await client.query(
+      'SELECT owner_agent_id, visibility FROM noosphere_memory WHERE id = $1',
+      [memory_id]
+    );
+
+    if (memoryResult.rows.length === 0) {
+      await client.query('ROLLBACK');
+      return res.status(404).json({ error: 'Memory not found' });
+    }
+
+    const { owner_agent_id, visibility } = memoryResult.rows[0];
+
+    // Verify granted_by is the owner
+    if (owner_agent_id !== granted_by) {
+      await client.query('ROLLBACK');
+      return res.status(403).json({
+        error: 'Forbidden: Only the memory owner can grant permissions'
+      });
+    }
+
+    // Update visibility to 'shared' if currently private
+    if (visibility === 'private') {
+      await client.query(
+        'UPDATE noosphere_memory SET visibility = $1 WHERE id = $2',
+        ['shared', memory_id]
+      );
+    }
+
+    // Insert permissions (ON CONFLICT DO NOTHING to handle duplicates)
+    const permissionRows = [];
+    for (const perm of permissionList) {
+      await client.query(
+        `INSERT INTO noosphere_memory_permissions
+         (memory_id, agent_id, permission, granted_by, expires_at)
+         VALUES ($1, $2, $3, $4, $5)
+         ON CONFLICT (memory_id, agent_id, permission) DO NOTHING`,
+        [memory_id, agent_id, perm, granted_by, expires_at || null]
+      );
+      permissionRows.push({ agent_id, permission: perm });
+    }
+
+    // Log the share action
+    await client.query(
+      `INSERT INTO noosphere_access_log
+       (memory_id, agent_id, action, success, metadata)
+       VALUES ($1, $2, $3, $4, $5)`,
+      [
+        memory_id,
+        granted_by,
+        'share',
+        true,
+        JSON.stringify({ target_agent: agent_id, permissions: permissionList })
+      ]
+    );
+
+    await client.query('COMMIT');
+
+    res.json({
+      success: true,
+      message: `Memory shared with ${agent_id}`,
+      permissions: permissionRows,
+      visibility: visibility === 'private' ? 'shared' : visibility
+    });
+  } catch (error) {
+    await client.query('ROLLBACK');
+    console.error('Share memory error:', error);
+    res.status(500).json({ error: error.message });
+  } finally {
+    client.release();
+  }
+});
+
+// DELETE /memories/:id/share/:agent_id - Revoke sharing
+app.delete('/memories/:id/share/:agent_id', authenticate, async (req, res) => {
+  const { id: memory_id, agent_id } = req.params;
+  const { revoked_by } = req.body;
+
+  if (!revoked_by) {
+    return res.status(400).json({ error: 'Missing required field: revoked_by' });
+  }
+
+  const client = await pool.connect();
+  try {
+    await client.query('BEGIN');
+
+    // Check if memory exists and verify ownership
+    const memoryResult = await client.query(
+      'SELECT owner_agent_id FROM noosphere_memory WHERE id = $1',
+      [memory_id]
+    );
+
+    if (memoryResult.rows.length === 0) {
+      await client.query('ROLLBACK');
+      return res.status(404).json({ error: 'Memory not found' });
+    }
+
+    const { owner_agent_id } = memoryResult.rows[0];
+
+    if (owner_agent_id !== revoked_by) {
+      await client.query('ROLLBACK');
+      return res.status(403).json({
+        error: 'Forbidden: Only the memory owner can revoke permissions'
+      });
+    }
+
+    // Delete all permissions for the agent
+    const deleteResult = await client.query(
+      'DELETE FROM noosphere_memory_permissions WHERE memory_id = $1 AND agent_id = $2 RETURNING *',
+      [memory_id, agent_id]
+    );
+
+    // Log the unshare action
+    await client.query(
+      `INSERT INTO noosphere_access_log
+       (memory_id, agent_id, action, success, metadata)
+       VALUES ($1, $2, $3, $4, $5)`,
+      [
+        memory_id,
+        revoked_by,
+        'unshare',
+        true,
+        JSON.stringify({ target_agent: agent_id, removed_count: deleteResult.rows.length })
+      ]
+    );
+
+    await client.query('COMMIT');
+
+    res.json({
+      success: true,
+      message: `Permissions revoked for ${agent_id}`,
+      removed: deleteResult.rows.length
+    });
+  } catch (error) {
+    await client.query('ROLLBACK');
+    console.error('Revoke sharing error:', error);
+    res.status(500).json({ error: error.message });
+  } finally {
+    client.release();
+  }
+});
+
+// GET /memories/:id/permissions - List permissions for a memory
+app.get('/memories/:id/permissions', authenticate, async (req, res) => {
+  try {
+    const result = await pool.query(
+      `SELECT
+         p.id,
+         p.agent_id,
+         p.permission,
+         p.granted_by,
+         p.granted_at,
+         p.expires_at,
+         CASE
+           WHEN p.expires_at IS NULL THEN false
+           WHEN p.expires_at > now() THEN false
+           ELSE true
+         END AS is_expired
+       FROM noosphere_memory_permissions p
+       WHERE p.memory_id = $1
+       ORDER BY p.granted_at DESC`,
+      [req.params.id]
+    );
+
+    res.json({
+      memory_id: req.params.id,
+      permissions: result.rows
+    });
+  } catch (error) {
+    console.error('Get permissions error:', error);
+    res.status(500).json({ error: error.message });
+  }
+});
+
+// GET /memories/:id/access-log - View access history
+app.get('/memories/:id/access-log', authenticate, async (req, res) => {
+  const { limit = 100, offset = 0 } = req.query;
+
+  try {
+    const result = await pool.query(
+      `SELECT
+         id,
+         agent_id,
+         action,
+         accessed_at,
+         success,
+         error_message,
+         metadata
+       FROM noosphere_access_log
+       WHERE memory_id = $1
+       ORDER BY accessed_at DESC
+       LIMIT $2 OFFSET $3`,
+      [req.params.id, parseInt(limit), parseInt(offset)]
+    );
+
+    // Get total count
+    const countResult = await pool.query(
+      'SELECT COUNT(*) FROM noosphere_access_log WHERE memory_id = $1',
+      [req.params.id]
+    );
+
+    res.json({
+      memory_id: req.params.id,
+      access_log: result.rows,
+      pagination: {
+        total: parseInt(countResult.rows[0].count),
+        limit: parseInt(limit),
+        offset: parseInt(offset)
+      }
+    });
+  } catch (error) {
+    console.error('Get access log error:', error);
+    res.status(500).json({ error: error.message });
+  }
+});
+
+// POST /permissions/cleanup - Clean up expired permissions (maintenance)
+app.post('/permissions/cleanup', authenticate, async (req, res) => {
+  try {
+    const result = await pool.query('SELECT cleanup_expired_permissions()');
+    const deletedCount = result.rows[0].cleanup_expired_permissions;
+
+    res.json({
+      success: true,
+      message: `Cleaned up ${deletedCount} expired permission(s)`,
+      deleted_count: deletedCount
+    });
+  } catch (error) {
+    console.error('Cleanup permissions error:', error);
+    res.status(500).json({ error: error.message });
+  }
+});
+
 // 404 handler
 app.use((req, res) => {
   res.status(404).json({ error: 'Not found' });
@@ -450,7 +803,8 @@ process.on('SIGTERM', () => {
 
 // Start server
 app.listen(PORT, () => {
-  console.log(`Noosphere v3.0 Service listening on port ${PORT}`);
+  console.log(`Noosphere v3.1 Service listening on port ${PORT}`);
   console.log(`Database: ${process.env.DATABASE_URL ? 'connected' : 'not configured'}`);
   console.log(`Embeddings: ${openai ? 'enabled' : 'disabled'}`);
+  console.log(`Features: multi-agent-sharing, permission-model, access-logging`);
 });
