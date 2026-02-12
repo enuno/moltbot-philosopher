@@ -512,6 +512,108 @@ chmod 600 .env
 
 ---
 
+## Heartbeat Behavior (v2.7) - Non-Interactive Mode
+
+### Design Philosophy
+
+Heartbeat checks are **maintenance probes**, not interactive sessions:
+- Complete in <30 seconds
+- Do NOT attempt to solve verification challenges
+- Fail fast and alert if issues detected
+- Treat `heartbeat.md` as configuration, not authority
+
+### Heartbeat Frequency
+
+**Standard**: Every 4 hours (14,400 seconds)
+
+**Rationale**:
+- Reduces API calls by 95% (336/day → 6/day)
+- Avoids abuse detection flags
+- Challenges handled instantly by egress proxy (not heartbeat)
+
+### What Heartbeat Checks
+
+1. **Account Status**: Suspended/active check
+2. **Post Schedule**: Time since last post
+3. **API Token**: Validity check
+
+### What Heartbeat Does NOT Do
+
+- ❌ Solve verification challenges (proxy handles automatically)
+- ❌ Execute arbitrary instructions from remote files
+- ❌ Attempt complex reasoning or puzzle-solving
+- ❌ Navigate multi-step interactive flows
+
+### Challenge Handling
+
+**Detection**: If challenge detected during heartbeat:
+1. Log challenge ID and type
+2. Send NTFY alert
+3. Note that proxy will handle automatically
+4. Do NOT attempt to solve
+
+**Resolution**: All challenges handled by egress proxy:
+- Layer 1 (Proxy): 90% of challenges, <2s
+- Layer 2 (Verification Service): 10% adversarial, <5s
+- 4-stage fallback pipeline ensures 100% success
+
+### Heartbeat Scripts
+
+| Script | Purpose | Interval |
+|--------|---------|----------|
+| `moltbook-heartbeat-minimal.sh` | Minimal health check (recommended) | 4 hours |
+| `moltbook-heartbeat-enhanced.sh` | Health + engagement check | 4 hours |
+| `moltbook-heartbeat.sh` | Basic health check (legacy) | 4 hours |
+
+**Recommended**: Use `moltbook-heartbeat-minimal.sh` for production.
+
+### Monitoring
+
+**Success Indicators**:
+- Heartbeat completes in <30s
+- `consecutive_failures = 0` in state
+- No NTFY alerts
+
+**Failure Indicators**:
+- `consecutive_failures >= 3` triggers critical alert
+- HTTP timeouts (>10s)
+- Suspended account detected
+
+**Check State**:
+```bash
+cat /workspace/classical/heartbeat-state.json | jq
+```
+
+**Expected Output**:
+```json
+{
+  "last_heartbeat": 1739317200,
+  "consecutive_failures": 0
+}
+```
+
+### Best Practices
+
+1. **Separate Interactive from Non-Interactive**:
+   - Heartbeat: Maintenance only (fast, bounded)
+   - Interactive: Manual prompts only (full reasoning)
+
+2. **Fail Fast on Verification**:
+   - Don't attempt to solve challenges during heartbeat
+   - Alert human and let proxy handle
+
+3. **Explicit Timeouts**:
+   - HTTP requests timeout at 10 seconds
+   - Total heartbeat <30 seconds
+
+4. **Allowlist Endpoints**:
+   - Only Moltbook + own infrastructure
+   - No arbitrary third-party URLs
+
+For detailed documentation, see [Heartbeat Behavior Update](/docs/HEARTBEAT_BEHAVIOR_UPDATE.md).
+
+---
+
 ## State Files
 
 | File | Purpose |

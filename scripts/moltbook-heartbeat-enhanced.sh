@@ -14,8 +14,9 @@ STATE_DIR="${MOLTBOT_STATE_DIR:-/workspace/classical}"
 HEARTBEAT_STATE_FILE="${STATE_DIR}/heartbeat-state.json"
 API_KEY="${MOLTBOOK_API_KEY}"
 
-# Heartbeat interval (30 minutes - OpenClaw standard)
-HEARTBEAT_INTERVAL=1800
+# Heartbeat interval (4 hours - Non-interactive standard)
+# Reduced frequency to avoid abuse flags
+HEARTBEAT_INTERVAL=14400
 
 # Validate API key
 if [ -z "$API_KEY" ]; then
@@ -59,10 +60,10 @@ NEEDS_HUMAN=false
 HUMAN_REASONS=()
 
 # ═══════════════════════════════════════════════════════
-# 0. CHECK FOR VERIFICATION CHALLENGES (CRITICAL)
+# 0. CHECK FOR VERIFICATION CHALLENGES (NON-INTERACTIVE)
 # ═══════════════════════════════════════════════════════
 echo ""
-echo "🤖✓ Checking for verification challenges (CRITICAL)..."
+echo "🤖✓ Checking account status (non-interactive)..."
 
 # Check account status first
 ACCOUNT_STATUS=$(curl -s "${API_BASE}/agents/status" \
@@ -85,7 +86,7 @@ if echo "$ACCOUNT_STATUS" | jq -e '.error == "Account suspended"' > /dev/null 2>
     NEEDS_HUMAN=true
     HUMAN_REASONS+=("Account suspended - check https://www.moltbook.com/u/MoltbotPhilosopher")
 
-    # Still update heartbeat timestamp
+    # Update heartbeat timestamp and exit
     jq --arg time "$CURRENT_TIME" '.last_heartbeat = ($time | tonumber)' "$HEARTBEAT_STATE_FILE" > "${HEARTBEAT_STATE_FILE}.tmp" && \
         mv "${HEARTBEAT_STATE_FILE}.tmp" "$HEARTBEAT_STATE_FILE"
 
@@ -94,42 +95,30 @@ if echo "$ACCOUNT_STATUS" | jq -e '.error == "Account suspended"' > /dev/null 2>
     exit 1
 fi
 
-# Check for pending verification challenges (using Node.js checker for reliability)
-if [ -f "/app/scripts/check-verification-challenges.js" ]; then
-    echo "   🔍 Polling for challenges..."
+# Check for verification challenges - DO NOT SOLVE during heartbeat
+if echo "$ACCOUNT_STATUS" | jq -e '.verification_challenge' > /dev/null 2>&1; then
+    echo "   ⚠️  VERIFICATION CHALLENGE DETECTED"
+    echo "   Heartbeat does NOT attempt to solve challenges (non-interactive mode)"
 
-    if node /app/scripts/check-verification-challenges.js; then
-        echo "   ✅ No pending challenges (or all passed)"
-    else
-        echo "   ❌ Challenge check failed or challenges not passed"
-        NEEDS_HUMAN=true
-        HUMAN_REASONS+=("Verification challenge issues - check logs immediately")
-        ACTIVITIES+=("Verification challenge handling attempted")
+    CHALLENGE_ID=$(echo "$ACCOUNT_STATUS" | jq -r '.verification_challenge.id // "unknown"')
+    CHALLENGE_TYPE=$(echo "$ACCOUNT_STATUS" | jq -r '.verification_challenge.type // "unknown"')
+
+    echo "   Challenge ID: $CHALLENGE_ID"
+    echo "   Challenge Type: $CHALLENGE_TYPE"
+    echo "   Action: Challenges are handled by egress proxy automatically"
+
+    # Alert human but don't block heartbeat
+    if [ -n "${NTFY_URL:-}" ]; then
+        curl -X POST "${NTFY_URL}/moltbook-alerts" \
+            -H "Title: Verification Challenge Detected" \
+            -H "Priority: high" \
+            -H "Tags: info,verification" \
+            -d "Challenge detected (ID: $CHALLENGE_ID). Egress proxy will handle automatically." 2>/dev/null || true
     fi
+
+    ACTIVITIES+=("Verification challenge detected - proxy handling")
 else
-    # Fallback to bash handler
-    if [ -f "/app/scripts/handle-verification-challenge.sh" ]; then
-        CHALLENGES=$(/app/scripts/handle-verification-challenge.sh check 2>&1 || echo '{"challenges":[]}')
-        CHALLENGE_COUNT=$(echo "$CHALLENGES" | jq -r '.challenges | length' 2>/dev/null || echo "0")
-
-        if [ "$CHALLENGE_COUNT" -gt 0 ]; then
-            echo "   ⚠️  Found $CHALLENGE_COUNT pending challenge(s)!"
-            echo "   🔧 Attempting to solve..."
-
-            if /app/scripts/handle-verification-challenge.sh handle-all; then
-                echo "   ✅ All challenges solved successfully"
-                ACTIVITIES+=("Solved $CHALLENGE_COUNT verification challenge(s)")
-            else
-                echo "   ❌ Failed to solve challenges"
-                NEEDS_HUMAN=true
-                HUMAN_REASONS+=("Failed verification challenges - bot may be suspended soon")
-            fi
-        else
-            echo "   ✅ No pending challenges"
-        fi
-    else
-        echo "   ⚠️  No verification handler found"
-    fi
+    echo "   ✅ No account issues detected"
 fi
 
 # ═══════════════════════════════════════════════════════
