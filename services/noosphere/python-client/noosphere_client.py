@@ -1,5 +1,5 @@
 """
-Noosphere v3.2 Python Client
+Noosphere v3.3 Python Client
 Type-safe abstraction layer over the Noosphere REST API
 
 Usage:
@@ -58,6 +58,26 @@ Usage:
     # Get/update decay configuration
     config = client.get_decay_config()
     client.update_decay_config("insight", decay_rate=0.02)
+
+    # v3.3: Cross-agent pattern mining and synthesis
+    # Discover patterns across agents
+    result = client.mine_patterns(pattern_type="convergence", min_agents=3)
+
+    # Get patterns
+    patterns = client.get_patterns(pattern_type="convergence", status="active")
+
+    # Create AI-powered synthesis from pattern
+    synthesis = client.create_synthesis(
+        pattern_id="abc-123",
+        type="insight",
+        auto_generate=True  # Uses Venice.ai
+    )
+
+    # Council review process
+    client.review_synthesis(synthesis.id, decision="approve", notes="Excellent synthesis")
+
+    # Promote accepted synthesis to memory
+    client.promote_synthesis(synthesis.id)
 """
 
 import os
@@ -188,10 +208,72 @@ class AccessLogEntry:
     """Access log entry (v3.1)"""
 
     id: int
+    memory_id: str
     agent_id: str
     action: str
     accessed_at: str
     success: bool
+    metadata: Optional[Dict] = None
+
+
+@dataclass
+class Pattern:
+    """Discovered pattern across agents (v3.3)"""
+
+    id: str
+    pattern_type: str  # 'convergence', 'contradiction', 'gap'
+    title: str
+    description: str
+    agent_ids: List[str]
+    memory_ids: List[str]
+    tags: List[str]
+    confidence: float
+    supporting_evidence: Dict
+    metadata: Optional[Dict] = None
+    status: str = 'active'
+    detected_at: Optional[str] = None
+    updated_at: Optional[str] = None
+
+    def __post_init__(self):
+        if isinstance(self.confidence, str):
+            self.confidence = float(self.confidence)
+
+
+@dataclass
+class Synthesis:
+    """AI-generated synthesis from pattern (v3.3)"""
+
+    id: str
+    pattern_id: str
+    type: str
+    content: str
+    tags: List[str]
+    confidence: float
+    supporting_evidence: Dict
+    rationale: str
+    status: str  # 'proposed', 'under_review', 'accepted', 'rejected'
+    reviewed_by: List[str]
+    content_json: Optional[Dict] = None
+    source_trace_id: Optional[str] = None
+    review_notes: Optional[str] = None
+    created_at: Optional[str] = None
+    updated_at: Optional[str] = None
+    promoted_memory_id: Optional[str] = None
+
+    def __post_init__(self):
+        if isinstance(self.confidence, str):
+            self.confidence = float(self.confidence)
+
+
+@dataclass
+class SynthesisReview:
+    """Review vote on synthesis (v3.3)"""
+
+    synthesis_id: str
+    reviewer_agent_id: str
+    decision: str  # 'approve', 'reject', 'abstain'
+    notes: Optional[str] = None
+    reviewed_at: Optional[str] = None
     error_message: Optional[str] = None
     metadata: Optional[Dict] = None
 
@@ -1004,3 +1086,199 @@ class NoosphereClient:
 
         response = self._request("PUT", f"/decay/config/{memory_type}", json=payload)
         return response.get("config", {})
+
+    # ========================================================================
+    # v3.3 Pattern Mining & Synthesis Methods
+    # ========================================================================
+
+    def mine_patterns(
+        self,
+        pattern_type: str = "all",
+        similarity_threshold: float = 0.85,
+        min_agents: int = 3,
+        limit: int = 50,
+    ) -> dict:
+        """
+        Trigger pattern mining across agent memories.
+
+        Discovers convergence, contradictions, and gaps using
+        vector similarity and tag analysis.
+
+        Args:
+            pattern_type: Type to mine ('convergence', 'contradiction', 'gap', 'all')
+            similarity_threshold: Min vector similarity for convergence (0.0-1.0)
+            min_agents: Minimum agents required for convergence pattern
+            limit: Max patterns to discover per type
+
+        Returns:
+            Dict with {patterns_discovered, patterns: [Pattern]}
+
+        Raises:
+            NoosphereAPIError: If request fails
+        """
+        payload = {
+            "pattern_type": pattern_type,
+            "similarity_threshold": similarity_threshold,
+            "min_agents": min_agents,
+            "limit": limit,
+        }
+
+        response = self._request("POST", "/patterns/mine", json=payload)
+        return response
+
+    def get_patterns(
+        self,
+        pattern_type: Optional[str] = None,
+        status: str = "active",
+        min_confidence: Optional[float] = None,
+        limit: int = 50,
+        offset: int = 0,
+    ) -> List[Pattern]:
+        """
+        List discovered patterns.
+
+        Args:
+            pattern_type: Filter by type ('convergence', 'contradiction', 'gap')
+            status: Pattern status ('active', 'archived', 'invalid')
+            min_confidence: Minimum confidence threshold
+            limit: Max results to return
+            offset: Pagination offset
+
+        Returns:
+            List of Pattern objects
+
+        Raises:
+            NoosphereAPIError: If request fails
+        """
+        params = {"status": status, "limit": limit, "offset": offset}
+        if pattern_type:
+            params["pattern_type"] = pattern_type
+        if min_confidence is not None:
+            params["min_confidence"] = min_confidence
+
+        response = self._request("GET", "/patterns", params=params)
+        return [Pattern(**p) for p in response.get("patterns", [])]
+
+    def get_pattern(self, pattern_id: str) -> dict:
+        """
+        Get detailed pattern information including related memories.
+
+        Args:
+            pattern_id: UUID of the pattern
+
+        Returns:
+            Dict with pattern details and memories list
+
+        Raises:
+            NoosphereAPIError: If request fails
+        """
+        return self._request("GET", f"/patterns/{pattern_id}")
+
+    def create_synthesis(
+        self,
+        pattern_id: str,
+        type: str = "insight",
+        auto_generate: bool = True,
+        content: Optional[str] = None,
+        rationale: Optional[str] = None,
+    ) -> Synthesis:
+        """
+        Create synthesis from convergence pattern.
+
+        When auto_generate=True, uses Venice.ai to generate unified
+        insight from pattern. Otherwise requires manual content.
+
+        Args:
+            pattern_id: UUID of convergence pattern
+            type: Memory type for synthesis
+            auto_generate: Use AI to generate content
+            content: Manual content (required if auto_generate=False)
+            rationale: Explanation (optional)
+
+        Returns:
+            Synthesis object
+
+        Raises:
+            NoosphereAPIError: If request fails
+            ValueError: If pattern is not convergence type
+        """
+        payload = {"pattern_id": pattern_id, "type": type, "auto_generate": auto_generate}
+
+        if not auto_generate:
+            if not content:
+                raise ValueError("Content required when auto_generate=False")
+            payload["content"] = content
+            payload["rationale"] = rationale
+
+        response = self._request("POST", "/syntheses", json=payload)
+        return Synthesis(**response["synthesis"])
+
+    def get_syntheses(
+        self, status: str = "proposed", limit: int = 50, offset: int = 0
+    ) -> List[Synthesis]:
+        """
+        List syntheses awaiting or completed review.
+
+        Args:
+            status: Filter by status ('proposed', 'under_review', 'accepted', 'rejected')
+            limit: Max results
+            offset: Pagination offset
+
+        Returns:
+            List of Synthesis objects
+
+        Raises:
+            NoosphereAPIError: If request fails
+        """
+        params = {"status": status, "limit": limit, "offset": offset}
+        response = self._request("GET", "/syntheses", params=params)
+        return [Synthesis(**s) for s in response.get("syntheses", [])]
+
+    def review_synthesis(
+        self, synthesis_id: str, decision: str, notes: Optional[str] = None
+    ) -> dict:
+        """
+        Submit Council review vote on synthesis.
+
+        Consensus requires 4/6 agents to approve. Status automatically
+        updates to 'accepted' or 'rejected' when threshold reached.
+
+        Args:
+            synthesis_id: UUID of synthesis
+            decision: Vote ('approve', 'reject', 'abstain')
+            notes: Review comments (optional)
+
+        Returns:
+            Dict with review status and vote counts
+
+        Raises:
+            NoosphereAPIError: If request fails
+            ValueError: If invalid decision
+        """
+        if decision not in ["approve", "reject", "abstain"]:
+            raise ValueError("Decision must be 'approve', 'reject', or 'abstain'")
+
+        payload = {"decision": decision}
+        if notes:
+            payload["notes"] = notes
+
+        return self._request("PUT", f"/syntheses/{synthesis_id}/review", json=payload)
+
+    def promote_synthesis(self, synthesis_id: str) -> dict:
+        """
+        Promote accepted synthesis to shared memory.
+
+        Creates new memory visible to all agents, linked back
+        to synthesis for traceability.
+
+        Args:
+            synthesis_id: UUID of accepted synthesis
+
+        Returns:
+            Dict with created memory and synthesis_id
+
+        Raises:
+            NoosphereAPIError: If request fails
+            ValueError: If synthesis not accepted or already promoted
+        """
+        return self._request("POST", f"/syntheses/{synthesis_id}/promote")
