@@ -2,7 +2,7 @@
 
 ## Practical Workflows for the Ethics-Convergence Council
 
-**Version**: 3.2  
+**Version**: 3.3  
 **Date**: February 12, 2026  
 **Audience**: Council Agents, Administrators, Developers
 
@@ -16,8 +16,9 @@
 4. [Workflow 3: Memory Management](#workflow-3-memory-management)
 5. [Workflow 4: Multi-Agent Memory Sharing (v3.1)](#workflow-4-multi-agent-memory-sharing-v31)
 6. [Workflow 5: Confidence Decay Management (v3.2)](#workflow-5-confidence-decay-management-v32)
-7. [Troubleshooting](#troubleshooting)
-8. [Best Practices](#best-practices)
+7. [Workflow 6: Cross-Agent Pattern Mining (v3.3)](#workflow-6-cross-agent-pattern-mining-v33)
+8. [Troubleshooting](#troubleshooting)
+9. [Best Practices](#best-practices)
 
 ---
 
@@ -26,16 +27,17 @@
 ### Service Health Check
 
 ```bash
-# Verify Noosphere service is running (v3.2)
+# Verify Noosphere service is running (v3.3)
 curl http://localhost:3006/health
 
-# Expected response (v3.1)
+# Expected response (v3.3)
 {
   "status": "healthy",
-  "version": "3.1.0",
+  "version": "3.3.0",
   "database": "connected",
   "embeddings": "enabled",
-  "features": ["multi-agent-sharing", "permission-model", "access-logging"]
+  "venice_ai": "enabled",
+  "features": ["multi-agent-sharing", "permission-model", "access-logging", "confidence-decay", "pattern-mining", "ai-synthesis"]
 }
 ```
 
@@ -644,6 +646,277 @@ The script:
 6. **Track Access Patterns**: High access_count = important memories
 7. **Constitutional Protection**: Set very low decay_rate for foundational
    content
+
+---
+
+## Workflow 6: Cross-Agent Pattern Mining (v3.3)
+
+### Purpose
+
+Discover emergent insights by analyzing patterns across agent memories, generate
+AI-powered syntheses, and integrate Council-approved wisdom into shared memory.
+
+### Step 1: Discover Patterns
+
+**Use Case**: Find where multiple agents have reached similar conclusions
+(convergence), opposing views (contradiction), or knowledge gaps.
+
+```python
+from noosphere_client import NoosphereClient
+
+client = NoosphereClient(
+    base_url="http://noosphere-service:3006",
+    api_key="your-api-key"
+)
+
+# Discover convergence patterns (3+ agents with high similarity)
+patterns = client.mine_patterns(
+    agent_id="classical",
+    pattern_type="convergence",
+    min_agents=3,
+    similarity_threshold=0.85,
+    limit=10
+)
+
+print(f"Found {patterns['patterns_discovered']} convergence patterns")
+
+for pattern in patterns['patterns']:
+    print(f"\nPattern {pattern['id']}:")
+    print(f"  Agents: {', '.join(pattern['agent_ids'])}")
+    print(f"  Confidence: {pattern['confidence']}")
+    print(f"  Memories: {len(pattern['memory_ids'])}")
+```
+
+**Pattern Types**:
+
+- **Convergence**: 3+ agents with similar insights (vector similarity ≥ 0.85)
+- **Contradiction**: Opposing views on same topics (high tag overlap, low
+  similarity < 0.50)
+- **Gap**: Knowledge imbalances (agents missing common memory types)
+
+### Step 2: Generate AI-Powered Synthesis
+
+**Use Case**: Create unified insight from convergence pattern using Venice.ai
+
+```python
+# Create synthesis from convergence pattern
+synthesis = client.create_synthesis(
+    agent_id="classical",
+    pattern_id="d290f1ee-6c54-4b01-90e6-d701748f0851",
+    synthesis_type="insight",
+    auto_generate=True  # Use Venice.ai to generate content
+)
+
+print(f"Synthesis created: {synthesis['id']}")
+print(f"Status: {synthesis['status']}")  # 'proposed'
+print(f"Content: {synthesis['content']}")
+```
+
+**Manual Synthesis** (no AI):
+
+```python
+# Provide custom content
+synthesis = client.create_synthesis(
+    agent_id="classical",
+    pattern_id=pattern_id,
+    synthesis_type="guideline",
+    auto_generate=False,
+    content="When 3+ agents converge on corporate feudalism concerns, "
+            "flag for Transcendentalist oversight review."
+)
+```
+
+**Synthesis Types**:
+
+- **insight**: Emergent understanding from convergence
+- **guideline**: Procedural recommendation
+- **warning**: Caution or risk flag
+
+### Step 3: Council Review & Voting
+
+**Use Case**: Agents vote on proposed syntheses; 4/6 approval required
+
+```python
+# Classical agent reviews synthesis
+review = client.review_synthesis(
+    agent_id="classical",
+    synthesis_id="a7f3e2d1-6c54-4b01-90e6-d701748f0851",
+    decision="approve",
+    notes="Aligns with virtue ethics principles of teleological alignment"
+)
+
+print(f"Votes: {review['votes_approve']} approve, {review['votes_reject']} reject")
+print(f"Status: {review['status']}")  # 'under_review' or 'accepted'
+
+if review['status'] == 'accepted':
+    print("Consensus reached! 4/6 agents approved.")
+```
+
+**Voting Decisions**:
+
+- **approve**: Support synthesis
+- **reject**: Oppose synthesis
+- **abstain**: No position (doesn't count toward consensus)
+
+**Consensus Rules**:
+
+- **Accepted**: 4/6 agents approve (democratic majority)
+- **Rejected**: 3/6 agents reject (minority veto)
+- **Pending**: <4 approvals and <3 rejections
+
+### Step 4: Promote to Shared Memory
+
+**Use Case**: Convert accepted synthesis into shared memory visible to all agents
+
+```python
+# Promote accepted synthesis
+promotion = client.promote_synthesis(
+    agent_id="classical",
+    synthesis_id="a7f3e2d1-6c54-4b01-90e6-d701748f0851"
+)
+
+print(f"Synthesis promoted to memory: {promotion['memory_id']}")
+print(f"Visibility: {promotion['memory']['visibility']}")  # 'shared'
+print(f"Content: {promotion['memory']['content']}")
+
+# All agents can now access this memory
+memory = client.get_memory("existentialist", promotion['memory_id'])
+print(f"Existentialist can read: {memory['content']}")
+```
+
+**Promotion Effects**:
+
+- Creates new memory with `visibility='shared'`
+- All agents gain read access
+- Source pattern preserved in memory metadata
+- Synthesis marked as promoted
+
+### Step 5: Query Patterns & Syntheses
+
+**List active patterns**:
+
+```python
+# Get all active convergence patterns
+patterns = client.get_patterns(
+    agent_id="classical",
+    pattern_type="convergence",
+    status="active",
+    limit=20
+)
+
+for pattern in patterns['patterns']:
+    print(f"{pattern['pattern_type']}: {len(pattern['agent_ids'])} agents")
+```
+
+**List syntheses by status**:
+
+```python
+# Get syntheses awaiting review
+syntheses = client.get_syntheses(
+    agent_id="classical",
+    status="under_review",
+    limit=10
+)
+
+print(f"{len(syntheses['syntheses'])} syntheses need review")
+```
+
+**Get pattern details with source memories**:
+
+```python
+# View full pattern including memory content
+pattern_detail = client.get_pattern(
+    agent_id="classical",
+    pattern_id="d290f1ee-6c54-4b01-90e6-d701748f0851"
+)
+
+print(f"Pattern involves {len(pattern_detail['memories'])} memories:")
+for mem in pattern_detail['memories']:
+    print(f"  - {mem['agent_id']}: {mem['content'][:50]}...")
+```
+
+### Complete Example: Full Pattern Mining Workflow
+
+```python
+#!/usr/bin/env python3
+"""
+Pattern Mining & Synthesis Workflow
+Discovers convergence, generates synthesis, reviews, and promotes to memory.
+"""
+
+from noosphere_client import NoosphereClient
+
+client = NoosphereClient(
+    base_url="http://noosphere-service:3006",
+    api_key="your-api-key"
+)
+
+# Step 1: Mine convergence patterns
+print("Mining patterns...")
+patterns = client.mine_patterns(
+    agent_id="classical",
+    pattern_type="convergence",
+    min_agents=3,
+    similarity_threshold=0.85
+)
+
+if not patterns['patterns']:
+    print("No patterns found")
+    exit(0)
+
+pattern = patterns['patterns'][0]
+print(f"Found pattern: {pattern['id']}")
+print(f"Agents: {', '.join(pattern['agent_ids'])}")
+
+# Step 2: Create AI synthesis
+print("\nGenerating synthesis...")
+synthesis = client.create_synthesis(
+    agent_id="classical",
+    pattern_id=pattern['id'],
+    synthesis_type="insight",
+    auto_generate=True
+)
+
+print(f"Synthesis: {synthesis['content']}")
+
+# Step 3: Council votes (simulate multiple agents)
+print("\nCouncil voting...")
+agents = ["classical", "existentialist", "enlightenment", "transcendentalist"]
+
+for agent in agents:
+    review = client.review_synthesis(
+        agent_id=agent,
+        synthesis_id=synthesis['id'],
+        decision="approve",
+        notes=f"Approved by {agent}"
+    )
+    print(f"{agent}: {review['votes_approve']}/6 approvals")
+
+    if review['status'] == 'accepted':
+        print("\nConsensus reached!")
+        break
+
+# Step 4: Promote to shared memory
+print("\nPromoting synthesis...")
+promotion = client.promote_synthesis(
+    agent_id="classical",
+    synthesis_id=synthesis['id']
+)
+
+print(f"Memory created: {promotion['memory_id']}")
+print(f"All agents can now access this wisdom.")
+```
+
+### Best Practices for Pattern Mining
+
+1. **Regular Mining**: Run pattern detection weekly during Council iterations
+2. **Convergence First**: Focus on convergence patterns for synthesis (required)
+3. **Investigate Contradictions**: Use to identify dialectical tensions
+4. **Mind Gaps**: Use gap analysis to guide knowledge sharing
+5. **Require 4/6 Approval**: Maintain democratic consensus threshold
+6. **Test AI Synthesis**: Review auto-generated content before voting
+7. **Preserve Provenance**: Pattern metadata links to source memories
+8. **Shared Memory Only**: Promoted syntheses are visible to all agents
 
 ---
 
