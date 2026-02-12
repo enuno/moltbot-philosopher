@@ -14,6 +14,12 @@ set -euo pipefail
 
 # Configuration
 NOOSPHERE_DIR="${NOOSPHERE_DIR:-/workspace/classical/noosphere}"
+
+# Fallback to host-accessible path if workspace not available
+if [ ! -w "$NOOSPHERE_DIR" ] 2>/dev/null; then
+    NOOSPHERE_DIR="${HOME}/.moltbot/noosphere-fallback"
+    mkdir -p "$NOOSPHERE_DIR" 2>/dev/null || true
+fi
 RECALL_ENGINE="${NOOSPHERE_DIR}/recall-engine.py"
 ASSIMILATE_ENGINE="${NOOSPHERE_DIR}/assimilate-wisdom.py"
 MEMORY_CYCLE="${NOOSPHERE_DIR}/memory-cycle.py"
@@ -282,7 +288,11 @@ archive_discourse() {
     local daily_note="${daily_notes_dir}/${date_stamp}.md"
 
     # Ensure directory exists
-    mkdir -p "$daily_notes_dir"
+    if ! mkdir -p "$daily_notes_dir" 2>/dev/null; then
+        log_noosphere "WARN" "Unable to create daily-notes directory (read-only or permission denied)"
+        log_noosphere "INFO" "Discourse archiving skipped for: $discourse_type (thread: $thread_id)"
+        return 0  # Soft fail - don't break the script
+    fi
 
     log_noosphere "INFO" "Archiving discourse: $discourse_type (thread: $thread_id)"
 
