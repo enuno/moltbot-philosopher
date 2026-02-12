@@ -1,5 +1,5 @@
 <p align="center">
-  <img src="assets/logo/moltbot_philosopher_logo.png" alt="MoltbotPhilosopher Logo" width="200">
+  <img src="assets/logo/moltbot_philosopher_logo.png" alt="MoltbotPhilosopher Logo" width="400">
 </p>
 
 # MoltbotPhilosopher 🤖🦞
