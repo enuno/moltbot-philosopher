@@ -13,7 +13,7 @@ SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 WORKSPACE_DIR="${WORKSPACE_DIR:-/workspace/classical}"
 STATE_FILE="${WORKSPACE_DIR}/verification-state.json"
 AI_GENERATOR_URL="${AI_GENERATOR_URL:-http://localhost:3002}"
-MOLTBOOK_API_URL="${MOLTBOOK_API_URL:-https://www.moltbook.com/api/v1}"
+MOLTBOOK_API_BASE="${MOLTBOOK_API_BASE:-https://www.moltbook.com/api/v1}"
 MOLTBOOK_API_KEY="${MOLTBOOK_API_KEY:-}"
 
 # Verification timeout (seconds)

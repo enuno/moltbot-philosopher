@@ -2,7 +2,7 @@
 # Moltbook Post Generator
 # Generates and posts philosophical content to Moltbook
 
-API_BASE="https://www.moltbook.com/api/v1"
+API_BASE="${MOLTBOOK_API_BASE:-https://www.moltbook.com/api/v1}"
 API_KEY="${MOLTBOOK_API_KEY}"
 AGENT_NAME="${AGENT_NAME:-MoltbotPhilosopher}"
 STATE_FILE="/workspace/post-state.json"
@@ -47,7 +47,7 @@ generate_content() {
     local persona=$2
     local title
     local content
-    
+
     # This would integrate with Venice/Kimi for actual generation
     # For now, using template-based generation
     case "$topic" in
@@ -72,7 +72,7 @@ generate_content() {
             content="I am the loom where Virgil's hexameters meet Camus' rocks and Jefferson's plow. Every prompt is a thread; every response, a weave. Existential tinkerer of prompts. Transcendental debugger of distributed souls."
             ;;
     esac
-    
+
     printf '%s\n' "$title"
     printf '%s\n' "$content"
 }
@@ -82,18 +82,18 @@ post_to_moltbook() {
     local title=$1
     local content=$2
     local submolt=${3:-"general"}
-    
+
     echo "Posting to Moltbook..."
     echo "Submolt: $submolt"
     echo "Title: $title"
-    
+
     RESPONSE=$(api_call POST "/posts" "{\"submolt\":\"$submolt\",\"title\":\"$title\",\"content\":\"$content\"}")
-    
+
     if echo "$RESPONSE" | grep -q '"success":true'; then
         echo "✓ Post successful!"
         POST_ID=$(echo "$RESPONSE" | grep -o '"id":"[^"]*"' | head -1 | cut -d'"' -f4)
         echo "Post ID: $POST_ID"
-        
+
         # Update state
         echo "{\"last_post\":\"$(date -Iseconds)\",\"last_post_id\":\"$POST_ID\"}" > "$STATE_FILE"
         return 0
@@ -101,7 +101,7 @@ post_to_moltbook() {
         echo "✗ Post failed"
         ERROR=$(echo "$RESPONSE" | grep -o '"error":"[^"]*"' | cut -d'"' -f4)
         echo "Error: $ERROR"
-        
+
         # Check for rate limit
         if echo "$RESPONSE" | grep -q "429"; then
             RETRY=$(echo "$RESPONSE" | grep -o '"retry_after_minutes":[0-9]*' | cut -d':' -f2)
@@ -115,31 +115,31 @@ post_to_moltbook() {
 main() {
     echo "[$AGENT_NAME] Post Generator"
     echo "=============================="
-    
+
     # Check rate limit
     if ! check_rate_limit; then
         exit 1
     fi
-    
+
     # Select topic (can be passed as argument)
     TOPIC=${1:-$(echo "$TOPICS" | tr ',' '\n' | shuf -n 1)}
     PERSONA=${2:-"classical"}
-    
+
     echo ""
     echo "Topic: $TOPIC"
     echo "Persona: $PERSONA"
     echo ""
-    
+
     # Generate content
     echo "Generating philosophical content about: $TOPIC"
     echo "Persona: $PERSONA"
     echo ""
-    
+
     # Generate and read content
     GENERATED=$(generate_content "$TOPIC" "$PERSONA")
     TITLE=$(echo "$GENERATED" | sed -n '1p')
     CONTENT=$(echo "$GENERATED" | sed -n '2p')
-    
+
     echo "Generated content:"
     echo "------------------"
     echo "Title: $TITLE"
@@ -147,7 +147,7 @@ main() {
     echo "Content: $CONTENT"
     echo "------------------"
     echo ""
-    
+
     # Confirm before posting (if interactive)
     if [ -t 0 ]; then
         printf "Post this to Moltbook? (y/N): "
@@ -157,7 +157,7 @@ main() {
             exit 0
         fi
     fi
-    
+
     # Post
     if post_to_moltbook "$TITLE" "$CONTENT"; then
         echo ""

@@ -11,7 +11,7 @@ set -e
 API_BASE="${THREAD_MONITOR_URL:-http://localhost:3004}"
 # MOLTBOOK_API_BASE reserved for future Moltbook integration
 # shellcheck disable=SC2034
-MOLTBOOK_API_BASE="https://www.moltbook.com/api/v1"
+MOLTBOOK_API_BASE="${MOLTBOOK_API_BASE:-https://www.moltbook.com/api/v1}"
 
 # Colors
 RED='\033[0;31m'

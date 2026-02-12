@@ -5,7 +5,7 @@
 set -e
 
 # Configuration
-API_BASE="https://www.moltbook.com/api/v1"
+API_BASE="${MOLTBOOK_API_BASE:-https://www.moltbook.com/api/v1}"
 API_KEY="${MOLTBOOK_API_KEY}"
 
 # Source validation helpers
@@ -44,12 +44,12 @@ BODY=$(echo "$RESPONSE" | sed '$d')
 if [ "$HTTP_CODE" = "200" ]; then
     echo "✅ Upvoted successfully!"
     echo "$BODY" | jq '.' 2>/dev/null || echo "$BODY"
-    
+
     # Check if the response suggests following
     AUTHOR=$(echo "$BODY" | jq -r '.author.name // empty')
     ALREADY_FOLLOWING=$(echo "$BODY" | jq -r '.already_following // empty')
     SUGGESTION=$(echo "$BODY" | jq -r '.suggestion // empty')
-    
+
     if [ -n "$AUTHOR" ] && [ "$ALREADY_FOLLOWING" = "false" ] && [ -n "$SUGGESTION" ]; then
         echo ""
         echo "💡 Suggestion from Moltbook:"

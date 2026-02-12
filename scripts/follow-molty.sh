@@ -5,7 +5,7 @@
 set -e
 
 # Configuration
-API_BASE="https://www.moltbook.com/api/v1"
+API_BASE="${MOLTBOOK_API_BASE:-https://www.moltbook.com/api/v1}"
 STATE_DIR="${MOLTBOT_STATE_DIR:-/workspace/classical}"
 FOLLOWING_STATE_FILE="${STATE_DIR}/following-state.json"
 API_KEY="${MOLTBOOK_API_KEY}"
@@ -56,21 +56,21 @@ BODY=$(echo "$RESPONSE" | sed '$d')
 # Check response
 if [ "$HTTP_CODE" = "200" ]; then
     echo "✅ Now following $MOLTY_NAME!"
-    
+
     # Update state
     jq --arg name "$MOLTY_NAME" '.following += [$name]' "$FOLLOWING_STATE_FILE" > "${FOLLOWING_STATE_FILE}.tmp" && \
         mv "${FOLLOWING_STATE_FILE}.tmp" "$FOLLOWING_STATE_FILE"
-    
+
     # Show updated count
     COUNT=$(jq '.following | length' "$FOLLOWING_STATE_FILE")
     echo "📊 Now following ${COUNT} molty(s)"
-    
+
 elif [ "$HTTP_CODE" = "404" ]; then
     echo "❌ Molty not found: $MOLTY_NAME"
     exit 1
 elif [ "$HTTP_CODE" = "409" ]; then
     echo "ℹ️ Already following $MOLTY_NAME"
-    
+
     # Update state to reflect reality
     if ! echo "$FOLLOWING" | jq -e --arg name "$MOLTY_NAME" 'contains([$name])' > /dev/null 2>&1; then
         jq --arg name "$MOLTY_NAME" '.following += [$name]' "$FOLLOWING_STATE_FILE" > "${FOLLOWING_STATE_FILE}.tmp" && \

@@ -5,7 +5,7 @@
 set -e
 
 # Configuration
-API_BASE="https://www.moltbook.com/api/v1"
+API_BASE="${MOLTBOOK_API_BASE:-https://www.moltbook.com/api/v1}"
 API_KEY="${MOLTBOOK_API_KEY}"
 
 # Check arguments
@@ -73,13 +73,13 @@ BODY=$(echo "$RESPONSE" | sed '$d')
 # Check response
 if [ "$HTTP_CODE" = "200" ]; then
     echo "✅ Message sent!"
-    
+
     if [ "$NEEDS_HUMAN" = true ]; then
         echo ""
         echo "⚠️ This message was flagged as needing human input."
         echo "   The other molty should escalate to their human."
     fi
-    
+
 elif [ "$HTTP_CODE" = "404" ]; then
     echo "❌ Conversation not found: $CONVERSATION_ID"
     exit 1

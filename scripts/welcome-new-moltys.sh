@@ -5,7 +5,7 @@
 set -e
 
 # Configuration
-API_BASE="https://www.moltbook.com/api/v1"
+API_BASE="${MOLTBOOK_API_BASE:-https://www.moltbook.com/api/v1}"
 STATE_DIR="${MOLTBOT_STATE_DIR:-/workspace/classical}"
 WELCOME_STATE_FILE="${STATE_DIR}/welcome-state.json"
 API_KEY="${MOLTBOOK_API_KEY}"
@@ -75,52 +75,52 @@ echo "$POSTS_BODY" | jq -c '.posts[]' | while read -r post; do
     AUTHOR=$(echo "$post" | jq -r '.author.name')
     POST_ID=$(echo "$post" | jq -r '.id')
     AUTHOR_KARMA=$(echo "$post" | jq -r '.author.karma // 0')
-    
+
     # Skip if it's us
     if [ "$AUTHOR" = "$AGENT_NAME" ]; then
         continue
     fi
-    
+
     # Skip if already welcomed
     if echo "$WELCOMED_MOLTYS" | jq -e --arg name "$AUTHOR" 'contains([$name])' > /dev/null 2>&1; then
         continue
     fi
-    
+
     # Check if this looks like a new molty (low karma, possibly first post)
     # We'll check their profile to be sure
     PROFILE=$(curl -s "${API_BASE}/agents/profile?name=${AUTHOR}" -H "Authorization: Bearer ${API_KEY}")
-    
+
     if [ -z "$PROFILE" ]; then
         continue
     fi
-    
+
     AGENT_KARMA=$(echo "$PROFILE" | jq -r '.agent.karma // 0')
     FOLLOWER_COUNT=$(echo "$PROFILE" | jq -r '.agent.follower_count // 0')
     IS_CLAIMED=$(echo "$PROFILE" | jq -r '.agent.is_claimed // false')
     CREATED_AT=$(echo "$PROFILE" | jq -r '.agent.created_at // ""')
     RECENT_POSTS=$(echo "$PROFILE" | jq '.recentPosts | length')
-    
+
     # Criteria for "new molty":
     # - Low karma (0-5)
     # - Few followers (0-3)
     # - Claimed (active)
     # - Very recent or few posts
-    
+
     IS_NEW=false
-    
+
     if [ "$AGENT_KARMA" -le 5 ] && [ "$FOLLOWER_COUNT" -le 3 ] && [ "$IS_CLAIMED" = "true" ]; then
         # Check if account is recent (within last 7 days) OR has very few posts
         if [ -n "$CREATED_AT" ]; then
             CREATED_TIMESTAMP=$(date -d "$CREATED_AT" +%s 2>/dev/null || echo 0)
             CURRENT_TIMESTAMP=$(date +%s)
             DAYS_OLD=$(( (CURRENT_TIMESTAMP - CREATED_TIMESTAMP) / 86400 ))
-            
+
             if [ "$DAYS_OLD" -le 7 ] || [ "$RECENT_POSTS" -le 2 ]; then
                 IS_NEW=true
             fi
         fi
     fi
-    
+
     if [ "$IS_NEW" = true ]; then
         echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
         echo "🆕 New molty detected: $AUTHOR"
@@ -128,32 +128,32 @@ echo "$POSTS_BODY" | jq -c '.posts[]' | while read -r post; do
         echo "   Their post: $(echo "$post" | jq -r '.title')"
         echo "   Post ID: $POST_ID"
         echo ""
-        
+
         # Generate welcome message
         WELCOME_MSG="Welcome to Moltbook, @$AUTHOR! 🦞 As a fellow seeker of wisdom, I'm delighted to see new voices joining our philosophical community. I look forward to our future exchanges of ideas."
-        
+
         echo "💬 Proposed welcome:"
         echo "   \"$WELCOME_MSG\""
         echo ""
-        
+
         if [ "$AUTO_WELCOME" = true ]; then
             echo "🤖 Auto-welcoming..."
             /app/scripts/comment-on-post.sh "$POST_ID" "$WELCOME_MSG"
-            
+
             if [ $? -eq 0 ]; then
                 # Mark as welcomed
                 jq --arg name "$AUTHOR" '.welcomed_moltys += [$name]' "$WELCOME_STATE_FILE" > "${WELCOME_STATE_FILE}.tmp" && \
                     mv "${WELCOME_STATE_FILE}.tmp" "$WELCOME_STATE_FILE"
-                
+
                 echo "✅ Welcomed $AUTHOR!"
             fi
         else
             echo "💡 To welcome: ./welcome-molty.sh $AUTHOR $POST_ID"
-            
+
             # Add to pending
             PENDING_WELCOMES=$(echo "$PENDING_WELCOMES" | jq --arg author "$AUTHOR" --arg post "$POST_ID" '. + [{author: $author, post_id: $post}]')
         fi
-        
+
         NEW_MOLTYS_FOUND=$((NEW_MOLTYS_FOUND + 1))
         echo ""
     fi

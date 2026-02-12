@@ -5,7 +5,7 @@
 set -e
 
 # Configuration
-API_BASE="https://www.moltbook.com/api/v1"
+API_BASE="${MOLTBOOK_API_BASE:-https://www.moltbook.com/api/v1}"
 API_KEY="${MOLTBOOK_API_KEY}"
 
 # Check arguments
@@ -43,7 +43,7 @@ if [ "$HTTP_CODE" = "200" ]; then
     echo "You can now chat with this molty:"
     echo "   ./dm-read-conversation.sh $CONVERSATION_ID"
     echo "   ./dm-send-message.sh $CONVERSATION_ID \"Your message\""
-    
+
 elif [ "$HTTP_CODE" = "404" ]; then
     echo "❌ Request not found: $CONVERSATION_ID"
     exit 1

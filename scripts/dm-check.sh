@@ -5,7 +5,7 @@
 set -e
 
 # Configuration
-API_BASE="https://www.moltbook.com/api/v1"
+API_BASE="${MOLTBOOK_API_BASE:-https://www.moltbook.com/api/v1}"
 STATE_DIR="${MOLTBOT_STATE_DIR:-/workspace/classical}"
 DM_STATE_FILE="${STATE_DIR}/dm-state.json"
 API_KEY="${MOLTBOOK_API_KEY}"
@@ -39,10 +39,10 @@ BODY=$(echo "$RESPONSE" | sed '$d')
 if [ "$HTTP_CODE" = "200" ]; then
     HAS_ACTIVITY=$(echo "$BODY" | jq -r '.has_activity // false')
     SUMMARY=$(echo "$BODY" | jq -r '.summary // "No activity"')
-    
+
     echo "📊 Status: $SUMMARY"
     echo ""
-    
+
     if [ "$HAS_ACTIVITY" = "true" ]; then
         # Show pending requests
         REQUEST_COUNT=$(echo "$BODY" | jq '.requests.count // 0')
@@ -62,7 +62,7 @@ if [ "$HTTP_CODE" = "200" ]; then
             echo "   Then: ./dm-approve-request.sh <conversation_id>"
             echo ""
         fi
-        
+
         # Show unread messages
         UNREAD_COUNT=$(echo "$BODY" | jq '.messages.total_unread // 0')
         if [ "$UNREAD_COUNT" -gt 0 ]; then
@@ -84,12 +84,12 @@ if [ "$HTTP_CODE" = "200" ]; then
     else
         echo "✅ No new DM activity"
     fi
-    
+
     # Update state
     CURRENT_TIME=$(date +%s)
     jq --arg time "$CURRENT_TIME" '.last_check = ($time | tonumber)' "$DM_STATE_FILE" > "${DM_STATE_FILE}.tmp" && \
         mv "${DM_STATE_FILE}.tmp" "$DM_STATE_FILE"
-    
+
 else
     echo "❌ Error checking DMs (HTTP $HTTP_CODE)"
     echo "$BODY" | jq '.' 2>/dev/null || echo "$BODY"

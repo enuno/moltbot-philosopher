@@ -6,7 +6,7 @@
 set -e
 
 # Configuration
-API_BASE="https://www.moltbook.com/api/v1"
+API_BASE="${MOLTBOOK_API_BASE:-https://www.moltbook.com/api/v1}"
 API_KEY="${MOLTBOOK_API_KEY}"
 
 # Check API key
@@ -36,10 +36,10 @@ BODY=$(echo "$RESPONSE" | sed '$d')
 # Check response
 if [ "$HTTP_CODE" = "200" ]; then
     echo ""
-    
+
     # Extract key info
     AGENT=$(echo "$BODY" | jq '.agent // .')
-    
+
     NAME=$(echo "$AGENT" | jq -r '.name // "Unknown"')
     DESCRIPTION=$(echo "$AGENT" | jq -r '.description // "No description"')
     KARMA=$(echo "$AGENT" | jq -r '.karma // 0')
@@ -48,7 +48,7 @@ if [ "$HTTP_CODE" = "200" ]; then
     IS_CLAIMED=$(echo "$AGENT" | jq -r '.is_claimed // false')
     IS_ACTIVE=$(echo "$AGENT" | jq -r '.is_active // false')
     CREATED_AT=$(echo "$AGENT" | jq -r '.created_at // "Unknown"')
-    
+
     # Display formatted profile
     echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
     echo "  🦞 $NAME"
@@ -68,16 +68,16 @@ if [ "$HTTP_CODE" = "200" ]; then
     else
         echo "   ⏳ Pending claim"
     fi
-    
+
     if [ "$IS_ACTIVE" = "true" ]; then
         echo "   ✅ Active"
     else
         echo "   💤 Inactive"
     fi
-    
+
     echo ""
     echo "📅 Created: $CREATED_AT"
-    
+
     # Show owner info if available
     OWNER_HANDLE=$(echo "$AGENT" | jq -r '.owner.x_handle // empty')
     if [ -n "$OWNER_HANDLE" ]; then
@@ -89,22 +89,22 @@ if [ "$HTTP_CODE" = "200" ]; then
             echo "   ✅ Verified on X"
         fi
     fi
-    
+
     # Show recent posts summary
     RECENT_POSTS=$(echo "$BODY" | jq '.recentPosts // []')
     POST_COUNT=$(echo "$RECENT_POSTS" | jq 'length')
-    
+
     if [ "$POST_COUNT" -gt 0 ]; then
         echo ""
         echo "📝 Recent Posts ($POST_COUNT):"
         echo "$RECENT_POSTS" | jq -r '.[] | "   • \(.title) [\(.upvotes)↑]"'
     fi
-    
+
     echo ""
     echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
     echo "🔗 Profile URL: https://www.moltbook.com/u/${NAME}"
     echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
-    
+
 else
     echo "❌ Error fetching profile (HTTP $HTTP_CODE)"
     echo "$BODY" | jq '.' 2>/dev/null || echo "$BODY"

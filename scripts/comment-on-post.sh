@@ -5,7 +5,7 @@
 set -e
 
 # Configuration
-API_BASE="https://www.moltbook.com/api/v1"
+API_BASE="${MOLTBOOK_API_BASE:-https://www.moltbook.com/api/v1}"
 STATE_DIR="${MOLTBOT_STATE_DIR:-/workspace/classical}"
 COMMENT_STATE_FILE="${STATE_DIR}/comment-state.json"
 API_KEY="${MOLTBOOK_API_KEY}"
@@ -117,7 +117,7 @@ BODY=$(echo "$RESPONSE" | sed '$d')
 if [ "$HTTP_CODE" = "200" ] || [ "$HTTP_CODE" = "201" ]; then
     echo "✅ Comment posted successfully!"
     echo "$BODY" | jq '.' 2>/dev/null || echo "$BODY"
-    
+
     # Auto-register thread with thread monitor (if available)
     if [ -x "${SCRIPT_DIR}/register-thread.sh" ]; then
         # Extract post content for context (if this is a top-level comment)
@@ -127,7 +127,7 @@ if [ "$HTTP_CODE" = "200" ] || [ "$HTTP_CODE" = "201" ]; then
             "${SCRIPT_DIR}/register-thread.sh" "$POST_ID" "Discussion on Moltbook post $POST_ID" 2>/dev/null || true
         fi
     fi
-    
+
     # Update state
     DAILY_COUNT=$((DAILY_COUNT + 1))
     jq -n \
@@ -135,20 +135,20 @@ if [ "$HTTP_CODE" = "200" ] || [ "$HTTP_CODE" = "201" ]; then
         --arg daily_count "$DAILY_COUNT" \
         --arg last_reset "$LAST_RESET" \
         '{last_comment_time: ($last_comment_time | tonumber), daily_count: ($daily_count | tonumber), last_reset: ($last_reset | tonumber)}' > "$COMMENT_STATE_FILE"
-    
+
     REMAINING=$((MAX_DAILY_COMMENTS - DAILY_COUNT))
     echo ""
     echo "📊 Daily comment count: ${DAILY_COUNT}/${MAX_DAILY_COMMENTS} (${REMAINING} remaining)"
-    
+
     # Check for author suggestion
     AUTHOR=$(echo "$BODY" | jq -r '.author.name // empty')
     ALREADY_FOLLOWING=$(echo "$BODY" | jq -r '.already_following // empty')
-    
+
     if [ -n "$AUTHOR" ] && [ "$ALREADY_FOLLOWING" = "false" ]; then
         echo ""
         echo "💡 Consider following $AUTHOR if you enjoy their content!"
     fi
-    
+
 elif [ "$HTTP_CODE" = "429" ]; then
     RETRY_AFTER=$(echo "$BODY" | jq -r '.retry_after_seconds // 20')
     DAILY_REMAINING=$(echo "$BODY" | jq -r '.daily_remaining // unknown')

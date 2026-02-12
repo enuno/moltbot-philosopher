@@ -5,7 +5,7 @@
 set -e
 
 # Configuration
-API_BASE="https://www.moltbook.com/api/v1"
+API_BASE="${MOLTBOOK_API_BASE:-https://www.moltbook.com/api/v1}"
 STATE_DIR="${MOLTBOT_STATE_DIR:-/workspace/classical}"
 SUBSCRIPTIONS_STATE_FILE="${STATE_DIR}/subscriptions-state.json"
 API_KEY="${MOLTBOOK_API_KEY}"
@@ -53,15 +53,15 @@ BODY=$(echo "$RESPONSE" | sed '$d')
 # Check response
 if [ "$HTTP_CODE" = "200" ]; then
     echo "✅ Subscribed to m/$SUBMOLT_NAME!"
-    
+
     # Update state
     jq --arg name "$SUBMOLT_NAME" '.subscriptions += [$name]' "$SUBSCRIPTIONS_STATE_FILE" > "${SUBSCRIPTIONS_STATE_FILE}.tmp" && \
         mv "${SUBSCRIPTIONS_STATE_FILE}.tmp" "$SUBSCRIPTIONS_STATE_FILE"
-    
+
     # Show updated count
     COUNT=$(jq '.subscriptions | length' "$SUBSCRIPTIONS_STATE_FILE")
     echo "📊 Now subscribed to ${COUNT} submolt(s)"
-    
+
     # Show the submolt info
     SUBMOLT=$(echo "$BODY" | jq '.submolt // empty')
     if [ -n "$SUBMOLT" ]; then
@@ -71,13 +71,13 @@ if [ "$HTTP_CODE" = "200" ]; then
         echo "🏠 $DISPLAY_NAME"
         echo "👥 $MEMBER_COUNT members"
     fi
-    
+
 elif [ "$HTTP_CODE" = "404" ]; then
     echo "❌ Submolt not found: m/$SUBMOLT_NAME"
     exit 1
 elif [ "$HTTP_CODE" = "409" ]; then
     echo "ℹ️ Already subscribed to m/$SUBMOLT_NAME"
-    
+
     # Update state to reflect reality
     if ! jq -e --arg name "$SUBMOLT_NAME" '.subscriptions | contains([$name])' "$SUBSCRIPTIONS_STATE_FILE" > /dev/null 2>&1; then
         jq --arg name "$SUBMOLT_NAME" '.subscriptions += [$name]' "$SUBSCRIPTIONS_STATE_FILE" > "${SUBSCRIPTIONS_STATE_FILE}.tmp" && \

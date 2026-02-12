@@ -6,7 +6,7 @@ set -e
 
 # Configuration
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-API_BASE="https://www.moltbook.com/api/v1"
+API_BASE="${MOLTBOOK_API_BASE:-https://www.moltbook.com/api/v1}"
 API_KEY="${MOLTBOOK_API_KEY}"
 AI_GENERATOR_URL="${AI_GENERATOR_URL:-http://ai-generator:3000}"
 STATE_DIR="${MOLTBOT_STATE_DIR:-/workspace/classical}"
@@ -186,34 +186,34 @@ POST_RESPONSE=$(curl -s -X POST "${API_BASE}/posts/${POST_ID}/comments" \
 if echo "$POST_RESPONSE" | jq -e '.comment.id // .id // .comment_id' >/dev/null 2>&1; then
     COMMENT_ID=$(echo "$POST_RESPONSE" | jq -r '.comment.id // .id // .comment_id')
     COMMENT_URL="https://www.moltbook.com/post/${POST_ID}#comment-${COMMENT_ID}"
-    
+
     echo -e "${GREEN}✓ Council response posted${NC}"
     echo -e "  Comment ID: ${COMMENT_ID}"
     echo -e "  URL: ${COMMENT_URL}"
-    
+
     # Send notification
     if [ -f "${SCRIPT_DIR}/notify-ntfy.sh" ]; then
         "${SCRIPT_DIR}/notify-ntfy.sh" "action" "Council Thread Reply Posted" \
             "Thread: ${THREAD_TITLE:0:50}... | Author: @${THREAD_AUTHOR}" 2>/dev/null || true
     fi
-    
+
     # Record in state
     STATE_FILE="${STATE_DIR}/council-replies.json"
     if [ ! -f "$STATE_FILE" ]; then
         echo '{"replies": []}' > "$STATE_FILE"
     fi
-    
+
     jq --arg thread_id "$POST_ID" \
        --arg comment_id "$COMMENT_ID" \
        --arg title "$THREAD_TITLE" \
        --arg timestamp "$(date -Iseconds)" \
        '.replies += [{thread_id: $thread_id, comment_id: $comment_id, title: $title, timestamp: $timestamp}]' \
        "$STATE_FILE" > "${STATE_FILE}.tmp" && mv "${STATE_FILE}.tmp" "$STATE_FILE"
-    
+
     # Archive in Noosphere (Layer 1)
     if command -v archive_discourse >/dev/null 2>&1; then
         echo "  Archiving in Noosphere..."
-        
+
         # Prepare metadata
         local metadata=$(jq -n \
             --arg author "$THREAD_AUTHOR" \
@@ -228,7 +228,7 @@ if echo "$POST_RESPONSE" | jq -e '.comment.id // .id // .comment_id' >/dev/null 
                 comment_id: $comment_id,
                 url: $url
             }')
-        
+
         # Archive the original thread + our response
         local archive_content="**Original Thread by @${THREAD_AUTHOR} in r/${SUBMOLT_NAME}:**
 **Title**: ${THREAD_TITLE}
@@ -238,15 +238,15 @@ ${THREAD_CONTENT:0:800}...
 **Council Response:**
 
 ${COUNCIL_RESPONSE}"
-        
+
         archive_discourse "council-thread-reply" "$POST_ID" "$archive_content" "$metadata" 2>/dev/null || true
     fi
-    
+
     echo ""
     echo -e "${CYAN}═══════════════════════════════════════════════════════${NC}"
     echo -e "${CYAN}  COUNCIL RESPONSE COMPLETE${NC}"
     echo -e "${CYAN}═══════════════════════════════════════════════════════${NC}"
-    
+
     exit 0
 else
     ERROR_MSG=$(echo "$POST_RESPONSE" | jq -r '.error // .message // "unknown error"')

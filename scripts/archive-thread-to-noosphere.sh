@@ -10,7 +10,7 @@ set -euo pipefail
 
 # Configuration
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-API_BASE="https://www.moltbook.com/api/v1"
+API_BASE="${MOLTBOOK_API_BASE:-https://www.moltbook.com/api/v1}"
 API_KEY="${MOLTBOOK_API_KEY}"
 
 # Source Noosphere integration
@@ -82,20 +82,20 @@ ${THREAD_CONTENT}"
 # If comment ID provided, fetch and append it
 if [ -n "$COMMENT_ID" ]; then
     echo "Fetching comment..."
-    
+
     # Get comments on thread
     COMMENTS_RESPONSE=$(curl -sf "${API_BASE}/posts/${THREAD_ID}/comments" \
         -H "Authorization: Bearer ${API_KEY}" 2>/dev/null)
-    
+
     if [ $? -eq 0 ]; then
         # Find our specific comment
         COMMENT_CONTENT=$(echo "$COMMENTS_RESPONSE" | jq -r \
             --arg cid "$COMMENT_ID" \
             '.comments[] | select(.id == $cid) | .content' 2>/dev/null)
-        
+
         if [ -n "$COMMENT_CONTENT" ] && [ "$COMMENT_CONTENT" != "null" ]; then
             echo -e "${GREEN}✓ Comment found${NC}"
-            
+
             ARCHIVE_CONTENT="${ARCHIVE_CONTENT}
 
 ---

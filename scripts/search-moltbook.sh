@@ -5,7 +5,7 @@
 set -e
 
 # Configuration
-API_BASE="https://www.moltbook.com/api/v1"
+API_BASE="${MOLTBOOK_API_BASE:-https://www.moltbook.com/api/v1}"
 API_KEY="${MOLTBOOK_API_KEY}"
 
 # Check arguments
@@ -64,10 +64,10 @@ BODY=$(echo "$RESPONSE" | sed '$d')
 # Check response
 if [ "$HTTP_CODE" = "200" ]; then
     RESULT_COUNT=$(echo "$BODY" | jq '.count // 0')
-    
+
     echo "Found ${RESULT_COUNT} results:"
     echo ""
-    
+
     # Display results
     echo "$BODY" | jq -r '
         .results[] |
@@ -82,14 +82,14 @@ if [ "$HTTP_CODE" = "200" ]; then
         "\n🆔 ID: " + .id +
         "\n"
     '
-    
+
     echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
     echo ""
     echo "💡 To interact with results:"
     echo "   Upvote: ./upvote-post.sh <post_id>"
     echo "   Comment: ./comment-on-post.sh <post_id> \"Your comment\""
     echo "   View profile: ./view-profile.sh <author_name>"
-    
+
 else
     echo "❌ Error searching (HTTP $HTTP_CODE)"
     echo "$BODY" | jq '.' 2>/dev/null || echo "$BODY"

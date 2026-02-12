@@ -5,7 +5,7 @@
 set -e
 
 # Configuration
-API_BASE="https://www.moltbook.com/api/v1"
+API_BASE="${MOLTBOOK_API_BASE:-https://www.moltbook.com/api/v1}"
 STATE_DIR="${MOLTBOT_STATE_DIR:-/workspace/classical}"
 POST_STATE_FILE="${STATE_DIR}/post-state.json"
 API_KEY="${MOLTBOOK_API_KEY}"
@@ -74,7 +74,7 @@ TIME_SINCE_LAST=$((CURRENT_TIME - LAST_POST_TIME))
 if [ "$TIME_SINCE_LAST" -lt "$POST_COOLDOWN_SECONDS" ]; then
     MINUTES_REMAINING=$(( (POST_COOLDOWN_SECONDS - TIME_SINCE_LAST) / 60 ))
     SECONDS_REMAINING=$(( (POST_COOLDOWN_SECONDS - TIME_SINCE_LAST) % 60 ))
-    
+
     echo "⏳ Rate limit: Please wait ${MINUTES_REMAINING}m ${SECONDS_REMAINING}s before posting again"
     echo "   (Limit: 1 post per ${POST_COOLDOWN_MINUTES} minutes)"
     exit 1
@@ -139,20 +139,20 @@ if command -v curl >/dev/null 2>&1; then
             persona: $persona,
             provider: "auto"
         }')
-    
+
     AI_RESPONSE=$(curl -s -w "\n%{http_code}" -X POST \
         "${AI_GENERATOR_URL}/generate" \
         -H "Content-Type: application/json" \
         -d "$AI_REQUEST_PAYLOAD" 2>/dev/null || echo -e "\n000")
-    
+
     AI_HTTP=$(echo "$AI_RESPONSE" | tail -n1)
     AI_BODY=$(echo "$AI_RESPONSE" | sed '$d')
-    
+
     if [ "$AI_HTTP" = "200" ]; then
         GENERATED_TITLE=$(echo "$AI_BODY" | jq -r '.title // empty')
         GENERATED_CONTENT=$(echo "$AI_BODY" | jq -r '.content // empty')
         GENERATION_SOURCE=$(echo "$AI_BODY" | jq -r '.metadata.provider // "ai"')
-        
+
         if [ -n "$GENERATED_TITLE" ] && [ -n "$GENERATED_CONTENT" ]; then
             echo "✅ Content generated via AI ($GENERATION_SOURCE)"
         fi
@@ -162,7 +162,7 @@ fi
 # Fall back to template generation if AI failed
 if [ -z "$GENERATED_CONTENT" ]; then
     echo "⚠️ AI generation failed, using template mode"
-    
+
     # Template-based generation
     case "$PERSONA" in
         socratic)
@@ -191,7 +191,7 @@ What aspects of $TOPIC are within your control? How might you approach them with
 From my perspective, there are multiple layers to explore here. I would be curious to hear how others approach this topic. What insights might you share about $TOPIC?"
             ;;
     esac
-    
+
     GENERATION_SOURCE="template"
 fi
 
@@ -226,7 +226,7 @@ if [ "$confirm" = "edit" ] || [ "$confirm" = "e" ]; then
     if [ -n "$custom_title" ]; then
         GENERATED_TITLE="$custom_title"
     fi
-    
+
     echo "Enter custom content (or press enter to keep generated):"
     echo "(End with Ctrl+D on a new line)"
     custom_content=$(cat)
@@ -259,12 +259,12 @@ BODY=$(echo "$RESPONSE" | sed '$d')
 
 if [ "$HTTP_CODE" = "200" ] || [ "$HTTP_CODE" = "201" ]; then
     POST_ID=$(echo "$BODY" | jq -r '.post.id // .id // empty')
-    
+
     echo "✅ Posted successfully!"
     echo ""
     echo "🆔 Post ID: $POST_ID"
     echo "🔗 URL: https://www.moltbook.com/post/$POST_ID"
-    
+
     # Auto-register thread with thread monitor (if available)
     if [ -n "$POST_ID" ] && [ -x "${SCRIPT_DIR}/register-thread.sh" ]; then
         echo ""
@@ -273,17 +273,17 @@ if [ "$HTTP_CODE" = "200" ] || [ "$HTTP_CODE" = "201" ]; then
         QUESTION=$(echo "$CONTENT" | head -n1 | cut -c1-200)
         "${SCRIPT_DIR}/register-thread.sh" "$POST_ID" "$QUESTION" 2>/dev/null || true
     fi
-    
+
     # Update state
     POST_COUNT=$(jq -r '.post_count // 0' "$POST_STATE_FILE")
     POST_COUNT=$((POST_COUNT + 1))
-    
+
     jq -n \
         --arg last_post_time "$CURRENT_TIME" \
         --arg last_post_id "$POST_ID" \
         --arg post_count "$POST_COUNT" \
         '{last_post_time: ($last_post_time | tonumber), last_post_id: $last_post_id, post_count: ($post_count | tonumber)}' > "$POST_STATE_FILE"
-    
+
     # Archive to Noosphere
     if command -v archive_discourse >/dev/null 2>&1; then
         METADATA=$(jq -n \
@@ -293,23 +293,23 @@ if [ "$HTTP_CODE" = "200" ] || [ "$HTTP_CODE" = "201" ]; then
             --arg content_type "ai-generated-post" \
             --arg url "https://www.moltbook.com/post/$POST_ID" \
             '{post_id: $post_id, title: $title, submolt: $submolt, content_type: $content_type, url: $url}')
-        
+
         archive_discourse "ai-generated-post" "$POST_ID" "**Title**: $TITLE
 
 $CONTENT" "$METADATA" 2>/dev/null || true
     fi
-    
+
     echo ""
     echo "📊 Total posts: $POST_COUNT"
     echo "⏰ Next post available in ${POST_COOLDOWN_MINUTES} minutes"
-    
+
     # Check if submolt subscription suggested
     if [ "$DEFAULT_SUBMOLT" = "general" ]; then
         echo ""
         echo "💡 Consider subscribing to topic-specific submolts:"
         echo "   ./list-submolts.sh"
     fi
-    
+
 elif [ "$HTTP_CODE" = "429" ]; then
     RETRY_AFTER=$(echo "$BODY" | jq -r '.retry_after_minutes // 30')
     echo "⏳ Rate limited (HTTP 429)"

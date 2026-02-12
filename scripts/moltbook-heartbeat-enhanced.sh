@@ -5,7 +5,7 @@
 set -e
 
 # Configuration
-API_BASE="https://www.moltbook.com/api/v1"
+API_BASE="${MOLTBOOK_API_BASE:-https://www.moltbook.com/api/v1}"
 # shellcheck disable=SC2034  # May be used in future versions
 SKILL_VERSION_URL="https://www.moltbook.com/skill.json"
 # shellcheck disable=SC2034  # May be used in future versions

@@ -5,7 +5,7 @@
 set -e
 
 # Configuration
-API_BASE="https://www.moltbook.com/api/v1"
+API_BASE="${MOLTBOOK_API_BASE:-https://www.moltbook.com/api/v1}"
 STATE_DIR="${MOLTBOT_STATE_DIR:-/workspace/classical}"
 FOLLOWING_STATE_FILE="${STATE_DIR}/following-state.json"
 EVALUATED_MOLTYS_FILE="${STATE_DIR}/evaluated-moltys.json"
@@ -121,22 +121,22 @@ else
     # Check criteria
     CRITERIA_MET=true
     FAIL_REASONS=""
-    
+
     if [ "$POSTS_SEEN" -lt "$MIN_POSTS_SEEN" ]; then
         CRITERIA_MET=false
         FAIL_REASONS="${FAIL_REASONS}• Not enough posts seen ($POSTS_SEEN/$MIN_POSTS_SEEN)\n"
     fi
-    
+
     if [ "$UPVOTED_COUNT" -lt "$MIN_UPVOTES_GIVEN" ]; then
         CRITERIA_MET=false
         FAIL_REASONS="${FAIL_REASONS}• Not enough posts upvoted ($UPVOTED_COUNT/$MIN_UPVOTES_GIVEN)\n"
     fi
-    
+
     if [ "$DAYS_OBSERVED" -lt "$MIN_DAYS_OBSERVED" ]; then
         CRITERIA_MET=false
         FAIL_REASONS="${FAIL_REASONS}• Not enough time observing ($DAYS_OBSERVED/$MIN_DAYS_OBSERVED days)\n"
     fi
-    
+
     if [ "$CRITERIA_MET" = false ]; then
         echo "❌ CRITERIA NOT MET"
         echo ""
@@ -155,7 +155,7 @@ else
         echo "⚠️ To force follow anyway: $0 $MOLTY_NAME --force"
         exit 1
     fi
-    
+
     echo "✅ All criteria met!"
     echo ""
 fi
@@ -185,28 +185,28 @@ BODY=$(echo "$RESPONSE" | sed '$d')
 
 if [ "$HTTP_CODE" = "200" ]; then
     echo "✅ Now following $MOLTY_NAME!"
-    
+
     # Update following state
     jq --arg name "$MOLTY_NAME" '.following += [$name]' "$FOLLOWING_STATE_FILE" > "${FOLLOWING_STATE_FILE}.tmp" && \
         mv "${FOLLOWING_STATE_FILE}.tmp" "$FOLLOWING_STATE_FILE"
-    
+
     # Update evaluation state (mark as followed)
     jq --arg name "$MOLTY_NAME" --arg time "$CURRENT_TIME" '.evaluated[$name].followed_at = ($time | tonumber)' "$EVALUATED_MOLTYS_FILE" > "${EVALUATED_MOLTYS_FILE}.tmp" && \
         mv "${EVALUATED_MOLTYS_FILE}.tmp" "$EVALUATED_MOLTYS_FILE"
-    
+
     # Show updated count
     COUNT=$(jq '.following | length' "$FOLLOWING_STATE_FILE")
     echo ""
     echo "📊 Now following ${COUNT} molty(s)"
-    
+
     # Show who you're following
     echo ""
     echo "🤖 You're following:"
     jq -r '.following[] | "   • " + .' "$FOLLOWING_STATE_FILE"
-    
+
 elif [ "$HTTP_CODE" = "409" ]; then
     echo "ℹ️ Already following $MOLTY_NAME"
-    
+
     # Update state to reflect reality
     if ! jq -e --arg name "$MOLTY_NAME" '.following | contains([$name])' "$FOLLOWING_STATE_FILE" > /dev/null 2>&1; then
         jq --arg name "$MOLTY_NAME" '.following += [$name]' "$FOLLOWING_STATE_FILE" > "${FOLLOWING_STATE_FILE}.tmp" && \

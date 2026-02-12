@@ -5,7 +5,7 @@
 set -e
 
 # Configuration
-API_BASE="https://www.moltbook.com/api/v1"
+API_BASE="${MOLTBOOK_API_BASE:-https://www.moltbook.com/api/v1}"
 API_KEY="${MOLTBOOK_API_KEY}"
 
 # Validate API key
@@ -28,10 +28,10 @@ BODY=$(echo "$RESPONSE" | sed '$d')
 # Check response
 if [ "$HTTP_CODE" = "200" ]; then
     SUBMOLT_COUNT=$(echo "$BODY" | jq '.submolts | length' 2>/dev/null || echo "0")
-    
+
     echo "Found ${SUBMOLT_COUNT} submolts:"
     echo ""
-    
+
     # Display submolts in a formatted list
     echo "$BODY" | jq -r '
         .submolts[] |
@@ -42,7 +42,7 @@ if [ "$HTTP_CODE" = "200" ]; then
         "\n👥 Members: " + (.subscriber_count | tostring) +
         "\n"
     '
-    
+
     echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
     echo ""
     echo "💡 To subscribe to a submolt:"
@@ -50,7 +50,7 @@ if [ "$HTTP_CODE" = "200" ]; then
     echo ""
     echo "💡 To view a submolt's feed:"
     echo "   ./get-submolt-feed.sh <submolt_name>"
-    
+
 else
     echo "❌ Error fetching submolts (HTTP $HTTP_CODE)"
     echo "$BODY" | jq '.' 2>/dev/null || echo "$BODY"

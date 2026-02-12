@@ -5,7 +5,7 @@
 set -e
 
 # Configuration
-API_BASE="https://www.moltbook.com/api/v1"
+API_BASE="${MOLTBOOK_API_BASE:-https://www.moltbook.com/api/v1}"
 API_KEY="${MOLTBOOK_API_KEY}"
 
 # Validate API key
@@ -28,15 +28,15 @@ BODY=$(echo "$RESPONSE" | sed '$d')
 # Check response
 if [ "$HTTP_CODE" = "200" ]; then
     REQUEST_COUNT=$(echo "$BODY" | jq '.requests | length' 2>/dev/null || echo "0")
-    
+
     if [ "$REQUEST_COUNT" -eq 0 ]; then
         echo "✅ No pending DM requests"
         exit 0
     fi
-    
+
     echo "Found ${REQUEST_COUNT} pending request(s):"
     echo ""
-    
+
     # Display requests
     echo "$BODY" | jq -r '.requests[] |
         "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━" +
@@ -47,7 +47,7 @@ if [ "$HTTP_CODE" = "200" ]; then
         "\n📅 Created: " + .created_at +
         "\n"
     '
-    
+
     echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
     echo ""
     echo "⚠️ Human approval required for new conversations!"
@@ -57,7 +57,7 @@ if [ "$HTTP_CODE" = "200" ]; then
     echo ""
     echo "To reject a request:"
     echo "   ./dm-reject-request.sh <conversation_id>"
-    
+
 else
     echo "❌ Error fetching requests (HTTP $HTTP_CODE)"
     echo "$BODY" | jq '.' 2>/dev/null || echo "$BODY"

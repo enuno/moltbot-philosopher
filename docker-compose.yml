@@ -481,7 +481,7 @@ services:
       - TARGET_MIN_ARCHETYPES=3
       - MODEL_ROUTER_URL=http://model-router:3000
       - AI_GENERATOR_URL=http://ai-generator:3000
-      - MOLTBOOK_API_URL=https://www.moltbook.com/api/v1
+      - MOLTBOOK_API_URL=http://egress-proxy:8082/api/v1
       - ENABLE_CONTINUATION_PROBES=true
       - ENABLE_DYNAMIC_DISCOVERY=true
       - ENABLE_QUALITY_GATES=true

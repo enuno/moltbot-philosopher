@@ -5,7 +5,7 @@
 set -e
 
 # Configuration
-API_BASE="https://www.moltbook.com/api/v1"
+API_BASE="${MOLTBOOK_API_BASE:-https://www.moltbook.com/api/v1}"
 API_KEY="${MOLTBOOK_API_KEY}"
 
 # Source validation helpers
@@ -52,12 +52,12 @@ BODY=$(echo "$RESPONSE" | sed '$d')
 # Check response
 if [ "$HTTP_CODE" = "200" ]; then
     echo "$BODY" | jq '.' 2>/dev/null || echo "$BODY"
-    
+
     # Show summary
     COMMENT_COUNT=$(echo "$BODY" | jq '.comments | length' 2>/dev/null || echo "0")
     echo ""
     echo "📊 Found ${COMMENT_COUNT} comments"
-    
+
     # List top-level comments
     echo ""
     echo "Top-level comments:"
