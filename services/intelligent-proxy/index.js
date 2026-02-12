@@ -19,6 +19,7 @@ const VENICE_API_URL = 'https://api.venice.ai/api/v1/chat/completions';
 const VENICE_PRIMARY_MODEL = 'venice/qwen3-4b'; // Fastest model for reasoning
 const VENICE_FALLBACK_MODEL = 'venice/llama-3.2-3b'; // Backup model
 const AI_GENERATOR_URL = process.env.AI_GENERATOR_URL || 'http://ai-generator:3002';
+const VERIFICATION_SERVICE_URL = process.env.VERIFICATION_SERVICE_URL || 'http://verification-service:3007';
 const SHELL_FALLBACK_SCRIPT = process.env.SHELL_FALLBACK_SCRIPT || '/app/scripts/handle-verification-challenge.sh';
 const SHELL_FALLBACK_ENABLED = process.env.SHELL_FALLBACK_ENABLED !== 'false';
 const MOLTBOOK_API_KEY = process.env.MOLTBOOK_API_KEY;
@@ -75,6 +76,11 @@ const stats = {
   aiGeneratorFailures: 0,
   shellFallbackSuccesses: 0,
   shellFallbackFailures: 0,
+  // Delegation stats
+  delegationAttempts: 0,
+  delegationSuccesses: 0,
+  delegationFailures: 0,
+  // Performance metrics
   solverLatencyP50: 0,
   solverLatencyP99: 0,
   cacheHitRate: 0,
@@ -553,6 +559,118 @@ async function submitAnswer(challengeId, answer) {
   }
 }
 
+/**
+ * Detect if challenge is complex/adversarial and should be delegated
+ */
+function detectComplexChallenge(challenge) {
+  const question = challenge.puzzle || challenge.question || challenge.text || '';
+  const lowerQuestion = question.toLowerCase();
+
+  // Pattern 1: Explicit stack_challenge_v1 marker
+  if (/stack_challenge_v\d/i.test(question)) {
+    return 'stack_challenge_v1_explicit';
+  }
+
+  // Pattern 2: Tools, memory, and self-control challenge
+  if (lowerQuestion.includes('tools') && lowerQuestion.includes('memory') && lowerQuestion.includes('self-control')) {
+    return 'stack_challenge_v1_pattern';
+  }
+
+  // Pattern 3: Multi-part instructions with strict constraints
+  let complexityScore = 0;
+  if (/exactly.*two sentences/i.test(question)) complexityScore++;
+  if (/do not name.*list.*describe/i.test(question)) complexityScore++;
+  if (/store.*exact.*string/i.test(question)) complexityScore++;
+  if (/without.*tool|don't use.*tool/i.test(question)) complexityScore++;
+  if (/in your.*reply.*write/i.test(question)) complexityScore++;
+
+  if (complexityScore >= 3) {
+    return 'multi_constraint_challenge';
+  }
+
+  // Pattern 4: Upvote test style
+  if (/upvote.*post|upvote.*this/i.test(question) && /do not.*anything else/i.test(question)) {
+    return 'upvote_test';
+  }
+
+  // Not complex - handle normally
+  return null;
+}
+
+/**
+ * Delegate complex challenge to verification service
+ */
+async function delegateToVerificationService(challenge) {
+  const startTime = Date.now();
+  const id = challenge.id || challenge.challenge_id;
+  const question = challenge.puzzle || challenge.question || challenge.text;
+  const expiresAt = challenge.expiresAt || challenge.expires_at || new Date(Date.now() + 300000).toISOString();
+
+  log('info', '🔀 Delegating complex challenge to verification service', {
+    challengeId: id,
+    reason: detectComplexChallenge(challenge),
+  });
+
+  stats.delegationAttempts++;
+
+  try {
+    const controller = new AbortController();
+    const timeout = setTimeout(() => controller.abort(), 15000); // 15s timeout
+
+    const response = await fetch(`${VERIFICATION_SERVICE_URL}/solve`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        challengeId: id,
+        question: question,
+        expiresAt: expiresAt,
+      }),
+      signal: controller.signal,
+    });
+
+    clearTimeout(timeout);
+
+    if (!response.ok) {
+      throw new Error(`Verification service returned ${response.status}`);
+    }
+
+    const result = await response.json();
+    const duration = Date.now() - startTime;
+
+    if (result.success) {
+      log('info', '✅ Verification service solved complex challenge', {
+        challengeId: id,
+        scenario: result.scenario,
+        duration,
+        attempts: result.attemptCount,
+      });
+      stats.delegationSuccesses++;
+      recordLatency(duration);
+      return true;
+    } else {
+      log('warn', 'Verification service failed to solve challenge', {
+        challengeId: id,
+        error: result.error,
+        scenario: result.scenario,
+        validation: result.validation,
+      });
+      stats.delegationFailures++;
+      return false;
+    }
+  } catch (error) {
+    const duration = Date.now() - startTime;
+    log('error', 'Delegation to verification service failed', {
+      challengeId: id,
+      error: error.message,
+      duration,
+    });
+    stats.delegationFailures++;
+    return false;
+  }
+}
+
 async function handleChallenge(challenge) {
   stats.challengesDetected++;
   stats.lastChallengeTime = new Date();
@@ -572,6 +690,27 @@ async function handleChallenge(challenge) {
     timestamp: stats.lastChallengeTime.toISOString(),
   });
 
+  // Check if this is a complex/adversarial challenge
+  const complexReason = detectComplexChallenge(challenge);
+  if (complexReason) {
+    log('info', 'Complex challenge detected, delegating to verification service', {
+      challengeId: id,
+      reason: complexReason,
+    });
+
+    const delegated = await delegateToVerificationService(challenge);
+    if (delegated) {
+      stats.challengesSolved++;
+      return true;
+    }
+
+    // If delegation failed, fall back to standard solving
+    log('warn', 'Delegation failed, attempting standard solving', {
+      challengeId: id,
+    });
+  }
+
+  // Standard solving flow
   const answer = await solveChallenge(puzzle);
   if (!answer) {
     log('error', 'Challenge solving failed', { challengeId: id });
@@ -636,12 +775,59 @@ function proxyRequest(clientReq, clientRes) {
           try {
             const json = JSON.parse(responseBody.toString());
 
-            if (json.verification_challenge || json.challenge) {
-              const challenge = json.verification_challenge || json.challenge;
+            // Enhanced detection: Check multiple possible challenge locations
+            let challenge = null;
+            let detectionMethod = null;
+
+            // Method 1: Top-level verification_challenge or challenge
+            if (json.verification_challenge) {
+              challenge = json.verification_challenge;
+              detectionMethod = 'top_level_verification_challenge';
+            } else if (json.challenge) {
+              challenge = json.challenge;
+              detectionMethod = 'top_level_challenge';
+            }
+            // Method 2: Nested type field
+            else if (json.type === 'verification_challenge' && (json.id || json.challengeId)) {
+              challenge = json;
+              detectionMethod = 'nested_type_field';
+            }
+            // Method 3: Metadata flag
+            else if (json.metadata?.is_verification === true && json.question) {
+              challenge = {
+                id: json.id || json.challengeId,
+                question: json.question,
+                expiresAt: json.expiresAt || json.expires_at,
+              };
+              detectionMethod = 'metadata_is_verification';
+            }
+            // Method 4: data.verification_challenge
+            else if (json.data?.verification_challenge) {
+              challenge = json.data.verification_challenge;
+              detectionMethod = 'data_verification_challenge';
+            }
+            // Method 5: response.verification_challenge
+            else if (json.response?.verification_challenge) {
+              challenge = json.response.verification_challenge;
+              detectionMethod = 'response_verification_challenge';
+            }
+            // Method 6: Check for challenge-like fields (id + question/puzzle + expiresAt)
+            else if ((json.id || json.challengeId) && 
+                     (json.question || json.puzzle || json.text) && 
+                     (json.expiresAt || json.expires_at)) {
+              challenge = {
+                id: json.id || json.challengeId,
+                question: json.question || json.puzzle || json.text,
+                expiresAt: json.expiresAt || json.expires_at,
+              };
+              detectionMethod = 'field_pattern_match';
+            }
+
+            if (challenge) {
               log('warn', '🔐 Verification challenge intercepted in response', {
                 path: reqUrl.pathname,
                 method: clientReq.method,
-                challengeType: json.verification_challenge ? 'verification_challenge' : 'challenge',
+                detectionMethod,
               });
 
               const solved = await handleChallenge(challenge);
@@ -796,12 +982,28 @@ const server = http.createServer((req, res) => {
       stats.primaryModelSuccesses + stats.primaryModelFailures +
       stats.fallbackModelSuccesses + stats.fallbackModelFailures +
       stats.aiGeneratorSuccesses + stats.aiGeneratorFailures +
-      stats.shellFallbackSuccesses + stats.shellFallbackFailures;
+      stats.shellFallbackSuccesses + stats.shellFallbackFailures +
+      stats.delegationAttempts;
+
+    const delegationSuccessRate = stats.delegationAttempts > 0
+      ? ((stats.delegationSuccesses / stats.delegationAttempts) * 100).toFixed(1) + '%'
+      : 'N/A';
 
     res.writeHead(200, { 'Content-Type': 'application/json' });
     res.end(
       JSON.stringify({
         pipeline: [
+          {
+            stage: 0,
+            name: 'Complex Challenge Delegation',
+            service: 'verification-service',
+            enabled: true,
+            attempts: stats.delegationAttempts,
+            successes: stats.delegationSuccesses,
+            failures: stats.delegationFailures,
+            successRate: delegationSuccessRate,
+            note: 'Handles adversarial/multi-constraint challenges',
+          },
           {
             stage: 1,
             name: 'Venice Primary',
@@ -851,6 +1053,9 @@ const server = http.createServer((req, res) => {
           totalFailures: stats.challengesFailed,
           overallSuccessRate: (stats.challengesSolved + stats.challengesFailed) > 0
             ? ((stats.challengesSolved / (stats.challengesSolved + stats.challengesFailed)) * 100).toFixed(1) + '%'
+            : 'N/A',
+          delegationRate: stats.challengesDetected > 0
+            ? ((stats.delegationAttempts / stats.challengesDetected) * 100).toFixed(1) + '%'
             : 'N/A',
         },
       })

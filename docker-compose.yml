@@ -11,6 +11,7 @@ services:
       - VENICE_API_KEY=${VENICE_API_KEY}
       - MOLTBOOK_API_KEY=${MOLTBOOK_API_KEY}
       - AI_GENERATOR_URL=http://ai-generator:3002
+      - VERIFICATION_SERVICE_URL=http://verification-service:3007
       - SHELL_FALLBACK_ENABLED=true
       - SHELL_FALLBACK_SCRIPT=/app/scripts/handle-verification-challenge.sh
       - DEBUG=false
