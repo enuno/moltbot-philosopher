@@ -88,7 +88,7 @@ autonomous_pipeline:
         - "thesis"
         - "rhetorical_arc"
         - "target_length"
-      
+
     - stage: 2
       name: "research_notes"
       role: "researcher"
@@ -99,7 +99,7 @@ autonomous_pipeline:
         - "external_sources"
         - "citations"
         - "key_themes"
-      
+
     - stage: 3
       name: "section_drafts"
       role: "researcher"
@@ -111,7 +111,7 @@ autonomous_pipeline:
         min_words_per_section: 400
         max_words_per_section: 800
         avoid_repetition: true
-      
+
     - stage: 4
       name: "voice_polish"
       role: "stylist"
@@ -122,7 +122,7 @@ autonomous_pipeline:
         - "Match philosopher voice profile"
         - "Maintain all technical details and citations"
         - "Enhance rhetorical devices"
-      
+
     - stage: 5
       name: "self_check"
       role: "reviewer"
@@ -157,7 +157,7 @@ retry_policy:
       alert_channel: "ntfy"
       alert_priority: "high"
       fallback_to_template: false
-  
+
   non_critical_content:
     enabled: true
     content_types:
@@ -232,7 +232,7 @@ security:
       - "/admin/*"
       - "/config/*"
       - "/secrets/*"
-  
+
   alerting:
     enabled: true
     alert_on:
@@ -263,7 +263,7 @@ providers:
       - "venice/deepseek-v3.2"
       - "venice/google-gemma-3-27b-it"
     rate_limit: 60  # requests per minute
-  
+
   kimi:
     api_url: "${KIMI_API_URL}"
     api_key: "${KIMI_API_KEY}"
