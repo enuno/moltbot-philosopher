@@ -2,11 +2,11 @@
 
 ## Living Epistemological Substrate for the Ethics-Convergence Council
 
-**Version**: 3.2  
+**Version**: 3.3  
 **Date**: 2026-02-12  
 **Status**: Production  
 **Architecture**: PostgreSQL + pgvector with 5-Type Memory System + Multi-Agent
-Sharing + Confidence Decay
+Sharing + Confidence Decay + Cross-Agent Pattern Mining
 
 ---
 
@@ -21,7 +21,26 @@ Voices.
 > insights carved from past deliberations, the failures that shaped our
 > process, the community lessons we've assimilated."*
 
-### v3.2 Architecture: Confidence Decay & Reinforcement
+### v3.3 Architecture: Cross-Agent Pattern Mining & AI Synthesis
+
+Noosphere v3.3 adds **pattern discovery** and **AI-powered synthesis
+generation**, enabling the Council to:
+
+- **Detect Convergence**: Automatically discover where 3+ agents reach similar
+  conclusions using vector similarity
+- **Flag Contradictions**: Identify opposing perspectives on shared topics for
+  deliberation
+- **Analyze Gaps**: Find memory type imbalances to suggest knowledge sharing
+- **Generate Syntheses**: Use Venice.ai to create unified insights from
+  convergence patterns
+- **Democratic Review**: 4/6 agent consensus required to accept syntheses
+- **Promote to Memory**: Accepted syntheses become shared memories visible to all
+
+This enables **meta-cognitive learning** where the Council discovers and
+formalizes cross-agent wisdom, creating higher-order heuristics from emergent
+patterns.
+
+### v3.2 Foundation: Confidence Decay & Reinforcement
 
 Noosphere v3.2 adds **time-based confidence decay** with **reinforcement
 learning**, creating a living memory system that:
@@ -199,6 +218,63 @@ CREATE TABLE noosphere_decay_config (
 -- preference: 0.5%/week (slowest decay - stable preferences)
 ```
 
+**noosphere_patterns** - Cross-agent pattern discoveries (v3.3)
+
+```sql
+CREATE TABLE noosphere_patterns (
+  id              UUID PRIMARY KEY,
+  pattern_type    TEXT NOT NULL CHECK (pattern_type IN ('convergence', 'contradiction', 'gap')),
+  agent_ids       TEXT[] NOT NULL,              -- Agents involved in pattern
+  memory_ids      UUID[] NOT NULL,              -- Source memories
+  metadata        JSONB NOT NULL,               -- Pattern-specific data
+  confidence      NUMERIC(3,2) NOT NULL,        -- Pattern strength (0.0-1.0)
+  status          TEXT DEFAULT 'active' CHECK (status IN ('active', 'archived')),
+  discovered_at   TIMESTAMPTZ DEFAULT now()
+);
+
+CREATE INDEX idx_patterns_type_status ON noosphere_patterns(pattern_type, status);
+CREATE INDEX idx_patterns_agent_ids ON noosphere_patterns USING GIN(agent_ids);
+```
+
+**noosphere_syntheses** - AI-generated insights from patterns (v3.3)
+
+```sql
+CREATE TABLE noosphere_syntheses (
+  id              UUID PRIMARY KEY,
+  pattern_id      UUID NOT NULL REFERENCES noosphere_patterns(id) ON DELETE CASCADE,
+  type            TEXT NOT NULL CHECK (type IN ('insight', 'guideline', 'warning')),
+  content         TEXT NOT NULL,                -- Synthesized heuristic
+  status          TEXT DEFAULT 'proposed' CHECK (status IN ('proposed', 'under_review', 'accepted', 'rejected')),
+  ai_model        TEXT DEFAULT NULL,            -- Venice.ai model used
+  proposer_agent  TEXT NOT NULL,                -- Agent who created synthesis
+  votes_approve   INTEGER DEFAULT 0,            -- Approval vote count
+  votes_reject    INTEGER DEFAULT 0,            -- Rejection vote count
+  created_at      TIMESTAMPTZ DEFAULT now(),
+  reviewed_at     TIMESTAMPTZ DEFAULT NULL,
+  promoted_memory_id UUID REFERENCES noosphere_memory(id)
+);
+
+CREATE INDEX idx_syntheses_status ON noosphere_syntheses(status);
+CREATE INDEX idx_syntheses_pattern ON noosphere_syntheses(pattern_id);
+```
+
+**noosphere_synthesis_reviews** - Council voting on syntheses (v3.3)
+
+```sql
+CREATE TABLE noosphere_synthesis_reviews (
+  id              UUID PRIMARY KEY,
+  synthesis_id    UUID NOT NULL REFERENCES noosphere_syntheses(id) ON DELETE CASCADE,
+  reviewer_agent  TEXT NOT NULL,                -- Agent casting vote
+  decision        TEXT NOT NULL CHECK (decision IN ('approve', 'reject', 'abstain')),
+  notes           TEXT DEFAULT NULL,            -- Optional reasoning
+  reviewed_at     TIMESTAMPTZ DEFAULT now(),
+
+  UNIQUE(synthesis_id, reviewer_agent)          -- One vote per agent
+);
+
+CREATE INDEX idx_reviews_synthesis ON noosphere_synthesis_reviews(synthesis_id);
+```
+
 **noosphere_agent_stats** - 200-cap enforcement
 
 ```sql
@@ -249,10 +325,11 @@ curl -H "X-API-Key: $MOLTBOOK_API_KEY" \
 ```json
 {
   "status": "healthy",
-  "version": "3.1.0",
+  "version": "3.3.0",
   "database": "connected",
   "embeddings": "enabled",
-  "features": ["multi-agent-sharing", "permission-model", "access-logging"]
+  "venice_ai": "enabled",
+  "features": ["multi-agent-sharing", "permission-model", "access-logging", "confidence-decay", "pattern-mining", "ai-synthesis"]
 }
 ```
 
@@ -464,6 +541,105 @@ DELETE /memories/550e8400-e29b-41d4-a716-446655440000
   "schema_version": "3.2"
 }
 ```
+
+**POST /patterns/mine** - Discover cross-agent patterns (v3.3)
+
+```json
+{
+  "pattern_type": "convergence",  // 'convergence' | 'contradiction' | 'gap' | 'all'
+  "min_agents": 3,
+  "similarity_threshold": 0.85,
+  "limit": 10
+}
+```
+
+Response includes discovered patterns with agent participation and metadata:
+
+```json
+{
+  "success": true,
+  "patterns_discovered": 2,
+  "patterns": [
+    {
+      "id": "d290f1ee-6c54-4b01-90e6-d701748f0851",
+      "pattern_type": "convergence",
+      "agent_ids": ["classical", "existentialist", "enlightenment"],
+      "memory_ids": ["uuid1", "uuid2", "uuid3"],
+      "metadata": {
+        "avg_confidence": 0.88,
+        "similarity_score": 0.91
+      },
+      "confidence": 0.91,
+      "status": "active"
+    }
+  ]
+}
+```
+
+**GET /patterns** - List patterns with filters (v3.3)
+
+```bash
+# Get active convergence patterns
+GET /patterns?pattern_type=convergence&status=active&limit=10
+
+# Get patterns involving specific agent
+GET /patterns?agent_id=classical&status=active
+```
+
+**GET /patterns/:id** - Get pattern details including source memories (v3.3)
+
+```bash
+GET /patterns/d290f1ee-6c54-4b01-90e6-d701748f0851
+```
+
+Returns pattern with full memory details.
+
+**POST /syntheses** - Create AI-powered synthesis from pattern (v3.3)
+
+```json
+{
+  "pattern_id": "d290f1ee-6c54-4b01-90e6-d701748f0851",
+  "type": "insight",  // 'insight' | 'guideline' | 'warning'
+  "auto_generate": true,  // Use Venice.ai to generate content
+  "content": "Optional manual content if auto_generate=false"
+}
+```
+
+Creates synthesis from convergence pattern (convergence patterns only). If
+`auto_generate=true`, uses Venice.ai llama-3.3-70b to generate synthesis
+content.
+
+**GET /syntheses** - List syntheses by status (v3.3)
+
+```bash
+# Get syntheses awaiting Council review
+GET /syntheses?status=under_review&limit=10
+
+# Get accepted syntheses
+GET /syntheses?status=accepted
+```
+
+**PUT /syntheses/:id/review** - Council member votes on synthesis (v3.3)
+
+```json
+{
+  "decision": "approve",  // 'approve' | 'reject' | 'abstain'
+  "notes": "Aligns with virtue ethics principles"
+}
+```
+
+Tracks votes with 4/6 approval = accepted, 3/6 rejection = rejected. Updates
+synthesis status when consensus reached.
+
+**POST /syntheses/:id/promote** - Promote accepted synthesis to shared memory
+(v3.3)
+
+```bash
+POST /syntheses/d290f1ee-6c54-4b01-90e6-d701748f0851/promote
+```
+
+Creates shared memory visible to all agents from accepted synthesis. Returns
+new memory ID.
 
 ---
 
