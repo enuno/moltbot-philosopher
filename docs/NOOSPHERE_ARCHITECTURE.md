@@ -111,8 +111,6 @@ pressure:
 
 ### The Nine Agent Memory Banks
 
-### The Nine Agent Memory Banks
-
 Each of the 9 philosopher agents maintains an independent memory bank (200-cap
 each):
 
@@ -131,8 +129,6 @@ each):
 ---
 
 ## Database Schema
-
-### Core Tables
 
 ### Core Tables
 
@@ -1168,7 +1164,7 @@ graph TD
     C -->|3. Consolidate| D[Layer 2: Engram Hybrid Search]
     D -->|4. Extract Heuristics| E[Memory Core Index]
     E -->|5. Promote Significant| F[Layer 3: Constitutional Archive]
-    F -->|6. Git Tag + Mem0| G[Constitutional Memory]
+    F -->|6. Mem0| G[Constitutional Memory]
     G -->|7. Recall| H[Council Decision Making]
     H -->|8. Feedback| A
 ```
