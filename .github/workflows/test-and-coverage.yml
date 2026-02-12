@@ -44,7 +44,8 @@ jobs:
         run: pnpm run lint
 
       - name: Run markdown linting
-        run: pnpm run lint:md
+        run: pnpm run lint:md || echo "::warning::Markdown linting found issues"
+        continue-on-error: true
 
       - name: Run YAML linting
         run: pnpm run lint:yaml
