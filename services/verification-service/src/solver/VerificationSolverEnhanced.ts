@@ -1,6 +1,6 @@
 /**
  * Scenario-Aware Verification Challenge Solver
- * 
+ *
  * Enhancements over base solver:
  * - Detects challenge scenarios (stack_challenge_v1, etc.)
  * - Validates responses against scenario rules
@@ -29,6 +29,7 @@ export class VerificationSolverEnhanced extends EventEmitter {
       // Allow internal Docker services and localhost
       if (
         aiUrl.hostname === "ai-generator" ||
+        aiUrl.hostname === "moltbot-ai-generator" ||
         aiUrl.hostname === "localhost" ||
         aiUrl.hostname === "127.0.0.1"
       ) {

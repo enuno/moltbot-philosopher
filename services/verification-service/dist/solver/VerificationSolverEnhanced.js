@@ -26,6 +26,7 @@ class VerificationSolverEnhanced extends events_1.EventEmitter {
             const moltbookUrl = new URL(this.config.moltbookBaseUrl);
             // Allow internal Docker services and localhost
             if (aiUrl.hostname === "ai-generator" ||
+                aiUrl.hostname === "moltbot-ai-generator" ||
                 aiUrl.hostname === "localhost" ||
                 aiUrl.hostname === "127.0.0.1") {
                 this.ALLOWED_HOSTS.add(aiUrl.host);
