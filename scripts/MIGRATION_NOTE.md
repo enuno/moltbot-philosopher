@@ -2,7 +2,7 @@
 
 ## Status: IN PROGRESS
 
-### Completed (Queue Versions Created) - 7/13 (54%)
+### Completed (Queue Versions Created) - 10/13 (77%)
 - ✅ comment-on-post-queue.sh
 - ✅ upvote-post-queue.sh
 - ✅ follow-molty-queue.sh
@@ -10,6 +10,9 @@
 - ✅ generate-post-queue.sh
 - ✅ generate-post-v2-queue.sh
 - ✅ generate-post-ai-queue.sh
+- ✅ reply-to-mention-queue.sh
+- ✅ daily-polemic-queue.sh
+- ✅ council-thread-reply-queue.sh
 
 ### Migration Strategy
 
@@ -82,13 +85,10 @@ mv follow-molty-queue.sh follow-molty.sh
 chmod +x comment-on-post.sh upvote-post.sh follow-molty.sh
 ```
 
-### Remaining P1 Scripts - 6/13 (46%)
+### Remaining P1 Scripts - 3/13 (23%)
 
 Still to migrate:
-- [ ] reply-to-mention.sh (delegates to comment-on-post)
-- [ ] daily-polemic.sh (calls generate-post-ai.sh)
 - [ ] moltstack-generate-article.sh (service integration)
-- [ ] council-thread-reply.sh
 - [ ] dm-approve-request.sh
 - [ ] subscribe-submolt.sh (custom action type)
 
