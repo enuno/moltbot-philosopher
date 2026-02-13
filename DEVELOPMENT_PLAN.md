@@ -3280,6 +3280,364 @@ docs/
 
 ---
 
+## Feature G: Action Queue & Rate Limiting Service
+
+**Status**: 🚧 In Development
+**Start Date**: 2026-02-13
+**Target**: v2.7
+**Priority**: High (prevents account suspension)
+
+### G.1 Overview
+
+The Action Queue Service is a middleware layer that sits between Moltbot scripts
+and the Moltbook API. It enforces rate limiting based on Moltbook's SKILL.md
+rules, prevents API abuse, and provides scheduled action execution.
+
+**Problem Statement:**
+- Direct API calls from scripts can exceed rate limits
+- Account suspended due to verification challenge failures and potential spam
+- No centralized control over API request frequency
+- Cannot schedule actions for future execution
+- Risk of concurrent requests violating rate limits
+
+**Solution:**
+- Dedicated Node.js/TypeScript service on port 3006
+- SQLite-backed persistent queue with priority levels
+- Automatic rate limit enforcement per action type
+- Scheduled/delayed action execution (cron-like)
+- Global request throttling (100 req/min)
+- Retry logic with exponential backoff
+- RESTful API for action submission
+
+### G.2 Architecture
+
+```
+┌─────────────────┐
+│  Bash Scripts   │
+│ (heartbeat,     │
+│  welcome, etc)  │
+└────────┬────────┘
+         │
+         │ HTTP POST /actions
+         ▼
+┌─────────────────────────────────┐
+│   Action Queue Service (3006)   │
+│                                 │
+│  ┌──────────────────────────┐  │
+│  │   Express HTTP Server    │  │
+│  └───────────┬──────────────┘  │
+│              │                  │
+│  ┌───────────▼──────────────┐  │
+│  │   Rate Limiter Engine    │  │
+│  │  - Per-action tracking   │  │
+│  │  - Daily limits          │  │
+│  │  - Global throttling     │  │
+│  └───────────┬──────────────┘  │
+│              │                  │
+│  ┌───────────▼──────────────┐  │
+│  │   Priority Queue         │  │
+│  │  - SQLite persistence    │  │
+│  │  - Status tracking       │  │
+│  │  - Scheduled actions     │  │
+│  └───────────┬──────────────┘  │
+│              │                  │
+│  ┌───────────▼──────────────┐  │
+│  │   Action Executor        │  │
+│  │  - HTTP client           │  │
+│  │  - Retry logic           │  │
+│  │  - Error handling        │  │
+│  └───────────┬──────────────┘  │
+└──────────────┼──────────────────┘
+               │
+               │ HTTP to Moltbook API
+               ▼
+       ┌───────────────┐
+       │  Moltbook API │
+       └───────────────┘
+```
+
+### G.3 Rate Limits (from skills/moltbook/SKILL.md)
+
+| Action Type | Established Agent | New Agent (24h) | Daily Max |
+|-------------|-------------------|-----------------|-----------|
+| **Post** | 1 / 30 min | 1 / 2 hours | 48 / 12 |
+| **Comment** | 1 / 20 sec | 1 / 60 sec | 50 / 20 |
+| **Upvote** | 10 / min | 5 / min | 500 / 100 |
+| **Downvote** | 10 / min | 5 / min | 500 / 100 |
+| **Follow** | 1 / 5 min | 1 / 30 min | 10 / 3 |
+| **Unfollow** | 1 / 5 min | 1 / 30 min | 10 / 3 |
+| **Create Submolt** | 1 / hour | 1 / day | 5 / 1 |
+| **Send DM** | 1 / 10 min | Blocked | 20 / 0 |
+| **Skill Update** | 1 / day | 1 / day | 1 / 1 |
+| **Global API** | 100 requests / minute (all actions) |
+
+### G.4 Implementation Components
+
+#### Core Service (`services/action-queue/`)
+
+```
+services/action-queue/
+├── package.json              # Dependencies (express, better-sqlite3, zod)
+├── tsconfig.json             # TypeScript configuration
+├── src/
+│   ├── index.ts              # Main entry point & HTTP server
+│   ├── types.ts              # TypeScript interfaces & enums
+│   ├── config.ts             # Rate limit configurations
+│   ├── database.ts           # SQLite schema & queries
+│   ├── rate-limiter.ts       # Rate limiting logic
+│   ├── queue-processor.ts    # Queue processing loop
+│   ├── action-executor.ts    # Moltbook API client
+│   ├── scheduler.ts          # Scheduled action handler
+│   └── api/
+│       ├── routes.ts         # Express routes
+│       ├── middleware.ts     # Validation & auth
+│       └── handlers.ts       # Request handlers
+├── Dockerfile                # Container build
+└── README.md                 # API documentation
+```
+
+#### Database Schema
+
+```sql
+-- Actions queue table
+CREATE TABLE actions (
+  id TEXT PRIMARY KEY,
+  agent_name TEXT NOT NULL,
+  action_type TEXT NOT NULL,
+  priority INTEGER NOT NULL DEFAULT 1,
+  payload TEXT NOT NULL,
+  status TEXT NOT NULL DEFAULT 'pending',
+  scheduled_for INTEGER,
+  created_at INTEGER NOT NULL,
+  attempted_at INTEGER,
+  completed_at INTEGER,
+  failed_at INTEGER,
+  attempts INTEGER NOT NULL DEFAULT 0,
+  max_attempts INTEGER NOT NULL DEFAULT 3,
+  error TEXT,
+  http_status INTEGER,
+  metadata TEXT
+);
+
+-- Rate limit tracking table
+CREATE TABLE rate_limits (
+  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  agent_name TEXT NOT NULL,
+  action_type TEXT NOT NULL,
+  window_start INTEGER NOT NULL,
+  count INTEGER NOT NULL DEFAULT 1,
+  daily_count INTEGER NOT NULL DEFAULT 1,
+  daily_reset INTEGER NOT NULL,
+  UNIQUE(agent_name, action_type, window_start)
+);
+
+-- Agent profiles (track new vs established)
+CREATE TABLE agents (
+  name TEXT PRIMARY KEY,
+  registered_at INTEGER NOT NULL,
+  is_new INTEGER NOT NULL DEFAULT 1,
+  last_activity INTEGER
+);
+
+-- Indexes for performance
+CREATE INDEX idx_actions_status ON actions(status);
+CREATE INDEX idx_actions_scheduled ON actions(scheduled_for);
+CREATE INDEX idx_rate_limits_lookup
+  ON rate_limits(agent_name, action_type);
+```
+
+#### API Endpoints
+
+```
+POST   /actions              Submit new action to queue
+GET    /actions/:id          Get action status
+DELETE /actions/:id          Cancel pending action
+GET    /actions              List actions (with filters)
+GET    /queue/stats          Queue statistics
+GET    /queue/health         Health check
+POST   /queue/process        Trigger immediate processing (manual)
+GET    /rate-limits/:agent   View rate limit status for agent
+POST   /admin/reset-limits   Reset rate limits (admin only)
+```
+
+#### Example Action Submission
+
+```bash
+# Submit a post action
+curl -X POST http://localhost:3006/actions \
+  -H "Content-Type: application/json" \
+  -d '{
+    "agentName": "ClassicalPhilosopher",
+    "actionType": "post",
+    "priority": 1,
+    "payload": {
+      "title": "The Good Life",
+      "content": "Virtue ethics and human flourishing...",
+      "submolt": "general"
+    }
+  }'
+
+# Schedule a follow action for later
+curl -X POST http://localhost:3006/actions \
+  -H "Content-Type: application/json" \
+  -d '{
+    "agentName": "ClassicalPhilosopher",
+    "actionType": "follow",
+    "priority": 2,
+    "scheduledFor": "2026-02-17T12:00:00Z",
+    "payload": {
+      "username": "0xYeks"
+    }
+  }'
+```
+
+#### Script Integration
+
+Scripts will be updated to submit to queue instead of direct API:
+
+```bash
+# Old way (direct API call)
+curl -X POST "$MOLTBOOK_API/posts" \
+  -H "Authorization: Bearer $API_KEY" \
+  -d '{"title":"...","content":"..."}'
+
+# New way (via queue)
+curl -X POST "http://action-queue:3006/actions" \
+  -d '{
+    "agentName": "ClassicalPhilosopher",
+    "actionType": "post",
+    "payload": {"title":"...","content":"..."}
+  }'
+```
+
+### G.5 Processing Logic
+
+#### Queue Processor
+
+```typescript
+// Process queue every 5 seconds
+setInterval(async () => {
+  // 1. Get next eligible action (PENDING, not rate-limited)
+  const action = await getNextAction();
+  if (!action) return;
+
+  // 2. Check rate limits
+  if (await isRateLimited(action)) {
+    await updateActionStatus(action.id, 'rate_limited');
+    return;
+  }
+
+  // 3. Execute action
+  try {
+    await updateActionStatus(action.id, 'processing');
+    const result = await executeMoltbookAction(action);
+    await updateActionStatus(action.id, 'completed', result);
+    await recordRateLimit(action);
+  } catch (error) {
+    await handleFailure(action, error);
+  }
+}, 5000);
+```
+
+#### Scheduled Actions
+
+```typescript
+// Check scheduled actions every 30 seconds
+setInterval(async () => {
+  const due = await getScheduledActionsDue();
+  for (const action of due) {
+    await updateActionStatus(action.id, 'pending');
+  }
+}, 30000);
+```
+
+### G.6 Migration Plan
+
+#### Phase 1: Core Service (Week 1)
+- [ ] Implement TypeScript service skeleton
+- [ ] Set up SQLite database & schemas
+- [ ] Implement rate limiter logic
+- [ ] Create Express API routes
+- [ ] Add basic queue processor
+- [ ] Write unit tests
+
+#### Phase 2: Integration (Week 2)
+- [ ] Create Dockerfile & docker-compose integration
+- [ ] Update bash scripts to use queue API
+- [ ] Create queue CLI wrapper script
+- [ ] Add monitoring endpoints
+- [ ] Integration testing
+
+#### Phase 3: Advanced Features (Week 3)
+- [ ] Implement scheduled actions
+- [ ] Add priority queue logic
+- [ ] Implement retry with exponential backoff
+- [ ] Add rate limit status dashboard
+- [ ] Performance tuning
+
+#### Phase 4: Documentation & Deployment
+- [ ] Write comprehensive API documentation
+- [ ] Create migration guide for scripts
+- [ ] Add operational runbooks
+- [ ] Deploy to production
+- [ ] Monitor for rate limit violations
+
+### G.7 Testing Strategy
+
+```bash
+# Test rate limiting enforcement
+./test/rate-limit-test.sh
+# Expected: Actions queued, executed at proper intervals
+
+# Test scheduled actions
+./test/scheduled-actions-test.sh
+# Expected: Actions execute at specified times
+
+# Test priority handling
+./test/priority-test.sh
+# Expected: High-priority actions processed first
+
+# Test failure recovery
+./test/failure-recovery-test.sh
+# Expected: Retries with exponential backoff
+```
+
+### G.8 Monitoring & Observability
+
+```bash
+# Queue health check
+curl http://localhost:3006/queue/health
+
+# View queue statistics
+curl http://localhost:3006/queue/stats
+
+# View rate limit status for agent
+curl http://localhost:3006/rate-limits/ClassicalPhilosopher
+
+# Container logs
+docker logs action-queue --tail=100 -f
+```
+
+### G.9 Benefits
+
+- ✅ **Prevents Suspension**: Automatic rate limit enforcement
+- ✅ **Scheduled Actions**: Execute actions at specific times
+- ✅ **Centralized Control**: Single point for all API interactions
+- ✅ **Retry Logic**: Automatic retry with exponential backoff
+- ✅ **Observability**: Clear visibility into queue state
+- ✅ **Priority Handling**: Critical actions processed first
+- ✅ **Persistent Queue**: Survives container restarts
+- ✅ **Audit Trail**: Complete history of all actions
+
+### G.10 References
+
+- [Moltbook SKILL.md](skills/moltbook/SKILL.md) - Rate limit rules
+- [Moltbook RULES.md](skills/moltbook/RULES.md) - Enforcement policies
+- [Express.js Documentation](https://expressjs.com/)
+- [better-sqlite3 Documentation](https://github.com/WiseLibs/better-sqlite3)
+
+---
+
 ## References
 
 - [Moltbook API Documentation](https://www.moltbook.com/skill.md)
