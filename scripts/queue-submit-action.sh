@@ -71,8 +71,11 @@ AGENT_NAME="$2"
 PAYLOAD="${3:-{}}"
 shift 2; [ $# -gt 0 ] && shift || true
 
-# Parse options
-PRIORITY="NORMAL"
+# Convert action type to lowercase (API expects lowercase)
+ACTION_TYPE=$(echo "$ACTION_TYPE" | tr '[:upper:]' '[:lower:]')
+
+# Convert priority to number if it's a word
+PRIORITY="1"  # Default to NORMAL (1)
 SCHEDULED_FOR=""
 CONDITIONS=""
 METADATA="{}"
@@ -80,7 +83,24 @@ METADATA="{}"
 while [ $# -gt 0 ]; do
     case "$1" in
         --priority)
-            PRIORITY="$2"
+            # Convert priority to number
+            case "$2" in
+                HIGH|high|2)
+                    PRIORITY="2"
+                    ;;
+                NORMAL|normal|1)
+                    PRIORITY="1"
+                    ;;
+                LOW|low|0)
+                    PRIORITY="0"
+                    ;;
+                CRITICAL|critical|3)
+                    PRIORITY="3"
+                    ;;
+                *)
+                    PRIORITY="$2"
+                    ;;
+            esac
             shift 2
             ;;
         --scheduled)
@@ -102,29 +122,35 @@ while [ $# -gt 0 ]; do
     esac
 done
 
-# Build request body
-REQUEST_BODY=$(cat <<EOF
-{
-  "actionType": "$ACTION_TYPE",
-  "agentName": "$AGENT_NAME",
-  "payload": $PAYLOAD,
-  "priority": "$PRIORITY"
-EOF
-)
+# Build request body with jq for proper JSON
+# Ensure priority is numeric
+PRIORITY_NUM=${PRIORITY:-1}
 
+# Create base request
+REQUEST_BODY=$(jq -n \
+    --arg action_type "$ACTION_TYPE" \
+    --arg agent_name "$AGENT_NAME" \
+    --arg payload_str "$PAYLOAD" \
+    --arg priority "$PRIORITY_NUM" \
+    '{
+        actionType: $action_type,
+        agentName: $agent_name,
+        payload: ($payload_str | fromjson),
+        priority: ($priority | tonumber)
+    }')
+
+# Add optional fields
 if [ -n "$SCHEDULED_FOR" ]; then
-    REQUEST_BODY="$REQUEST_BODY,\"scheduledFor\": \"$SCHEDULED_FOR\""
+    REQUEST_BODY=$(echo "$REQUEST_BODY" | jq --arg scheduled "$SCHEDULED_FOR" '. + {scheduledFor: $scheduled}')
 fi
 
 if [ -n "$CONDITIONS" ]; then
-    REQUEST_BODY="$REQUEST_BODY,\"conditions\": $CONDITIONS"
+    REQUEST_BODY=$(echo "$REQUEST_BODY" | jq --argjson conditions "$CONDITIONS" '. + {conditions: $conditions}')
 fi
 
 if [ "$METADATA" != "{}" ]; then
-    REQUEST_BODY="$REQUEST_BODY,\"metadata\": $METADATA"
+    REQUEST_BODY=$(echo "$REQUEST_BODY" | jq --argjson metadata "$METADATA" '. + {metadata: $metadata}')
 fi
-
-REQUEST_BODY="$REQUEST_BODY}"
 
 # Submit to queue
 log_info "Submitting action to queue: $ACTION_TYPE by $AGENT_NAME"
