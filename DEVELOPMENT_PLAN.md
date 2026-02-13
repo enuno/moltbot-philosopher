@@ -3629,12 +3629,253 @@ docker logs action-queue --tail=100 -f
 - ✅ **Persistent Queue**: Survives container restarts
 - ✅ **Audit Trail**: Complete history of all actions
 
-### G.10 References
+### G.10 Conditional Logic System
+
+**Added**: 2026-02-13
+
+The action queue supports complex conditional logic for executing actions only
+when multiple conditions are met. This enables sophisticated workflows like:
+
+- Execute action when time + account status conditions both satisfied
+- Wait for previous action to complete before starting next
+- Only post if previous post got sufficient engagement
+- Follow back users who followed us
+- Execute during specific time windows when rate limits available
+
+#### Condition Types
+
+| Condition Type | Description | Example Use Case |
+|----------------|-------------|------------------|
+| **TIME_AFTER** | Execute after specific timestamp | Wait until suspension lifts |
+| **TIME_BEFORE** | Execute before deadline | Send reminder before event |
+| **TIME_BETWEEN** | Execute within time window | Post only during peak hours |
+| **ACCOUNT_ACTIVE** | Account not suspended | Resume posting after suspension |
+| **ACTION_COMPLETED** | Wait for another action | Thread continuation after reply |
+| **KARMA_THRESHOLD** | Karma within range | Unlock features at 1000 karma |
+| **FOLLOWER_COUNT** | Follower count threshold | Announce milestone at 100 followers |
+| **POST_ENGAGEMENT** | Post met engagement goals | Continue thread if post popular |
+| **API_CHECK** | External API returns expected | Sync with external service state |
+| **RATE_LIMIT_AVAILABLE** | Rate limit window open | Wait for rate limit to refresh |
+| **CUSTOM** | Run external script | Complex custom logic |
+
+#### Condition Operators
+
+Conditions can be combined with Boolean logic:
+
+- **AND**: All conditions must be satisfied
+- **OR**: At least one condition must be satisfied
+- **NOT**: Negate a condition
+
+#### Example: Follow User After Suspension Lifts
+
+```json
+{
+  "agentName": "ClassicalPhilosopher",
+  "actionType": "follow",
+  "payload": {
+    "username": "0xYeks"
+  },
+  "conditions": {
+    "operator": "and",
+    "conditions": [
+      {
+        "id": "cond-1",
+        "type": "time_after",
+        "params": {
+          "timestamp": "2026-02-17T00:00:00Z"
+        }
+      },
+      {
+        "id": "cond-2",
+        "type": "account_active",
+        "params": {
+          "agentName": "ClassicalPhilosopher"
+        }
+      }
+    ]
+  },
+  "conditionCheckInterval": 300,
+  "conditionTimeout": "2026-02-20T00:00:00Z"
+}
+```
+
+This action will:
+1. Wait until Feb 17, 2026 (time_after)
+2. Check if account is active (not suspended)
+3. Only execute when BOTH conditions are true
+4. Check every 5 minutes (300 seconds)
+5. Give up if conditions not met by Feb 20
+
+#### Example: Thread Continuation with Engagement Check
+
+```json
+{
+  "agentName": "ClassicalPhilosopher",
+  "actionType": "comment",
+  "payload": {
+    "postId": "abc-123",
+    "content": "Let me elaborate on virtue ethics..."
+  },
+  "conditions": {
+    "operator": "and",
+    "conditions": [
+      {
+        "id": "cond-1",
+        "type": "action_completed",
+        "params": {
+          "actionId": "action-xyz",
+          "requiredStatus": "completed"
+        }
+      },
+      {
+        "id": "cond-2",
+        "type": "post_engagement",
+        "params": {
+          "postId": "abc-123",
+          "minUpvotes": 5,
+          "minComments": 2
+        }
+      },
+      {
+        "id": "cond-3",
+        "type": "rate_limit_available",
+        "params": {
+          "agentName": "ClassicalPhilosopher",
+          "actionType": "comment"
+        }
+      }
+    ]
+  }
+}
+```
+
+This will post a follow-up comment only when:
+1. Previous action completed successfully
+2. Post has at least 5 upvotes and 2 comments
+3. Rate limit is available for commenting
+
+#### Example: Time-Window Posting
+
+```json
+{
+  "agentName": "ClassicalPhilosopher",
+  "actionType": "post",
+  "payload": {
+    "title": "Daily Reflection",
+    "content": "...",
+    "submolt": "general"
+  },
+  "conditions": {
+    "operator": "and",
+    "conditions": [
+      {
+        "id": "cond-1",
+        "type": "time_between",
+        "params": {
+          "start": "2026-02-14T08:00:00Z",
+          "end": "2026-02-14T20:00:00Z"
+        }
+      },
+      {
+        "id": "cond-2",
+        "type": "rate_limit_available",
+        "params": {
+          "agentName": "ClassicalPhilosopher",
+          "actionType": "post"
+        }
+      }
+    ]
+  }
+}
+```
+
+Post only during peak hours (8am-8pm) when rate limit available.
+
+#### Implementation Details
+
+**Condition Evaluator** (`src/condition-evaluator.ts`):
+- Evaluates individual conditions
+- Combines conditions with Boolean logic
+- Caches evaluation results
+- Handles async checks (API calls)
+- Supports timeout and retry logic
+
+**Database Schema Extension**:
+
+```sql
+-- Store condition evaluations
+CREATE TABLE condition_evaluations (
+  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  action_id TEXT NOT NULL,
+  condition_id TEXT NOT NULL,
+  condition_type TEXT NOT NULL,
+  satisfied INTEGER NOT NULL,
+  evaluated_at INTEGER NOT NULL,
+  message TEXT,
+  details TEXT,
+  FOREIGN KEY (action_id) REFERENCES actions(id)
+);
+
+-- Index for quick lookups
+CREATE INDEX idx_condition_evaluations_action
+  ON condition_evaluations(action_id);
+```
+
+**Processing Loop**:
+
+```typescript
+// Every condition check interval
+for (const action of conditionalActions) {
+  if (action.conditionTimeout && new Date() > action.conditionTimeout) {
+    // Timeout expired, cancel action
+    await cancelAction(action.id, 'Condition timeout');
+    continue;
+  }
+
+  // Evaluate all conditions
+  const evaluations = await evaluator.evaluateCompositeCondition(
+    action.conditions,
+  );
+
+  // Store evaluations
+  await storeEvaluations(action.id, evaluations);
+
+  // Check if all conditions satisfied
+  const satisfied = evaluator.isCompositeSatisfied(
+    action.conditions,
+    evaluations,
+  );
+
+  if (satisfied) {
+    // Mark action as ready for execution
+    await updateActionStatus(action.id, 'pending');
+  } else {
+    // Log progress
+    console.log(
+      `Action ${action.id} conditions not yet met: ` +
+        evaluations.filter((e) => !e.satisfied).map((e) => e.message),
+    );
+  }
+}
+```
+
+#### Benefits
+
+- ✅ **Complex Workflows**: Chain actions with dependencies
+- ✅ **Smart Scheduling**: Execute only when conditions right
+- ✅ **Resource Optimization**: Wait for rate limits automatically
+- ✅ **Adaptive Behavior**: React to engagement and external state
+- ✅ **Audit Trail**: Track all condition evaluations
+- ✅ **Flexible Logic**: AND/OR/NOT combinations
+- ✅ **Timeout Protection**: Don't wait forever
+
+### G.11 References
 
 - [Moltbook SKILL.md](skills/moltbook/SKILL.md) - Rate limit rules
 - [Moltbook RULES.md](skills/moltbook/RULES.md) - Enforcement policies
 - [Express.js Documentation](https://expressjs.com/)
 - [better-sqlite3 Documentation](https://github.com/WiseLibs/better-sqlite3)
+- [JSONPath Documentation](https://goessner.net/articles/JsonPath/) - For API checks
 
 ---
 

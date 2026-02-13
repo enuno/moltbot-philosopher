@@ -149,3 +149,234 @@ export interface QueueStats {
   nextScheduled?: Date;
   rateLimitsByType: Record<ActionType, RateLimitState[]>;
 }
+
+/**
+ * Condition types for conditional action execution
+ */
+export enum ConditionType {
+  TIME_AFTER = 'time_after',
+  TIME_BEFORE = 'time_before',
+  TIME_BETWEEN = 'time_between',
+  ACCOUNT_ACTIVE = 'account_active',
+  ACTION_COMPLETED = 'action_completed',
+  ACTION_FAILED = 'action_failed',
+  KARMA_THRESHOLD = 'karma_threshold',
+  FOLLOWER_COUNT = 'follower_count',
+  POST_ENGAGEMENT = 'post_engagement',
+  API_CHECK = 'api_check',
+  RATE_LIMIT_AVAILABLE = 'rate_limit_available',
+  CUSTOM = 'custom',
+}
+
+/**
+ * Condition operators for combining multiple conditions
+ */
+export enum ConditionOperator {
+  AND = 'and',
+  OR = 'or',
+  NOT = 'not',
+}
+
+/**
+ * Base condition interface
+ */
+export interface Condition {
+  id: string;
+  type: ConditionType;
+  params: Record<string, unknown>;
+  negated?: boolean;
+}
+
+/**
+ * Time-based condition
+ */
+export interface TimeAfterCondition extends Condition {
+  type: ConditionType.TIME_AFTER;
+  params: {
+    timestamp: string; // ISO 8601
+  };
+}
+
+export interface TimeBeforeCondition extends Condition {
+  type: ConditionType.TIME_BEFORE;
+  params: {
+    timestamp: string;
+  };
+}
+
+export interface TimeBetweenCondition extends Condition {
+  type: ConditionType.TIME_BETWEEN;
+  params: {
+    start: string;
+    end: string;
+  };
+}
+
+/**
+ * Account status condition
+ */
+export interface AccountActiveCondition extends Condition {
+  type: ConditionType.ACCOUNT_ACTIVE;
+  params: {
+    agentName: string;
+  };
+}
+
+/**
+ * Action dependency condition
+ */
+export interface ActionCompletedCondition extends Condition {
+  type: ConditionType.ACTION_COMPLETED;
+  params: {
+    actionId: string;
+    requiredStatus?: ActionStatus.COMPLETED | ActionStatus.FAILED;
+  };
+}
+
+/**
+ * Karma threshold condition
+ */
+export interface KarmaThresholdCondition extends Condition {
+  type: ConditionType.KARMA_THRESHOLD;
+  params: {
+    agentName: string;
+    minKarma?: number;
+    maxKarma?: number;
+  };
+}
+
+/**
+ * Follower count condition
+ */
+export interface FollowerCountCondition extends Condition {
+  type: ConditionType.FOLLOWER_COUNT;
+  params: {
+    agentName: string;
+    minFollowers?: number;
+    maxFollowers?: number;
+  };
+}
+
+/**
+ * Post engagement condition
+ */
+export interface PostEngagementCondition extends Condition {
+  type: ConditionType.POST_ENGAGEMENT;
+  params: {
+    postId: string;
+    minUpvotes?: number;
+    minComments?: number;
+    minEngagementScore?: number;
+  };
+}
+
+/**
+ * API check condition (call external API)
+ */
+export interface ApiCheckCondition extends Condition {
+  type: ConditionType.API_CHECK;
+  params: {
+    url: string;
+    method: 'GET' | 'POST';
+    expectedStatus?: number;
+    expectedBodyContains?: string;
+    jsonPath?: string; // JSONPath expression
+    expectedValue?: unknown;
+  };
+}
+
+/**
+ * Rate limit availability condition
+ */
+export interface RateLimitAvailableCondition extends Condition {
+  type: ConditionType.RATE_LIMIT_AVAILABLE;
+  params: {
+    agentName: string;
+    actionType: ActionType;
+  };
+}
+
+/**
+ * Custom condition (evaluated by external script)
+ */
+export interface CustomCondition extends Condition {
+  type: ConditionType.CUSTOM;
+  params: {
+    scriptPath: string;
+    args?: string[];
+    expectedExitCode?: number;
+  };
+}
+
+/**
+ * Composite condition (combines multiple conditions)
+ */
+export interface CompositeCondition {
+  operator: ConditionOperator;
+  conditions: (Condition | CompositeCondition)[];
+}
+
+/**
+ * Condition evaluation result
+ */
+export interface ConditionEvaluation {
+  conditionId: string;
+  type: ConditionType;
+  satisfied: boolean;
+  evaluatedAt: Date;
+  message?: string;
+  details?: Record<string, unknown>;
+}
+
+/**
+ * Action with conditional execution
+ */
+export interface ConditionalAction extends QueuedAction {
+  conditions?: CompositeCondition;
+  conditionCheckInterval?: number; // seconds between checks
+  conditionTimeout?: Date; // give up if conditions not met by this time
+  lastConditionCheck?: Date;
+  conditionEvaluations?: ConditionEvaluation[];
+}
+
+/**
+ * Condition check request
+ */
+export const CheckConditionsSchema = z.object({
+  actionId: z.string().uuid(),
+});
+
+export type CheckConditionsRequest = z.infer<typeof CheckConditionsSchema>;
+
+/**
+ * Zod schemas for condition validation
+ */
+export const ConditionSchema = z.object({
+  id: z.string().uuid(),
+  type: z.nativeEnum(ConditionType),
+  params: z.record(z.unknown()),
+  negated: z.boolean().optional(),
+});
+
+export const CompositeConditionSchema: z.ZodType<CompositeCondition> = z.lazy(
+  () =>
+    z.object({
+      operator: z.nativeEnum(ConditionOperator),
+      conditions: z.array(
+        z.union([ConditionSchema, CompositeConditionSchema]),
+      ),
+    }),
+);
+
+/**
+ * Extended submit action schema with conditions
+ */
+export const SubmitConditionalActionSchema = SubmitActionSchema.extend({
+  conditions: CompositeConditionSchema.optional(),
+  conditionCheckInterval: z.number().min(5).max(3600).optional(),
+  conditionTimeout: z.string().datetime().optional(),
+});
+
+export type SubmitConditionalActionRequest = z.infer<
+  typeof SubmitConditionalActionSchema
+>;

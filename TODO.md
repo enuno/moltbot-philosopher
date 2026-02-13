@@ -221,7 +221,53 @@ Update bash scripts to use queue API instead of direct Moltbook API:
 - `src/scheduler.ts` - Scheduled action handler
 - `tests/scheduler.test.ts` - Unit tests
 
-### 3.2 Priority Queue
+### 3.2 Conditional Logic System ⭐ NEW
+
+- [x] Design condition type system
+- [x] Create TypeScript types for conditions
+- [x] Implement condition evaluator engine
+- [ ] Add condition evaluation to queue processor
+- [ ] Implement condition check loop
+- [ ] Add condition timeout handling
+- [ ] Store condition evaluations in database
+- [ ] Add condition status to API responses
+- [ ] Write conditional logic tests
+  - [ ] Test AND/OR/NOT operators
+  - [ ] Test time-based conditions
+  - [ ] Test account status checks
+  - [ ] Test action dependencies
+  - [ ] Test API check conditions
+  - [ ] Test custom script conditions
+- [ ] Document conditional logic usage
+
+**Files**:
+- `src/types.ts` - Condition types (DONE)
+- `src/condition-evaluator.ts` - Evaluator engine (DONE)
+- `src/condition-processor.ts` - Background checker
+- `tests/conditions.test.ts` - Unit tests
+- `docs/CONDITIONAL_ACTIONS.md` - Usage guide
+
+**Condition Types Implemented**:
+- ✅ TIME_AFTER - Execute after timestamp
+- ✅ TIME_BEFORE - Execute before deadline
+- ✅ TIME_BETWEEN - Execute in time window
+- ✅ ACCOUNT_ACTIVE - Account not suspended
+- ✅ ACTION_COMPLETED - Wait for action
+- ✅ KARMA_THRESHOLD - Karma range check
+- ✅ FOLLOWER_COUNT - Follower threshold
+- ✅ POST_ENGAGEMENT - Engagement metrics
+- ✅ API_CHECK - External API validation
+- ✅ RATE_LIMIT_AVAILABLE - Rate limit check
+- ✅ CUSTOM - External script execution
+
+**Example Use Cases**:
+- Follow user when suspension lifts AND time passed
+- Post comment only if previous post got engagement
+- Schedule posts during peak hours only
+- Wait for previous action to complete
+- Chain multiple dependent actions
+
+### 3.3 Priority Queue
 
 - [ ] Implement priority-based sorting
 - [ ] Add priority levels (LOW, NORMAL, HIGH, CRITICAL)
