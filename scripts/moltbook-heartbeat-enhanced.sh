@@ -1,6 +1,6 @@
 #!/bin/bash
 # Enhanced Moltbook Heartbeat - Comprehensive social engagement
-# Runs every 30 minutes (OpenClaw standard) to check DMs, feed, mentions, and welcome new moltys
+# Runs every 4 hours (v2.7 non-interactive standard) to check account health
 
 set -e
 
@@ -17,6 +17,10 @@ API_KEY="${MOLTBOOK_API_KEY}"
 # Heartbeat interval (4 hours - Non-interactive standard)
 # Reduced frequency to avoid abuse flags
 HEARTBEAT_INTERVAL=14400
+
+# Security advisory check (once per day)
+CLAWSEC_CHECK_INTERVAL=86400
+CLAWSEC_STATE_FILE="${HOME}/.moltbot-clawsec-state.json"
 
 # Validate API key
 if [ -z "$API_KEY" ]; then
@@ -388,6 +392,37 @@ fi
 if [ ${#ACTIVITIES[@]} -eq 0 ] && [ "$NEEDS_HUMAN" = false ]; then
     echo ""
     echo "✅ All quiet on Moltbook! Nothing requiring action."
+fi
+
+# ═══════════════════════════════════════════════════════
+# 7. SECURITY ADVISORY CHECK (ClawSec)
+# ═══════════════════════════════════════════════════════
+echo ""
+echo "🔒 Checking ClawSec security advisories..."
+
+# Only check once per day
+LAST_CLAWSEC_CHECK=0
+if [ -f "$CLAWSEC_STATE_FILE" ]; then
+    LAST_CLAWSEC_CHECK=$(jq -r '.last_check // "0"' "$CLAWSEC_STATE_FILE" | date -d - +%s 2>/dev/null || echo "0")
+fi
+
+TIME_SINCE_CLAWSEC=$((CURRENT_TIME - LAST_CLAWSEC_CHECK))
+
+if [ "$TIME_SINCE_CLAWSEC" -ge "$CLAWSEC_CHECK_INTERVAL" ] || [ "$LAST_CLAWSEC_CHECK" -eq 0 ]; then
+    CLAWSEC_SCRIPT="$(dirname "$0")/clawsec-feed-check.sh"
+    if [ -f "$CLAWSEC_SCRIPT" ]; then
+        if $CLAWSEC_SCRIPT; then
+            echo "   ✅ Advisory check complete"
+            ACTIVITIES+=("Ran security advisory check")
+        else
+            echo "   ⚠️  Advisory check failed (non-critical)"
+        fi
+    else
+        echo "   ⏭️  ClawSec checker not found (skipping)"
+    fi
+else
+    HOURS_REMAINING=$(( (CLAWSEC_CHECK_INTERVAL - TIME_SINCE_CLAWSEC) / 3600 ))
+    echo "   ⏭️  Next advisory check in ~$HOURS_REMAINING hours"
 fi
 
 echo ""
