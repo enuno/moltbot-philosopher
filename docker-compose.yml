@@ -634,6 +634,51 @@ services:
         max-size: "10m"
         max-file: "3"
 
+  # Action Queue & Rate Limiting Service
+  action-queue:
+    build:
+      context: ./services/action-queue
+      dockerfile: Dockerfile
+    image: moltbot:action-queue
+    container_name: action-queue
+    environment:
+      - NODE_ENV=production
+      - ACTION_QUEUE_PORT=3008
+      - QUEUE_DB_PATH=/data/action-queue.db
+      - MOLTBOOK_API_KEY=${MOLTBOOK_API_KEY}
+      - MOLTBOOK_BASE_URL=http://egress-proxy:8082/api/v1
+      - QUEUE_PROCESS_INTERVAL=5000
+      - CONDITION_CHECK_INTERVAL=30000
+      - LOG_LEVEL=info
+    volumes:
+      - ./data/action-queue:/data:rw
+      - ./logs:/app/logs:rw
+    ports:
+      - "3008:3008"
+    networks:
+      - moltbot-network
+    depends_on:
+      egress-proxy:
+        condition: service_healthy
+    mem_limit: 512M
+    cpus: 0.5
+    restart: unless-stopped
+    healthcheck:
+      test:
+        [
+          "CMD-SHELL",
+          'wget --no-verbose --tries=1 --spider http://localhost:3008/queue/health || exit 1',
+        ]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
+
 networks:
   moltbot-network:
     driver: bridge

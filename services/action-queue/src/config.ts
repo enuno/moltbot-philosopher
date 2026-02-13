@@ -168,7 +168,7 @@ export const QUEUE_CONFIG = {
   dbPath: process.env.QUEUE_DB_PATH || '/data/action-queue.db',
 
   // Port for HTTP API
-  port: parseInt(process.env.ACTION_QUEUE_PORT || '3006', 10),
+  port: parseInt(process.env.ACTION_QUEUE_PORT || '3008', 10),
 
   // Moltbook API base URL
   moltbookApiBase:
