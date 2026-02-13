@@ -20,7 +20,7 @@ HEARTBEAT_INTERVAL=14400
 
 # Security advisory check (once per day)
 CLAWSEC_CHECK_INTERVAL=86400
-CLAWSEC_STATE_FILE="${HOME}/.moltbot-clawsec-state.json"
+CLAWSEC_STATE_FILE="${STATE_DIR}/.moltbot-clawsec-state.json"
 
 # Validate API key
 if [ -z "$API_KEY" ]; then
