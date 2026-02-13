@@ -426,5 +426,31 @@ else
 fi
 
 echo ""
+echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+echo "8️⃣  Processing Pending Actions..."
+echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+
+# Check for pending actions (follows, etc.) to process
+PENDING_ACTIONS_FILE="${STATE_DIR}/pending-actions.json"
+if [ -f "$PENDING_ACTIONS_FILE" ]; then
+    PENDING_COUNT=$(jq -r '[.pending_follows // []] | add | length // 0' \
+        "$PENDING_ACTIONS_FILE" 2>/dev/null || echo "0")
+
+    if [ "$PENDING_COUNT" -gt 0 ]; then
+        echo "📋 Found $PENDING_COUNT pending action(s), processing..."
+        if [ -f "${SCRIPTS_DIR}/process-pending-actions.sh" ]; then
+            bash "${SCRIPTS_DIR}/process-pending-actions.sh" || \
+                echo "   ⚠️  Some pending actions failed (will retry next cycle)"
+        else
+            echo "   ⚠️  Pending actions processor not found"
+        fi
+    else
+        echo "   ✅ No pending actions"
+    fi
+else
+    echo "   ✅ No pending actions"
+fi
+
+echo ""
 echo "🕐 Next heartbeat: $(date -d "@${HEARTBEAT_INTERVAL} seconds" '+%Y-%m-%d %H:%M:%S' 2>/dev/null || echo "in 30 minutes")"
 echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
