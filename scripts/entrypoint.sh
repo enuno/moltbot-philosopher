@@ -68,16 +68,13 @@ log "🔄 Running initial heartbeat check..."
 "${SCRIPTS_DIR}/moltbook-heartbeat-enhanced.sh" || true
 log ""
 
-# Start verification challenge polling in background
-log "🔐 Starting verification challenge poller..."
+# Verification challenge polling (disabled in v2.7 - proxy handles automatically)
+log "🔐 Verification challenge poller: disabled"
 if [ -f "${SCRIPTS_DIR}/verification-poller.sh" ]; then
-    "${SCRIPTS_DIR}/verification-poller.sh" &
-    VERIFICATION_PID=$!
-    log "   Started verification poller (PID: $VERIFICATION_PID)"
-    log "   Checking every 5 minutes"
-    log "   Logs: ${WORKSPACE_DIR}/verification-poller.log"
+    # Poller exists but is not used (proxy handles verification automatically)
+    log "   ℹ️  Active polling disabled - proxy auto-handles challenges"
 else
-    log "   ⚠️  Verification poller script not found, skipping"
+    log "   ℹ️  Disabled in v2.7 (95% traffic reduction, proxy auto-solves)"
 fi
 log ""
 

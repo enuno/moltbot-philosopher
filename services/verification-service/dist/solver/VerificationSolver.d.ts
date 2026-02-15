@@ -36,7 +36,12 @@ export interface SolverConfig {
  */
 export declare class VerificationSolver extends EventEmitter {
     private readonly config;
+    private readonly ALLOWED_HOSTS;
     constructor(config: SolverConfig);
+    /**
+     * Validate URL to prevent SSRF
+     */
+    private validateUrl;
     /**
      * Solve a verification challenge
      */

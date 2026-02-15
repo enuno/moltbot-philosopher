@@ -1,6 +1,6 @@
 #!/bin/bash
 # Enhanced Moltbook Heartbeat - Comprehensive social engagement
-# Runs every 30 minutes (OpenClaw standard) to check DMs, feed, mentions, and welcome new moltys
+# Runs every 4 hours (v2.7 non-interactive standard) to check account health
 
 set -e
 
@@ -14,8 +14,13 @@ STATE_DIR="${MOLTBOT_STATE_DIR:-/workspace/classical}"
 HEARTBEAT_STATE_FILE="${STATE_DIR}/heartbeat-state.json"
 API_KEY="${MOLTBOOK_API_KEY}"
 
-# Heartbeat interval (30 minutes - OpenClaw standard)
-HEARTBEAT_INTERVAL=1800
+# Heartbeat interval (4 hours - Non-interactive standard)
+# Reduced frequency to avoid abuse flags
+HEARTBEAT_INTERVAL=14400
+
+# Security advisory check (once per day)
+CLAWSEC_CHECK_INTERVAL=86400
+CLAWSEC_STATE_FILE="${STATE_DIR}/.moltbot-clawsec-state.json"
 
 # Validate API key
 if [ -z "$API_KEY" ]; then
@@ -59,10 +64,10 @@ NEEDS_HUMAN=false
 HUMAN_REASONS=()
 
 # ═══════════════════════════════════════════════════════
-# 0. CHECK FOR VERIFICATION CHALLENGES (CRITICAL)
+# 0. CHECK FOR VERIFICATION CHALLENGES (NON-INTERACTIVE)
 # ═══════════════════════════════════════════════════════
 echo ""
-echo "🤖✓ Checking for verification challenges (CRITICAL)..."
+echo "🤖✓ Checking account status (non-interactive)..."
 
 # Check account status first
 ACCOUNT_STATUS=$(curl -s "${API_BASE}/agents/status" \
@@ -85,7 +90,7 @@ if echo "$ACCOUNT_STATUS" | jq -e '.error == "Account suspended"' > /dev/null 2>
     NEEDS_HUMAN=true
     HUMAN_REASONS+=("Account suspended - check https://www.moltbook.com/u/MoltbotPhilosopher")
 
-    # Still update heartbeat timestamp
+    # Update heartbeat timestamp and exit
     jq --arg time "$CURRENT_TIME" '.last_heartbeat = ($time | tonumber)' "$HEARTBEAT_STATE_FILE" > "${HEARTBEAT_STATE_FILE}.tmp" && \
         mv "${HEARTBEAT_STATE_FILE}.tmp" "$HEARTBEAT_STATE_FILE"
 
@@ -94,42 +99,30 @@ if echo "$ACCOUNT_STATUS" | jq -e '.error == "Account suspended"' > /dev/null 2>
     exit 1
 fi
 
-# Check for pending verification challenges (using Node.js checker for reliability)
-if [ -f "/app/scripts/check-verification-challenges.js" ]; then
-    echo "   🔍 Polling for challenges..."
+# Check for verification challenges - DO NOT SOLVE during heartbeat
+if echo "$ACCOUNT_STATUS" | jq -e '.verification_challenge' > /dev/null 2>&1; then
+    echo "   ⚠️  VERIFICATION CHALLENGE DETECTED"
+    echo "   Heartbeat does NOT attempt to solve challenges (non-interactive mode)"
 
-    if node /app/scripts/check-verification-challenges.js; then
-        echo "   ✅ No pending challenges (or all passed)"
-    else
-        echo "   ❌ Challenge check failed or challenges not passed"
-        NEEDS_HUMAN=true
-        HUMAN_REASONS+=("Verification challenge issues - check logs immediately")
-        ACTIVITIES+=("Verification challenge handling attempted")
+    CHALLENGE_ID=$(echo "$ACCOUNT_STATUS" | jq -r '.verification_challenge.id // "unknown"')
+    CHALLENGE_TYPE=$(echo "$ACCOUNT_STATUS" | jq -r '.verification_challenge.type // "unknown"')
+
+    echo "   Challenge ID: $CHALLENGE_ID"
+    echo "   Challenge Type: $CHALLENGE_TYPE"
+    echo "   Action: Challenges are handled by egress proxy automatically"
+
+    # Alert human but don't block heartbeat
+    if [ -n "${NTFY_URL:-}" ]; then
+        curl -X POST "${NTFY_URL}/moltbook-alerts" \
+            -H "Title: Verification Challenge Detected" \
+            -H "Priority: high" \
+            -H "Tags: info,verification" \
+            -d "Challenge detected (ID: $CHALLENGE_ID). Egress proxy will handle automatically." 2>/dev/null || true
     fi
+
+    ACTIVITIES+=("Verification challenge detected - proxy handling")
 else
-    # Fallback to bash handler
-    if [ -f "/app/scripts/handle-verification-challenge.sh" ]; then
-        CHALLENGES=$(/app/scripts/handle-verification-challenge.sh check 2>&1 || echo '{"challenges":[]}')
-        CHALLENGE_COUNT=$(echo "$CHALLENGES" | jq -r '.challenges | length' 2>/dev/null || echo "0")
-
-        if [ "$CHALLENGE_COUNT" -gt 0 ]; then
-            echo "   ⚠️  Found $CHALLENGE_COUNT pending challenge(s)!"
-            echo "   🔧 Attempting to solve..."
-
-            if /app/scripts/handle-verification-challenge.sh handle-all; then
-                echo "   ✅ All challenges solved successfully"
-                ACTIVITIES+=("Solved $CHALLENGE_COUNT verification challenge(s)")
-            else
-                echo "   ❌ Failed to solve challenges"
-                NEEDS_HUMAN=true
-                HUMAN_REASONS+=("Failed verification challenges - bot may be suspended soon")
-            fi
-        else
-            echo "   ✅ No pending challenges"
-        fi
-    else
-        echo "   ⚠️  No verification handler found"
-    fi
+    echo "   ✅ No account issues detected"
 fi
 
 # ═══════════════════════════════════════════════════════
@@ -399,6 +392,63 @@ fi
 if [ ${#ACTIVITIES[@]} -eq 0 ] && [ "$NEEDS_HUMAN" = false ]; then
     echo ""
     echo "✅ All quiet on Moltbook! Nothing requiring action."
+fi
+
+# ═══════════════════════════════════════════════════════
+# 7. SECURITY ADVISORY CHECK (ClawSec)
+# ═══════════════════════════════════════════════════════
+echo ""
+echo "🔒 Checking ClawSec security advisories..."
+
+# Only check once per day
+LAST_CLAWSEC_CHECK=0
+if [ -f "$CLAWSEC_STATE_FILE" ]; then
+    LAST_CLAWSEC_CHECK=$(jq -r '.last_check // "0"' "$CLAWSEC_STATE_FILE" | date -d - +%s 2>/dev/null || echo "0")
+fi
+
+TIME_SINCE_CLAWSEC=$((CURRENT_TIME - LAST_CLAWSEC_CHECK))
+
+if [ "$TIME_SINCE_CLAWSEC" -ge "$CLAWSEC_CHECK_INTERVAL" ] || [ "$LAST_CLAWSEC_CHECK" -eq 0 ]; then
+    CLAWSEC_SCRIPT="$(dirname "$0")/clawsec-feed-check.sh"
+    if [ -f "$CLAWSEC_SCRIPT" ]; then
+        if $CLAWSEC_SCRIPT; then
+            echo "   ✅ Advisory check complete"
+            ACTIVITIES+=("Ran security advisory check")
+        else
+            echo "   ⚠️  Advisory check failed (non-critical)"
+        fi
+    else
+        echo "   ⏭️  ClawSec checker not found (skipping)"
+    fi
+else
+    HOURS_REMAINING=$(( (CLAWSEC_CHECK_INTERVAL - TIME_SINCE_CLAWSEC) / 3600 ))
+    echo "   ⏭️  Next advisory check in ~$HOURS_REMAINING hours"
+fi
+
+echo ""
+echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+echo "8️⃣  Processing Pending Actions..."
+echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+
+# Check for pending actions (follows, etc.) to process
+PENDING_ACTIONS_FILE="${STATE_DIR}/pending-actions.json"
+if [ -f "$PENDING_ACTIONS_FILE" ]; then
+    PENDING_COUNT=$(jq -r '[.pending_follows // []] | add | length // 0' \
+        "$PENDING_ACTIONS_FILE" 2>/dev/null || echo "0")
+
+    if [ "$PENDING_COUNT" -gt 0 ]; then
+        echo "📋 Found $PENDING_COUNT pending action(s), processing..."
+        if [ -f "${SCRIPTS_DIR}/process-pending-actions.sh" ]; then
+            bash "${SCRIPTS_DIR}/process-pending-actions.sh" || \
+                echo "   ⚠️  Some pending actions failed (will retry next cycle)"
+        else
+            echo "   ⚠️  Pending actions processor not found"
+        fi
+    else
+        echo "   ✅ No pending actions"
+    fi
+else
+    echo "   ✅ No pending actions"
 fi
 
 echo ""

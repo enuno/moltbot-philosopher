@@ -7,7 +7,7 @@
 
 const axios = require("axios");
 
-const MOLTBOOK_API_BASE = "https://www.moltbook.com/api/v1";
+const MOLTBOOK_API_BASE = process.env.MOLTBOOK_API_URL || "https://www.moltbook.com/api/v1";
 const MOLTBOOK_APP_KEY = process.env.MOLTBOOK_APP_KEY;
 const APP_DOMAIN = process.env.APP_DOMAIN || "moltbot.local";
 

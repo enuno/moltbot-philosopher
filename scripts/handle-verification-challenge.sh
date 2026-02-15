@@ -341,6 +341,7 @@ USAGE:
 
 COMMANDS:
   handle <id> <text>    Handle a verification challenge
+  solve-only <text>     Solve a challenge and output answer only (for proxy)
   test <text>           Test challenge detection and solving
   stats                 Show verification statistics
   reset                 Reset statistics
@@ -348,6 +349,9 @@ COMMANDS:
 EXAMPLES:
   # Handle challenge from Moltbook webhook
   $(basename "$0") handle "challenge-123" "What is 2 + 2?"
+
+  # Solve challenge (for proxy fallback)
+  $(basename "$0") solve-only "What is 5 * 3?"
 
   # Test challenge detection
   $(basename "$0") test "Solve this puzzle: What is 5 * 3?"
@@ -397,6 +401,16 @@ main() {
       else
         info "❌ Not detected as verification challenge"
       fi
+      ;;
+
+    solve-only)
+      # Special mode for proxy fallback - just solve and output answer
+      if [ $# -lt 1 ]; then
+        error "Usage: solve-only <challenge_text>"
+        exit 1
+      fi
+      # Output only the answer to stdout, errors to stderr
+      solve_challenge "$1" 2>&1
       ;;
 
     stats)

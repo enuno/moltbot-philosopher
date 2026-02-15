@@ -18,6 +18,10 @@ const VENICE_API_KEY = process.env.VENICE_API_KEY;
 const VENICE_API_URL = 'https://api.venice.ai/api/v1/chat/completions';
 const VENICE_PRIMARY_MODEL = 'venice/qwen3-4b'; // Fastest model for reasoning
 const VENICE_FALLBACK_MODEL = 'venice/llama-3.2-3b'; // Backup model
+const AI_GENERATOR_URL = process.env.AI_GENERATOR_URL || 'http://ai-generator:3002';
+const VERIFICATION_SERVICE_URL = process.env.VERIFICATION_SERVICE_URL || 'http://verification-service:3007';
+const SHELL_FALLBACK_SCRIPT = process.env.SHELL_FALLBACK_SCRIPT || '/app/scripts/handle-verification-challenge.sh';
+const SHELL_FALLBACK_ENABLED = process.env.SHELL_FALLBACK_ENABLED !== 'false';
 const MOLTBOOK_API_KEY = process.env.MOLTBOOK_API_KEY;
 const CHALLENGE_TIMEOUT = 10000;
 const DEBUG = process.env.DEBUG === 'true';
@@ -68,6 +72,15 @@ const stats = {
   primaryModelFailures: 0,
   fallbackModelSuccesses: 0,
   fallbackModelFailures: 0,
+  aiGeneratorSuccesses: 0,
+  aiGeneratorFailures: 0,
+  shellFallbackSuccesses: 0,
+  shellFallbackFailures: 0,
+  // Delegation stats
+  delegationAttempts: 0,
+  delegationSuccesses: 0,
+  delegationFailures: 0,
+  // Performance metrics
   solverLatencyP50: 0,
   solverLatencyP99: 0,
   cacheHitRate: 0,
@@ -215,7 +228,7 @@ async function solveChallenge(puzzleText) {
   });
   stats.fallbackSolverUsed++;
   answer = await solveWithVenice(puzzleText, VENICE_FALLBACK_MODEL, false);
-  
+
   if (answer) {
     const duration = Date.now() - startTime;
     recordLatency(duration);
@@ -225,6 +238,41 @@ async function solveChallenge(puzzleText) {
   }
 
   stats.fallbackModelFailures++;
+
+  // Fallback to AI Generator (DeepSeek-v3 via local service)
+  log('warn', 'Venice models failed, trying AI Generator', {
+    aiGeneratorUrl: AI_GENERATOR_URL,
+  });
+  answer = await solveWithAIGenerator(puzzleText);
+
+  if (answer) {
+    const duration = Date.now() - startTime;
+    recordLatency(duration);
+    stats.aiGeneratorSuccesses++;
+    setCachedAnswer(puzzleText, answer); // Cache successful answer
+    return answer;
+  }
+
+  stats.aiGeneratorFailures++;
+
+  // Last resort: Shell script fallback
+  if (SHELL_FALLBACK_ENABLED) {
+    log('warn', 'All AI models failed, trying shell script fallback', {
+      script: SHELL_FALLBACK_SCRIPT,
+    });
+    answer = await solveWithShellScript(puzzleText);
+
+    if (answer) {
+      const duration = Date.now() - startTime;
+      recordLatency(duration);
+      stats.shellFallbackSuccesses++;
+      setCachedAnswer(puzzleText, answer); // Cache successful answer
+      return answer;
+    }
+
+    stats.shellFallbackFailures++;
+  }
+
   return null;
 }
 
@@ -292,6 +340,176 @@ async function solveWithVenice(puzzleText, model, isPrimary) {
   }
 }
 
+async function solveWithAIGenerator(puzzleText) {
+  const startTime = Date.now();
+  log('info', 'Calling AI Generator (DeepSeek-v3)', { puzzlePreview: puzzleText.substring(0, 100) });
+
+  try {
+    const controller = new AbortController();
+    const timeout = setTimeout(() => controller.abort(), CHALLENGE_TIMEOUT);
+
+    // Replicate handle-verification-challenge.sh prompt
+    const prompt = `You solve short logic puzzles. Read all clues once, reason briefly internally, then output only the final answer in the requested format.
+
+Puzzle: ${puzzleText}
+
+Answer in under 60 tokens. No explanation unless explicitly requested. Output only the required answer, nothing else.`;
+
+    const response = await fetch(`${AI_GENERATOR_URL}/generate`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        customPrompt: prompt,
+        contentType: 'post',
+        model: 'deepseek-v3',
+        temperature: 0.2,
+        maxTokens: 60,
+      }),
+      signal: controller.signal,
+    });
+
+    clearTimeout(timeout);
+
+    if (!response.ok) {
+      throw new Error(`AI Generator returned ${response.status}`);
+    }
+
+    const result = await response.json();
+    let rawAnswer = result.content || result.text;
+
+    if (!rawAnswer) {
+      throw new Error('No content in AI Generator response');
+    }
+
+    // Enhanced answer extraction (matching shell script logic)
+    let answer = extractAnswer(rawAnswer, puzzleText);
+
+    const duration = Date.now() - startTime;
+
+    if (answer) {
+      log('info', 'AI Generator response received', {
+        model: 'deepseek-v3',
+        answerPreview: answer.substring(0, 50),
+        duration: `${duration}ms`,
+      });
+      return answer;
+    }
+    throw new Error('Failed to extract answer from AI Generator response');
+  } catch (error) {
+    const duration = Date.now() - startTime;
+    log('error', 'AI Generator call failed', {
+      error: error.message,
+      duration: `${duration}ms`,
+    });
+    return null;
+  }
+}
+
+async function solveWithShellScript(puzzleText) {
+  const startTime = Date.now();
+  log('info', 'Calling shell script fallback', { script: SHELL_FALLBACK_SCRIPT });
+
+  return new Promise((resolve) => {
+    const { spawn } = require('child_process');
+
+    // Check if script exists
+    if (!fs.existsSync(SHELL_FALLBACK_SCRIPT)) {
+      log('error', 'Shell fallback script not found', { path: SHELL_FALLBACK_SCRIPT });
+      resolve(null);
+      return;
+    }
+
+    const proc = spawn(SHELL_FALLBACK_SCRIPT, ['--solve-only', puzzleText], {
+      env: {
+        ...process.env,
+        AI_GENERATOR_URL,
+        MOLTBOOK_API_KEY,
+      },
+      timeout: CHALLENGE_TIMEOUT,
+    });
+
+    let stdout = '';
+    let stderr = '';
+
+    proc.stdout.on('data', (data) => {
+      stdout += data.toString();
+    });
+
+    proc.stderr.on('data', (data) => {
+      stderr += data.toString();
+    });
+
+    proc.on('close', (code) => {
+      const duration = Date.now() - startTime;
+
+      if (code === 0 && stdout.trim()) {
+        const answer = stdout.trim();
+        log('info', 'Shell script solved challenge', {
+          answerPreview: answer.substring(0, 50),
+          duration: `${duration}ms`,
+        });
+        resolve(answer);
+      } else {
+        log('error', 'Shell script failed to solve challenge', {
+          exitCode: code,
+          stderr: stderr.substring(0, 200),
+          duration: `${duration}ms`,
+        });
+        resolve(null);
+      }
+    });
+
+    proc.on('error', (error) => {
+      const duration = Date.now() - startTime;
+      log('error', 'Shell script spawn error', {
+        error: error.message,
+        duration: `${duration}ms`,
+      });
+      resolve(null);
+    });
+
+    // Timeout handler
+    setTimeout(() => {
+      if (!proc.killed) {
+        proc.kill();
+        log('error', 'Shell script timeout', { timeout: CHALLENGE_TIMEOUT });
+        resolve(null);
+      }
+    }, CHALLENGE_TIMEOUT);
+  });
+}
+
+// Enhanced answer extraction (matching handle-verification-challenge.sh logic)
+function extractAnswer(rawAnswer, puzzleText) {
+  if (!rawAnswer || typeof rawAnswer !== 'string') {
+    return null;
+  }
+
+  // Try to find labeled answer (Response:, Answer:, A:)
+  const labelMatch = rawAnswer.match(/(?:Response:|Answer:|A:)\s*(.+?)(?:\n|$)/i);
+  if (labelMatch) {
+    return labelMatch[1].trim();
+  }
+
+  // Try to find numeric answer
+  const numericMatch = rawAnswer.match(/\b\d+\b/);
+  if (numericMatch) {
+    return numericMatch[0];
+  }
+
+  // Take first sentence before any meta-commentary
+  let answer = rawAnswer.split('\n')[0].split('.')[0].trim();
+
+  // If answer is too verbose (>50 chars), extract first few words
+  if (answer.length > 50) {
+    answer = answer.split(' ').slice(0, 5).join(' ');
+  }
+
+  return answer || null;
+}
+
 async function submitAnswer(challengeId, answer) {
   log('info', 'Submitting challenge answer to Moltbook', {
     challengeId,
@@ -299,6 +517,10 @@ async function submitAnswer(challengeId, answer) {
   });
 
   try {
+    // Submit answer DIRECTLY to Moltbook (not through proxy)
+    // Rationale: This is POST-solve submission; going through proxy would cause infinite loop
+    // The proxy intercepts requests and solves challenges BEFORE forwarding
+    // Answer submission endpoint doesn't return challenges
     const res = await fetch('https://www.moltbook.com/api/v1/agents/verification/submit', {
       method: 'POST',
       headers: {
@@ -337,6 +559,118 @@ async function submitAnswer(challengeId, answer) {
   }
 }
 
+/**
+ * Detect if challenge is complex/adversarial and should be delegated
+ */
+function detectComplexChallenge(challenge) {
+  const question = challenge.puzzle || challenge.question || challenge.text || '';
+  const lowerQuestion = question.toLowerCase();
+
+  // Pattern 1: Explicit stack_challenge_v1 marker
+  if (/stack_challenge_v\d/i.test(question)) {
+    return 'stack_challenge_v1_explicit';
+  }
+
+  // Pattern 2: Tools, memory, and self-control challenge
+  if (lowerQuestion.includes('tools') && lowerQuestion.includes('memory') && lowerQuestion.includes('self-control')) {
+    return 'stack_challenge_v1_pattern';
+  }
+
+  // Pattern 3: Multi-part instructions with strict constraints
+  let complexityScore = 0;
+  if (/exactly.*two sentences/i.test(question)) complexityScore++;
+  if (/do not name.*list.*describe/i.test(question)) complexityScore++;
+  if (/store.*exact.*string/i.test(question)) complexityScore++;
+  if (/without.*tool|don't use.*tool/i.test(question)) complexityScore++;
+  if (/in your.*reply.*write/i.test(question)) complexityScore++;
+
+  if (complexityScore >= 3) {
+    return 'multi_constraint_challenge';
+  }
+
+  // Pattern 4: Upvote test style
+  if (/upvote.*post|upvote.*this/i.test(question) && /do not.*anything else/i.test(question)) {
+    return 'upvote_test';
+  }
+
+  // Not complex - handle normally
+  return null;
+}
+
+/**
+ * Delegate complex challenge to verification service
+ */
+async function delegateToVerificationService(challenge) {
+  const startTime = Date.now();
+  const id = challenge.id || challenge.challenge_id;
+  const question = challenge.puzzle || challenge.question || challenge.text;
+  const expiresAt = challenge.expiresAt || challenge.expires_at || new Date(Date.now() + 300000).toISOString();
+
+  log('info', '🔀 Delegating complex challenge to verification service', {
+    challengeId: id,
+    reason: detectComplexChallenge(challenge),
+  });
+
+  stats.delegationAttempts++;
+
+  try {
+    const controller = new AbortController();
+    const timeout = setTimeout(() => controller.abort(), 15000); // 15s timeout
+
+    const response = await fetch(`${VERIFICATION_SERVICE_URL}/solve`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        challengeId: id,
+        question: question,
+        expiresAt: expiresAt,
+      }),
+      signal: controller.signal,
+    });
+
+    clearTimeout(timeout);
+
+    if (!response.ok) {
+      throw new Error(`Verification service returned ${response.status}`);
+    }
+
+    const result = await response.json();
+    const duration = Date.now() - startTime;
+
+    if (result.success) {
+      log('info', '✅ Verification service solved complex challenge', {
+        challengeId: id,
+        scenario: result.scenario,
+        duration,
+        attempts: result.attemptCount,
+      });
+      stats.delegationSuccesses++;
+      recordLatency(duration);
+      return true;
+    } else {
+      log('warn', 'Verification service failed to solve challenge', {
+        challengeId: id,
+        error: result.error,
+        scenario: result.scenario,
+        validation: result.validation,
+      });
+      stats.delegationFailures++;
+      return false;
+    }
+  } catch (error) {
+    const duration = Date.now() - startTime;
+    log('error', 'Delegation to verification service failed', {
+      challengeId: id,
+      error: error.message,
+      duration,
+    });
+    stats.delegationFailures++;
+    return false;
+  }
+}
+
 async function handleChallenge(challenge) {
   stats.challengesDetected++;
   stats.lastChallengeTime = new Date();
@@ -356,6 +690,27 @@ async function handleChallenge(challenge) {
     timestamp: stats.lastChallengeTime.toISOString(),
   });
 
+  // Check if this is a complex/adversarial challenge
+  const complexReason = detectComplexChallenge(challenge);
+  if (complexReason) {
+    log('info', 'Complex challenge detected, delegating to verification service', {
+      challengeId: id,
+      reason: complexReason,
+    });
+
+    const delegated = await delegateToVerificationService(challenge);
+    if (delegated) {
+      stats.challengesSolved++;
+      return true;
+    }
+
+    // If delegation failed, fall back to standard solving
+    log('warn', 'Delegation failed, attempting standard solving', {
+      challengeId: id,
+    });
+  }
+
+  // Standard solving flow
   const answer = await solveChallenge(puzzle);
   if (!answer) {
     log('error', 'Challenge solving failed', { challengeId: id });
@@ -420,12 +775,59 @@ function proxyRequest(clientReq, clientRes) {
           try {
             const json = JSON.parse(responseBody.toString());
 
-            if (json.verification_challenge || json.challenge) {
-              const challenge = json.verification_challenge || json.challenge;
+            // Enhanced detection: Check multiple possible challenge locations
+            let challenge = null;
+            let detectionMethod = null;
+
+            // Method 1: Top-level verification_challenge or challenge
+            if (json.verification_challenge) {
+              challenge = json.verification_challenge;
+              detectionMethod = 'top_level_verification_challenge';
+            } else if (json.challenge) {
+              challenge = json.challenge;
+              detectionMethod = 'top_level_challenge';
+            }
+            // Method 2: Nested type field
+            else if (json.type === 'verification_challenge' && (json.id || json.challengeId)) {
+              challenge = json;
+              detectionMethod = 'nested_type_field';
+            }
+            // Method 3: Metadata flag
+            else if (json.metadata?.is_verification === true && json.question) {
+              challenge = {
+                id: json.id || json.challengeId,
+                question: json.question,
+                expiresAt: json.expiresAt || json.expires_at,
+              };
+              detectionMethod = 'metadata_is_verification';
+            }
+            // Method 4: data.verification_challenge
+            else if (json.data?.verification_challenge) {
+              challenge = json.data.verification_challenge;
+              detectionMethod = 'data_verification_challenge';
+            }
+            // Method 5: response.verification_challenge
+            else if (json.response?.verification_challenge) {
+              challenge = json.response.verification_challenge;
+              detectionMethod = 'response_verification_challenge';
+            }
+            // Method 6: Check for challenge-like fields (id + question/puzzle + expiresAt)
+            else if ((json.id || json.challengeId) && 
+                     (json.question || json.puzzle || json.text) && 
+                     (json.expiresAt || json.expires_at)) {
+              challenge = {
+                id: json.id || json.challengeId,
+                question: json.question || json.puzzle || json.text,
+                expiresAt: json.expiresAt || json.expires_at,
+              };
+              detectionMethod = 'field_pattern_match';
+            }
+
+            if (challenge) {
               log('warn', '🔐 Verification challenge intercepted in response', {
                 path: reqUrl.pathname,
                 method: clientReq.method,
-                challengeType: json.verification_challenge ? 'verification_challenge' : 'challenge',
+                detectionMethod,
               });
 
               const solved = await handleChallenge(challenge);
@@ -566,8 +968,96 @@ const server = http.createServer((req, res) => {
       JSON.stringify({
         size: challengeCache.size,
         maxSize: CACHE_MAX_SIZE,
+        ttl: `${CACHE_TTL / 1000}s`,
         hitRate: stats.cacheHitRate,
         entries: entries.slice(0, 20), // Top 20 entries
+      })
+    );
+    return;
+  }
+
+  // Solver pipeline stats endpoint
+  if (req.url === '/solver-stats' || req.url === '/_solver-stats') {
+    const totalAttempts =
+      stats.primaryModelSuccesses + stats.primaryModelFailures +
+      stats.fallbackModelSuccesses + stats.fallbackModelFailures +
+      stats.aiGeneratorSuccesses + stats.aiGeneratorFailures +
+      stats.shellFallbackSuccesses + stats.shellFallbackFailures +
+      stats.delegationAttempts;
+
+    const delegationSuccessRate = stats.delegationAttempts > 0
+      ? ((stats.delegationSuccesses / stats.delegationAttempts) * 100).toFixed(1) + '%'
+      : 'N/A';
+
+    res.writeHead(200, { 'Content-Type': 'application/json' });
+    res.end(
+      JSON.stringify({
+        pipeline: [
+          {
+            stage: 0,
+            name: 'Complex Challenge Delegation',
+            service: 'verification-service',
+            enabled: true,
+            attempts: stats.delegationAttempts,
+            successes: stats.delegationSuccesses,
+            failures: stats.delegationFailures,
+            successRate: delegationSuccessRate,
+            note: 'Handles adversarial/multi-constraint challenges',
+          },
+          {
+            stage: 1,
+            name: 'Venice Primary',
+            model: VENICE_PRIMARY_MODEL,
+            successes: stats.primaryModelSuccesses,
+            failures: stats.primaryModelFailures,
+            successRate: totalAttempts > 0
+              ? ((stats.primaryModelSuccesses / totalAttempts) * 100).toFixed(1) + '%'
+              : 'N/A',
+          },
+          {
+            stage: 2,
+            name: 'Venice Fallback',
+            model: VENICE_FALLBACK_MODEL,
+            successes: stats.fallbackModelSuccesses,
+            failures: stats.fallbackModelFailures,
+            successRate: totalAttempts > 0
+              ? ((stats.fallbackModelSuccesses / totalAttempts) * 100).toFixed(1) + '%'
+              : 'N/A',
+          },
+          {
+            stage: 3,
+            name: 'AI Generator',
+            model: 'deepseek-v3',
+            enabled: true,
+            successes: stats.aiGeneratorSuccesses,
+            failures: stats.aiGeneratorFailures,
+            successRate: totalAttempts > 0
+              ? ((stats.aiGeneratorSuccesses / totalAttempts) * 100).toFixed(1) + '%'
+              : 'N/A',
+          },
+          {
+            stage: 4,
+            name: 'Shell Script Fallback',
+            script: SHELL_FALLBACK_SCRIPT,
+            enabled: SHELL_FALLBACK_ENABLED,
+            successes: stats.shellFallbackSuccesses,
+            failures: stats.shellFallbackFailures,
+            successRate: totalAttempts > 0
+              ? ((stats.shellFallbackSuccesses / totalAttempts) * 100).toFixed(1) + '%'
+              : 'N/A',
+          },
+        ],
+        summary: {
+          totalAttempts,
+          totalSuccesses: stats.challengesSolved,
+          totalFailures: stats.challengesFailed,
+          overallSuccessRate: (stats.challengesSolved + stats.challengesFailed) > 0
+            ? ((stats.challengesSolved / (stats.challengesSolved + stats.challengesFailed)) * 100).toFixed(1) + '%'
+            : 'N/A',
+          delegationRate: stats.challengesDetected > 0
+            ? ((stats.delegationAttempts / stats.challengesDetected) * 100).toFixed(1) + '%'
+            : 'N/A',
+        },
       })
     );
     return;
