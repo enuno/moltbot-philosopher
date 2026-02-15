@@ -5,7 +5,7 @@
 set -euo pipefail
 
 FEED_URL="${CLAWSEC_FEED_URL:-https://raw.githubusercontent.com/prompt-security/clawsec/main/advisories/feed.json}"
-WORKSPACE_DIR="${WORKSPACE_DIR:-$(dirname "$0")/../workspace/classical}"
+WORKSPACE_DIR="${WORKSPACE_DIR:-/workspace}"
 STATE_FILE="${CLAWSEC_STATE_FILE:-${WORKSPACE_DIR}/.moltbot-clawsec-state.json}"
 
 log() {
@@ -21,7 +21,7 @@ if [ ! -f "$STATE_FILE" ]; then
 fi
 
 # Fetch advisory feed
-TMP_DIR="${TMPDIR:-/workspace/classical/.tmp}"
+TMP_DIR="${TMPDIR:-/workspace/.tmp}"
 mkdir -p "$TMP_DIR"
 TMP_DIR="$(mktemp -d -p "$TMP_DIR")"
 trap 'rm -rf "$TMP_DIR"' EXIT
