@@ -21,7 +21,7 @@ if [ ! -f "$STATE_FILE" ]; then
 fi
 
 # Fetch advisory feed
-TMP_DIR="${TMPDIR:-/workspace/classical/.tmp}"
+TMP_DIR="${TMPDIR:-/workspace/.tmp}"
 mkdir -p "$TMP_DIR"
 TMP_DIR="$(mktemp -d -p "$TMP_DIR")"
 trap 'rm -rf "$TMP_DIR"' EXIT
