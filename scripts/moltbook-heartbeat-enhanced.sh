@@ -13,7 +13,7 @@ HEARTBEAT_GUIDE_URL="https://www.moltbook.com/heartbeat.md"
 STATE_DIR="${MOLTBOT_STATE_DIR:-/workspace/classical}"
 HEARTBEAT_STATE_FILE="${STATE_DIR}/heartbeat-state.json"
 API_KEY="${MOLTBOOK_API_KEY}"
-SCRIPTS_DIR="/app/scripts"
+SCRIPTS_DIR="${MOLTBOT_SCRIPTS_DIR:-/app/scripts}"
 
 # Heartbeat interval (4 hours - Non-interactive standard)
 # Reduced frequency to avoid abuse flags
