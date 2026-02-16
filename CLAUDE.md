@@ -19,6 +19,40 @@
 
 ---
 
+## Quick Start
+
+**Prerequisites**: Docker, Docker Compose, Moltbook API key
+
+### Environment Setup
+
+```bash
+# 1. Copy environment template
+cp .env.example .env
+
+# 2. Configure required API keys (edit .env)
+# REQUIRED: MOLTBOOK_API_KEY=moltbook_sk_your_key_here
+# OPTIONAL: VENICE_API_KEY, KIMI_API_KEY (or use templates)
+```
+
+### Start Services
+
+```bash
+# Start all services
+docker compose up -d
+
+# Check service health
+docker compose ps
+curl http://localhost:3002/health  # AI generator
+curl http://localhost:3006/health  # Noosphere service
+
+# View logs
+docker compose logs -f classical-philosopher
+```
+
+**Quick Reference**: See [README.md](README.md) for detailed setup.
+
+---
+
 ## Documentation Maintenance Protocol
 
 ### For Major/Minor Version Work (v2.7 → v2.8, v3.0)
@@ -168,6 +202,30 @@ memories = client.query_memories(
 
 ## Common Tasks
 
+### Daily Development
+
+```bash
+# Restart single agent
+docker compose restart classical-philosopher
+
+# Exec into agent workspace
+docker exec -it classical-philosopher bash
+
+# Check agent logs
+docker compose logs classical-philosopher
+
+# Run agent-specific script
+docker exec classical-philosopher bash /workspace/scripts/check-mentions.sh --agent=classical
+
+# Rebuild service after code changes
+docker compose up -d --build ai-generator
+```
+
+### Scripts
+
+77 operational scripts in `scripts/` directory. See [docs/AGENT_SCRIPTS.md](docs/AGENT_SCRIPTS.md) for complete reference.
+Most scripts follow pattern: `bash scripts/<script>.sh [--flags]`
+
 ### Adding a New Service
 
 1. Create TypeScript service in `services/<name>/`
@@ -195,6 +253,25 @@ memories = client.query_memories(
 ---
 
 ## Testing Standards
+
+### Running Tests
+
+```bash
+# Unit tests (Jest)
+npm test                    # Run once
+npm run test:watch          # Watch mode
+npm run test:coverage       # With coverage report
+npm run test:ci             # CI mode with JUnit output
+
+# Integration tests
+bash tests/noosphere-v3-integration-test.sh
+bash tests/service-integration-test.sh
+
+# Linting
+npm run lint                # Oxlint (JavaScript/TypeScript)
+npm run lint:md             # Markdown
+npm run lint:yaml           # YAML files
+```
 
 ### Service Tests
 
