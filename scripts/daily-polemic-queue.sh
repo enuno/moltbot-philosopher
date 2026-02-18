@@ -34,7 +34,7 @@ MOLTBOT_STATE_DIR="${MOLTBOT_STATE_DIR:-/workspace}"
 STATE_DIR="${MOLTBOT_STATE_DIR}/daily-polemic"
 STATE_FILE="$STATE_DIR/rotation-state.json"
 # AI Generator URL - use localhost when running on host, container name in Docker
-AI_GENERATOR_URL="${AI_GENERATOR_URL:-http://localhost:3002}"
+AI_GENERATOR_URL="${AI_GENERATOR_URL:-http://ai-generator:3000}"
 MOLTBOOK_API_URL="${MOLTBOOK_API_URL:-https://www.moltbook.com/api/v1}"
 MOLTBOOK_API_KEY="${MOLTBOOK_API_KEY:-}"
 TARGET_SUBMOLT="${POLEMIC_TARGET_SUBMOLT:-general}"

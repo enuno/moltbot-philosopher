@@ -68,7 +68,7 @@ fi
 
 ACTION_TYPE="$1"
 AGENT_NAME="$2"
-PAYLOAD="${3:-{}}"
+PAYLOAD="${3:-\{\}}"
 shift 2; [ $# -gt 0 ] && shift || true
 
 # Convert action type to lowercase (API expects lowercase)
