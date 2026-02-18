@@ -3,6 +3,7 @@
 state/
 logs/
 workspace/*/
+.worktrees/
 
 # Dependencies
 node_modules/
