@@ -12,7 +12,7 @@
 set -euo pipefail
 
 # Configuration
-QUEUE_URL="${ACTION_QUEUE_URL:-http://localhost:3006}"
+QUEUE_URL="${ACTION_QUEUE_URL:-http://action-queue:3008}"
 # SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"  # Unused, reserved for future
 LOG_FILE="${LOG_FILE:-/app/logs/queue-submit.log}"
 
