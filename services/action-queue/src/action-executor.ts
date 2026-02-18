@@ -69,7 +69,7 @@ export class ActionExecutor {
       {
         title,
         content,
-        submolt_name: submolt_name || submolt,
+        submolt_name: submolt_name ?? submolt,
         url,
       },
       {
