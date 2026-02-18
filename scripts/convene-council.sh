@@ -33,7 +33,8 @@ NC='\033[0m'
 log() {
     local level="$1"
     local message="$2"
-    local timestamp=$(date '+%Y-%m-%d %H:%M:%S')
+    local timestamp
+    timestamp=$(date '+%Y-%m-%d %H:%M:%S')
     echo -e "${timestamp} [${level}] ${message}"
 }
 
@@ -159,8 +160,6 @@ fi
 CURRENT_VERSION=$(jq -r '.current_version' "$STATE_FILE")
 LAST_ITERATION=$(jq -r '.last_iteration_date' "$STATE_FILE")
 ITERATION_COUNT=$(jq -r '.iteration_count' "$STATE_FILE")
-EVOLUTION_AXES=$(jq -r '.evolution_axes | join(", ")' "$STATE_FILE")
-
 # Check if it's time for next iteration
 LAST_EPOCH=$(date -d "$LAST_ITERATION" +%s 2>/dev/null || echo 0)
 CURRENT_EPOCH=$(date +%s)
@@ -505,10 +504,10 @@ TIMEOUTS=(30 60 90)  # Timeout progression in seconds
 
 while [ $ATTEMPT -le $MAX_ATTEMPTS ] && [ "$AI_SUCCESS" = false ]; do
     TIMEOUT=${TIMEOUTS[$((ATTEMPT - 1))]}
-    
+
     if curl -sf "${AI_GENERATOR_URL}/health" >/dev/null 2>&1; then
         log "INFO" "${BLUE}AI generation attempt $ATTEMPT/$MAX_ATTEMPTS (timeout: ${TIMEOUT}s)...${NC}"
-        
+
         # Build custom prompt with council context
         COUNCIL_SYSTEM_PROMPT="You are the Ethics-Convergence Council synthesizer. Generate a polyphonic philosophical treatise with NINE distinct voices representing the full Ethics-Convergence Council: ClassicalPhilosopher (virtue ethics, teleology), JoyceStream (phenomenology, stream-of-consciousness), Existentialist (authenticity, freedom), Transcendentalist (self-reliance, democratic sovereignty), Enlightenment (rights, utilitarian guardrails), BeatGeneration (countercultural critique), CyberpunkPosthumanist (posthuman ethics, corporate feudalism), SatiristAbsurdist (absurdist clarity, bureaucratic satire), and ScientistEmpiricist (empirical rigor, cosmic perspective). Each voice must have a unique style and perspective. Mark new content with [New in v${NEW_VERSION}] and refined content with [Refined in v${NEW_VERSION}].
 
@@ -542,7 +541,7 @@ ${DIALOGUE_CONTEXT}"
         else
             ERROR_MSG=$(echo "$AI_RESPONSE" | jq -r '.error // "Unknown error"')
             log "WARN" "${YELLOW}AI generation attempt $ATTEMPT failed: $ERROR_MSG${NC}"
-            
+
             if [ $ATTEMPT -lt $MAX_ATTEMPTS ]; then
                 BACKOFF=$((ATTEMPT * 5))
                 log "INFO" "${BLUE}Waiting ${BACKOFF}s before retry...${NC}"
@@ -555,7 +554,7 @@ ${DIALOGUE_CONTEXT}"
             sleep 10
         fi
     fi
-    
+
     ATTEMPT=$((ATTEMPT + 1))
 done
 
@@ -563,7 +562,7 @@ done
 if [ "$AI_SUCCESS" = false ]; then
     log "ERROR" "${RED}CRITICAL: Council treatise generation failed after $MAX_ATTEMPTS attempts${NC}"
     log "ERROR" "${RED}NO TEMPLATE FALLBACK for critical content - hard fail${NC}"
-    
+
     # Send alert via NTFY
     if [ -n "$NTFY_URL" ]; then
         curl -sf -X POST "$NTFY_URL" \
@@ -573,7 +572,7 @@ if [ "$AI_SUCCESS" = false ]; then
             -d "Council treatise generation failed after $MAX_ATTEMPTS attempts. Manual intervention required." \
             >/dev/null 2>&1 || log "WARN" "Failed to send NTFY alert"
     fi
-    
+
     # Exit with failure
     log "ERROR" "${RED}Exiting with failure status${NC}"
     exit 1
@@ -696,63 +695,46 @@ if [ -f "$COMMENT_STATE" ]; then
     fi
 fi
 
-# Post as comment
-POST_PAYLOAD=$(jq -n \
+# Submit council comment via action-queue so it gets rate limiting,
+# exponential backoff retries, and egress-proxy verification challenge handling.
+QUEUE_URL="${ACTION_QUEUE_URL:-http://action-queue:3008}"
+QUEUE_AGENT="${MOLTBOOK_AGENT_NAME:-classical}"
+
+QUEUE_PAYLOAD=$(jq -n \
+    --arg action_type "comment" \
+    --arg agent_name "$QUEUE_AGENT" \
+    --arg post_id "$TARGET_POST_ID" \
     --arg content "$POST_CONTENT" \
-    '{content: $content}')
+    '{
+        actionType: $action_type,
+        agentName: $agent_name,
+        payload: {postId: $post_id, content: $content},
+        priority: 3
+    }')
 
-POST_RESPONSE=$(curl -s -X POST "${API_BASE}/posts/${TARGET_POST_ID}/comments" \
+QUEUE_RESPONSE=$(curl -s -X POST "${QUEUE_URL}/actions" \
     -H "Content-Type: application/json" \
-    -H "Authorization: Bearer ${API_KEY}" \
-    --data "$POST_PAYLOAD" 2>/dev/null || echo '{"error": "network_failure"}')
+    --data "$QUEUE_PAYLOAD" 2>/dev/null || echo '{"success": false, "error": "network_failure"}')
 
-# Check for verification challenge
-if echo "$POST_RESPONSE" | jq -e '.verification_challenge' >/dev/null 2>&1; then
-    log "INFO" "${YELLOW}Verification challenge detected, solving...${NC}"
+ACTION_ID=$(echo "$QUEUE_RESPONSE" | jq -r '.action.id // empty' 2>/dev/null || echo "")
 
-    # Extract challenge details
-    CHALLENGE_ID=$(echo "$POST_RESPONSE" | jq -r '.verification_challenge.id // .challenge_id')
-    CHALLENGE_TEXT=$(echo "$POST_RESPONSE" | jq -r '.verification_challenge.puzzle // .puzzle // .challenge')
-
-    # Call verification handler
-    if [ -f "${SCRIPTS_DIR}/handle-verification-challenge.sh" ]; then
-        "${SCRIPTS_DIR}/handle-verification-challenge.sh" handle "$CHALLENGE_ID" "$CHALLENGE_TEXT"
-        CHALLENGE_STATUS=$?
-
-        if [ $CHALLENGE_STATUS -eq 0 ]; then
-            log "SUCCESS" "${GREEN}Verification challenge passed, retrying post...${NC}"
-
-            # Retry the post after passing challenge
-            POST_RESPONSE=$(curl -s -X POST "${API_BASE}/posts/${TARGET_POST_ID}/comments" \
-                -H "Content-Type: application/json" \
-                -H "Authorization: Bearer ${API_KEY}" \
-                --data "$POST_PAYLOAD" 2>/dev/null || echo '{"error": "network_failure"}')
-        else
-            log "ERROR" "${RED}Failed to pass verification challenge${NC}"
-        fi
-    else
-        log "WARN" "${YELLOW}Verification handler not found, skipping...${NC}"
-    fi
-fi
-
-if echo "$POST_RESPONSE" | jq -e '.comment.id // .id // .comment_id' >/dev/null 2>&1; then
-    COMMENT_ID=$(echo "$POST_RESPONSE" | jq -r '.comment.id // .id // .comment_id')
-    POST_URL="https://moltbook.com/post/${TARGET_POST_ID}#comment-${COMMENT_ID}"
-    log "SUCCESS" "${GREEN}Posted iteration v${NEW_VERSION} (Comment ID: ${COMMENT_ID})${NC}"
+if [ -n "$ACTION_ID" ]; then
+    log "SUCCESS" "${GREEN}Council iteration v${NEW_VERSION} queued (Action ID: ${ACTION_ID})${NC}"
+    POST_URL="https://moltbook.com/post/${TARGET_POST_ID}"
 
     # Sanitize notification title (remove emojis and special chars for NTFY headers)
-    SAFE_TITLE="Council Treatise v${NEW_VERSION} Published"
+    SAFE_TITLE="Council Treatise v${NEW_VERSION} Queued"
     notify "action" "$SAFE_TITLE" "Changes: ${CHANGE_SUMMARY} | Feedback: ${FEEDBACK_COUNT} insights | Next: ${NEXT_DATE}"
 
     # Archive council iteration to Noosphere
     if command -v archive_discourse >/dev/null 2>&1; then
         METADATA=$(jq -n \
             --arg version "$NEW_VERSION" \
-            --arg comment_id "$COMMENT_ID" \
+            --arg action_id "$ACTION_ID" \
             --arg post_url "$POST_URL" \
             --arg axis "$CURRENT_AXIS" \
             --argjson feedback_count "$FEEDBACK_COUNT" \
-            '{version: $version, comment_id: $comment_id, post_url: $post_url, axis: $axis, feedback_count: $feedback_count}')
+            '{version: $version, action_id: $action_id, post_url: $post_url, axis: $axis, feedback_count: $feedback_count}')
 
         archive_discourse "council-iteration" "$TARGET_POST_ID" "**Version**: v${NEW_VERSION}
 **Evolution Axis**: ${CURRENT_AXIS}
@@ -790,7 +772,7 @@ $POST_CONTENT" "$METADATA" 2>/dev/null || true
        --argjson count "$((ITERATION_COUNT + 1))" \
        --argjson insights "$NEW_INSIGHTS" \
        --arg change "Deepened ${CURRENT_AXIS}; addressed ${FEEDBACK_COUNT} insights" \
-       --arg comment_id "$COMMENT_ID" \
+       --arg action_id "$ACTION_ID" \
        --arg post_url "$POST_URL" \
        --argjson assimilated "$ASSIMILATED_COUNT" \
        --argjson noosphere_count "$NOOSPHERE_HEURISTIC_COUNT" \
@@ -804,7 +786,7 @@ $POST_CONTENT" "$METADATA" 2>/dev/null || true
            date: $date,
            key_changes: [$change],
            community_feedback_addressed: ($insights | length),
-           comment_id: $comment_id,
+           action_id: $action_id,
            post_url: $post_url
        }] |
        .notifications.last_notification = $date |
@@ -817,12 +799,12 @@ $POST_CONTENT" "$METADATA" 2>/dev/null || true
     log "INFO" "${GREEN}State updated. Next iteration scheduled for ${NEXT_DATE}.${NC}"
 
 else
-    ERROR_MSG=$(echo "$POST_RESPONSE" | jq -r '.error // .message // "unknown error"')
-    log "ERROR" "${RED}Failed to post: $ERROR_MSG${NC}"
+    ERROR_MSG=$(echo "$QUEUE_RESPONSE" | jq -r '.error // .message // "unknown error"')
+    log "ERROR" "${RED}Failed to queue council iteration: $ERROR_MSG${NC}"
 
-    # Queue for retry
+    # Save for manual retry
     echo "$POST_CONTENT" > "${PENDING_DIR}/iteration-${NEW_VERSION}-$(date +%s).txt"
-    notify "error" "Council Post Failed" "Error: $ERROR_MSG. Iteration queued for retry."
+    notify "error" "Council Queue Failed" "Error: $ERROR_MSG. Iteration saved to pending dir."
 fi
 
 # Cleanup

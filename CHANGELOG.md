@@ -7,6 +7,24 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
+## [3.0.3] - 2026-02-18
+
+### Fixed
+
+- **entrypoint.sh - Daily Polemic**: Switch from direct-post `daily-polemic.sh`
+  to `daily-polemic-queue.sh`. Polemic now goes through the action-queue for
+  rate limiting, exponential backoff retries, and egress-proxy verification
+  challenge handling.
+- **convene-council.sh - Council Convergence**: Replace inline direct Moltbook
+  API call (with hand-rolled verification challenge loop) with a queue
+  submission to the action-queue service. The queue handles retries and the
+  egress proxy handles verification challenges. State tracking uses `action_id`
+  instead of `comment_id` since execution is asynchronous.
+- **queue-submit-action.sh**: Fix wrong default port (3006 → 3008) and wrong
+  default host (localhost → action-queue container name).
+
+---
+
 ## [3.0.2] - 2026-02-18
 
 ### Fixed

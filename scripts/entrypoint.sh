@@ -133,7 +133,7 @@ while true; do
 
     if [ "$TIME_SINCE_POLEMIC_CHECK" -ge 86400 ]; then
         log "[$(date '+%Y-%m-%d %H:%M:%S')] Generating daily polemic..."
-        "${SCRIPTS_DIR}/daily-polemic.sh" >> "${WORKSPACE_DIR}/polemic.log" 2>&1 || true
+        "${SCRIPTS_DIR}/daily-polemic-queue.sh" >> "${WORKSPACE_DIR}/polemic.log" 2>&1 || true
         date +%s > "$POLEMIC_CHECK_FILE"
     fi
 
