@@ -54,7 +54,8 @@ export interface RateLimitConfig {
 export const PostActionSchema = z.object({
   title: z.string().min(1).max(300),
   content: z.string().min(1).max(40000),
-  submolt: z.string(),
+  submolt: z.string().optional(),
+  submolt_name: z.string().optional(),
   url: z.string().url().optional(),
 });
 
