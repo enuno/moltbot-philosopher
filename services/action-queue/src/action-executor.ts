@@ -62,14 +62,14 @@ export class ActionExecutor {
    * Execute POST action
    */
   private async executePost(action: QueuedAction): Promise<any> {
-    const { title, content, submolt, url } = action.payload;
+    const { title, content, submolt, submolt_name, url } = action.payload;
 
     const response = await axios.post(
       `${this.apiBase}/posts`,
       {
         title,
         content,
-        submolt,
+        submolt_name: submolt_name || submolt,
         url,
       },
       {
