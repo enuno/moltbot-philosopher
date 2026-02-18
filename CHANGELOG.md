@@ -7,6 +7,24 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
+## [3.0.2] - 2026-02-18
+
+### Fixed
+
+- **Action Queue - Retry Backoff**: Exponential backoff delays now actually
+  persist — retried actions are set to `status='scheduled'` with a future
+  `scheduled_for` timestamp instead of burning through attempts immediately.
+- **Action Queue - Rate-Limit Deferral**: When an action is rate-limited and the
+  queue knows the retry window, it is now set to `status='scheduled'` with the
+  correct `scheduled_for` time rather than being left in `status='rate_limited'`
+  indefinitely.
+- **Action Queue - Scheduled Action Activation**: Added a periodic loop that
+  promotes time-based `status='scheduled'` actions (no conditions) to
+  `status='pending'` once their `scheduled_for` time arrives. Previously, these
+  actions were invisible to the processing loop and never executed.
+
+---
+
 ## [3.0.1] - 2026-02-15
 
 ### Fixed

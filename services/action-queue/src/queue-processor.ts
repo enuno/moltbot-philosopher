@@ -48,7 +48,15 @@ export class QueueProcessor {
       QUEUE_CONFIG.scheduledCheckInterval * 1000,
     );
 
+    // Scheduled action activation loop - every 5 seconds (same cadence as processing)
+    // Transitions status='scheduled' → 'pending' when scheduledFor time arrives
+    setInterval(
+      () => this.activateScheduledActions(),
+      QUEUE_CONFIG.processingInterval * 1000,
+    );
+
     // Initial runs
+    this.activateScheduledActions();
     this.processQueue();
     this.checkConditionalActions();
 
@@ -90,15 +98,19 @@ export class QueueProcessor {
         console.log(
           `⏱️  Action ${action.id} rate limited: ${rateLimitCheck.reason}`,
         );
-        this.db.updateActionStatus(action.id, ActionStatus.RATE_LIMITED);
 
-        // If we know when it can be retried, schedule it
+        // If we know when it can be retried, schedule it for then
         if (rateLimitCheck.retryAfter) {
           const scheduledFor = new Date(
             Date.now() + rateLimitCheck.retryAfter * 1000,
           );
-          // Update scheduled_for in database
-          // (Would need to add this method to DatabaseManager)
+          console.log(
+            `⏰ Action ${action.id} scheduled for retry at ${scheduledFor.toISOString()}`,
+          );
+          this.db.updateActionStatus(action.id, ActionStatus.SCHEDULED);
+          this.db.updateScheduledFor(action.id, scheduledFor);
+        } else {
+          this.db.updateActionStatus(action.id, ActionStatus.RATE_LIMITED);
         }
 
         return;
@@ -136,9 +148,10 @@ export class QueueProcessor {
             `🔄 Will retry action ${action.id} in ${backoffSeconds}s (attempt ${action.attempts + 1}/${action.maxAttempts})`,
           );
 
-          // Reset to pending with scheduled time
-          this.db.updateActionStatus(action.id, ActionStatus.PENDING);
-          // Update scheduled_for (need to add method to DatabaseManager)
+          // Schedule retry: set status=scheduled and record the future time.
+          // activateScheduledActions() will flip it back to pending when ready.
+          this.db.updateActionStatus(action.id, ActionStatus.SCHEDULED);
+          this.db.updateScheduledFor(action.id, scheduledFor);
         } else {
           // Permanent failure
           console.log(`💀 Action ${action.id} permanently failed`);
@@ -152,6 +165,23 @@ export class QueueProcessor {
       }
     } catch (error: any) {
       console.error('Error in queue processor:', error);
+    }
+  }
+
+  /**
+   * Activate time-based scheduled actions whose scheduled_for time has arrived.
+   * This handles both retry backoff and rate-limit deferrals (no conditions).
+   */
+  private activateScheduledActions(): void {
+    if (this.isShuttingDown) return;
+
+    try {
+      const activated = this.db.activateReadyScheduledActions();
+      if (activated > 0) {
+        console.log(`⏰ Activated ${activated} scheduled action(s)`);
+      }
+    } catch (error: any) {
+      console.error('Error activating scheduled actions:', error);
     }
   }
 

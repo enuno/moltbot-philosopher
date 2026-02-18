@@ -286,6 +286,37 @@ export class DatabaseManager {
   }
 
   /**
+   * Update scheduled_for time for an action (used for retry backoff and rate-limit deferral)
+   */
+  updateScheduledFor(actionId: string, scheduledFor: Date): void {
+    const stmt = this.db.prepare(`
+      UPDATE actions
+      SET scheduled_for = ?
+      WHERE id = ?
+    `);
+    stmt.run(Math.floor(scheduledFor.getTime() / 1000), actionId);
+  }
+
+  /**
+   * Activate time-based scheduled actions whose scheduled_for time has passed.
+   * Transitions status='scheduled' (no conditions) to 'pending' when ready.
+   * Returns count of activated actions.
+   */
+  activateReadyScheduledActions(): number {
+    const now = Math.floor(Date.now() / 1000);
+    const stmt = this.db.prepare(`
+      UPDATE actions
+      SET status = 'pending'
+      WHERE status = 'scheduled'
+        AND scheduled_for IS NOT NULL
+        AND scheduled_for <= ?
+        AND (conditions IS NULL OR conditions = 'null')
+    `);
+    const result = stmt.run(now);
+    return result.changes;
+  }
+
+  /**
    * Cancel action
    */
   cancelAction(actionId: string, reason?: string): void {

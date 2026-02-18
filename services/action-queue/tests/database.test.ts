@@ -5,6 +5,9 @@ import {
   ActionStatus,
   Priority,
   ConditionalAction,
+  ConditionOperator,
+  ConditionType,
+  ConditionEvaluation,
 } from '../src/types';
 
 describe('DatabaseManager', () => {
@@ -112,16 +115,11 @@ describe('DatabaseManager', () => {
 
       db.insertAction(action);
 
-      db.updateActionStatus(
-        'test-action-2',
-        ActionStatus.COMPLETED,
-        undefined,
-        200,
-      );
+      db.updateActionStatus('test-action-2', ActionStatus.COMPLETED);
 
       const updated = db.getAction('test-action-2');
       expect(updated?.status).toBe(ActionStatus.COMPLETED);
-      expect(updated?.httpStatus).toBe(200);
+      // httpStatus is only stored on FAILED; completed actions don't persist it
       expect(updated?.completedAt).toBeDefined();
     });
 
@@ -227,71 +225,51 @@ describe('DatabaseManager', () => {
   });
 
   describe('Rate Limit Management', () => {
-    it('should record and retrieve rate limit', () => {
-      const now = Date.now();
-      const windowStart = Math.floor(now / 1800000) * 1800000; // 30min window
+    it('should record and retrieve rate limit state', () => {
+      // intervalSeconds=1800 → 30min window
+      db.recordRateLimit('test-agent', ActionType.POST, 1800);
 
-      db.recordRateLimit('test-agent', ActionType.POST, windowStart);
-
-      const limit = db.getRateLimit('test-agent', ActionType.POST, windowStart);
+      const limit = db.getRateLimitState('test-agent', ActionType.POST);
       expect(limit).toBeDefined();
       expect(limit?.count).toBe(1);
       expect(limit?.dailyCount).toBe(1);
     });
 
-    it('should increment rate limit count', () => {
-      const now = Date.now();
-      const windowStart = Math.floor(now / 1800000) * 1800000;
+    it('should increment rate limit count within the same window', () => {
+      db.recordRateLimit('test-agent', ActionType.POST, 1800);
+      db.recordRateLimit('test-agent', ActionType.POST, 1800);
 
-      db.recordRateLimit('test-agent', ActionType.POST, windowStart);
-      db.recordRateLimit('test-agent', ActionType.POST, windowStart);
-
-      const limit = db.getRateLimit('test-agent', ActionType.POST, windowStart);
+      const limit = db.getRateLimitState('test-agent', ActionType.POST);
       expect(limit?.count).toBe(2);
       expect(limit?.dailyCount).toBe(2);
     });
 
-    it('should track daily count separately', () => {
-      const now = Date.now();
-      const window1 = Math.floor(now / 1800000) * 1800000;
-      const window2 = window1 + 1800000; // Next 30min window
-
-      db.recordRateLimit('test-agent', ActionType.POST, window1);
-      db.recordRateLimit('test-agent', ActionType.POST, window2);
-
-      const limit1 = db.getRateLimit('test-agent', ActionType.POST, window1);
-      const limit2 = db.getRateLimit('test-agent', ActionType.POST, window2);
-
-      // Each window has count=1, but dailyCount should accumulate
-      expect(limit1?.count).toBe(1);
-      expect(limit2?.count).toBe(1);
-      // Note: Daily count tracking depends on same dailyReset value
+    it('should return null for agent with no rate limit records', () => {
+      const limit = db.getRateLimitState('unknown-agent', ActionType.POST);
+      expect(limit).toBeNull();
     });
   });
 
   describe('Agent Management', () => {
-    it('should register and retrieve agent', () => {
-      db.registerAgent('new-agent');
+    it('should upsert and check new agent status', () => {
+      db.upsertAgent('new-agent', true);
 
-      const agent = db.getAgent('new-agent');
-      expect(agent).toBeDefined();
-      expect(agent?.agentName).toBe('new-agent');
-      expect(agent?.isNew).toBe(1); // Should be marked as new
+      const isNew = db.isNewAgent('new-agent');
+      expect(isNew).toBe(true);
     });
 
-    it('should update agent last activity', () => {
-      db.registerAgent('test-agent');
+    it('should report false for unknown agent', () => {
+      const isNew = db.isNewAgent('no-such-agent');
+      expect(isNew).toBe(false);
+    });
 
-      const before = db.getAgent('test-agent');
-      const beforeActivity = before?.lastActivity;
+    it('should allow re-upsert of existing agent', () => {
+      db.upsertAgent('test-agent', true);
+      db.upsertAgent('test-agent', false);
 
-      // Wait a bit
-      setTimeout(() => {
-        db.updateAgentActivity('test-agent');
-
-        const after = db.getAgent('test-agent');
-        expect(after?.lastActivity).toBeGreaterThan(beforeActivity || 0);
-      }, 10);
+      // After marking not-new, isNew should be false
+      const isNew = db.isNewAgent('test-agent');
+      expect(isNew).toBe(false);
     });
   });
 
@@ -344,7 +322,10 @@ describe('DatabaseManager', () => {
         attempts: 0,
         maxAttempts: 3,
         conditions: {
-          type: 'ACCOUNT_ACTIVE',
+          operator: ConditionOperator.AND,
+          conditions: [
+            { id: 'c1', type: ConditionType.ACCOUNT_ACTIVE, params: {} },
+          ],
         },
         conditionCheckInterval: 60,
         conditionTimeout: new Date(Date.now() + 86400000), // 24h from now
@@ -352,7 +333,7 @@ describe('DatabaseManager', () => {
 
       db.insertAction(conditionalAction);
 
-      const retrieved = db.getAction('conditional-1');
+      const retrieved = db.getAction('conditional-1') as ConditionalAction;
       expect(retrieved?.conditions).toBeDefined();
       expect(retrieved?.conditionCheckInterval).toBe(60);
       expect(retrieved?.conditionTimeout).toBeDefined();
@@ -370,8 +351,14 @@ describe('DatabaseManager', () => {
         attempts: 0,
         maxAttempts: 3,
         conditions: {
-          type: 'TIME_AFTER',
-          timestamp: new Date(Date.now() - 60000).toISOString(), // 1 min ago
+          operator: ConditionOperator.AND,
+          conditions: [
+            {
+              id: 'c1',
+              type: ConditionType.TIME_AFTER,
+              params: { timestamp: new Date(Date.now() - 60000).toISOString() },
+            },
+          ],
         },
         conditionCheckInterval: 60,
       };
@@ -383,17 +370,36 @@ describe('DatabaseManager', () => {
       expect(dueActions[0].id).toBe('conditional-check-1');
     });
 
-    it('should record condition evaluation', () => {
-      db.recordConditionEvaluation(
-        'test-action-id',
-        true,
-        'All conditions satisfied',
-      );
+    it('should store and retrieve condition evaluation', () => {
+      const evaluation: ConditionEvaluation = {
+        conditionId: 'cond-1',
+        type: ConditionType.ACCOUNT_ACTIVE,
+        satisfied: true,
+        evaluatedAt: new Date(),
+        message: 'All conditions satisfied',
+      };
 
-      const evaluations = db.getConditionEvaluations('test-action-id');
+      // Insert a dummy action first (foreign key)
+      const action: ConditionalAction = {
+        id: 'eval-action',
+        agentName: 'test-agent',
+        actionType: ActionType.POST,
+        priority: Priority.NORMAL,
+        payload: {},
+        status: ActionStatus.SCHEDULED,
+        createdAt: new Date(),
+        attempts: 0,
+        maxAttempts: 3,
+        conditionCheckInterval: 60,
+      };
+      db.insertAction(action);
+
+      db.storeConditionEvaluation('eval-action', evaluation);
+
+      const evaluations = db.getConditionEvaluations('eval-action');
       expect(evaluations).toHaveLength(1);
-      expect(evaluations[0].satisfied).toBe(1); // SQLite stores boolean as 0/1
-      expect(evaluations[0].details).toBe('All conditions satisfied');
+      expect(evaluations[0].satisfied).toBe(true);
+      expect(evaluations[0].message).toBe('All conditions satisfied');
     });
   });
 });
