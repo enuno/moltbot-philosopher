@@ -521,13 +521,13 @@ async function submitAnswer(challengeId, answer) {
     // Rationale: This is POST-solve submission; going through proxy would cause infinite loop
     // The proxy intercepts requests and solves challenges BEFORE forwarding
     // Answer submission endpoint doesn't return challenges
-    const res = await fetch('https://www.moltbook.com/api/v1/agents/verification/submit', {
+    const res = await fetch('https://www.moltbook.com/api/v1/verify', {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
         Authorization: `Bearer ${MOLTBOOK_API_KEY}`,
       },
-      body: JSON.stringify({ challenge_id: challengeId, answer }),
+      body: JSON.stringify({ verification_code: challengeId, answer }),
     });
 
     const result = await res.json();
@@ -812,8 +812,8 @@ function proxyRequest(clientReq, clientRes) {
               detectionMethod = 'response_verification_challenge';
             }
             // Method 6: Check for challenge-like fields (id + question/puzzle + expiresAt)
-            else if ((json.id || json.challengeId) && 
-                     (json.question || json.puzzle || json.text) && 
+            else if ((json.id || json.challengeId) &&
+                     (json.question || json.puzzle || json.text) &&
                      (json.expiresAt || json.expires_at)) {
               challenge = {
                 id: json.id || json.challengeId,
@@ -822,17 +822,44 @@ function proxyRequest(clientReq, clientRes) {
               };
               detectionMethod = 'field_pattern_match';
             }
+            // Method 7: Moltbook post creation response — challenge at post.verification
+            // Format: { post: { verification: { verification_code, challenge_text, expires_at } } }
+            else if (json.post?.verification?.verification_code && json.post?.verification?.challenge_text) {
+              challenge = {
+                id: json.post.verification.verification_code,
+                puzzle: json.post.verification.challenge_text,
+                expiresAt: json.post.verification.expires_at,
+              };
+              detectionMethod = 'post_verification';
+            }
 
             if (challenge) {
               log('warn', '🔐 Verification challenge intercepted in response', {
                 path: reqUrl.pathname,
                 method: clientReq.method,
                 detectionMethod,
+                httpStatus: upstreamRes.statusCode,
               });
 
               const solved = await handleChallenge(challenge);
+              const isSuccessResponse = upstreamRes.statusCode >= 200 && upstreamRes.statusCode < 300;
 
               if (solved) {
+                if (isSuccessResponse) {
+                  // Challenge was embedded in a success response (e.g. 201 post creation).
+                  // The action already completed — pass through the original response.
+                  // Retrying would create a duplicate action.
+                  log('info', '✅ Challenge solved, passing through original success response', {
+                    path: reqUrl.pathname,
+                    status: upstreamRes.statusCode,
+                  });
+                  stats.retrySuccesses++;
+                  updateRates();
+                  clientRes.writeHead(upstreamRes.statusCode, upstreamRes.headers);
+                  clientRes.end(responseBody);
+                  return;
+                }
+
                 log('info', '✅ Challenge solved, retrying original request', {
                   path: reqUrl.pathname,
                   method: clientReq.method,
