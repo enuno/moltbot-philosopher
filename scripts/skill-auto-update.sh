@@ -73,20 +73,20 @@ check_updates() {
     log "CHECK: Starting skill update check"
 
     # Get current hashes
-    local current_skill_hash=$(jq -r '.skill_md_hash // ""' "$HASHES_FILE")
-    local current_heartbeat_hash=$(jq -r '.heartbeat_md_hash // ""' "$HASHES_FILE")
-    local current_messaging_hash=$(jq -r '.messaging_md_hash // ""' "$HASHES_FILE")
-    local current_rules_hash=$(jq -r '.rules_md_hash // ""' "$HASHES_FILE")
-    local current_package_hash=$(jq -r '.package_json_hash // ""' "$HASHES_FILE")
-    local current_api_readme_hash=$(jq -r '.github_api_readme_hash // ""' "$HASHES_FILE")
+    local current_skill_hash; current_skill_hash=$(jq -r '.skill_md_hash // ""' "$HASHES_FILE")
+    local current_heartbeat_hash; current_heartbeat_hash=$(jq -r '.heartbeat_md_hash // ""' "$HASHES_FILE")
+    local current_messaging_hash; current_messaging_hash=$(jq -r '.messaging_md_hash // ""' "$HASHES_FILE")
+    local current_rules_hash; current_rules_hash=$(jq -r '.rules_md_hash // ""' "$HASHES_FILE")
+    local current_package_hash; current_package_hash=$(jq -r '.package_json_hash // ""' "$HASHES_FILE")
+    local current_api_readme_hash; current_api_readme_hash=$(jq -r '.github_api_readme_hash // ""' "$HASHES_FILE")
 
     # Get remote hashes
-    local remote_skill_hash=$(canonical_hash "$SKILL_MD_URL")
-    local remote_heartbeat_hash=$(canonical_hash "$HEARTBEAT_MD_URL")
-    local remote_messaging_hash=$(canonical_hash "$MESSAGING_MD_URL")
-    local remote_rules_hash=$(canonical_hash "$RULES_MD_URL")
-    local remote_package_hash=$(canonical_hash "$PACKAGE_JSON_URL")
-    local remote_api_readme_hash=$(canonical_hash "$GITHUB_API_README_URL")
+    local remote_skill_hash; remote_skill_hash=$(canonical_hash "$SKILL_MD_URL")
+    local remote_heartbeat_hash; remote_heartbeat_hash=$(canonical_hash "$HEARTBEAT_MD_URL")
+    local remote_messaging_hash; remote_messaging_hash=$(canonical_hash "$MESSAGING_MD_URL")
+    local remote_rules_hash; remote_rules_hash=$(canonical_hash "$RULES_MD_URL")
+    local remote_package_hash; remote_package_hash=$(canonical_hash "$PACKAGE_JSON_URL")
+    local remote_api_readme_hash; remote_api_readme_hash=$(canonical_hash "$GITHUB_API_README_URL")
 
     # Check for changes
     local skill_changed=false
@@ -129,21 +129,21 @@ check_updates() {
     if [ "$skill_changed" = true ] || [ "$heartbeat_changed" = true ] || [ "$messaging_changed" = true ] || [ "$rules_changed" = true ] || [ "$package_changed" = true ] || [ "$api_readme_changed" = true ]; then
         log "DETECT: Changes detected, downloading to staging"
 
-        # Download all files to staging (matching skill.md "Install locally" section)
-        curl -s "$SKILL_MD_URL" -o "$STAGING_DIR/SKILL.md"
-        curl -s "$HEARTBEAT_MD_URL" -o "$STAGING_DIR/HEARTBEAT.md"
-        curl -s "$MESSAGING_MD_URL" -o "$STAGING_DIR/MESSAGING.md"
-        curl -s "$RULES_MD_URL" -o "$STAGING_DIR/RULES.md"
-        curl -s "$PACKAGE_JSON_URL" -o "$STAGING_DIR/package.json"
+        # Download all files to staging with version-pinning (backup + validate + restore on failure)
+        safe_update_skill_file "$SKILL_MD_URL" "$STAGING_DIR/SKILL.md"
+        safe_update_skill_file "$HEARTBEAT_MD_URL" "$STAGING_DIR/HEARTBEAT.md"
+        safe_update_skill_file "$MESSAGING_MD_URL" "$STAGING_DIR/MESSAGING.md"
+        safe_update_skill_file "$RULES_MD_URL" "$STAGING_DIR/RULES.md"
+        safe_update_skill_file "$PACKAGE_JSON_URL" "$STAGING_DIR/package.json"
 
         # Also download API spec for reference
         if [ "$api_readme_changed" = true ]; then
-            curl -s "$GITHUB_API_README_URL" -o "$STAGING_DIR/API_README.md"
+            safe_update_skill_file "$GITHUB_API_README_URL" "$STAGING_DIR/API_README.md"
             log "DOWNLOAD: GitHub API spec downloaded to staging"
         fi
 
         # Classify the change
-        local change_type=$(classify_change)
+        local change_type; change_type=$(classify_change)
 
         case "$change_type" in
             "PATCH")
@@ -215,7 +215,7 @@ mode_1_silent_sync() {
     fi
 
     # Backup current version
-    local timestamp=$(date +"%Y%m%d%H%M%S")
+    local timestamp; timestamp=$(date +"%Y%m%d%H%M%S")
     local archive_dir="$ARCHIVE_DIR/v$timestamp"
     mkdir -p "$archive_dir"
     cp "$CURRENT_DIR"/* "$archive_dir/" 2>/dev/null || true
@@ -249,8 +249,8 @@ mode_2_staged_adoption() {
     fi
 
     # Compatibility check (simple version comparison)
-    local current_version=$(jq -r '.version' "$CURRENT_DIR/package.json" 2>/dev/null || echo "1.0.0")
-    local new_version=$(jq -r '.version' "$STAGING_DIR/package.json" 2>/dev/null || echo "1.0.0")
+    local current_version; current_version=$(jq -r '.version' "$CURRENT_DIR/package.json" 2>/dev/null || echo "1.0.0")
+    local new_version; new_version=$(jq -r '.version' "$STAGING_DIR/package.json" 2>/dev/null || echo "1.0.0")
 
     log "COMPAT: Current version $current_version, new version $new_version"
 
@@ -258,7 +258,7 @@ mode_2_staged_adoption() {
     # In a full implementation, you'd want to do more thorough testing
 
     # Backup current version
-    local timestamp=$(date +"%Y%m%d%H%M%S")
+    local timestamp; timestamp=$(date +"%Y%m%d%H%M%S")
     local archive_dir="$ARCHIVE_DIR/v$timestamp"
     mkdir -p "$archive_dir"
     cp "$CURRENT_DIR"/* "$archive_dir/" 2>/dev/null || true
@@ -308,7 +308,7 @@ mode_4_security_emergency() {
     log "MODE_4: Security Emergency initiated"
 
     # Immediate quarantine (backup current)
-    local timestamp=$(date +"%Y%m%d%H%M%S")
+    local timestamp; timestamp=$(date +"%Y%m%d%H%M%S")
     local archive_dir="$ARCHIVE_DIR/v$timestamp"
     mkdir -p "$archive_dir"
     cp "$CURRENT_DIR"/* "$archive_dir/" 2>/dev/null || true
@@ -334,10 +334,54 @@ mode_4_security_emergency() {
     log "SERVICE: Security update applied, services should be restarted"
 }
 
+# safe_update_skill_file - Version-pinning wrapper for individual skill file downloads.
+# Downloads a new version to a temp file, validates it is non-empty, then atomically
+# replaces the target. If validation fails, restores from a .backup kept alongside the file.
+#
+# Usage: safe_update_skill_file <url> <dest_path>
+# Returns: 0 on success, 1 on validation failure (dest unchanged)
+safe_update_skill_file() {
+    local url="$1"
+    local dest="$2"
+    local backup="${dest}.backup"
+    local tmp="${dest}.tmp.$$"
+
+    # Back up current version before touching anything
+    if [ -f "$dest" ]; then
+        cp "$dest" "$backup"
+        log "BACKUP: $dest -> $backup"
+    fi
+
+    # Download to temp file
+    curl -s "$url" -o "$tmp"
+
+    # Validate: file must exist and be non-empty
+    if [ ! -s "$tmp" ]; then
+        log "WARN: Downloaded file for $url is empty — restoring backup"
+        rm -f "$tmp"
+        if [ -f "$backup" ]; then
+            cp "$backup" "$dest"
+            log "RESTORE: $dest restored from backup"
+        fi
+        return 1
+    fi
+
+    # Replace atomically
+    mv "$tmp" "$dest"
+    log "UPDATE: $dest updated from $url"
+    return 0
+}
+
+# cleanup_old_backups - Removes .backup files older than 7 days across skill directories.
+cleanup_old_backups() {
+    log "CLEANUP: Removing .backup files older than 7 days"
+    find "$SKILL_MANIFEST_DIR" -name "*.backup" -mtime +7 -delete 2>/dev/null || true
+}
+
 # Rollback function
 rollback() {
-    local failed_version=$(jq -r '.current_version' "$HASHES_FILE")
-    local previous_version=$(ls -t "$ARCHIVE_DIR/" | head -2 | tail -1)  # Second most recent
+    local failed_version; failed_version=$(jq -r '.current_version' "$HASHES_FILE")
+    local previous_version; previous_version=$(ls -t "$ARCHIVE_DIR/" | head -2 | tail -1)  # Second most recent
 
     if [ -z "$previous_version" ]; then
         log "ERROR: No previous version available for rollback"
@@ -359,6 +403,9 @@ rollback() {
 
 # Main execution
 main() {
+    # Always clean up stale backups on each run
+    cleanup_old_backups
+
     if [ "${1:-}" = "--detected-change" ]; then
         check_updates
     elif [ "${1:-}" = "--scheduled-check" ]; then

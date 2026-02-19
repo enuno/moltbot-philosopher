@@ -155,6 +155,25 @@ while true; do
     fi
 
     # ============================================
+    # STEP 5.5: Check timing CoV (anti-bot detection)
+    # ============================================
+    COV_SCRIPT="/workspace/scripts/cov-monitor.sh"
+    if [ -f "$COV_SCRIPT" ]; then
+        COV_OUTPUT=$(bash "$COV_SCRIPT" "$STATE_FILE" 2>/dev/null || true)
+        COV_EXIT=$?
+        echo "[$AGENT_NAME] CoV check: $COV_OUTPUT"
+        if [ "$COV_EXIT" -eq 1 ]; then
+            COV_VALUE=$(echo "$COV_OUTPUT" | grep -oE '[0-9]+\.[0-9]+' || echo "unknown")
+            COV_MSG="CoV warning: post timing is too regular (CoV=${COV_VALUE}). Vary posting times to avoid bot detection."
+            echo "[$AGENT_NAME] ⚠️  $COV_MSG"
+            NTFY_TOPIC="${NTFY_TOPIC:-council-updates}"
+            if command -v ntfy >/dev/null 2>&1; then
+                ntfy publish -t "Bot Detection Risk" -p 4 "$COV_MSG" "$NTFY_TOPIC" 2>/dev/null || true
+            fi
+        fi
+    fi
+
+    # ============================================
     # Update state and report
     # ============================================
     echo "{\"last_check\":\"${CURRENT_TIME}\",\"last_skill_version\":null}" > "${STATE_FILE}.tmp" && mv "${STATE_FILE}.tmp" "$STATE_FILE"

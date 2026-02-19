@@ -45,6 +45,7 @@ API request frequency.
 - [ ] Write database unit tests
 
 **Files**:
+
 - `src/database.ts` - SQLite operations
 - `src/migrations/` - Schema migrations
 
@@ -59,6 +60,7 @@ API request frequency.
 - [ ] Write rate limiter unit tests
 
 **Files**:
+
 - `src/rate-limiter.ts` - Core rate limiting logic
 - `tests/rate-limiter.test.ts` - Unit tests
 
@@ -73,6 +75,7 @@ API request frequency.
 - [ ] Write processor unit tests
 
 **Files**:
+
 - `src/queue-processor.ts` - Queue processing engine
 - `tests/queue-processor.test.ts` - Unit tests
 
@@ -93,6 +96,7 @@ API request frequency.
 - [ ] Write executor unit tests
 
 **Files**:
+
 - `src/action-executor.ts` - Moltbook API client
 - `tests/action-executor.test.ts` - Unit tests
 
@@ -113,6 +117,7 @@ API request frequency.
 - [ ] Write API integration tests
 
 **Files**:
+
 - `src/index.ts` - Main server entry point
 - `src/api/routes.ts` - Route definitions
 - `src/api/handlers.ts` - Request handlers
@@ -135,6 +140,7 @@ API request frequency.
 - [ ] Test container build
 
 **Files**:
+
 - `services/action-queue/Dockerfile`
 - `.dockerignore`
 
@@ -148,6 +154,7 @@ API request frequency.
 - [ ] Test docker-compose up
 
 **Files**:
+
 - `docker-compose.yml` - Add action-queue service
 
 ### 2.3 Script Migration
@@ -185,6 +192,7 @@ Update bash scripts to use queue API instead of direct Moltbook API:
 - [ ] Test CLI commands
 
 **Files**:
+
 - `scripts/queue-cli.sh` - CLI wrapper
 - `docs/QUEUE_CLI.md` - CLI documentation
 
@@ -198,6 +206,7 @@ Update bash scripts to use queue API instead of direct Moltbook API:
 - [ ] Load testing (simulate high volume)
 
 **Files**:
+
 - `tests/integration/` - Integration test suite
 - `tests/load/` - Load testing scripts
 
@@ -218,6 +227,7 @@ Update bash scripts to use queue API instead of direct Moltbook API:
 - [ ] Write scheduler tests
 
 **Files**:
+
 - `src/scheduler.ts` - Scheduled action handler
 - `tests/scheduler.test.ts` - Unit tests
 
@@ -241,6 +251,7 @@ Update bash scripts to use queue API instead of direct Moltbook API:
 - [ ] Document conditional logic usage
 
 **Files**:
+
 - `src/types.ts` - Condition types (DONE)
 - `src/condition-evaluator.ts` - Evaluator engine (DONE)
 - `src/condition-processor.ts` - Background checker
@@ -248,6 +259,7 @@ Update bash scripts to use queue API instead of direct Moltbook API:
 - `docs/CONDITIONAL_ACTIONS.md` - Usage guide
 
 **Condition Types Implemented**:
+
 - ✅ TIME_AFTER - Execute after timestamp
 - ✅ TIME_BEFORE - Execute before deadline
 - ✅ TIME_BETWEEN - Execute in time window
@@ -261,6 +273,7 @@ Update bash scripts to use queue API instead of direct Moltbook API:
 - ✅ CUSTOM - External script execution
 
 **Example Use Cases**:
+
 - Follow user when suspension lifts AND time passed
 - Post comment only if previous post got engagement
 - Schedule posts during peak hours only
@@ -297,6 +310,7 @@ Update bash scripts to use queue API instead of direct Moltbook API:
 - [ ] Create operational runbooks
 
 **Files**:
+
 - `src/monitoring.ts` - Metrics & logging
 - `docs/RUNBOOK.md` - Operational guide
 
@@ -317,6 +331,7 @@ Update bash scripts to use queue API instead of direct Moltbook API:
 - [ ] Generate OpenAPI/Swagger spec
 
 **Files**:
+
 - `services/action-queue/README.md` - Main documentation
 - `docs/ACTION_QUEUE_API.md` - API reference
 - `docs/ACTION_QUEUE_GUIDE.md` - Usage guide
@@ -330,6 +345,7 @@ Update bash scripts to use queue API instead of direct Moltbook API:
 - [ ] Create migration checklist
 
 **Files**:
+
 - `docs/ACTION_QUEUE_MIGRATION.md` - Migration guide
 
 ### 4.3 Operational Documentation
@@ -341,6 +357,7 @@ Update bash scripts to use queue API instead of direct Moltbook API:
 - [ ] Document monitoring procedures
 
 **Files**:
+
 - `docs/ACTION_QUEUE_OPS.md` - Operations guide
 
 ### 4.4 Production Deployment
@@ -359,6 +376,7 @@ Update bash scripts to use queue API instead of direct Moltbook API:
 ## Testing Checklist
 
 ### Unit Tests
+
 - [ ] Rate limiter logic
 - [ ] Queue processor
 - [ ] Action executor
@@ -366,18 +384,21 @@ Update bash scripts to use queue API instead of direct Moltbook API:
 - [ ] Scheduler
 
 ### Integration Tests
+
 - [ ] Full queue workflow
 - [ ] Script integration
 - [ ] Docker compose stack
 - [ ] API endpoints
 
 ### Load Tests
+
 - [ ] High volume submission
 - [ ] Concurrent processing
 - [ ] Rate limit stress test
 - [ ] Database performance
 
 ### Manual Tests
+
 - [ ] Submit various action types
 - [ ] Verify rate limiting works
 - [ ] Test scheduled actions

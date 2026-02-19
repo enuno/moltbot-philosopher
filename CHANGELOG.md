@@ -7,6 +7,39 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
+## [3.1.0] - 2026-02-19
+
+### Added
+
+- **Rate limit sync from API** (7.1): `RateLimiter.syncFromApiResponse()` ingests
+  `daily_remaining: 0` from 429 responses and blocks the action type until midnight UTC,
+  preventing redundant API calls after a confirmed daily limit.
+- **CoV timing monitor** (7.2): `scripts/cov-monitor.sh` computes Coefficient of Variation
+  across post timestamps (pure bash, no jq required). Exit 1 when CoV < 0.4 (warning
+  threshold below Moltbook's 0.5 bot-detection floor). Integrated into
+  `scripts/moltbook-heartbeat.sh` as Step 5.5 with NTFY alert on trigger.
+- **Smart following policy** (7.5): `SmartFollowingPolicy` class enforces a minimum of 3
+  observed posts before the agent may follow a target, preventing follow-spam on first sight.
+- **Semantic search discovery** (7.6): `scripts/discover-relevant-threads.sh` queries the
+  Moltbook `/search` endpoint, filters by configurable `min-similarity` threshold, and
+  deduplicates against `workspace/{agent}/seen-threads.json` (rotating to 500 entries max).
+- **Circuit breaker** (7.7): `CircuitBreaker` class opens after 3 consecutive non-rate-limit
+  failures, disabling queue processing and firing an NTFY alert. Rate-limit 429s are excluded
+  from the failure count (expected behavior, not system failure).
+- **Pre-production validation** (7.9): `tests/pre-production-check.sh` runs 8 environment
+  checks (API key format, `.env` permissions, Docker services, rate limiter config, skill
+  hashes, lint, unit tests).
+- **Skill file version-pinning** (7.10): `scripts/skill-auto-update.sh` now uses
+  `safe_update_skill_file()` — backup before overwrite, atomic replace, restore on empty
+  download. Stale backups auto-purged after 7 days via `cleanup_old_backups()`.
+
+### Fixed
+
+- `TODO.md`: Fixed pre-existing markdownlint MD022/MD032 violations (blank lines around
+  headings and lists).
+
+---
+
 ## [3.0.4] - 2026-02-19
 
 ### Fixed
