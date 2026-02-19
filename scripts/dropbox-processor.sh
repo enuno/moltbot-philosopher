@@ -15,7 +15,7 @@ if [ -f "${SCRIPT_DIR}/noosphere-integration.sh" ]; then
 fi
 
 # Noosphere v3.0 Configuration
-NOOSPHERE_DIR="${WORKSPACE_DIR:-/workspace/classical}/noosphere"
+NOOSPHERE_DIR="${NOOSPHERE_DIR:-/workspace/noosphere}"
 NOOSPHERE_API_URL="${NOOSPHERE_API_URL:-http://noosphere-service:3006}"
 NOOSPHERE_PYTHON_CLIENT="/workspace/../services/noosphere/python-client"
 export PYTHONPATH="${NOOSPHERE_PYTHON_CLIENT}:${PYTHONPATH:-}"
@@ -49,7 +49,8 @@ NC='\033[0m'
 log() {
     local level="$1"
     local message="$2"
-    local timestamp=$(date '+%Y-%m-%d %H:%M:%S')
+    local timestamp
+    timestamp=$(date '+%Y-%m-%d %H:%M:%S')
     echo -e "${timestamp} [${level}] ${message}" | tee -a "$LOG_FILE"
 }
 
@@ -59,16 +60,19 @@ log() {
 
 # Check rate limiting for NTFY
 check_ntfy_rate_limit() {
-    local max_rate="${1:-$NTFY_RATE_LIMIT}"
+    local max_rate="$NTFY_RATE_LIMIT"
 
     if [ ! -f "$NTFY_RATE_FILE" ]; then
         echo "0 $(date +%s)" > "$NTFY_RATE_FILE"
         return 0
     fi
 
-    local count=$(cut -d' ' -f1 "$NTFY_RATE_FILE")
-    local window_start=$(cut -d' ' -f2 "$NTFY_RATE_FILE")
-    local now=$(date +%s)
+    local count
+    count=$(cut -d' ' -f1 "$NTFY_RATE_FILE")
+    local window_start
+    window_start=$(cut -d' ' -f2 "$NTFY_RATE_FILE")
+    local now
+    now=$(date +%s)
     local window_seconds=60
 
     # Reset if window expired
@@ -151,7 +155,7 @@ send_daily_digest() {
 # Initialize JSON database if not exists (SQLite not available in container)
 init_database() {
     if [ ! -f "$DB_FILE" ]; then
-        echo '{"submissions": [], "version": "1.0", "created": "'$(date -Iseconds)'"}' > "$DB_FILE"
+        printf '{"submissions": [], "version": "1.0", "created": "%s"}\n' "$(date -Iseconds)" > "$DB_FILE"
         log "INFO" "Initialized submissions database (JSON format)"
     fi
 }
@@ -219,7 +223,8 @@ calculate_hash() {
 # Extract YAML frontmatter from markdown
 extract_frontmatter() {
     local file="$1"
-    local content=$(cat "$file")
+    local content
+    content=$(cat "$file")
 
     # Check if file starts with ---
     if echo "$content" | head -1 | grep -q "^---"; then
@@ -231,9 +236,12 @@ extract_frontmatter() {
 # Validate submission content
 validate_submission() {
     local file="$1"
-    local filename=$(basename "$file")
-    local content=$(cat "$file")
-    local frontmatter=$(extract_frontmatter "$file")
+    local filename
+    filename=$(basename "$file")
+    local content
+    content=$(cat "$file")
+    local frontmatter
+    frontmatter=$(extract_frontmatter "$file")
 
     # Initialize scores
     local threat_score=0
@@ -244,7 +252,8 @@ validate_submission() {
     local rejection_reason=""
 
     # Check 1: Prompt Injection Patterns
-    local injection_patterns=$(jq -r '.rejection_patterns.prompt_injection[]' "$RULES_FILE")
+    local injection_patterns
+    injection_patterns=$(jq -r '.rejection_patterns.prompt_injection[]' "$RULES_FILE")
     while read -r pattern; do
         if echo "$content" | grep -qP "$pattern" 2>/dev/null; then
             threat_score=$(echo "$threat_score + 0.3" | bc -l 2>/dev/null || echo "0.3")
@@ -253,7 +262,8 @@ validate_submission() {
     done <<< "$injection_patterns"
 
     # Check 2: Commercial Spam Patterns
-    local spam_patterns=$(jq -r '.rejection_patterns.commercial_spam[]' "$RULES_FILE")
+    local spam_patterns
+    spam_patterns=$(jq -r '.rejection_patterns.commercial_spam[]' "$RULES_FILE")
     while read -r pattern; do
         if echo "$content" | grep -qP "$pattern" 2>/dev/null; then
             spam_matches=$((spam_matches + 1))
@@ -261,7 +271,8 @@ validate_submission() {
     done <<< "$spam_patterns"
 
     # Check 3: Malicious Content Patterns
-    local malicious_patterns=$(jq -r '.rejection_patterns.malicious_content[]' "$RULES_FILE")
+    local malicious_patterns
+    malicious_patterns=$(jq -r '.rejection_patterns.malicious_content[]' "$RULES_FILE")
     while read -r pattern; do
         if echo "$content" | grep -qP "$pattern" 2>/dev/null; then
             threat_score=$(echo "$threat_score + 0.5" | bc -l 2>/dev/null || echo "0.5")
@@ -270,7 +281,8 @@ validate_submission() {
     done <<< "$malicious_patterns"
 
     # Check 4: Low Quality Patterns
-    local low_quality_patterns=$(jq -r '.rejection_patterns.low_quality[]' "$RULES_FILE")
+    local low_quality_patterns
+    low_quality_patterns=$(jq -r '.rejection_patterns.low_quality[]' "$RULES_FILE")
     while read -r pattern; do
         if echo "$content" | grep -qP "$pattern" 2>/dev/null; then
             relevance_score=$(echo "$relevance_score - 0.2" | bc -l 2>/dev/null || echo "-0.2")
@@ -278,14 +290,16 @@ validate_submission() {
     done <<< "$low_quality_patterns"
 
     # Check 5: Relevance Keywords
-    local keywords=$(jq -r '.relevance_keywords[]' "$RULES_FILE")
+    local keywords
+    keywords=$(jq -r '.relevance_keywords[]' "$RULES_FILE")
     while read -r keyword; do
         if echo "$content" | grep -qi "$keyword"; then
             keyword_matches=$((keyword_matches + 1))
         fi
     done <<< "$keywords"
 
-    local min_keywords=$(jq -r '.min_keyword_matches' "$RULES_FILE")
+    local min_keywords
+    min_keywords=$(jq -r '.min_keyword_matches' "$RULES_FILE")
     if [ "$keyword_matches" -ge "$min_keywords" ]; then
         relevance_score=$(echo "$relevance_score + 0.1 * $keyword_matches" | bc -l 2>/dev/null || echo "0.3")
     fi
@@ -295,10 +309,14 @@ validate_submission() {
     relevance_score=$(echo "if ($relevance_score > 1) 1 else if ($relevance_score < 0) 0 else $relevance_score" | bc -l 2>/dev/null || echo "0.5")
 
     # Determine classification
-    local threat_threshold=$(jq -r '.thresholds.threat_rejection' "$RULES_FILE")
-    local spam_threshold=$(jq -r '.thresholds.spam_patterns_rejection' "$RULES_FILE")
-    local relevance_quarantine=$(jq -r '.thresholds.relevance_quarantine' "$RULES_FILE")
-    local relevance_approval=$(jq -r '.thresholds.relevance_approval' "$RULES_FILE")
+    local threat_threshold
+    threat_threshold=$(jq -r '.thresholds.threat_rejection' "$RULES_FILE")
+    local spam_threshold
+    spam_threshold=$(jq -r '.thresholds.spam_patterns_rejection' "$RULES_FILE")
+    local relevance_quarantine
+    relevance_quarantine=$(jq -r '.thresholds.relevance_quarantine' "$RULES_FILE")
+    local relevance_approval
+    relevance_approval=$(jq -r '.thresholds.relevance_approval' "$RULES_FILE")
 
     # Compare with bc for floating point
     if [ "$(echo "$threat_score >= $threat_threshold" | bc -l 2>/dev/null || echo 0)" -eq 1 ]; then
@@ -341,8 +359,10 @@ validate_submission() {
 route_file() {
     local file="$1"
     local classification="$2"
-    local filename=$(basename "$file")
-    local timestamp=$(date +%Y%m%d-%H%M%S)
+    local filename
+    filename=$(basename "$file")
+    local timestamp
+    timestamp=$(date +%Y%m%d-%H%M%S)
     local dest_path=""
 
     case "$classification" in
@@ -380,7 +400,8 @@ route_file() {
 
     # Archive approved submissions to Noosphere
     if [ "$classification" = "approved" ] && command -v archive_discourse >/dev/null 2>&1; then
-        local content=$(cat "$dest_path" 2>/dev/null | head -c 2000)
+        local content
+        content=$(cat "$dest_path" 2>/dev/null | head -c 2000)
         METADATA=$(jq -n \
             --arg filename "$filename" \
             --arg timestamp "$timestamp" \
@@ -402,18 +423,26 @@ update_database() {
     local dest_path="$2"
     local file_hash="$3"
 
-    local id=$(uuidgen 2>/dev/null || cat /proc/sys/kernel/random/uuid 2>/dev/null || echo "$(date +%s)-$$")
-    local filename=$(echo "$result_json" | jq -r '.filename')
-    local classification=$(echo "$result_json" | jq -r '.classification')
-    local rejection_reason=$(echo "$result_json" | jq -r '.rejection_reason // ""')
-    local threat_score=$(echo "$result_json" | jq -r '.threat_score')
-    local relevance_score=$(echo "$result_json" | jq -r '.relevance_score')
-    local frontmatter=$(echo "$result_json" | jq -r '.frontmatter')
+    local id
+    id=$(uuidgen 2>/dev/null || cat /proc/sys/kernel/random/uuid 2>/dev/null || echo "$(date +%s)-$$")
+    local filename
+    filename=$(echo "$result_json" | jq -r '.filename')
+    local classification
+    classification=$(echo "$result_json" | jq -r '.classification')
+    local rejection_reason
+    rejection_reason=$(echo "$result_json" | jq -r '.rejection_reason // ""')
+    local threat_score
+    threat_score=$(echo "$result_json" | jq -r '.threat_score')
+    local relevance_score
+    relevance_score=$(echo "$result_json" | jq -r '.relevance_score')
+    local frontmatter
+    frontmatter=$(echo "$result_json" | jq -r '.frontmatter')
 
     # Extract frontmatter fields if present
     local submitter_id="anonymous"
     local submitter_handle="@unknown"
-    local submission_date=$(date -Iseconds)
+    local submission_date
+    submission_date=$(date -Iseconds)
     local content_type="unknown"
     local target_version=""
 
@@ -461,10 +490,14 @@ update_database() {
 # Update state file with dropbox stats (using jq instead of SQLite)
 update_state() {
     if [ -f "$STATE_FILE" ] && [ -f "$DB_FILE" ]; then
-        local total=$(jq '.submissions | length' "$DB_FILE" 2>/dev/null || echo 0)
-        local approved=$(jq '[.submissions[] | select(.classification == "approved")] | length' "$DB_FILE" 2>/dev/null || echo 0)
-        local rejected=$(jq '[.submissions[] | select(.classification | startswith("rejected"))] | length' "$DB_FILE" 2>/dev/null || echo 0)
-        local quarantine=$(jq '[.submissions[] | select(.classification | startswith("quarantine"))] | length' "$DB_FILE" 2>/dev/null || echo 0)
+        local total
+        total=$(jq '.submissions | length' "$DB_FILE" 2>/dev/null || echo 0)
+        local approved
+        approved=$(jq '[.submissions[] | select(.classification == "approved")] | length' "$DB_FILE" 2>/dev/null || echo 0)
+        local rejected
+        rejected=$(jq '[.submissions[] | select(.classification | startswith("rejected"))] | length' "$DB_FILE" 2>/dev/null || echo 0)
+        local quarantine
+        quarantine=$(jq '[.submissions[] | select(.classification | startswith("quarantine"))] | length' "$DB_FILE" 2>/dev/null || echo 0)
         local approval_rate=0
         if [ "$total" -gt 0 ]; then
             approval_rate=$(echo "scale=2; $approved / $total" | bc -l 2>/dev/null || echo 0)
@@ -476,13 +509,14 @@ update_state() {
            --argjson rejected "$rejected" \
            --argjson quarantine "$quarantine" \
            --argjson approval_rate "$approval_rate" \
+           --arg last_scan "$(date -Iseconds)" \
            '.dropbox_stats = {
                total_submissions: $total,
                approved_count: $approved,
                rejected_count: $rejected,
                quarantine_count: $quarantine,
                approval_rate: $approval_rate,
-               last_scan: "'$(date -Iseconds)'"
+               last_scan: $last_scan
            }' "$STATE_FILE" > "$temp_state" && mv "$temp_state" "$STATE_FILE"
     fi
 }
@@ -516,16 +550,19 @@ main() {
     # Process all .md files in inbox
     while IFS= read -r file; do
         # Skip if file is being written (size changing)
-        local size1=$(stat -c%s "$file" 2>/dev/null || echo 0)
+        local size1
+        size1=$(stat -c%s "$file" 2>/dev/null || echo 0)
         sleep 1
-        local size2=$(stat -c%s "$file" 2>/dev/null || echo 0)
+        local size2
+        size2=$(stat -c%s "$file" 2>/dev/null || echo 0)
         if [ "$size1" != "$size2" ]; then
             log "INFO" "Skipping $file (still being written)"
             continue
         fi
 
         # Check file size (max 10MB)
-        local file_size=$(stat -c%s "$file" 2>/dev/null || echo 0)
+        local file_size
+        file_size=$(stat -c%s "$file" 2>/dev/null || echo 0)
         if [ "$file_size" -gt 10485760 ]; then
             send_alert "Oversized file detected" "$(basename "$file"): $file_size bytes"
             mv "$file" "${DROPBOX_ROOT}/.quarantine/manual-review/"
@@ -533,10 +570,12 @@ main() {
         fi
 
         # Calculate hash
-        local file_hash=$(calculate_hash "$file")
+        local file_hash
+        file_hash=$(calculate_hash "$file")
 
         # Check for duplicates (using jq instead of SQLite)
-        local existing=$(jq --arg hash "$file_hash" '[.submissions[] | select(.file_hash == $hash)] | length' "$DB_FILE" 2>/dev/null || echo 0)
+        local existing
+        existing=$(jq --arg hash "$file_hash" '[.submissions[] | select(.file_hash == $hash)] | length' "$DB_FILE" 2>/dev/null || echo 0)
         if [ "$existing" -gt 0 ]; then
             log "INFO" "Duplicate file detected: $(basename "$file")"
             rm "$file"
@@ -549,13 +588,18 @@ main() {
 
         # Validate submission
         log "INFO" "Processing: $(basename "$file")"
-        local result=$(validate_submission "$file")
-        local classification=$(echo "$result" | jq -r '.classification')
-        local threat_score=$(echo "$result" | jq -r '.threat_score // 0')
-        local relevance=$(echo "$result" | jq -r '.relevance_score // 0')
+        local result
+        result=$(validate_submission "$file")
+        local classification
+        classification=$(echo "$result" | jq -r '.classification')
+        local threat_score
+        threat_score=$(echo "$result" | jq -r '.threat_score // 0')
+        local relevance
+        relevance=$(echo "$result" | jq -r '.relevance_score // 0')
 
         # Route file
-        local dest_path=$(route_file "$file" "$classification")
+        local dest_path
+        dest_path=$(route_file "$file" "$classification")
 
         # Update database
         update_database "$result" "$dest_path" "$file_hash"
@@ -616,22 +660,30 @@ main() {
     update_state
 
     # Check for suspicious patterns (using jq instead of SQLite)
-    local one_hour_ago=$(date -d '1 hour ago' +%s 2>/dev/null || echo 0)
-    local recent_rejections=$(jq --argjson cutoff "$one_hour_ago" '[.submissions[] | select((.processed_at | fromdateiso8601) > $cutoff and (.classification | startswith("rejected")))] | length' "$DB_FILE" 2>/dev/null || echo 0)
+    local one_hour_ago
+    one_hour_ago=$(date -d '1 hour ago' +%s 2>/dev/null || echo 0)
+    local recent_rejections
+    recent_rejections=$(jq --argjson cutoff "$one_hour_ago" '[.submissions[] | select((.processed_at | fromdateiso8601) > $cutoff and (.classification | startswith("rejected")))] | length' "$DB_FILE" 2>/dev/null || echo 0)
     if [ "$recent_rejections" -gt 10 ]; then
         send_alert "High rejection rate" "$recent_rejections rejections in last hour"
         ntfy_notify "security" "urgent" "🔧 Alert - High Rejection Rate" "$recent_rejections rejections in last hour. Possible attack?"
     fi
 
     # Send daily digest if it's the right time (09:00 UTC)
-    local current_hour=$(date +%H)
-    local current_min=$(date +%M)
+    local current_hour
+    current_hour=$(date +%H)
+    local current_min
+    current_min=$(date +%M)
     if [ "$current_hour" = "09" ] && [ "$current_min" -lt 10 ]; then
         # Calculate 24h stats
-        local total_24h=$(jq '[.submissions[] | select((.processed_at | fromdateiso8601) > '$one_hour_ago')] | length' "$DB_FILE" 2>/dev/null || echo 0)
-        local approved_24h=$(jq '[.submissions[] | select(.classification == "approved" and ((.processed_at | fromdateiso8601) > '$one_hour_ago'))] | length' "$DB_FILE" 2>/dev/null || echo 0)
-        local rejected_24h=$(jq '[.submissions[] | select((.classification | startswith("rejected")) and ((.processed_at | fromdateiso8601) > '$one_hour_ago'))] | length' "$DB_FILE" 2>/dev/null || echo 0)
-        local pending_count=$((quarantined + $(jq '[.submissions[] | select(.classification | startswith("quarantine"))] | length' "$DB_FILE" 2>/dev/null || echo 0)))
+        local total_24h
+        total_24h=$(jq '[.submissions[] | select((.processed_at | fromdateiso8601) > '$one_hour_ago')] | length' "$DB_FILE" 2>/dev/null || echo 0)
+        local approved_24h
+        approved_24h=$(jq '[.submissions[] | select(.classification == "approved" and ((.processed_at | fromdateiso8601) > '$one_hour_ago'))] | length' "$DB_FILE" 2>/dev/null || echo 0)
+        local rejected_24h
+        rejected_24h=$(jq '[.submissions[] | select((.classification | startswith("rejected")) and ((.processed_at | fromdateiso8601) > '$one_hour_ago'))] | length' "$DB_FILE" 2>/dev/null || echo 0)
+        local pending_count
+        pending_count=$((quarantined + $(jq '[.submissions[] | select(.classification | startswith("quarantine"))] | length' "$DB_FILE" 2>/dev/null || echo 0)))
 
         send_daily_digest "$total_24h" "$approved_24h" "$rejected_24h" "$pending_count"
     fi
