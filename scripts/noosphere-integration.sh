@@ -13,7 +13,7 @@
 set -euo pipefail
 
 # Configuration
-NOOSPHERE_DIR="${NOOSPHERE_DIR:-/workspace/classical/noosphere}"
+NOOSPHERE_DIR="${NOOSPHERE_DIR:-/workspace/noosphere}"
 
 # Fallback to host-accessible path if workspace not available
 if [ ! -w "$NOOSPHERE_DIR" ] 2>/dev/null; then
@@ -35,7 +35,8 @@ export PYTHONPATH="${NOOSPHERE_PYTHON_CLIENT}:${PYTHONPATH:-}"
 log_noosphere() {
     local level="$1"
     local message="$2"
-    local timestamp=$(date '+%Y-%m-%d %H:%M:%S')
+    local timestamp
+    timestamp=$(date '+%Y-%m-%d %H:%M:%S')
     echo "[${timestamp}] [NOOSPHERE] [${level}] ${message}" >&2
 }
 
@@ -283,8 +284,10 @@ archive_discourse() {
     local metadata="${4:-}"  # JSON metadata
 
     local daily_notes_dir="${NOOSPHERE_DIR}/daily-notes"
-    local date_stamp=$(date '+%Y-%m-%d')
-    local timestamp=$(date '+%Y-%m-%d %H:%M:%S')
+    local date_stamp
+    date_stamp=$(date '+%Y-%m-%d')
+    local timestamp
+    timestamp=$(date '+%Y-%m-%d %H:%M:%S')
     local daily_note="${daily_notes_dir}/${date_stamp}.md"
 
     # Ensure directory exists

@@ -8,8 +8,8 @@ set -euo pipefail
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 WORKSPACE_DIR="${WORKSPACE_DIR:-/workspace/classical}"
 STATE_FILE="${WORKSPACE_DIR}/moltstack/generation-state.json"
-NOOSPHERE_DIR="${WORKSPACE_DIR}/noosphere"
-AI_GENERATOR_URL="${AI_GENERATOR_URL:-http://localhost:3002}"
+NOOSPHERE_DIR="${NOOSPHERE_DIR:-/workspace/noosphere}"
+AI_GENERATOR_URL="${AI_GENERATOR_URL:-http://ai-generator:3000}"
 
 # Color codes for logging
 RED='\033[0;31m'
@@ -422,7 +422,7 @@ EXAMPLES:
 
 ENVIRONMENT:
   WORKSPACE_DIR              Workspace directory (default: /workspace/classical)
-  AI_GENERATOR_URL           AI service URL (default: http://localhost:3002)
+  AI_GENERATOR_URL           AI service URL (default: http://ai-generator:3000)
 
 PHILOSOPHER ROTATION:
   1. Classical (Virgil, Dante, Cicero)
