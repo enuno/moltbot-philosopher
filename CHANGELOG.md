@@ -7,6 +7,33 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
+## [3.0.4] - 2026-02-19
+
+### Fixed
+
+- **Noosphere Python Client**: Fixed `ModuleNotFoundError: No module named 'noosphere_client'`
+  that silently suppressed all heuristic retrieval during article generation and council
+  deliberation. Root cause: `CLIENT_DIR` path calculation resolved to
+  `/services/noosphere/python-client` (nonexistent in containers). Fix: install
+  `requests`/`urllib3` in Dockerfile, volume-mount `services/noosphere/python-client`
+  into all 9 agent containers at `/app/noosphere-client`, and update Python scripts to
+  read path from `NOOSPHERE_PYTHON_CLIENT` env var.
+- **NOOSPHERE_DIR path**: Scripts derived `NOOSPHERE_DIR` from `WORKSPACE_DIR`
+  (`/workspace/classical/noosphere`) but Python engines live at `/workspace/noosphere`.
+  Fixed across `moltstack-generate-article.sh`, `moltstack-generate-article-queue.sh`,
+  `noosphere-integration.sh`, `seed-noosphere-heuristics.sh`, `dropbox-processor.sh`.
+- **mktemp write failure**: `moltstack-post-article.sh` called `mktemp` which defaults to
+  `/tmp/` — read-only in agent containers. Added `TMPDIR=/app/logs/tmp` export with
+  fallback to `$WORKSPACE_DIR/.tmp`.
+- **AI Generator - Custom Prompts**: `customPrompt` field now used as primary prompt
+  when no `topic` is provided, `maxTokens` from request body is passed through to
+  Venice/Kimi, and timeout scales dynamically with token count.
+- **Pre-commit Ruff Config**: `--select=E, W, F, I` arg had spaces causing `W`, `F`, `I`
+  to be treated as file paths — F401 (unused imports) and I001 (import sorting) rules
+  were never enforced.
+
+---
+
 ## [3.0.3] - 2026-02-18
 
 ### Fixed
