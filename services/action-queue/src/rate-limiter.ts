@@ -17,7 +17,32 @@ import {
  * - Different limits for new agents (first 24 hours)
  */
 export class RateLimiter {
+  // API-confirmed daily blocks: key = "agentName:actionType", value = block expiry (next midnight UTC)
+  private apiDailyBlocks: Map<string, Date> = new Map();
+
   constructor(private db: DatabaseManager) {}
+
+  /**
+   * Sync rate limit state from a 429 API response body.
+   *
+   * Moltbook 429 responses include `daily_remaining` in the body. When the API
+   * confirms 0 remaining, we block locally until next midnight UTC rather than
+   * relying solely on our local counter (which may drift).
+   */
+  syncFromApiResponse(
+    agentName: string,
+    actionType: ActionType,
+    dailyRemaining: number,
+  ): void {
+    if (dailyRemaining === 0) {
+      const tomorrow = new Date();
+      tomorrow.setUTCHours(24, 0, 0, 0);
+      this.apiDailyBlocks.set(`${agentName}:${actionType}`, tomorrow);
+      console.debug(
+        `[RateLimiter] API confirmed daily limit for ${actionType} on ${agentName} - blocked until ${tomorrow.toISOString()}`,
+      );
+    }
+  }
 
   /**
    * Check if action can proceed without violating rate limits
@@ -28,6 +53,18 @@ export class RateLimiter {
     retryAfter?: number;
   }> {
     const { agentName, actionType } = action;
+
+    // Check API-confirmed daily block (from 429 response body)
+    const blockKey = `${agentName}:${actionType}`;
+    const blockUntil = this.apiDailyBlocks.get(blockKey);
+    if (blockUntil && new Date() < blockUntil) {
+      const retryAfter = Math.ceil((blockUntil.getTime() - Date.now()) / 1000);
+      return {
+        allowed: false,
+        reason: `Daily limit reached (API confirmed 0 remaining for ${actionType})`,
+        retryAfter,
+      };
+    }
 
     // Check global API limit first
     const globalCheck = await this.checkGlobalLimit();

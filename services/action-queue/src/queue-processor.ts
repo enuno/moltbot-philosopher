@@ -2,6 +2,7 @@ import { DatabaseManager } from './database';
 import { RateLimiter } from './rate-limiter';
 import { ActionExecutor } from './action-executor';
 import { ConditionEvaluator } from './condition-evaluator';
+import { CircuitBreaker } from './circuit-breaker';
 import { ActionStatus, ConditionalAction } from './types';
 import { QUEUE_CONFIG } from './config';
 
@@ -19,6 +20,7 @@ export class QueueProcessor {
   private rateLimiter: RateLimiter;
   private executor: ActionExecutor;
   private conditionEvaluator: ConditionEvaluator;
+  private circuitBreaker: CircuitBreaker;
   private processingInterval: NodeJS.Timeout | null = null;
   private conditionCheckInterval: NodeJS.Timeout | null = null;
   private isShuttingDown: boolean = false;
@@ -28,6 +30,24 @@ export class QueueProcessor {
     this.rateLimiter = new RateLimiter(db);
     this.executor = new ActionExecutor();
     this.conditionEvaluator = new ConditionEvaluator(db.getDb());
+    this.circuitBreaker = new CircuitBreaker({
+      maxConsecutiveFailures: 3,
+      onTripped: (failures) => {
+        console.error(
+          `🚨 Circuit breaker tripped after ${failures} consecutive failures - disabling worker`,
+        );
+        // NTFY alert would be sent here if NTFY_URL is configured
+        const ntfyUrl = process.env.NTFY_URL;
+        if (ntfyUrl) {
+          // Fire-and-forget NTFY alert; import fetch is available in Node 18+
+          fetch(ntfyUrl, {
+            method: 'POST',
+            headers: { 'Content-Type': 'text/plain' },
+            body: `Action queue circuit breaker tripped after ${failures} failures. Worker disabled. Manual reset required.`,
+          }).catch(() => {/* NTFY alert failure is non-fatal */});
+        }
+      },
+    });
   }
 
   /**
@@ -86,6 +106,12 @@ export class QueueProcessor {
   private async processQueue(): Promise<void> {
     if (this.isShuttingDown) return;
 
+    // Circuit breaker: skip processing when tripped to avoid cascading failures
+    if (this.circuitBreaker.isTripped) {
+      console.debug('⚡ Circuit breaker open - skipping queue processing');
+      return;
+    }
+
     try {
       const action = this.db.getNextAction();
       if (!action) return; // No actions to process
@@ -128,9 +154,25 @@ export class QueueProcessor {
         console.log(`✅ Action ${action.id} completed successfully`);
         this.db.updateActionStatus(action.id, ActionStatus.COMPLETED);
 
-        // Record rate limit usage
+        // Record rate limit usage and reset circuit breaker
         this.rateLimiter.recordAction(action);
+        this.circuitBreaker.recordSuccess();
       } else {
+        // Sync daily limit from API 429 response body if available
+        if (result.dailyRemaining !== undefined) {
+          this.rateLimiter.syncFromApiResponse(
+            action.agentName,
+            action.actionType,
+            result.dailyRemaining,
+          );
+        }
+
+        // Rate limit failures are expected behavior - don't count against circuit breaker
+        const isRateLimit = result.httpStatus === 429;
+        if (!isRateLimit) {
+          this.circuitBreaker.recordFailure();
+        }
+
         // Failed
         console.log(`❌ Action ${action.id} failed: ${result.error}`);
 
