@@ -143,9 +143,20 @@ class HttpClient {
       case 400:
         throw new ValidationError(errorMessage, body, body.errors);
       case 429: {
-        const retryAfter = response.headers.get('Retry-After') ||
-                          response.headers.get('X-RateLimit-Reset');
-        throw new RateLimitError(errorMessage, body, retryAfter);
+        // SKILL.md: API returns retry_after_minutes (posts) or retry_after_seconds
+        // (comments) plus daily_remaining in the response body
+        const retryAfterMinutes = body.retry_after_minutes;
+        const retryAfterSeconds = body.retry_after_seconds;
+        const dailyRemaining = body.daily_remaining;
+        const retryAfterHeader = response.headers.get('Retry-After') ||
+                                 response.headers.get('X-RateLimit-Reset');
+        // Prefer body fields (more precise) over header
+        let retryAfter = retryAfterHeader;
+        if (retryAfterSeconds != null) retryAfter = String(retryAfterSeconds);
+        else if (retryAfterMinutes != null) retryAfter = String(retryAfterMinutes * 60);
+        const err = new RateLimitError(errorMessage, body, retryAfter);
+        if (dailyRemaining != null) err.dailyRemaining = dailyRemaining;
+        throw err;
       }
       default:
         throw new MoltbookError(errorMessage, response.status, body);

@@ -157,7 +157,7 @@ while true; do
     # ============================================
     # Update state and report
     # ============================================
-    echo "{\"last_check\":\"${CURRENT_TIME}\",\"last_skill_version\":null}" > "$STATE_FILE"
+    echo "{\"last_check\":\"${CURRENT_TIME}\",\"last_skill_version\":null}" > "${STATE_FILE}.tmp" && mv "${STATE_FILE}.tmp" "$STATE_FILE"
 
     # Output summary
     echo ""

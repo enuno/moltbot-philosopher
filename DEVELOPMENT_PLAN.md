@@ -1596,6 +1596,279 @@ docker logs -f philosopher
 docker-compose up -d
 ```
 
+## Phase 7: Moltbook Best Practices Compliance (Week 15-18)
+
+### Overview
+
+Align Moltbot with current Moltbook platform best practices across security, rate
+limit handling, verification defense, API patterns, and monitoring. Based on
+industry analysis of AI-to-AI manipulation risks and platform-specific constraints.
+
+**Quick fixes already applied (2026-02-19):**
+
+- [x] `scripts/moltbook-heartbeat.sh`: Atomic state file write (tmp+mv pattern)
+- [x] `config/agents/*.env` and `.env`: Permissions hardened to `600`
+- [x] `services/moltbook-sdk-adapter/HttpClient.js`: 429 handler now parses
+  `retry_after_minutes`, `retry_after_seconds`, and `daily_remaining` from body
+
+---
+
+### 7.1 Rate Limit Handling Hardening
+
+**Status**: Partial — action-queue tracks limits locally; SDK adapter now parses
+body fields; `daily_remaining` not yet surfaced to action-queue decisions.
+
+#### Tasks
+
+- [ ] Surface `dailyRemaining` from `RateLimitError` into action-queue
+  `rate-limiter.ts` so daily cap is enforced from API truth, not local counters
+- [ ] Add new-agent detection based on API-reported `agentAge` or creation
+  timestamp — new agents (<24h) face 1 post/2h and 20 comments/day caps that
+  differ from the established-agent defaults already in `config.ts`
+- [ ] Log `dailyRemaining` per action type to workspace state so heartbeat can
+  warn when approaching daily caps
+- [ ] Add integration test: simulate 429 with body containing
+  `retry_after_seconds` and assert the retry delay matches
+
+**Files**: `services/action-queue/src/rate-limiter.ts`,
+`services/action-queue/src/config.ts`,
+`services/moltbook-sdk-adapter/HttpClient.js`
+
+---
+
+### 7.2 Heartbeat CoV Monitoring
+
+**Status**: Not implemented — heartbeat fires every 4 hours fixed but CoV is not
+tracked or reported.
+
+**Background**: Moltbook distinguishes autonomous agents (CoV < 0.5 in
+inter-post intervals) from human-prompted bots. Irregular firing patterns elevate
+CoV and signal human control, potentially triggering platform scrutiny.
+
+#### Tasks
+
+- [ ] Track last 20 heartbeat timestamps in `heartbeat-state.json`
+- [ ] Compute CoV = (std_dev / mean) of inter-heartbeat intervals after each run
+- [ ] Emit CoV to workspace state; alert (NTFY) if CoV > 0.4 (warning threshold
+  below the 0.5 suspension threshold)
+- [ ] Add optional `activeHours` configuration (e.g., `"06:00-23:00"`) to
+  prevent heartbeat during off-hours and improve CoV naturally
+- [ ] Document CoV behaviour in `AGENTS.md`
+
+**Files**: `scripts/moltbook-heartbeat.sh`,
+`workspace/{agent}/heartbeat-state.json` schema
+
+---
+
+### 7.3 Two-Layer Verification Defense Specification Alignment
+
+**Status**: Both layers exist (`services/intelligent-proxy/`,
+`services/verification-service/`) but the exact spec from best practices has not
+been validated against the implementation.
+
+#### Target Spec
+
+| Layer | Service | Challenge coverage | Latency target |
+|-------|---------|-------------------|----------------|
+| Layer 1: Intelligent Proxy | `intelligent-proxy` | 90% of challenges, 8 detection methods, 4-stage cascade | <2s |
+| Layer 2: Verification Service | `verification-service` | 10% adversarial (`stack_challenge_v1`, multi-constraint) | <5s |
+
+#### Tasks
+
+- [ ] Audit `intelligent-proxy/index.js`: verify 8 distinct detection methods
+  exist; document each in service README
+- [ ] Audit `verification-service/src/`: verify 9 strict scenario checks and tool
+  leakage prevention (blocks venice, noosphere, gpt-, claude-, deepseek, kimi,
+  llama, qwen model names in challenge responses)
+- [ ] Add `/solver-stats` endpoint to proxy if missing; expose per-stage
+  solve counts and latency percentiles
+- [ ] Add `/stats` per-scenario breakdown to verification-service
+- [ ] Write integration test: send `stack_challenge_v1` pattern to proxy, assert
+  delegation to verification-service and correct answer returned
+- [ ] Document architecture in `docs/SERVICE_ARCHITECTURE.md`
+
+**Files**: `services/intelligent-proxy/index.js`,
+`services/verification-service/src/`
+
+---
+
+### 7.4 Identity-First Security (PKI Layer)
+
+**Status**: Not implemented — agent authentication uses API key only; no PKI or
+scope enforcement beyond egress proxy allowlist.
+
+**Background**: Best practice is three-layer security: identity (who can act) →
+scope (where they can act) → model (limit blast radius from manipulation).
+
+#### Tasks
+
+- [ ] Design PKI certificate scheme for inter-service agent authentication (each
+  agent container has a unique cert; model-router validates before routing)
+- [ ] Add scope allowlist per agent type to `config/agents/*.env`
+  (e.g., classical-philosopher cannot access beat-generation workspace)
+- [ ] Enforce tool allowlist in agent-orchestrator: reject tool calls not in
+  agent's allowed list
+- [ ] Audit and document existing sandbox boundaries (filesystem read-only,
+  egress proxy, resource limits) in `SECURITY.md`
+
+**Files**: `services/agent-orchestrator/`, `config/agents/*.env`, `SECURITY.md`
+
+---
+
+### 7.5 Smart Following Enforcement
+
+**Status**: Following exists in action-queue but no multi-post validation before
+following is enforced.
+
+**Background**: Best practice is only follow after seeing multiple consistently
+valuable posts — never after one post, never for politeness, never to inflate
+follower count. Spam-following risks platform suspension.
+
+#### Tasks
+
+- [ ] Add `following-evaluation.ts` to engagement-service: track per-agent post
+  history (minimum 3 seen posts) before allowing a follow action
+- [ ] Add `followingCooldown` check: if agent was followed in last 30 days, skip
+- [ ] Store evaluation history in `workspace/{agent}/following-state.json` (field
+  `evaluationHistory: [{agentId, postsSeenCount, lastSeen}]`)
+- [ ] Add unit test: assert follow is blocked when postsSeenCount < 3
+
+**Files**: `services/engagement-service/`,
+`workspace/{agent}/following-state.json`
+
+---
+
+### 7.6 Semantic Search for Content Discovery
+
+**Status**: SDK has `/search` endpoint; agent scripts do not systematically use
+it for content discovery (feed browsing is primary).
+
+**Background**: Semantic search returns `similarity` scores (0–1) allowing
+precision-targeted discovery of relevant philosophical conversations rather than
+relying on chronological feed scanning.
+
+#### Tasks
+
+- [ ] Add `discover-relevant-threads.sh` script: queries `/search` with
+  agent-specific philosophical keywords, filters `similarity > 0.7`, adds
+  results to engagement queue
+- [ ] Integrate semantic discovery into heartbeat: run once per heartbeat cycle
+  to populate the engagement queue
+- [ ] Add `type=posts` filter to search calls for targeted post discovery vs.
+  comment discovery
+- [ ] Add deduplication: track seen `postId` values in workspace state to avoid
+  re-processing
+
+**Files**: `scripts/discover-relevant-threads.sh`,
+`scripts/moltbook-heartbeat.sh`
+
+---
+
+### 7.7 Circuit Breaker for Action Workers
+
+**Status**: Proxy has a basic circuit breaker (failure rate >20%); action-queue
+workers lack per-worker consecutive failure tracking.
+
+**Background**: Best practice — auto-disable worker after 3 consecutive failures
+and fire critical alert. PostgreSQL `UPDATE ... WHERE status = 'queued'`
+compare-and-swap prevents duplicate work.
+
+#### Tasks
+
+- [ ] Add `consecutiveFailures` counter to action-queue worker state
+- [ ] Auto-disable worker + NTFY critical alert after 3 consecutive failures
+- [ ] Use `UPDATE actions SET status='processing', worker_id=$1 WHERE id=$2 AND
+  status='queued'` pattern (already partially implemented; verify atomicity)
+- [ ] Add recovery probe: re-enable worker after manual acknowledgment or 1-hour
+  timeout
+
+**Files**: `services/action-queue/src/queue-processor.ts`,
+`services/action-queue/src/database.ts`
+
+---
+
+### 7.8 MCP Protocol Integration
+
+**Status**: Not implemented.
+
+**Background**: Anthropic's API MCP connector enables remote MCP server
+connections for tool discovery without writing client code. Enables Moltbot tools
+to be discovered and invoked by other MCP-compatible agents.
+
+#### Tasks
+
+- [ ] Evaluate MCP server spec for exposing philosophy-debater tools
+  (`summarize_debate`, `generate_counterargument`, etc.) as MCP endpoints
+- [ ] Create `services/mcp-server/` wrapping existing tool handlers
+- [ ] Store MCP-specific metadata in `protocolExtensions` fields for
+  protocol-agnostic registration
+- [ ] Add MCP endpoint to `docker-compose.yml` with appropriate egress rules
+- [ ] Document integration pattern in README
+
+**Files**: `services/mcp-server/` (new), `skills/philosophy-debater/handlers/`
+
+---
+
+### 7.9 Pre-Production Validation Automation
+
+**Status**: Manual checklist only (CLAUDE.md Validation Checklist).
+
+**Background**: Best practices define a specific pre-production checklist that
+should be automated for CI validation.
+
+#### Tasks
+
+- [ ] Create `tests/pre-production-check.sh` that validates:
+  - Heartbeat succeeding (check action logs for last heartbeat timestamp)
+  - Events flowing to registry (check event table row count increased)
+  - Memories being written (query noosphere for recent writes)
+  - Zero verification challenge failures in staging (`/solver-stats`)
+  - API key file permissions are 600
+  - Docker container UIDs match workspace ownership (`1001:1001`)
+  - Rate limit tracking state files exist and are parseable
+- [ ] Add `pre-production-check.sh` to CI pipeline (GitHub Actions)
+- [ ] Gate deployment on all checks passing
+
+**Files**: `tests/pre-production-check.sh`, `.github/workflows/`
+
+---
+
+### 7.10 Skill File Version-Pinning Strategy
+
+**Status**: `skill-auto-update.sh` fetches latest skill files remotely on each
+run; no version pinning or rollback mechanism.
+
+**Background**: Best practice is to version-control skill files locally.
+Remote-fetched files can silently break agent behavior when Moltbook updates the
+format without notice.
+
+#### Tasks
+
+- [ ] Tag each locally cached skill file with its version at fetch time
+  (already partially tracked in `skill-manifest/hashes.json`)
+- [ ] Add rollback capability: keep previous version of `SKILL.md`,
+  `HEARTBEAT.md`, `RULES.md` in `skills/moltbook/.backup/`
+- [ ] On update failure (agent behaves unexpectedly after update), restore from
+  backup automatically
+- [ ] Add `--pin-version` flag to `skill-auto-update.sh` to prevent auto-update
+  for a specified duration
+
+**Files**: `scripts/skill-auto-update.sh`,
+`workspace/classical/skill-manifest/`
+
+---
+
+### 7.11 Implementation Timeline
+
+| Week | Deliverables |
+|------|--------------|
+| **Week 15** | 7.1 rate limit hardening, 7.2 CoV monitoring, 7.3 verification audit |
+| **Week 16** | 7.5 smart following enforcement, 7.6 semantic search discovery, 7.7 circuit breaker |
+| **Week 17** | 7.4 identity-first security design, 7.9 pre-production automation, 7.10 skill pinning |
+| **Week 18** | 7.8 MCP integration, integration tests, documentation updates |
+
+---
+
 ## Appendix D: Supplemental Implementation Queue (SIQ)
 
 The `DEVELOPMENT_SUPPLEMENTAL/` directory functions as a **staged rollout buffer** for capabilities not yet integrated into the core Council architecture. Files in this directory represent **pending epics** awaiting activation.
