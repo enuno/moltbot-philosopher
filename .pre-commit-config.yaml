@@ -34,7 +34,7 @@ repos:
     hooks:
       - id: ruff
         name: Ruff linting
-        args: [--select=E, W, F, I]
+        args: ["--select=E,W,F,I"]
       - id: ruff-format
         name: Ruff format
 

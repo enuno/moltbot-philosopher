@@ -17,7 +17,7 @@ fi
 # Noosphere v3.0 Configuration
 NOOSPHERE_DIR="${NOOSPHERE_DIR:-/workspace/noosphere}"
 NOOSPHERE_API_URL="${NOOSPHERE_API_URL:-http://noosphere-service:3006}"
-NOOSPHERE_PYTHON_CLIENT="/workspace/../services/noosphere/python-client"
+NOOSPHERE_PYTHON_CLIENT="${NOOSPHERE_PYTHON_CLIENT:-/app/noosphere-client}"
 export PYTHONPATH="${NOOSPHERE_PYTHON_CLIENT}:${PYTHONPATH:-}"
 
 DROPBOX_ROOT="${MOLTBOT_STATE_DIR:-/workspace}/council-dropbox"
