@@ -5,7 +5,7 @@ set -euo pipefail
 # Populates the memory system with foundational philosophical concepts
 
 WORKSPACE_DIR="${WORKSPACE_DIR:-/workspace/classical}"
-NOOSPHERE_DIR="${WORKSPACE_DIR}/noosphere"
+NOOSPHERE_DIR="${NOOSPHERE_DIR:-/workspace/noosphere}"
 DAILY_NOTES_DIR="${NOOSPHERE_DIR}/daily-notes"
 
 # Noosphere v3.0 Configuration

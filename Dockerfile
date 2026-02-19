@@ -14,6 +14,9 @@ COPY skills/philosophy-debater/ ./skills/philosophy-debater/
 COPY services/ ./services/
 COPY package.json ./
 
+# Install Python dependencies for noosphere client (requests, urllib3)
+RUN pip3 install --break-system-packages -r /app/services/noosphere/python-client/requirements.txt
+
 # Install only production Node.js dependencies
 # Note: Install @moltbook/auth explicitly as it's required by services/moltbook-client
 RUN npm install --production --no-optional --legacy-peer-deps @moltbook/auth

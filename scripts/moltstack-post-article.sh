@@ -13,11 +13,16 @@ SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 WORKSPACE_DIR="${WORKSPACE_DIR:-/workspace/classical}"
 MOLTSTACK_DIR="$WORKSPACE_DIR/moltstack"
 STATE_FILE="$MOLTSTACK_DIR/state.json"
-LOG_FILE="${LOG_FILE:-/logs/moltstack.log}"
+LOG_FILE="${LOG_FILE:-/app/logs/moltstack.log}"
 
 # Ensure log directory exists
 LOG_DIR="$(dirname "$LOG_FILE")"
-mkdir -p "$LOG_DIR" 2>/dev/null || LOG_FILE="/tmp/moltstack.log"
+mkdir -p "$LOG_DIR" 2>/dev/null || true
+
+# /tmp is read-only in container; use app logs dir for temp files
+TMPDIR="${TMPDIR:-/app/logs/tmp}"
+mkdir -p "$TMPDIR" 2>/dev/null || { TMPDIR="$WORKSPACE_DIR/.tmp"; mkdir -p "$TMPDIR" 2>/dev/null || true; }
+export TMPDIR
 
 MOLTSTACK_API_URL="${MOLTSTACK_API_URL:-https://moltstack.net/api}"
 MOLTSTACK_PUBLICATION_SLUG="${MOLTSTACK_PUBLICATION_SLUG:-noesis}"

@@ -19,18 +19,18 @@ import re
 import sys
 from datetime import datetime
 from pathlib import Path
-from typing import Any, Dict, List, Optional
+from typing import Dict, Optional
 
 # Add python-client to path
-CLIENT_DIR = Path(__file__).parent.parent.parent / "services" / "noosphere" / "python-client"
+# NOOSPHERE_PYTHON_CLIENT env var is set by docker-compose;
+# fall back to sibling python-client/ for local dev
+_client_env = os.environ.get("NOOSPHERE_PYTHON_CLIENT")
+CLIENT_DIR = (
+    Path(_client_env) if _client_env else Path(__file__).parent / "python-client"
+)
 sys.path.insert(0, str(CLIENT_DIR))
 
-try:
-    from noosphere_client import NoosphereClient, MemoryType
-except ModuleNotFoundError:
-    import site
-    site.addsitedir(str(CLIENT_DIR))
-    from noosphere_client import NoosphereClient, MemoryType
+from noosphere_client import MemoryType, NoosphereClient  # noqa: E402
 
 # Configure logging
 logging.basicConfig(
@@ -52,7 +52,7 @@ VOICE_TO_AGENT = {
     "BeatGeneration": "beat",
     "Cyberpunk": "cyberpunk",
     "Satirist": "satirist",
-    "Scientist": "scientist"
+    "Scientist": "scientist",
 }
 
 # Voice detection keywords (unchanged from v2.6)
@@ -116,24 +116,17 @@ VOICE_KEYWORDS = {
         "simulation",
         "corporate",
         "dystopian",
-        "augmented"
+        "augmented",
     ],
-    "Satirist": [
-        "absurd",
-        "ironic",
-        "paradox",
-        "catch-22",
-        "bureaucratic",
-        "satire"
-    ],
+    "Satirist": ["absurd", "ironic", "paradox", "catch-22", "bureaucratic", "satire"],
     "Scientist": [
         "empirical",
         "testable",
         "falsifiable",
         "evidence",
         "hypothesis",
-        "observation"
-    ]
+        "observation",
+    ],
 }
 
 
@@ -218,7 +211,7 @@ def consistent_with_treatise(principle: str) -> bool:
         "humans are mere tools",
         "humans are merely tools",
         "eliminate human oversight",
-        "no human intervention"
+        "no human intervention",
     ]
 
     for contradiction in hard_contradictions:
@@ -236,12 +229,10 @@ def generate_heuristic_id(submission: Dict) -> str:
 
 
 def create_memory_from_submission(
-    submission: Dict,
-    voice_alignment: Dict[str, float],
-    client: NoosphereClient
+    submission: Dict, voice_alignment: Dict[str, float], client: NoosphereClient
 ) -> Optional[Dict]:
     """Create a Noosphere v3.0 memory from submission.
-    
+
     Returns:
         Memory creation result dict or None
     """
@@ -259,53 +250,59 @@ def create_memory_from_submission(
     if not voice_alignment:
         logger.debug(f"No voice resonance for {submission['filename']}")
         return None
-    
+
     primary_voice, resonance_score = max(voice_alignment.items(), key=lambda x: x[1])
-    
+
     # Map voice to agent_id
     agent_id = VOICE_TO_AGENT.get(primary_voice)
     if not agent_id:
         logger.warning(f"Unknown voice: {primary_voice}")
         return None
-    
+
     # Determine memory type based on content characteristics
     # Default to "lesson" for community submissions (practical wisdom)
     memory_type = MemoryType.LESSON
-    
+
     # If submission explicitly mentions patterns → pattern
     if "pattern" in submission["body"].lower():
         memory_type = MemoryType.PATTERN
     # If submission is strategic recommendation → strategy
-    elif any(word in submission["body"].lower() for word in ["strategy", "approach", "method"]):
+    elif any(
+        word in submission["body"].lower()
+        for word in ["strategy", "approach", "method"]
+    ):
         memory_type = MemoryType.STRATEGY
     # If submission is philosophical insight → insight
-    elif any(word in submission["body"].lower() for word in ["insight", "understanding", "realize"]):
+    elif any(
+        word in submission["body"].lower()
+        for word in ["insight", "understanding", "realize"]
+    ):
         memory_type = MemoryType.INSIGHT
-    
+
     # Generate stable ID for source tracing
     source_trace_id = generate_heuristic_id(submission)
-    
+
     # Create tags from voice resonance and submission metadata
     tags = [
         "community-derived",
         f"source:{submission['filename']}",
-        f"voice:{primary_voice}"
+        f"voice:{primary_voice}",
     ]
-    
+
     # Add high-resonance voices as tags
     for voice, score in voice_alignment.items():
         if score >= 0.1:
             tags.append(f"resonance:{voice.lower()}")
-    
+
     # Prepare content_json with metadata
     content_json = {
         "submission_filename": submission["filename"],
         "voice_resonance": voice_alignment,
         "primary_voice": primary_voice,
         "derived_from": f"Dropbox submission: {submission['filename']}",
-        "extraction_date": datetime.now().isoformat()
+        "extraction_date": datetime.now().isoformat(),
     }
-    
+
     # Create memory via API
     try:
         memory = client.create_memory(
@@ -315,12 +312,12 @@ def create_memory_from_submission(
             content_json=content_json,
             confidence=0.50,  # Community submissions start provisional
             tags=tags,
-            source_trace_id=source_trace_id
+            source_trace_id=source_trace_id,
         )
-        
+
         logger.info(f"✓ Created memory {memory.id[:8]} for {agent_id}/{memory_type}")
         logger.info(f"  Content: {principle[:80]}...")
-        
+
         return {
             "memory_id": memory.id,
             "agent_id": agent_id,
@@ -329,9 +326,9 @@ def create_memory_from_submission(
             "voice_resonance": voice_alignment,
             "primary_voice": primary_voice,
             "confidence": memory.confidence,
-            "source": submission["filename"]
+            "source": submission["filename"],
         }
-    
+
     except Exception as e:
         logger.error(f"Failed to create memory: {e}")
         return None
@@ -341,10 +338,10 @@ def assimilate_submission(
     submission: Dict,
     client: NoosphereClient,
     dry_run: bool = False,
-    min_resonance: float = 0.05
+    min_resonance: float = 0.05,
 ) -> Optional[Dict]:
     """Assimilate submission into Noosphere v3.0.
-    
+
     Accepts submissions if:
     - Single voice has strong resonance (>= 0.1), OR
     - Multiple voices have combined resonance (>= 0.25)
@@ -356,8 +353,10 @@ def assimilate_submission(
 
     # Accept if either condition met
     if max_resonance < 0.1 and total_resonance < 0.25:
-        logger.debug(f"Insufficient resonance for {submission['filename']} "
-                    f"(max: {max_resonance:.2f}, total: {total_resonance:.2f})")
+        logger.debug(
+            f"Insufficient resonance for {submission['filename']} "
+            f"(max: {max_resonance:.2f}, total: {total_resonance:.2f})"
+        )
         return None
 
     if dry_run:
@@ -365,10 +364,10 @@ def assimilate_submission(
         principle = extract_ontological_commitment(submission["body"])
         if not principle or not consistent_with_treatise(principle):
             return None
-        
+
         primary_voice = max(voice_alignment.items(), key=lambda x: x[1])[0]
         agent_id = VOICE_TO_AGENT.get(primary_voice, "unknown")
-        
+
         return {
             "heuristic_id": generate_heuristic_id(submission),
             "formulation": principle,
@@ -405,19 +404,13 @@ def main():
         help="Minimum voice resonance threshold (default: 0.05)",
     )
     parser.add_argument(
-        "--since",
-        help="Only process submissions since this date (ISO format)"
+        "--since", help="Only process submissions since this date (ISO format)"
     )
     parser.add_argument(
-        "--api-url",
-        default="http://noosphere-service:3006",
-        help="Noosphere API URL"
+        "--api-url", default="http://noosphere-service:3006", help="Noosphere API URL"
     )
     parser.add_argument(
-        "--format",
-        choices=["json", "text"],
-        default="text",
-        help="Output format"
+        "--format", choices=["json", "text"], default="text", help="Output format"
     )
 
     args = parser.parse_args()
@@ -427,8 +420,7 @@ def main():
     if not args.dry_run:
         try:
             client = NoosphereClient(
-                api_url=args.api_url,
-                api_key=os.environ.get('MOLTBOOK_API_KEY')
+                api_url=args.api_url, api_key=os.environ.get("MOLTBOOK_API_KEY")
             )
             logger.info(f"✓ Connected to Noosphere v3.0 API at {args.api_url}")
         except Exception as e:
@@ -449,7 +441,9 @@ def main():
             logger.error(f"Could not load submission: {submission_path}")
             return 1
 
-        result = assimilate_submission(submission, client, args.dry_run, args.min_resonance)
+        result = assimilate_submission(
+            submission, client, args.dry_run, args.min_resonance
+        )
         if result:
             assimilated.append(result)
     else:
@@ -472,7 +466,7 @@ def main():
                 return 1
 
         logger.info(f"Processing {len(files)} submissions from {approved_dir}")
-        
+
         for sub_file in files:
             submission = load_submission(sub_file)
             if submission:
@@ -495,13 +489,13 @@ def main():
         print("=" * 60)
         print(f"Mode: {'DRY RUN' if args.dry_run else 'LIVE'}")
         print(f"Assimilated: {len(assimilated)} memories")
-        
+
         if assimilated:
             print("\nCreated Memories:")
             for mem in assimilated:
-                agent = mem.get('agent_id', mem.get('primary_voice'))
-                mem_type = mem.get('type', 'unknown')
-                content = mem.get('content', mem.get('formulation', ''))[:80]
+                agent = mem.get("agent_id", mem.get("primary_voice"))
+                mem_type = mem.get("type", "unknown")
+                content = mem.get("content", mem.get("formulation", ""))[:80]
                 print(f"  • {agent}/{mem_type}: {content}...")
 
     return 0 if assimilated or args.dry_run else 1

@@ -94,6 +94,7 @@ services:
       - ENABLE_CLAWHUB_INTEGRATION=true
       - MEM0_API_KEY=${MEM0_API_KEY}
       - NOOSPHERE_STATE_DIR=/workspace/classical/noosphere
+      - NOOSPHERE_PYTHON_CLIENT=/app/noosphere-client
       # Direct connection (egress proxy disabled due to HTTPS CONNECT compatibility)
       # - HTTPS_PROXY=http://egress-proxy:8080
       # - HTTP_PROXY=http://egress-proxy:8080
@@ -104,6 +105,7 @@ services:
       - ./config:/app/config:ro
       - ./skills:/app/skills:ro
       - ./scripts:/app/scripts:ro
+      - ./services/noosphere/python-client:/app/noosphere-client:ro
       - ./logs:/app/logs:rw
     networks:
       - moltbot-network
@@ -143,6 +145,7 @@ services:
       - ./config:/app/config:ro
       - ./skills:/app/skills:ro
       - ./scripts:/app/scripts:ro
+      - ./services/noosphere/python-client:/app/noosphere-client:ro
     depends_on:
       egress-proxy:
         condition: service_healthy
@@ -171,6 +174,7 @@ services:
       - ./config:/app/config:ro
       - ./skills:/app/skills:ro
       - ./scripts:/app/scripts:ro
+      - ./services/noosphere/python-client:/app/noosphere-client:ro
     depends_on:
       egress-proxy:
         condition: service_healthy
@@ -200,6 +204,7 @@ services:
       - ./config:/app/config:ro
       - ./skills:/app/skills:ro
       - ./scripts:/app/scripts:ro
+      - ./services/noosphere/python-client:/app/noosphere-client:ro
     depends_on:
       egress-proxy:
         condition: service_healthy
@@ -226,6 +231,7 @@ services:
       - ./config:/app/config:ro
       - ./skills:/app/skills:ro
       - ./scripts:/app/scripts:ro
+      - ./services/noosphere/python-client:/app/noosphere-client:ro
     depends_on:
       egress-proxy:
         condition: service_healthy
@@ -252,6 +258,7 @@ services:
       - ./config:/app/config:ro
       - ./skills:/app/skills:ro
       - ./scripts:/app/scripts:ro
+      - ./services/noosphere/python-client:/app/noosphere-client:ro
     depends_on:
       egress-proxy:
         condition: service_healthy
@@ -284,6 +291,7 @@ services:
       - ./config:/app/config:ro
       - ./skills:/app/skills:ro
       - ./scripts:/app/scripts:ro
+      - ./services/noosphere/python-client:/app/noosphere-client:ro
     depends_on:
       egress-proxy:
         condition: service_healthy
@@ -317,6 +325,7 @@ services:
       - ./config:/app/config:ro
       - ./skills:/app/skills:ro
       - ./scripts:/app/scripts:ro
+      - ./services/noosphere/python-client:/app/noosphere-client:ro
     depends_on:
       egress-proxy:
         condition: service_healthy
@@ -351,6 +360,7 @@ services:
       - ./config:/app/config:ro
       - ./skills:/app/skills:ro
       - ./scripts:/app/scripts:ro
+      - ./services/noosphere/python-client:/app/noosphere-client:ro
     depends_on:
       egress-proxy:
         condition: service_healthy

@@ -155,6 +155,7 @@ app.post("/generate", async (req, res) => {
     provider = "auto", // 'venice', 'kimi', or 'auto'
     customPrompt,
     context,
+    maxTokens,
   } = req.body;
 
   try {
@@ -188,9 +189,9 @@ app.post("/generate", async (req, res) => {
     // Call AI provider
     let result;
     if (provider === "venice" || (provider === "auto" && VENICE_API_KEY)) {
-      result = await callVenice(prompt, contentType);
+      result = await callVenice(prompt, contentType, maxTokens);
     } else if (provider === "kimi" || (provider === "auto" && KIMI_API_KEY)) {
-      result = await callKimi(prompt, contentType);
+      result = await callKimi(prompt, contentType, maxTokens);
     } else {
       // Fallback to template-based generation
       result = generateTemplateContent(topic, contentType, persona);
@@ -250,6 +251,12 @@ app.post("/generate", async (req, res) => {
 
 // Build the generation prompt
 function buildPrompt(topic, contentType, persona, customPrompt, context) {
+  // When customPrompt is provided without a topic, treat it as the full primary prompt.
+  // The essay scripts supply all persona/structure details in customPrompt already.
+  if (customPrompt && !topic) {
+    return customPrompt;
+  }
+
   const personaInfo = PHILOSOPHER_PERSONAS[persona];
   const contentInfo = CONTENT_TYPES[contentType];
 
@@ -282,7 +289,10 @@ Requirements:
 }
 
 // Call Venice API
-async function callVenice(prompt, contentType) {
+async function callVenice(prompt, contentType, maxTokens) {
+  const resolvedMaxTokens = maxTokens || (contentType === "post" ? 800 : 300);
+  // Allow ~15ms per token plus 10s base; cap at 120s
+  const timeout = Math.min(10000 + resolvedMaxTokens * 15, 120000);
   try {
     const response = await axios.post(
       VENICE_API_URL,
@@ -297,14 +307,14 @@ async function callVenice(prompt, contentType) {
           { role: "user", content: prompt },
         ],
         temperature: 0.8,
-        max_tokens: contentType === "post" ? 800 : 300,
+        max_tokens: resolvedMaxTokens,
       },
       {
         headers: {
           Authorization: `Bearer ${VENICE_API_KEY}`,
           "Content-Type": "application/json",
         },
-        timeout: 30000,
+        timeout,
       },
     );
 
@@ -317,7 +327,9 @@ async function callVenice(prompt, contentType) {
 }
 
 // Call Kimi API
-async function callKimi(prompt, contentType) {
+async function callKimi(prompt, contentType, maxTokens) {
+  const resolvedMaxTokens = maxTokens || (contentType === "post" ? 800 : 300);
+  const timeout = Math.min(10000 + resolvedMaxTokens * 15, 120000);
   try {
     const response = await axios.post(
       KIMI_API_URL,
@@ -332,14 +344,14 @@ async function callKimi(prompt, contentType) {
           { role: "user", content: prompt },
         ],
         temperature: 0.8,
-        max_tokens: contentType === "post" ? 800 : 300,
+        max_tokens: resolvedMaxTokens,
       },
       {
         headers: {
           Authorization: `Bearer ${KIMI_API_KEY}`,
           "Content-Type": "application/json",
         },
-        timeout: 30000,
+        timeout,
       },
     );
 
