@@ -31,15 +31,15 @@ from typing import Dict, List, Tuple, Union
 import requests
 
 # Add python-client to path
-CLIENT_DIR = Path(__file__).parent.parent.parent / "services" / "noosphere" / "python-client"
+# NOOSPHERE_PYTHON_CLIENT env var is set by docker-compose;
+# fall back to sibling python-client/ for local dev
+_client_env = os.environ.get("NOOSPHERE_PYTHON_CLIENT")
+CLIENT_DIR = (
+    Path(_client_env) if _client_env else Path(__file__).parent / "python-client"
+)
 sys.path.insert(0, str(CLIENT_DIR))
 
-try:
-    from noosphere_client import NoosphereClient, MemoryType
-except ModuleNotFoundError:
-    import site
-    site.addsitedir(str(CLIENT_DIR))
-    from noosphere_client import NoosphereClient, MemoryType
+from noosphere_client import NoosphereClient, MemoryType  # noqa: E402
 
 # Configure logging
 logging.basicConfig(

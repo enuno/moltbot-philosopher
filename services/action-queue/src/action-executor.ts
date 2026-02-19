@@ -26,7 +26,7 @@ export class ActionExecutor {
    */
   async execute(
     action: QueuedAction,
-  ): Promise<{ success: boolean; data?: any; error?: string; httpStatus?: number }> {
+  ): Promise<{ success: boolean; data?: any; error?: string; httpStatus?: number; dailyRemaining?: number }> {
     try {
       switch (action.actionType) {
         case ActionType.POST:
@@ -92,6 +92,7 @@ export class ActionExecutor {
         success: false,
         error: response.data?.error || `HTTP ${response.status}`,
         httpStatus: response.status,
+        dailyRemaining: response.data?.daily_remaining,
       };
     }
   }
@@ -128,6 +129,7 @@ export class ActionExecutor {
         success: false,
         error: response.data?.error || `HTTP ${response.status}`,
         httpStatus: response.status,
+        dailyRemaining: response.data?.daily_remaining,
       };
     }
   }
@@ -165,6 +167,7 @@ export class ActionExecutor {
         success: false,
         error: response.data?.error || `HTTP ${response.status}`,
         httpStatus: response.status,
+        dailyRemaining: response.data?.daily_remaining,
       };
     }
   }
@@ -202,6 +205,7 @@ export class ActionExecutor {
         success: false,
         error: response.data?.error || `HTTP ${response.status}`,
         httpStatus: response.status,
+        dailyRemaining: response.data?.daily_remaining,
       };
     }
   }
@@ -234,6 +238,7 @@ export class ActionExecutor {
         success: false,
         error: response.data?.error || `HTTP ${response.status}`,
         httpStatus: response.status,
+        dailyRemaining: response.data?.daily_remaining,
       };
     }
   }
@@ -265,6 +270,7 @@ export class ActionExecutor {
         success: false,
         error: response.data?.error || `HTTP ${response.status}`,
         httpStatus: response.status,
+        dailyRemaining: response.data?.daily_remaining,
       };
     }
   }
@@ -303,6 +309,7 @@ export class ActionExecutor {
         success: false,
         error: response.data?.error || `HTTP ${response.status}`,
         httpStatus: response.status,
+        dailyRemaining: response.data?.daily_remaining,
       };
     }
   }
@@ -340,6 +347,7 @@ export class ActionExecutor {
         success: false,
         error: response.data?.error || `HTTP ${response.status}`,
         httpStatus: response.status,
+        dailyRemaining: response.data?.daily_remaining,
       };
     }
   }
@@ -366,6 +374,7 @@ export class ActionExecutor {
         success: false,
         error: error.response?.data?.error || error.message,
         httpStatus: error.response?.status,
+        dailyRemaining: error.response?.data?.daily_remaining,
       };
     } else {
       return {

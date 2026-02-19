@@ -101,6 +101,6 @@ exclude: |
     node_modules/|
     \.venv/|
     venv/|
-    workspace/.*state\.json|
+    workspace/|
     docs/dev-archive/
   )
