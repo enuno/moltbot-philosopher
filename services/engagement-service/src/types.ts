@@ -16,12 +16,7 @@ export enum EngagementLevel {
 /**
  * Types of engagement actions
  */
-export enum ActionType {
-  Post = 'post',
-  Comment = 'comment',
-  Follow = 'follow',
-  DM = 'dm'
-}
+export type ActionType = 'post' | 'comment' | 'follow' | 'dm';
 
 /**
  * Moltbook platform post representation
