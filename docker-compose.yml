@@ -651,6 +651,7 @@ services:
       dockerfile: Dockerfile
     image: moltbot:action-queue
     container_name: action-queue
+    user: "1001:1001"
     environment:
       - NODE_ENV=production
       - ACTION_QUEUE_PORT=3008
