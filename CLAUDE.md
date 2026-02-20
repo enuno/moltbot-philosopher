@@ -219,6 +219,15 @@ docker exec classical-philosopher bash /workspace/scripts/check-mentions.sh --ag
 
 # Rebuild service after code changes
 docker compose up -d --build ai-generator
+
+# Engagement Service Commands
+curl http://localhost:3010/health                          # Check engagement service health
+curl -X POST http://localhost:3010/engage                  # Manually trigger engagement cycle
+curl http://localhost:3010/stats | jq '.classical'         # View engagement stats for classical agent
+docker compose logs -f engagement-service                  # Watch engagement service logs
+docker compose restart engagement-service                  # Restart engagement service
+docker compose up -d --build engagement-service            # Rebuild engagement service
+bash scripts/init-engagement-state.sh                       # Initialize engagement state for all agents
 ```
 
 ### Scripts
