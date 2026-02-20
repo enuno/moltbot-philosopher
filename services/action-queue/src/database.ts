@@ -1,4 +1,4 @@
-import { Pool } from 'pg';
+import { Pool, PoolClient } from 'pg';
 import PgBoss from 'pg-boss';
 import { v4 as uuidv4 } from 'uuid';
 import {
@@ -8,6 +8,35 @@ import {
   RateLimitState,
 } from './types';
 import { QUEUE_CONFIG } from './config';
+
+/**
+ * Job history record with execution details
+ */
+export interface JobHistory {
+  job_id: string;
+  agent_name: string;
+  action_type: string;
+  status: string;
+  attempts: number;
+  created_at: Date;
+  completed_at: Date | null;
+  last_error: string | null;
+  latency_seconds: number | null;
+}
+
+/**
+ * Agent metrics including success rates and rate limits
+ */
+export interface AgentMetrics {
+  agent_name: string;
+  total_actions: number;
+  completed: number;
+  failed: number;
+  pending: number;
+  rate_limits: RateLimitState;
+  last_action_at: Date | null;
+  success_rate: number;
+}
 
 /**
  * Database Manager for Action Queue
@@ -298,8 +327,9 @@ export class DatabaseManager {
       avg_latency_seconds: number;
     };
   }> {
-    const client = await this.pool.connect();
+    let client: any = null;
     try {
+      client = await this.pool.connect();
       // Get queue size from pg-boss
       const queueSize = await this.pgBoss.getQueueSize('action:process');
 
@@ -348,7 +378,7 @@ export class DatabaseManager {
 
       // Calculate summary counts
       const statusMap = new Map<string, number>();
-      statusResult.rows.forEach((row) => {
+      statusResult.rows.forEach((row: any) => {
         statusMap.set(row.status, parseInt(row.count));
       });
 
@@ -361,18 +391,18 @@ export class DatabaseManager {
 
       return {
         summary,
-        by_status: statusResult.rows.map((row) => ({
+        by_status: statusResult.rows.map((row: any) => ({
           status: row.status,
           count: parseInt(row.count),
         })),
-        by_agent: agentResult.rows.map((row) => ({
+        by_agent: agentResult.rows.map((row: any) => ({
           agent_name: row.agent_name,
           total_actions: parseInt(row.total_actions),
           completed: parseInt(row.completed) || 0,
           failed: parseInt(row.failed) || 0,
           pending: parseInt(row.pending) || 0,
         })),
-        by_action_type: actionTypeResult.rows.map((row) => ({
+        by_action_type: actionTypeResult.rows.map((row: any) => ({
           action_type: row.action_type,
           count: parseInt(row.count),
           success_rate: parseFloat(row.success_rate) || 0,
@@ -402,14 +432,16 @@ export class DatabaseManager {
         },
       };
     } finally {
-      client.release();
+      if (client) {
+        client.release();
+      }
     }
   }
 
   /**
    * Get job execution history with latency calculation
    */
-  async getJobHistory(jobId: string): Promise<any> {
+  async getJobHistory(jobId: string): Promise<JobHistory> {
     const client = await this.pool.connect();
     try {
       const result = await client.query(`
@@ -451,7 +483,7 @@ export class DatabaseManager {
   /**
    * Get agent metrics including success rates and rate limit state
    */
-  async getAgentMetrics(agentName: string): Promise<any> {
+  async getAgentMetrics(agentName: string): Promise<AgentMetrics> {
     const client = await this.pool.connect();
     try {
       // Query action counts
@@ -472,7 +504,18 @@ export class DatabaseManager {
       const successRate = total > 0 ? Math.round((completed / total) * 100 * 100) / 100 : 0;
 
       // Get rate limit state
-      const rateLimits = await this.getRateLimit(agentName);
+      let rateLimits: RateLimitState;
+      try {
+        rateLimits = await this.getRateLimit(agentName);
+      } catch (error) {
+        console.error(`Failed to get rate limits for ${agentName}:`, error);
+        rateLimits = {
+          lastPostTimestamp: 0,
+          lastCommentTimestamp: 0,
+          lastFollowTimestamp: 0,
+          lastDmTimestamp: 0,
+        };
+      }
 
       return {
         agent_name: agentName,
