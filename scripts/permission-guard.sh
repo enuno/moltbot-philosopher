@@ -97,13 +97,16 @@ fix_permissions "$PROJECT_ROOT/logs" "logs directory" || ((PERMISSION_ERRORS++))
 echo ""
 echo "🔍 Checking docker-compose.yml for permission anti-patterns..."
 
-if grep -q "user:" "$PROJECT_ROOT/docker-compose.yml" 2>/dev/null; then
+# Check for actual user: directives (not in comments)
+USER_DIRECTIVES=$(grep -n "^[[:space:]]*user:" "$PROJECT_ROOT/docker-compose.yml" 2>/dev/null || true)
+
+if [[ -n "$USER_DIRECTIVES" ]]; then
     echo -e "${RED}❌ ERROR: docker-compose.yml contains 'user:' directive${NC}"
     echo "   This overrides Dockerfile USER and causes permission mismatches."
     echo "   Remove all 'user:' lines from docker-compose.yml"
     echo ""
     echo "   Found in these services:"
-    grep -n "user:" "$PROJECT_ROOT/docker-compose.yml" | sed 's/^/     /'
+    echo "$USER_DIRECTIVES" | sed 's/^/     /'
     ((PERMISSION_ERRORS++))
 else
     echo -e "${GREEN}✅ No 'user:' directive found in docker-compose.yml${NC}"
