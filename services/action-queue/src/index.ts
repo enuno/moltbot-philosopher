@@ -32,14 +32,15 @@ app.get('/queue/health', (req: Request, res: Response) => {
 });
 
 /**
- * Queue statistics endpoint
+ * Queue statistics endpoint with detailed breakdown
  */
 app.get('/queue/stats', async (req: Request, res: Response) => {
   try {
     const stats = await processor.getStats();
     res.json({
       success: true,
-      stats,
+      data: stats,
+      timestamp: new Date().toISOString(),
     });
   } catch (error: any) {
     res.status(500).json({
@@ -143,6 +144,50 @@ app.get('/actions/:id', async (req: Request, res: Response) => {
         ...action,
         conditionEvaluations,
       },
+    });
+  } catch (error: any) {
+    res.status(500).json({
+      success: false,
+      error: error.message,
+    });
+  }
+});
+
+/**
+ * Get job execution history by ID
+ */
+app.get('/queue/jobs/:id/history', async (req: Request, res: Response) => {
+  try {
+    const history = await db.getJobHistory(req.params.id);
+
+    res.json({
+      success: true,
+      data: history,
+    });
+  } catch (error: any) {
+    if (error.message.includes('not found')) {
+      return res.status(404).json({
+        success: false,
+        error: error.message,
+      });
+    }
+    res.status(500).json({
+      success: false,
+      error: error.message,
+    });
+  }
+});
+
+/**
+ * Get per-agent metrics and statistics
+ */
+app.get('/queue/agents/:name/metrics', async (req: Request, res: Response) => {
+  try {
+    const metrics = await db.getAgentMetrics(req.params.name);
+
+    res.json({
+      success: true,
+      data: metrics,
     });
   } catch (error: any) {
     res.status(500).json({
