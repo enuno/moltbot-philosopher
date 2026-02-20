@@ -270,30 +270,222 @@ export class DatabaseManager {
   }
 
   /**
-   * Get queue statistics
+   * Get comprehensive queue statistics with aggregations
    */
-  async getStats(): Promise<any> {
+  async getStats(): Promise<{
+    summary: {
+      total_queued: number;
+      total_completed: number;
+      total_failed: number;
+      queue_size: number;
+    };
+    by_status: Array<{ status: string; count: number }>;
+    by_agent: Array<{
+      agent_name: string;
+      total_actions: number;
+      completed: number;
+      failed: number;
+      pending: number;
+    }>;
+    by_action_type: Array<{
+      action_type: string;
+      count: number;
+      success_rate: number;
+    }>;
+    last_24h_summary: {
+      total_created: number;
+      total_completed: number;
+      avg_latency_seconds: number;
+    };
+  }> {
+    const client = await this.pool.connect();
     try {
-      const jobStats = await this.pgBoss.getQueueSize('action:process');
+      // Get queue size from pg-boss
+      const queueSize = await this.pgBoss.getQueueSize('action:process');
 
-      const client = await this.pool.connect();
-      try {
-        const logsResult = await client.query(`
-          SELECT status, COUNT(*) as count FROM action_logs
-          WHERE created_at > NOW() - INTERVAL '24 hours'
-          GROUP BY status
-        `);
+      // Query 1: Status breakdown
+      const statusResult = await client.query(`
+        SELECT status, COUNT(*) as count FROM action_logs
+        GROUP BY status
+      `);
 
-        return {
-          queue_size: jobStats,
-          logs_24h: logsResult.rows,
-        };
-      } finally {
-        client.release();
-      }
+      // Query 2: Per-agent breakdown
+      const agentResult = await client.query(`
+        SELECT
+          agent_name,
+          COUNT(*) as total_actions,
+          SUM(CASE WHEN status = 'completed' THEN 1 ELSE 0 END) as completed,
+          SUM(CASE WHEN status = 'failed' THEN 1 ELSE 0 END) as failed,
+          SUM(CASE WHEN status = 'pending' THEN 1 ELSE 0 END) as pending
+        FROM action_logs
+        GROUP BY agent_name
+      `);
+
+      // Query 3: Action type breakdown with success rates
+      const actionTypeResult = await client.query(`
+        SELECT
+          action_type,
+          COUNT(*) as count,
+          ROUND(
+            SUM(CASE WHEN status = 'completed' THEN 1 ELSE 0 END)::numeric /
+            COUNT(*)::numeric * 100, 2
+          ) as success_rate
+        FROM action_logs
+        GROUP BY action_type
+      `);
+
+      // Query 4: Last 24h summary
+      const last24hResult = await client.query(`
+        SELECT
+          COUNT(*) as total_created,
+          SUM(CASE WHEN status = 'completed' THEN 1 ELSE 0 END) as total_completed,
+          ROUND(
+            AVG(EXTRACT(EPOCH FROM (completed_at - created_at)))::numeric, 2
+          ) as avg_latency_seconds
+        FROM action_logs
+        WHERE created_at > NOW() - INTERVAL '24 hours'
+      `);
+
+      // Calculate summary counts
+      const statusMap = new Map<string, number>();
+      statusResult.rows.forEach((row) => {
+        statusMap.set(row.status, parseInt(row.count));
+      });
+
+      const summary = {
+        total_queued: statusMap.get('pending') || 0,
+        total_completed: statusMap.get('completed') || 0,
+        total_failed: statusMap.get('failed') || 0,
+        queue_size: queueSize,
+      };
+
+      return {
+        summary,
+        by_status: statusResult.rows.map((row) => ({
+          status: row.status,
+          count: parseInt(row.count),
+        })),
+        by_agent: agentResult.rows.map((row) => ({
+          agent_name: row.agent_name,
+          total_actions: parseInt(row.total_actions),
+          completed: parseInt(row.completed) || 0,
+          failed: parseInt(row.failed) || 0,
+          pending: parseInt(row.pending) || 0,
+        })),
+        by_action_type: actionTypeResult.rows.map((row) => ({
+          action_type: row.action_type,
+          count: parseInt(row.count),
+          success_rate: parseFloat(row.success_rate) || 0,
+        })),
+        last_24h_summary: {
+          total_created: parseInt(last24hResult.rows[0]?.total_created) || 0,
+          total_completed: parseInt(last24hResult.rows[0]?.total_completed) || 0,
+          avg_latency_seconds: parseFloat(last24hResult.rows[0]?.avg_latency_seconds) || 0,
+        },
+      };
     } catch (error) {
       console.error('Failed to get stats:', error);
-      return { queue_size: 0, logs_24h: [] };
+      return {
+        summary: {
+          total_queued: 0,
+          total_completed: 0,
+          total_failed: 0,
+          queue_size: 0,
+        },
+        by_status: [],
+        by_agent: [],
+        by_action_type: [],
+        last_24h_summary: {
+          total_created: 0,
+          total_completed: 0,
+          avg_latency_seconds: 0,
+        },
+      };
+    } finally {
+      client.release();
+    }
+  }
+
+  /**
+   * Get job execution history with latency calculation
+   */
+  async getJobHistory(jobId: string): Promise<any> {
+    const client = await this.pool.connect();
+    try {
+      const result = await client.query(`
+        SELECT
+          job_id,
+          agent_name,
+          action_type,
+          status,
+          attempts,
+          created_at,
+          completed_at,
+          last_error,
+          EXTRACT(EPOCH FROM (completed_at - created_at)) as latency_seconds
+        FROM action_logs
+        WHERE job_id = $1
+      `, [jobId]);
+
+      if (result.rows.length === 0) {
+        throw new Error(`Job not found: ${jobId}`);
+      }
+
+      const row = result.rows[0];
+      return {
+        job_id: row.job_id,
+        agent_name: row.agent_name,
+        action_type: row.action_type,
+        status: row.status,
+        attempts: row.attempts,
+        created_at: row.created_at,
+        completed_at: row.completed_at,
+        last_error: row.last_error,
+        latency_seconds: row.latency_seconds ? parseFloat(row.latency_seconds) : null,
+      };
+    } finally {
+      client.release();
+    }
+  }
+
+  /**
+   * Get agent metrics including success rates and rate limit state
+   */
+  async getAgentMetrics(agentName: string): Promise<any> {
+    const client = await this.pool.connect();
+    try {
+      // Query action counts
+      const result = await client.query(`
+        SELECT
+          COUNT(*) as total_actions,
+          SUM(CASE WHEN status = 'completed' THEN 1 ELSE 0 END) as completed,
+          SUM(CASE WHEN status = 'failed' THEN 1 ELSE 0 END) as failed,
+          SUM(CASE WHEN status = 'pending' THEN 1 ELSE 0 END) as pending,
+          MAX(created_at) as last_action_at
+        FROM action_logs
+        WHERE agent_name = $1
+      `, [agentName]);
+
+      const row = result.rows[0];
+      const total = parseInt(row.total_actions) || 0;
+      const completed = parseInt(row.completed) || 0;
+      const successRate = total > 0 ? Math.round((completed / total) * 100 * 100) / 100 : 0;
+
+      // Get rate limit state
+      const rateLimits = await this.getRateLimit(agentName);
+
+      return {
+        agent_name: agentName,
+        total_actions: total,
+        completed: completed,
+        failed: parseInt(row.failed) || 0,
+        pending: parseInt(row.pending) || 0,
+        rate_limits: rateLimits,
+        last_action_at: row.last_action_at,
+        success_rate: successRate,
+      };
+    } finally {
+      client.release();
     }
   }
 

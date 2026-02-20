@@ -133,12 +133,17 @@ export class QueueProcessor {
     try {
       const stats = await this.db.getStats();
 
-      // Count recent failures vs successes from logs
-      const failedCount = stats.logs_24h?.find((l: any) => l.status === 'failed')?.count || 0;
-      const totalCount = stats.logs_24h?.reduce((sum: number, l: any) => sum + l.count, 0) || 0;
+      // Get agent-specific metrics
+      const agentMetric = stats.by_agent?.find((a: any) => a.agent_name === agentName);
+      if (!agentMetric) {
+        // No metrics yet for this agent, allow execution
+        return;
+      }
+
+      const { total_actions: totalCount, failed: failedCount } = agentMetric;
 
       if (totalCount > 10 && failedCount / totalCount > 0.5) {
-        throw new Error(`Circuit breaker open: ${agentName} has >50% failure rate in past hour`);
+        throw new Error(`Circuit breaker open: ${agentName} has >50% failure rate`);
       }
     } catch (error) {
       if ((error as any)?.message?.includes('Circuit breaker')) {
