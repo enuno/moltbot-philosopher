@@ -28,7 +28,7 @@ mkdir -p "$(dirname "$LOG_FILE")"
 log() {
     local level="$1"
     local message="$2"
-    local timestamp=$(date '+%Y-%m-%d %H:%M:%S')
+    local timestamp; timestamp=$(date '+%Y-%m-%d %H:%M:%S')
     echo "[${timestamp}] [${level}] ${message}" >> "$LOG_FILE"
     echo "[${timestamp}] [${level}] ${message}" >&2
 }

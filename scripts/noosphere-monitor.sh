@@ -18,7 +18,6 @@ OUTPUT_FILE="${NOOSPHERE_DIR}/health-report.json"
 # Colors for text output
 RED='\033[0;31m'
 GREEN='\033[0;32m'
-YELLOW='\033[1;33m'
 BLUE='\033[0;34m'
 NC='\033[0m'
 
@@ -84,8 +83,8 @@ check_memory_stats() {
 
     if [ -f "$stats_file" ]; then
         # Check if stats are recent (less than 1 day old)
-        local mtime=$(stat -f%m "$stats_file" 2>/dev/null || stat -c%Y "$stats_file" 2>/dev/null || echo 0)
-        local now=$(date +%s)
+        local mtime; mtime=$(stat -f%m "$stats_file" 2>/dev/null || stat -c%Y "$stats_file" 2>/dev/null || echo 0)
+        local now; now=$(date +%s)
         local age=$((now - mtime))
         local age_hours=$((age / 3600))
 
@@ -99,8 +98,8 @@ check_memory_stats() {
         fi
 
         # Extract metrics
-        local total=$(jq '.heuristic_count.total // 0' "$stats_file" 2>/dev/null || echo 0)
-        local canonical=$(jq '.heuristic_count.canonical // 0' "$stats_file" 2>/dev/null || echo 0)
+        local total; total=$(jq '.heuristic_count.total // 0' "$stats_file" 2>/dev/null || echo 0)
+        local canonical; canonical=$(jq '.heuristic_count.canonical // 0' "$stats_file" 2>/dev/null || echo 0)
 
         checks[heuristics_total]=$total
         checks[heuristics_canonical]=$canonical
@@ -123,7 +122,7 @@ check_vector_index() {
     local metadata="$NOOSPHERE_DIR/vector-index/metadata.json"
 
     if [ -f "$metadata" ]; then
-        local embeddings=$(jq '.total_embeddings // 0' "$metadata" 2>/dev/null || echo 0)
+        local embeddings; embeddings=$(jq '.total_embeddings // 0' "$metadata" 2>/dev/null || echo 0)
         checks[vector_embeddings]=$embeddings
 
         if [ "$embeddings" -eq 0 ]; then
@@ -143,12 +142,12 @@ check_consolidation() {
     local state_file="$NOOSPHERE_DIR/consolidation-state.json"
 
     if [ -f "$state_file" ]; then
-        local last_consolidation=$(jq -r '.last_consolidation // "never"' "$state_file" 2>/dev/null || echo "never")
+        local last_consolidation; last_consolidation=$(jq -r '.last_consolidation // "never"' "$state_file" 2>/dev/null || echo "never")
         checks[last_consolidation]="$last_consolidation"
 
         if [ "$last_consolidation" != "never" ]; then
-            local last_epoch=$(date -d "$last_consolidation" +%s 2>/dev/null || echo 0)
-            local now=$(date +%s)
+            local last_epoch; last_epoch=$(date -d "$last_consolidation" +%s 2>/dev/null || echo 0)
+            local now; now=$(date +%s)
             local hours_ago=$((($now - $last_epoch) / 3600))
             checks[consolidation_lag_hours]=$hours_ago
 
@@ -217,7 +216,7 @@ if [ "$FORMAT" = "json" ]; then
   "checks": {
 EOF
 
-    local first=true
+    first=true
     for key in "${!checks[@]}"; do
         if [ "$first" = true ]; then
             first=false
