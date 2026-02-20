@@ -281,6 +281,61 @@ app.post('/queue/check-conditions', async (req: Request, res: Response) => {
 });
 
 /**
+ * Get job history for a specific job ID
+ */
+app.get('/queue/jobs/:id/history', (req: Request, res: Response) => {
+  try {
+    const history = db.getJobHistory(req.params.id);
+
+    if (history === null) {
+      return res.status(404).json({
+        success: false,
+        error: 'Job not found',
+      });
+    }
+
+    res.json({
+      success: true,
+      data: history,
+      timestamp: new Date().toISOString(),
+    });
+  } catch (error: any) {
+    res.status(500).json({
+      success: false,
+      error: error.message,
+    });
+  }
+});
+
+/**
+ * Get metrics for a specific agent
+ */
+app.get('/queue/agents/:name/metrics', (req: Request, res: Response) => {
+  try {
+    const agentName = req.params.name?.trim();
+    if (!agentName) {
+      return res.status(400).json({
+        success: false,
+        error: 'Agent name is required and must not be empty',
+      });
+    }
+
+    const metrics = db.getAgentMetrics(agentName);
+
+    res.json({
+      success: true,
+      data: metrics,
+    });
+  } catch (error: any) {
+    console.error(`Error fetching metrics for agent ${req.params.name}:`, error);
+    res.status(500).json({
+      success: false,
+      error: error.message,
+    });
+  }
+});
+
+/**
  * Error handling middleware
  */
 app.use((err: Error, req: Request, res: Response, next: NextFunction) => {

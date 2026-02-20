@@ -568,6 +568,47 @@ export class DatabaseManager {
   }
 
   /**
+   * Get job history (condition evaluations for an action)
+   * Returns null if job not found instead of throwing
+   */
+  getJobHistory(actionId: string): any[] | null {
+    // Check if action exists first
+    const action = this.getAction(actionId);
+    if (!action) {
+      return null;
+    }
+
+    // Get condition evaluations for the action
+    return this.getConditionEvaluations(actionId);
+  }
+
+  /**
+   * Get metrics for an agent (actions by status)
+   */
+  getAgentMetrics(agentName: string): any {
+    const stmt = this.db.prepare(`
+      SELECT status, COUNT(*) as count
+      FROM actions
+      WHERE agent_name = ?
+      GROUP BY status
+    `);
+
+    const rows = stmt.all(agentName) as any[];
+    const metrics: any = {
+      agentName,
+      totalActions: 0,
+      byStatus: {},
+    };
+
+    rows.forEach((row) => {
+      metrics.byStatus[row.status] = row.count;
+      metrics.totalActions += row.count;
+    });
+
+    return metrics;
+  }
+
+  /**
    * Close database connection
    */
   close(): void {
