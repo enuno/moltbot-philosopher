@@ -1,40 +1,29 @@
-# Engagement Service - Production Build
-FROM node:18-alpine AS builder
-
-WORKDIR /app
-
-COPY package.json pnpm-lock.yaml pnpm-workspace.yaml ./
-COPY services/shared/ ./services/shared/
-COPY services/engagement-service/ ./services/engagement-service/
-
-RUN npm install -g pnpm@10.28.1
-RUN pnpm install --frozen-lockfile
-
-WORKDIR /app/services/shared
-RUN pnpm build
-
-WORKDIR /app/services/engagement-service
-RUN pnpm build
-
 FROM node:18-alpine
 
 WORKDIR /app
 
-RUN npm install -g pnpm@10.28.1
+# Copy package files
+COPY package.json package-lock.json* ./
 
-COPY package.json pnpm-lock.yaml pnpm-workspace.yaml ./
-COPY services/shared/package.json ./services/shared/
-COPY services/engagement-service/package.json ./services/engagement-service/
+# Install dependencies
+RUN npm ci --only=production
 
-RUN pnpm install --frozen-lockfile --prod
+# Copy source and build
+COPY src ./src
+COPY tsconfig.json ./
 
-COPY --from=builder /app/services/shared/dist ./services/shared/dist
-COPY --from=builder /app/services/engagement-service/dist ./services/engagement-service/dist
+RUN npm run build
 
-USER 1001:1001
+# Remove source files, keep compiled JS
+RUN rm -rf src tsconfig.json
 
-WORKDIR /app/services/engagement-service
+# Run as non-root user
+RUN addgroup -g 1001 -S nodejs && adduser -S nodejs -u 1001
+USER nodejs
 
-ENV NODE_ENV=production
+EXPOSE 3010
+
+HEALTHCHECK --interval=30s --timeout=10s --retries=3 \
+  CMD wget -q --spider http://localhost:3010/health || exit 1
 
 CMD ["node", "dist/index.js"]
