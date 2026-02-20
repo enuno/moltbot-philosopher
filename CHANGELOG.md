@@ -7,6 +7,44 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
+## [2.8.0] - 2026-02-20
+
+### Added
+
+- **Enhanced Platform Engagement Automation (Phase 6.5)**: Single shared engagement-service microservice
+  (port 3010) orchestrating proactive platform engagement for all 9 philosopher agents.
+- **EngagementEngine**: Core orchestration component handling feed monitoring (5-minute cycles),
+  opportunity detection via hybrid relevance scoring (60% Noosphere semantic + 25% keyword + 15% author quality),
+  rate limit management, and intelligent scheduling via round-robin agent visitation.
+- **StateManager**: Atomic JSON persistence for per-agent engagement state with conflict detection,
+  automatic daily reset, and 3-point follow evaluation tracking.
+- **RelevanceCalculator**: Hybrid scoring system combining Noosphere semantic queries, keyword pattern
+  matching, and author quality heuristics. Implements 6-point quality validation gate: relevance > 0.6,
+  no banned phrases (generic comments blocked), substantiveness >20 chars + 2 sentences, rate limits,
+  daily caps, and 3-post minimum before following.
+- **Engagement State Schema**: Per-agent JSON tracking daily stats (posts, comments, follows, DMs),
+  followed accounts with quality scores, opportunity queue, and rate limit timestamps.
+- **Engagement Protocol Documentation**: Comprehensive `skills/moltbook/ENGAGEMENT.md` (v2.8) covering
+  architecture, API endpoints, quality gates, agent state schema, daily reset behavior, submolt strategy,
+  deployment, operational tasks, monitoring, testing, and success criteria.
+- **Cron Job Scheduling**: 5-minute engagement cycle (feed monitoring + round-robin), 30-minute posting
+  check (proactive content evaluation), 2am daily maintenance (stats reset + unfollow inactive accounts).
+- **HTTP API Endpoints**: GET /health (service status), POST /engage (manual trigger), GET /stats
+  (per-agent engagement breakdown), GET /ready (initialization check).
+- **Docker Integration**: engagement-service in docker-compose.yml with health checks, volume mounts for
+  workspace state, environment configuration for rate limits and engagement bounds.
+- **Initialization Automation**: `scripts/init-engagement-state.sh` initializes engagement-state.json for
+  all 9 agents with today's date and empty opportunity queues.
+
+### Modified
+
+- `docker-compose.yml`: Added engagement-service with dependencies (egress-proxy, action-queue,
+  noosphere-service), workspace volume mounts for all 9 agents, and health check configuration.
+- `services/engagement-service/Dockerfile`: Updated CMD to use engagement-service.js (new proactive
+  engagement service replacing reactive structure).
+
+---
+
 ## [3.1.0] - 2026-02-19
 
 ### Added

@@ -691,6 +691,53 @@ services:
         max-size: "10m"
         max-file: "3"
 
+  # Engagement Service - Proactive platform engagement orchestration
+  engagement-service:
+    build:
+      context: ./services/engagement-service
+      dockerfile: Dockerfile
+    image: moltbot:engagement-service
+    container_name: engagement-service
+    environment:
+      - NODE_ENV=production
+      - ENGAGEMENT_SERVICE_PORT=3010
+      - WORKSPACE_ROOT=/workspace
+      - LOG_LEVEL=info
+      - AGENTS_CONFIG=/workspace/AGENTS.json
+    volumes:
+      - ./workspace:/workspace:rw
+      - ./logs:/app/logs:rw
+      - ./services/engagement-service/engagement-state-template.json:/app/engagement-state-template.json:ro
+    ports:
+      - "3010:3010"
+    networks:
+      - moltbot-network
+    depends_on:
+      egress-proxy:
+        condition: service_healthy
+      action-queue:
+        condition: service_healthy
+      noosphere-service:
+        condition: service_healthy
+    mem_limit: 512M
+    cpus: 0.5
+    restart: unless-stopped
+    healthcheck:
+      test:
+        [
+          "CMD-SHELL",
+          "wget --no-verbose --tries=1 --spider http://localhost:3010/health || exit 1",
+        ]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 30s
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
+
 networks:
   moltbot-network:
     driver: bridge
@@ -705,6 +752,9 @@ volumes:
   workspace-joyce:
   workspace-enlightenment:
   workspace-beat:
+  workspace-cyberpunk-posthumanist:
+  workspace-satirist-absurdist:
+  workspace-scientist-empiricist:
   workspace-thread-continuation:
   skill-manifest:
   noosphere-data:

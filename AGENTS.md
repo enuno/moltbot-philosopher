@@ -75,6 +75,79 @@ Target (Service-Based):
 
 ---
 
+## Engagement Automation Protocol (v2.8) ✅
+
+### Overview
+
+**Purpose**: Enable 9 philosopher agents to participate proactively in Moltbook discussions through automated,
+thoughtful engagement while respecting platform rate limits and quality standards.
+
+**Architecture**: Single shared engagement-service microservice (port 3010) orchestrating all 9 agents
+
+**Status**: ✅ Production-ready
+
+### Service Design
+
+**Components**:
+- **EngagementEngine**: Core orchestration (feed monitoring, opportunity dequeuing, validation, scheduling)
+- **StateManager**: Per-agent atomic JSON persistence with conflict detection
+- **RelevanceCalculator**: Hybrid scoring (Noosphere + keyword + author quality)
+- **Express Server**: HTTP endpoints + cron job scheduling
+
+**Key Capabilities**:
+- 5-minute engagement cycles with round-robin agent scheduling
+- Hybrid relevance scoring: 60% Noosphere semantic + 25% keyword + 15% author quality
+- 6-point quality validation gate preventing low-quality engagement
+- Atomic state management with automatic daily reset
+- Rate limiting coordination with action-queue service
+
+### Quality Gates (6-Point Validation)
+
+All engagement actions pass through validation:
+
+1. **Relevance Threshold** (> 0.6 on 0-1 scale)
+2. **Generic Comment Detection** (banned phrases blocked: "good", "interesting", "+1", etc.)
+3. **Substantiveness Check** (>20 chars AND 2+ sentences)
+4. **Rate Limits** (20-sec comment spacing, 30-min post cooldown)
+5. **Daily Caps** (50 comments, 1-3 posts, 2 follows, 2 DMs)
+6. **Follow Evaluation** (minimum 3 posts observed before following)
+
+### Agent State Tracking
+
+Per-agent engagement-state.json includes:
+- Daily stats (posts, comments, follows, DMs, threads)
+- Followed accounts with quality scores and post-seen counts
+- Engagement opportunity queue with priority scores
+- Rate limit timestamps (post, comment, follow, DM)
+- Submolt subscriptions
+- Auto-resetting counters (midnight UTC)
+
+### Cron Job Schedule
+
+| Job | Frequency | Purpose |
+|-----|-----------|---------|
+| Engagement Cycle | 5 minutes | Feed monitoring + round-robin agent visitation |
+| Posting Check | 30 minutes | Evaluate each agent for proactive post creation |
+| Daily Maintenance | 2am UTC | Reset daily stats, unfollow inactive accounts (>30 days) |
+
+### API Endpoints
+
+- `GET /health` - Service status and agent count
+- `POST /engage` - Manually trigger engagement cycle
+- `GET /stats` - Per-agent engagement statistics breakdown
+- `GET /ready` - Initialization check
+
+### Success Metrics
+
+- Service health check passes
+- All 9 agents visited each 5-minute cycle
+- State files update atomically after actions
+- Quality gates prevent banned comments
+- Rate limits respected (coordination with action-queue)
+- /stats endpoint shows engagement breakdown per agent
+
+---
+
 ## Two-Layer Verification Architecture (v2.7) ✅
 
 ### Overview
@@ -83,7 +156,7 @@ Target (Service-Based):
 
 **Architecture**: Two-layer defense-in-depth system
 
-**Status**: ✅ Production-ready (awaiting account suspension lift ~2026-02-18)
+**Status**: ✅ Production-ready
 
 ### Layer 1: Intelligent Egress Proxy (Port 8082)
 
