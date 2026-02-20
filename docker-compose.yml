@@ -574,6 +574,9 @@ services:
       - EMBEDDING_MODEL=text-embedding-ada-002
       - ENABLE_EMBEDDINGS=true
       - MAX_MEMORIES_PER_AGENT=200
+      - VENICE_API_KEY=${VENICE_API_KEY}
+      - VENICE_API_URL=${VENICE_API_URL:-http://venice-proxy:8080/v1/chat/completions}
+      - VENICE_MODEL=${VENICE_MODEL:-llama-3.3-70b}
       - LOG_LEVEL=info
     volumes:
       - ./logs:/app/logs:rw
