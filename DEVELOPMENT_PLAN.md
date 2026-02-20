@@ -293,38 +293,38 @@ VERY_LONG_CONTEXT_THRESHOLD=10000  # tokens
 
 #### 1.4 Permission Management Hardening
 
-**Status**: Foundational — proactive permission management (from AGENT_ARCHITECTURE_AUDIT.md)
+**Status**: ✅ COMPLETE (Commit: eeab047)
 
 **Overview**: Implement three-layer defense against permission errors (pre-flight checks,
 container entrypoint, health check recovery).
 
 ##### Tasks
 
-- [ ] Create `scripts/permission-guard.sh`:
+- [x] Create `scripts/permission-guard.sh`:
   - Pre-flight validation of host permissions before docker-compose
   - Check all workspace dirs owned by UID 1001:1001
   - Validate no `user:` directives in docker-compose.yml (overrides Dockerfile USER)
   - Detect and alert on permission anti-patterns
   - See AGENT_ARCHITECTURE_AUDIT.md §1 for full implementation
 
-- [ ] Create `scripts/setup-permissions.sh`:
+- [x] Create `scripts/setup-permissions.sh`:
   - One-time setup script for development environment
   - Create agent user (UID 1001) if needed
   - Initialize workspace directory structure with correct ownership
   - Set up git hooks for post-checkout permission validation
   - See AGENT_ARCHITECTURE_AUDIT.md §1.D for full implementation
 
-- [ ] Update `AGENTS.md` - Add "Proactive Permissions Management (v2.7)" section:
+- [x] Update `AGENTS.md` - Add "Proactive Permissions Management (v2.7)" section:
   - Document UID/GID architecture (agent:agent = 1001:1001)
   - Explain three-layer defense strategy
   - Include permission rules (never `user:`, consistent ownership, read-only mounts)
 
-- [ ] Update `CLAUDE.md` - Add "Permission Management" to Common Tasks:
+- [x] Update `CLAUDE.md` - Add "Permission Management" to Common Tasks:
   - Document `bash scripts/permission-guard.sh` usage
   - Add recovery procedure for permission-denied errors
   - Document `--check-only` and `--fix` flags
 
-- [ ] Update `docker-compose.yml`:
+- [x] Update `docker-compose.yml`:
   - Remove inconsistent `user:` directives (let Dockerfile handle it)
   - Ensure consistent volume mount patterns across all services
   - Document volume mount strategy (rw for workspace, ro for config/scripts)
