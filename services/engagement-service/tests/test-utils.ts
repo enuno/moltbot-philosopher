@@ -65,7 +65,7 @@ export function createDefaultState(): EngagementState {
     },
     lastEngagementCheck: Date.now(),
     lastPostTime: 0,
-    relevanceCache: new Map()
+    relevanceCache: {}
   };
 }
 

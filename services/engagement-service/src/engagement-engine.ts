@@ -100,11 +100,11 @@ export class EngagementEngine {
    * Dequeue opportunities for a specific agent
    * Respects daily limits and action-specific constraints
    */
-  dequeueOpportunities(agent: Agent): QueuedAction[] {
+  async dequeueOpportunities(agent: Agent): Promise<QueuedAction[]> {
     const stateManager = this.stateManagers.get(agent.id);
     if (!stateManager) return [];
 
-    const state = stateManager.loadState();
+    const state = await stateManager.loadState();
     const actions: QueuedAction[] = [];
     const dequeuedPostIds = new Set<string>();
 
@@ -136,7 +136,7 @@ export class EngagementEngine {
     state.engagementQueue = state.engagementQueue.filter(
       opp => !dequeuedPostIds.has(opp.postId)
     );
-    stateManager.saveState(state);
+    await stateManager.saveState(state);
 
     return actions;
   }
@@ -150,11 +150,11 @@ export class EngagementEngine {
    * 5. Daily caps (within limits)
    * 6. Follow evaluation (3+ posts seen before follow)
    */
-  validateAction(
+  async validateAction(
     action: QueuedAction,
     content: string,
     agent: Agent
-  ): boolean {
+  ): Promise<boolean> {
     // Gate 1: Relevance threshold
     if (action.priority <= 0.6) {
       return false;
@@ -174,7 +174,7 @@ export class EngagementEngine {
     const stateManager = this.stateManagers.get(agent.id);
     if (!stateManager) return false;
 
-    const state = stateManager.loadState();
+    const state = await stateManager.loadState();
 
     // Gate 5: Daily caps (check current counts)
     if (action.type === 'comment' && state.dailyStats.commentsMade >= 50) {
@@ -192,7 +192,7 @@ export class EngagementEngine {
 
     // Gate 6: Follow evaluation (must have seen 3+ posts from account)
     if (action.type === 'follow') {
-      const evaluation = stateManager.getFollowEvaluationStatus(content);
+      const evaluation = await stateManager.getFollowEvaluationStatus(content);
       if (!evaluation.canFollow) {
         return false;
       }
@@ -208,7 +208,7 @@ export class EngagementEngine {
   async runEngagementCycle(): Promise<void> {
     for (const agent of this.agentRoster) {
       try {
-        const actions = this.dequeueOpportunities(agent);
+        const actions = await this.dequeueOpportunities(agent);
 
         for (const action of actions) {
           // In production: generateContent, validateAction, executeAction
@@ -234,7 +234,7 @@ export class EngagementEngine {
     const stateManager = this.stateManagers.get(agent.id);
     if (!stateManager) return;
 
-    const state = stateManager.loadState();
+    const state = await stateManager.loadState();
 
     // Check post cooldown (30 minutes = 1800000ms)
     const timeSinceLastPost = Date.now() - state.lastPostTime;
@@ -263,7 +263,7 @@ export class EngagementEngine {
       const stateManager = this.stateManagers.get(agent.id);
       if (!stateManager) continue;
 
-      const state = stateManager.loadState();
+      const state = await stateManager.loadState();
 
       // Reset daily stats (auto-handled by loadState, but ensure clean)
       const today = new Date().toISOString().split('T')[0];
@@ -285,7 +285,7 @@ export class EngagementEngine {
         return daysSinceEngagement <= 30;
       });
 
-      stateManager.saveState(state);
+      await stateManager.saveState(state);
     }
   }
 }

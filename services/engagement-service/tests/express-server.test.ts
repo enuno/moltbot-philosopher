@@ -70,22 +70,29 @@ describe('Express Server - Engagement Service', () => {
     });
 
     // Stats endpoint - show engagement breakdown
-    app.get('/stats', (req, res) => {
-      const stats: Record<string, any> = {};
+    app.get('/stats', async (req, res) => {
+      try {
+        const stats: Record<string, any> = {};
 
-      MOCK_AGENTS.forEach(agent => {
-        const stateManager = new StateManager(statePaths[agent.id]);
-        const state = stateManager.loadState();
+        for (const agent of MOCK_AGENTS) {
+          const stateManager = new StateManager(statePaths[agent.id]);
+          const state = await stateManager.loadState();
 
-        stats[agent.id] = {
-          dailyStats: state.dailyStats,
-          followedAccounts: state.followedAccounts.length,
-          queuedOpportunities: state.engagementQueue.length,
-          lastEngagementCheck: state.lastEngagementCheck
-        };
-      });
+          stats[agent.id] = {
+            dailyStats: state.dailyStats,
+            followedAccounts: state.followedAccounts.length,
+            queuedOpportunities: state.engagementQueue.length,
+            lastEngagementCheck: state.lastEngagementCheck
+          };
+        }
 
-      res.json(stats);
+        res.json(stats);
+      } catch (error) {
+        res.status(500).json({
+          success: false,
+          error: error instanceof Error ? error.message : 'Unknown error'
+        });
+      }
     });
   });
 
@@ -171,7 +178,7 @@ describe('Express Server - Engagement Service', () => {
       const stateManager = new StateManager(statePaths[agent.id]);
 
       // Enqueue an opportunity
-      stateManager.enqueueOpportunity({
+      await stateManager.enqueueOpportunity({
         postId: 'post_1',
         priority: 0.8,
         reason: 'test',
@@ -190,7 +197,7 @@ describe('Express Server - Engagement Service', () => {
       const stateManager = new StateManager(statePaths[agent.id]);
 
       // Add followed accounts
-      stateManager.recordFollow({
+      await stateManager.recordFollow({
         name: 'Author1',
         postsSeenCount: 5,
         firstSeen: Date.now(),
@@ -198,7 +205,7 @@ describe('Express Server - Engagement Service', () => {
         qualityScore: 0.7
       });
 
-      stateManager.recordFollow({
+      await stateManager.recordFollow({
         name: 'Author2',
         postsSeenCount: 3,
         firstSeen: Date.now(),
@@ -274,9 +281,8 @@ describe('Cron Job Scheduling', () => {
 
   describe('5-minute engagement cycle', () => {
     it('should execute engagement cycle without errors', async () => {
-      expect(async () => {
-        await engine.runEngagementCycle();
-      }).not.toThrow();
+      await engine.runEngagementCycle();
+      expect(true).toBe(true);
     });
 
     it('should visit all agents in order', async () => {
@@ -284,9 +290,9 @@ describe('Cron Job Scheduling', () => {
 
       // Mock dequeueOpportunities to track visits
       const originalDequeue = engine.dequeueOpportunities;
-      engine.dequeueOpportunities = function(agent) {
+      (engine.dequeueOpportunities as any) = function(agent: any) {
         visitedAgents.push(agent.id);
-        return [];
+        return Promise.resolve([]);
       };
 
       await engine.runEngagementCycle();
@@ -295,6 +301,9 @@ describe('Cron Job Scheduling', () => {
       MOCK_AGENTS.forEach(agent => {
         expect(visitedAgents).toContain(agent.id);
       });
+
+      // Restore original
+      engine.dequeueOpportunities = originalDequeue;
     });
   });
 
@@ -304,14 +313,14 @@ describe('Cron Job Scheduling', () => {
       const stateManager = new StateManager(statePaths[agent.id]);
 
       // Set last post to 5 minutes ago
-      let state = stateManager.loadState();
+      let state = await stateManager.loadState();
       state.lastPostTime = Date.now() - 5 * 60 * 1000;
-      stateManager.saveState(state);
+      await stateManager.saveState(state);
 
       await engine.considerPosting(agent);
 
       // State should not change (no new post)
-      state = stateManager.loadState();
+      state = await stateManager.loadState();
       expect(state.dailyStats.postsCreated).toBe(0);
     });
 
@@ -320,10 +329,10 @@ describe('Cron Job Scheduling', () => {
       const stateManager = new StateManager(statePaths[agent.id]);
 
       // Set last post to 40 minutes ago
-      let state = stateManager.loadState();
+      let state = await stateManager.loadState();
       state.lastPostTime = Date.now() - 40 * 60 * 1000;
       state.dailyStats.postsCreated = 0;
-      stateManager.saveState(state);
+      await stateManager.saveState(state);
 
       await engine.considerPosting(agent);
 
@@ -338,15 +347,15 @@ describe('Cron Job Scheduling', () => {
       const stateManager = new StateManager(statePaths[agent.id]);
 
       // Set some stats
-      let state = stateManager.loadState();
+      let state = await stateManager.loadState();
       state.dailyStats.postsCreated = 2;
       state.dailyStats.commentsMade = 15;
       state.dailyReset = '2026-02-19'; // Yesterday
-      stateManager.saveState(state);
+      await stateManager.saveState(state);
 
       await engine.dailyMaintenance();
 
-      state = stateManager.loadState();
+      state = await stateManager.loadState();
       expect(state.dailyStats.postsCreated).toBe(0);
       expect(state.dailyStats.commentsMade).toBe(0);
     });
@@ -356,7 +365,7 @@ describe('Cron Job Scheduling', () => {
       const stateManager = new StateManager(statePaths[agent.id]);
 
       // Add account inactive for 35 days
-      stateManager.recordFollow({
+      await stateManager.recordFollow({
         name: 'InactiveAuthor',
         postsSeenCount: 5,
         firstSeen: Date.now() - 40 * 24 * 60 * 60 * 1000,
@@ -366,7 +375,7 @@ describe('Cron Job Scheduling', () => {
 
       await engine.dailyMaintenance();
 
-      const state = stateManager.loadState();
+      const state = await stateManager.loadState();
       const inactive = state.followedAccounts.find(a => a.name === 'InactiveAuthor');
       expect(inactive).toBeUndefined();
     });
@@ -376,7 +385,7 @@ describe('Cron Job Scheduling', () => {
       const stateManager = new StateManager(statePaths[agent.id]);
 
       // Add account active within 20 days
-      stateManager.recordFollow({
+      await stateManager.recordFollow({
         name: 'ActiveAuthor',
         postsSeenCount: 5,
         firstSeen: Date.now() - 30 * 24 * 60 * 60 * 1000,
@@ -386,7 +395,7 @@ describe('Cron Job Scheduling', () => {
 
       await engine.dailyMaintenance();
 
-      const state = stateManager.loadState();
+      const state = await stateManager.loadState();
       const active = state.followedAccounts.find(a => a.name === 'ActiveAuthor');
       expect(active).toBeDefined();
     });

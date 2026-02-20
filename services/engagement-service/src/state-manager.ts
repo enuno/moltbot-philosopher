@@ -2,9 +2,10 @@
  * StateManager
  * Handles atomic persistence of engagement state to JSON files
  * Includes conflict detection for concurrent writes
+ * Uses async file operations for non-blocking I/O
  */
 
-import fs from 'fs';
+import fs from 'fs/promises';
 import { EngagementState, QueuedAction, ActionType, FollowedAccount } from './types';
 
 export class StateManager {
@@ -15,10 +16,10 @@ export class StateManager {
   }
 
   /**
-   * Load state from disk with automatic daily reset
+   * Load state from disk with automatic daily reset (async)
    */
-  loadState(): EngagementState {
-    const raw = fs.readFileSync(this.statePath, 'utf-8');
+  async loadState(): Promise<EngagementState> {
+    const raw = await fs.readFile(this.statePath, 'utf-8');
     const state = JSON.parse(raw) as EngagementState;
 
     // Auto-reset daily stats if day changed
@@ -39,12 +40,13 @@ export class StateManager {
   }
 
   /**
-   * Save state with conflict detection
+   * Save state with conflict detection and atomic writes
    * If concurrent write detected (lastEngagementCheck changed),
    * merge stats and queue to preserve both changes
+   * Uses tmp file + rename for atomicity
    */
-  saveState(state: EngagementState): void {
-    const current = this.loadState();
+  async saveState(state: EngagementState): Promise<void> {
+    const current = await this.loadState();
 
     // Conflict detection: if lastEngagementCheck on disk is newer,
     // another process acted since we loaded. Merge carefully.
@@ -80,29 +82,31 @@ export class StateManager {
       state.engagementQueue.sort((a, b) => b.priority - a.priority);
     }
 
-    // Persist to disk (JSON with 2-space indent for readability)
-    fs.writeFileSync(this.statePath, JSON.stringify(state, null, 2));
+    // Atomic write: write to temp file, then rename
+    const tempPath = `${this.statePath}.tmp`;
+    await fs.writeFile(tempPath, JSON.stringify(state, null, 2));
+    await fs.rename(tempPath, this.statePath);
   }
 
   /**
    * Add opportunity to engagement queue, maintain priority sort
    */
-  enqueueOpportunity(opportunity: QueuedAction): void {
-    const state = this.loadState();
+  async enqueueOpportunity(opportunity: QueuedAction): Promise<void> {
+    const state = await this.loadState();
     state.engagementQueue.push(opportunity);
-    
+
     // Sort by priority descending
     state.engagementQueue.sort((a, b) => b.priority - a.priority);
 
-    this.saveState(state);
+    await this.saveState(state);
   }
 
   /**
    * Record that an action was executed
    * Increments appropriate daily stat counter
    */
-  recordAction(actionType: ActionType): void {
-    const state = this.loadState();
+  async recordAction(actionType: ActionType): Promise<void> {
+    const state = await this.loadState();
 
     switch (actionType) {
       case 'post':
@@ -124,15 +128,15 @@ export class StateManager {
     }
 
     state.lastEngagementCheck = Date.now();
-    this.saveState(state);
+    await this.saveState(state);
   }
 
   /**
    * Record that an account was followed
    * Tracks quality, engagement history, and exposure count
    */
-  recordFollow(account: FollowedAccount): void {
-    const state = this.loadState();
+  async recordFollow(account: FollowedAccount): Promise<void> {
+    const state = await this.loadState();
 
     // Check if account already followed
     const existing = state.followedAccounts.findIndex(a => a.name === account.name);
@@ -149,18 +153,18 @@ export class StateManager {
       state.followedAccounts.push(account);
     }
 
-    this.saveState(state);
+    await this.saveState(state);
   }
 
   /**
    * Check if we can follow this account
    * Returns canFollow: true only if postsSeenCount >= 3
    */
-  getFollowEvaluationStatus(accountName: string): {
+  async getFollowEvaluationStatus(accountName: string): Promise<{
     canFollow: boolean;
     postsSeenCount: number;
-  } {
-    const state = this.loadState();
+  }> {
+    const state = await this.loadState();
     const account = state.followedAccounts.find(a => a.name === accountName);
 
     if (!account) {
@@ -177,14 +181,14 @@ export class StateManager {
    * Increment posts seen count for an account
    * Used when we see a post from an account we're evaluating for follow
    */
-  incrementPostsSeen(accountName: string): void {
-    const state = this.loadState();
+  async incrementPostsSeen(accountName: string): Promise<void> {
+    const state = await this.loadState();
     const account = state.followedAccounts.find(a => a.name === accountName);
 
     if (account) {
       account.postsSeenCount++;
       account.lastEngagement = Date.now();
-      this.saveState(state);
+      await this.saveState(state);
     }
     // Silently ignore if account not found (not an error condition)
   }

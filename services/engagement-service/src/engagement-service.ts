@@ -150,7 +150,7 @@ app.post('/engage', async (req: Request, res: Response) => {
  * GET /stats - returns engagement stats breakdown
  * Returns: { agent_id: { dailyStats, followedAccounts, queuedOpportunities } }
  */
-app.get('/stats', (req: Request, res: Response) => {
+app.get('/stats', async (req: Request, res: Response) => {
   if (!engine) {
     return res.status(503).json({
       success: false,
@@ -161,9 +161,9 @@ app.get('/stats', (req: Request, res: Response) => {
   try {
     const stats: Record<string, any> = {};
 
-    agentRoster.forEach(agent => {
+    for (const agent of agentRoster) {
       const stateManager = new StateManager(agent.statePath);
-      const state = stateManager.loadState();
+      const state = await stateManager.loadState();
 
       stats[agent.id] = {
         dailyStats: state.dailyStats,
@@ -174,7 +174,7 @@ app.get('/stats', (req: Request, res: Response) => {
           ? new Date(state.lastPostTime).toISOString()
           : null
       };
-    });
+    }
 
     res.json(stats);
   } catch (error) {

@@ -138,7 +138,7 @@ export interface EngagementState {
   lastPostTime: number;
 
   // Cache for Noosphere relevance scores (TTL 1 hour)
-  relevanceCache: Map<string, { score: number; expiresAt: number }>;
+  relevanceCache: Record<string, { score: number; expiresAt: number }>;
 }
 
 /**
