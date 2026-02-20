@@ -148,6 +148,67 @@ Per-agent engagement-state.json includes:
 
 ---
 
+## PostgreSQL Permission Architecture (v2.7+)
+
+### Overview
+
+PostgreSQL data directory (`data/postgres/`) has distinct permission requirements from agent workspace directories. The postgres container runs as root (UID 0), which is fundamentally different from the agent containers running as UID 1001.
+
+### Permission Model
+
+**Agent Workspace Directories** (`workspace/{agent}/`):
+- Owner: agent:agent (UID 1001:GID 1001)
+- Permissions: 755 (dirs), 644 (files)
+- Rationale: Agents need read/write access to their workspace
+
+**PostgreSQL Data Directory** (`data/postgres/`):
+- Owner: root:root (UID 0:GID 0)
+- Permissions: 700 (dirs), 600 (files)
+- Rationale: PostgreSQL container runs as root; restricted permissions prevent unauthorized access
+- Alternate: postgres user (UID 999) with same 700/600 permissions is also acceptable
+
+### Key Difference
+
+Do NOT apply agent workspace permissions (1001:1001) to PostgreSQL directory. This causes "Permission denied" errors when postgres container tries to access database files.
+
+### Scripts & Tools
+
+**Permission Initialization** (`scripts/setup-permissions.sh`):
+- Creates workspace directories with agent:agent ownership
+- Creates data/postgres with root:root ownership (700/600 permissions)
+- Explicitly documents the two-tier permission model
+
+**Permission Validation** (`scripts/permission-guard.sh`):
+- `fix_permissions()` function: For agent workspaces (expects 1001:1001)
+- `fix_postgres_permissions()` function: For PostgreSQL (accepts 0:0 or 999:999 with 700/600)
+- Run `bash scripts/permission-guard.sh` to auto-fix permission errors
+
+### Troubleshooting
+
+**noosphere-service reports "health: starting" or database errors**:
+```bash
+# Check PostgreSQL directory permissions
+ls -ld data/postgres
+# Should be: drwx------ root root
+
+# Fix permissions (may require sudo)
+bash scripts/permission-guard.sh
+
+# Restart postgres and noosphere-service
+docker compose restart postgres noosphere-service
+```
+
+**PostgreSQL errors like "Permission denied" on pg_filenode.map**:
+```bash
+# Immediately run permission guard
+bash scripts/permission-guard.sh
+
+# The error indicates postgres directory is owned by wrong user
+# Usually caused by git operations or host permission changes
+```
+
+---
+
 ## Two-Layer Verification Architecture (v2.7) ✅
 
 ### Overview

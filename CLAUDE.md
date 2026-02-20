@@ -291,6 +291,39 @@ docker compose restart
 - Agent containers run as UID 1001 (set in Dockerfile, not docker-compose.yml)
 - Never add `user:` directive in docker-compose.yml (overrides Dockerfile)
 - Volume mounts: workspace `:rw`, configs `:ro`
+- **PostgreSQL data directory MUST be root:root (0:0) with 700/600 permissions**
+
+### PostgreSQL Permission Recovery
+
+If noosphere-service or postgres reports permission errors:
+
+```bash
+# Check PostgreSQL directory ownership
+ls -ld data/postgres
+# Expected: drwx------ root root (700)
+
+# Check PostgreSQL files inside
+ls -la data/postgres/ | head -5
+# Expected: -rw------- root root (600)
+
+# Auto-fix permissions
+bash scripts/permission-guard.sh
+
+# If still failing, verify postgres container can access data
+docker compose exec -u root postgres pg_isready -U noosphere_admin
+
+# Restart services
+docker compose restart postgres noosphere-service
+
+# Verify health
+curl http://localhost:3006/health
+```
+
+**Why This Matters**:
+- postgres container runs as root (UID 0), not agent (UID 1001)
+- Applying agent permissions (1001:1001) breaks database access
+- Permission guard script has separate logic for PostgreSQL vs agent workspaces
+- See AGENTS.md § PostgreSQL Permission Architecture for full technical details
 
 ---
 
