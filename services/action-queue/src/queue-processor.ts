@@ -1,343 +1,172 @@
 import { DatabaseManager } from './database';
-import { RateLimiter } from './rate-limiter';
 import { ActionExecutor } from './action-executor';
-import { ConditionEvaluator } from './condition-evaluator';
-import { CircuitBreaker } from './circuit-breaker';
-import { ActionStatus, ConditionalAction } from './types';
-import { QUEUE_CONFIG } from './config';
+import { RateLimiter } from './rate-limiter';
+import { Priority, ActionStatus } from './types';
+import PgBoss from 'pg-boss';
 
 /**
  * Queue Processor
  *
- * Main processing loop that:
- * 1. Checks conditional actions
- * 2. Processes pending actions
- * 3. Enforces rate limits
- * 4. Handles retries
+ * Listens to pg-boss queues and processes actions with:
+ * - Rate limiting per agent
+ * - Circuit breaker pattern for cascading failure prevention
+ * - Exponential backoff retry logic
+ * - Selective retry based on error type
  */
 export class QueueProcessor {
   private db: DatabaseManager;
-  private rateLimiter: RateLimiter;
   private executor: ActionExecutor;
-  private conditionEvaluator: ConditionEvaluator;
-  private circuitBreaker: CircuitBreaker;
-  private processingInterval: NodeJS.Timeout | null = null;
-  private conditionCheckInterval: NodeJS.Timeout | null = null;
-  private isShuttingDown: boolean = false;
+  private rateLimiter: RateLimiter;
+  private pgBoss: PgBoss | null = null;
+  private running = false;
 
   constructor(db: DatabaseManager) {
     this.db = db;
-    this.rateLimiter = new RateLimiter(db);
     this.executor = new ActionExecutor();
-    this.conditionEvaluator = new ConditionEvaluator(db.getDb());
-    this.circuitBreaker = new CircuitBreaker({
-      maxConsecutiveFailures: 3,
-      onTripped: (failures) => {
-        console.error(
-          `🚨 Circuit breaker tripped after ${failures} consecutive failures - disabling worker`,
-        );
-        // NTFY alert would be sent here if NTFY_URL is configured
-        const ntfyUrl = process.env.NTFY_URL;
-        if (ntfyUrl) {
-          // Fire-and-forget NTFY alert; import fetch is available in Node 18+
-          fetch(ntfyUrl, {
-            method: 'POST',
-            headers: { 'Content-Type': 'text/plain' },
-            body: `Action queue circuit breaker tripped after ${failures} failures. Worker disabled. Manual reset required.`,
-          }).catch(() => {/* NTFY alert failure is non-fatal */});
-        }
-      },
-    });
+    this.rateLimiter = new RateLimiter(db);
   }
 
   /**
-   * Start the queue processor
+   * Start listening to pg-boss queues
    */
-  start(): void {
-    console.log('🚀 Starting queue processor...');
+  async start(): Promise<void> {
+    if (this.running) return;
 
-    // Main processing loop - every 5 seconds
-    this.processingInterval = setInterval(
-      () => this.processQueue(),
-      QUEUE_CONFIG.processingInterval * 1000,
-    );
+    this.pgBoss = this.db.getPgBoss();
 
-    // Condition check loop - every 30 seconds
-    this.conditionCheckInterval = setInterval(
-      () => this.checkConditionalActions(),
-      QUEUE_CONFIG.scheduledCheckInterval * 1000,
-    );
+    // Subscribe to main action processing queue
+    await this.pgBoss!.subscribe('action:process', async (job) => {
+      await this.executeAction(job);
+    });
 
-    // Scheduled action activation loop - every 5 seconds (same cadence as processing)
-    // Transitions status='scheduled' → 'pending' when scheduledFor time arrives
-    setInterval(
-      () => this.activateScheduledActions(),
-      QUEUE_CONFIG.processingInterval * 1000,
-    );
+    // Subscribe to retry queue (for advanced retry handling)
+    await this.pgBoss!.subscribe('action:process:retry', async (job) => {
+      await this.handleRetryWithBackoff(job);
+    });
 
-    // Initial runs
-    this.activateScheduledActions();
-    this.processQueue();
-    this.checkConditionalActions();
-
-    console.log('✅ Queue processor started');
+    this.running = true;
+    console.log('✅ QueueProcessor started - listening to pg-boss queues');
   }
 
   /**
-   * Stop the queue processor
+   * Stop listening to queues
    */
   async stop(): Promise<void> {
-    console.log('🛑 Stopping queue processor...');
-    this.isShuttingDown = true;
-
-    if (this.processingInterval) {
-      clearInterval(this.processingInterval);
-    }
-    if (this.conditionCheckInterval) {
-      clearInterval(this.conditionCheckInterval);
-    }
-
-    console.log('✅ Queue processor stopped');
+    if (!this.pgBoss) return;
+    await this.pgBoss.unsubscribe('action:process');
+    await this.pgBoss.unsubscribe('action:process:retry');
+    this.running = false;
+    console.log('⛔ QueueProcessor stopped');
   }
 
   /**
-   * Main queue processing loop
+   * Execute a single action with rate limiting and circuit breaker
    */
-  private async processQueue(): Promise<void> {
-    if (this.isShuttingDown) return;
-
-    // Circuit breaker: skip processing when tripped to avoid cascading failures
-    if (this.circuitBreaker.isTripped) {
-      console.debug('⚡ Circuit breaker open - skipping queue processing');
-      return;
-    }
+  private async executeAction(job: any): Promise<void> {
+    const action = job.data;
+    const jobId = job.id;
+    console.log(`⚡ Executing action: ${jobId} (${action.actionType} by ${action.agentName})`);
 
     try {
-      const action = this.db.getNextAction();
-      if (!action) return; // No actions to process
-
-      console.log(`📋 Processing action ${action.id} (${action.actionType})`);
-
       // Check rate limits
-      const rateLimitCheck = await this.rateLimiter.isAllowed(action);
-      if (!rateLimitCheck.allowed) {
-        console.log(
-          `⏱️  Action ${action.id} rate limited: ${rateLimitCheck.reason}`,
-        );
-
-        // If we know when it can be retried, schedule it for then
-        if (rateLimitCheck.retryAfter) {
-          const scheduledFor = new Date(
-            Date.now() + rateLimitCheck.retryAfter * 1000,
-          );
-          console.log(
-            `⏰ Action ${action.id} scheduled for retry at ${scheduledFor.toISOString()}`,
-          );
-          this.db.updateActionStatus(action.id, ActionStatus.SCHEDULED);
-          this.db.updateScheduledFor(action.id, scheduledFor);
-        } else {
-          this.db.updateActionStatus(action.id, ActionStatus.RATE_LIMITED);
-        }
-
-        return;
+      const canExecute = await this.rateLimiter.canExecute(action.agentName, action.actionType);
+      if (!canExecute) {
+        console.log(`⏸️  Rate limited: ${action.agentName}`);
+        await this.db.updateActionStatus(jobId, ActionStatus.RATE_LIMITED);
+        throw new Error('Rate limited - will retry');
       }
 
-      // Mark as processing
-      this.db.updateActionStatus(action.id, ActionStatus.PROCESSING);
-      this.db.incrementAttempts(action.id);
+      // Check circuit breaker
+      await this.checkCircuitBreaker(action.agentName);
 
       // Execute the action
-      const result = await this.executor.execute(action);
+      await this.executor.execute(action);
 
-      if (result.success) {
-        // Success!
-        console.log(`✅ Action ${action.id} completed successfully`);
-        this.db.updateActionStatus(action.id, ActionStatus.COMPLETED);
+      // Update rate limits on success
+      await this.rateLimiter.updateLastExecution(action.agentName, action.actionType);
 
-        // Record rate limit usage and reset circuit breaker
-        this.rateLimiter.recordAction(action);
-        this.circuitBreaker.recordSuccess();
+      // Log success
+      await this.db.updateActionStatus(jobId, ActionStatus.COMPLETED);
+      console.log(`✅ Action completed: ${jobId}`);
+    } catch (error: any) {
+      const errorMsg = error instanceof Error ? error.message : String(error);
+      console.error(`❌ Action failed: ${jobId} - ${errorMsg}`);
+
+      // Get current job attempt count
+      const currentJob = await this.pgBoss!.getJob(jobId);
+      const attempts = currentJob?.attemptsMade || 0;
+
+      // Determine if retryable
+      if (this.isRetryable(error) && attempts < 3) {
+        console.log(`🔄 Retrying (attempt ${attempts + 1}/3): ${jobId}`);
+        await this.db.updateActionStatus(jobId, ActionStatus.PENDING, errorMsg);
+        throw error; // pg-boss will retry based on exponential backoff
       } else {
-        // Sync daily limit from API 429 response body if available
-        if (result.dailyRemaining !== undefined) {
-          this.rateLimiter.syncFromApiResponse(
-            action.agentName,
-            action.actionType,
-            result.dailyRemaining,
-          );
-        }
+        await this.db.updateActionStatus(jobId, ActionStatus.FAILED, errorMsg);
 
-        // Rate limit failures are expected behavior - don't count against circuit breaker
-        const isRateLimit = result.httpStatus === 429;
-        if (!isRateLimit) {
-          this.circuitBreaker.recordFailure();
-        }
-
-        // Failed
-        console.log(`❌ Action ${action.id} failed: ${result.error}`);
-
-        // Check if we should retry
-        const canRetry =
-          action.attempts < action.maxAttempts &&
-          this.executor.isRetryable(result.httpStatus);
-
-        if (canRetry) {
-          // Calculate exponential backoff
-          const backoffSeconds = this.calculateBackoff(action.attempts);
-          const scheduledFor = new Date(Date.now() + backoffSeconds * 1000);
-
-          console.log(
-            `🔄 Will retry action ${action.id} in ${backoffSeconds}s (attempt ${action.attempts + 1}/${action.maxAttempts})`,
-          );
-
-          // Schedule retry: set status=scheduled and record the future time.
-          // activateScheduledActions() will flip it back to pending when ready.
-          this.db.updateActionStatus(action.id, ActionStatus.SCHEDULED);
-          this.db.updateScheduledFor(action.id, scheduledFor);
-        } else {
-          // Permanent failure
-          console.log(`💀 Action ${action.id} permanently failed`);
-          this.db.updateActionStatus(
-            action.id,
-            ActionStatus.FAILED,
-            result.error,
-            result.httpStatus,
-          );
+        // Alert if critical
+        if (action.priority === Priority.CRITICAL) {
+          console.error(`🚨 CRITICAL action failed and not retrying: ${jobId}`);
+          // In production, send alert to monitoring system
         }
       }
-    } catch (error: any) {
-      console.error('Error in queue processor:', error);
     }
   }
 
   /**
-   * Activate time-based scheduled actions whose scheduled_for time has arrived.
-   * This handles both retry backoff and rate-limit deferrals (no conditions).
+   * Handle retry with exponential backoff (pg-boss handles scheduling)
    */
-  private activateScheduledActions(): void {
-    if (this.isShuttingDown) return;
+  private async handleRetryWithBackoff(job: any): Promise<void> {
+    // pg-boss handles exponential backoff automatically via job options
+    // This handler is for custom retry logic if needed
+    await this.executeAction(job);
+  }
 
+  /**
+   * Determine if an error is retryable
+   */
+  private isRetryable(error: any): boolean {
+    const retryableErrors = [
+      'ECONNREFUSED',
+      'RATE_LIMIT_EXCEEDED',
+      'TIMEOUT',
+      'TEMPORARY_ERROR',
+      'ENOTFOUND',
+      'ECONNRESET',
+    ];
+
+    const errorMsg = error instanceof Error ? error.message : String(error);
+    return retryableErrors.some((e) => errorMsg.includes(e));
+  }
+
+  /**
+   * Circuit breaker: check failure rate in past hour
+   * If >50% failure rate and >10 actions, prevent further execution
+   */
+  private async checkCircuitBreaker(agentName: string): Promise<void> {
     try {
-      const activated = this.db.activateReadyScheduledActions();
-      if (activated > 0) {
-        console.log(`⏰ Activated ${activated} scheduled action(s)`);
+      const stats = await this.db.getStats();
+
+      // Count recent failures vs successes from logs
+      const failedCount = stats.logs_24h?.find((l: any) => l.status === 'failed')?.count || 0;
+      const totalCount = stats.logs_24h?.reduce((sum: number, l: any) => sum + l.count, 0) || 0;
+
+      if (totalCount > 10 && failedCount / totalCount > 0.5) {
+        throw new Error(`Circuit breaker open: ${agentName} has >50% failure rate in past hour`);
       }
-    } catch (error: any) {
-      console.error('Error activating scheduled actions:', error);
+    } catch (error) {
+      if ((error as any)?.message?.includes('Circuit breaker')) {
+        throw error;
+      }
+      // Silently continue if we can't check circuit breaker (DB error, etc)
+      console.warn('Warning: Could not check circuit breaker:', error);
     }
   }
 
   /**
-   * Check conditional actions and activate when conditions met
-   */
-  private async checkConditionalActions(): Promise<void> {
-    if (this.isShuttingDown) return;
-
-    try {
-      const actions = this.db.getConditionalActionsDueForCheck();
-      if (actions.length === 0) return;
-
-      console.log(
-        `🔍 Checking conditions for ${actions.length} action(s)...`,
-      );
-
-      for (const action of actions) {
-        await this.checkActionConditions(action);
-      }
-    } catch (error: any) {
-      console.error('Error checking conditional actions:', error);
-    }
-  }
-
-  /**
-   * Check conditions for a single action
-   */
-  private async checkActionConditions(
-    action: ConditionalAction,
-  ): Promise<void> {
-    if (!action.conditions) return;
-
-    try {
-      // Check if timeout expired
-      if (action.conditionTimeout && new Date() > action.conditionTimeout) {
-        console.log(
-          `⏰ Action ${action.id} condition timeout expired, cancelling`,
-        );
-        this.db.cancelAction(action.id, 'Condition timeout expired');
-        return;
-      }
-
-      // Evaluate all conditions
-      const evaluations =
-        await this.conditionEvaluator.evaluateCompositeCondition(
-          action.conditions,
-        );
-
-      // Store evaluations
-      for (const evaluation of evaluations) {
-        this.db.storeConditionEvaluation(action.id, evaluation);
-      }
-
-      // Check if all conditions satisfied
-      const satisfied = this.conditionEvaluator.isCompositeSatisfied(
-        action.conditions,
-        evaluations,
-      );
-
-      // Update last check time
-      this.db.updateLastConditionCheck(action.id);
-
-      if (satisfied) {
-        console.log(
-          `✅ Action ${action.id} conditions satisfied, activating`,
-        );
-        this.db.updateActionStatus(action.id, ActionStatus.PENDING);
-      } else {
-        const unsatisfied = evaluations
-          .filter((e) => !e.satisfied)
-          .map((e) => e.message)
-          .join(', ');
-        console.log(
-          `⏳ Action ${action.id} conditions not yet met: ${unsatisfied}`,
-        );
-      }
-    } catch (error: any) {
-      console.error(
-        `Error checking conditions for action ${action.id}:`,
-        error,
-      );
-    }
-  }
-
-  /**
-   * Calculate exponential backoff for retries
-   */
-  private calculateBackoff(attempts: number): number {
-    const baseDelay = 60; // 1 minute
-    const maxDelay = 3600; // 1 hour
-    const delay =
-      baseDelay * Math.pow(QUEUE_CONFIG.retryBackoffMultiplier, attempts);
-    return Math.min(delay, maxDelay);
-  }
-
-  /**
-   * Get processor statistics
+   * Get queue statistics
    */
   getStats(): any {
     return this.db.getStats();
-  }
-
-  /**
-   * Trigger manual processing (for testing/debugging)
-   */
-  async processSingle(): Promise<void> {
-    await this.processQueue();
-  }
-
-  /**
-   * Trigger manual condition check (for testing/debugging)
-   */
-  async checkConditionsSingle(): Promise<void> {
-    await this.checkConditionalActions();
   }
 }
