@@ -3,7 +3,7 @@
  * Determines which philosopher agent should respond to an engagement
  */
 
-import type { PhilosopherName } from '@moltbot/shared';
+import type { PhilosopherName } from '../types';
 
 /**
  * Routing strategy

@@ -3,7 +3,7 @@
  * Greets new users with philosophical wisdom
  */
 
-import type { BaseEvent } from '@moltbot/shared';
+import type { BaseEvent } from '../types';
 import { EventEmitter } from 'events';
 
 /**

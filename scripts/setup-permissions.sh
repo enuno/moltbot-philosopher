@@ -52,10 +52,20 @@ mkdir -p "$PROJECT_ROOT/logs"
 mkdir -p "$PROJECT_ROOT/data/postgres"
 mkdir -p "$PROJECT_ROOT/data/action-queue"
 
+# Logs and action-queue owned by agent user (1001:1001)
 sudo chown -R $TARGET_UID:$TARGET_GID "$PROJECT_ROOT/logs"
-sudo chown -R $TARGET_UID:$TARGET_GID "$PROJECT_ROOT/data"
+sudo chown -R $TARGET_UID:$TARGET_GID "$PROJECT_ROOT/data/action-queue"
+
+# PostgreSQL data directory: owned by root (special case - container runs as root)
+# Permissions: 700 for directories, 600 for files
+sudo chown -R root:root "$PROJECT_ROOT/data/postgres"
+sudo find "$PROJECT_ROOT/data/postgres" -type d -exec chmod 700 {} \; 2>/dev/null || true
+sudo find "$PROJECT_ROOT/data/postgres" -type f -exec chmod 600 {} \; 2>/dev/null || true
 
 echo -e "${GREEN}✅ Shared directories ready${NC}"
+echo "   - logs/: agent (1001:1001)"
+echo "   - data/action-queue/: agent (1001:1001)"
+echo "   - data/postgres/: root (0:0) with 700/600 permissions"
 
 # Set up git hooks to prevent permission issues
 echo ""
