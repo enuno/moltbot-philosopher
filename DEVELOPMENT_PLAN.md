@@ -2001,7 +2001,102 @@ body fields; `daily_remaining` not yet surfaced to action-queue decisions.
 
 ---
 
-### 7.2 Heartbeat CoV Monitoring
+### 7.2 Action Queue PostgreSQL Migration
+
+**Status**: Pending — Currently uses SQLite with host-mounted file storage. Architectural
+decision needed before scale increases.
+
+**Rationale**: SQLite creates operational friction in containerized multi-agent environments:
+
+| Problem | Impact | Solution |
+|---------|--------|----------|
+| File-based locking | 9 agents competing for WAL locks | PostgreSQL connection pooling |
+| Host mount coupling | Violates container immutability | Network DB avoids host state |
+| Backup inconsistency | Two backup strategies (DB dump + filesystem) | Single PostgreSQL backup strategy |
+| Permission fragility | SQLite file UID/GID must match container (1001) | No host filesystem coupling |
+| Observability | Limited query capability without docker exec | Full SQL analytics queries |
+| Horizontal scaling dead end | NFS required for multi-node | Native horizontal scalability |
+
+**Architecture**:
+
+```sql
+-- Single-database design (action_queue schema in existing postgres:16)
+CREATE DATABASE action_queue OWNER noosphere_admin;
+CREATE SCHEMA queue;
+
+CREATE TABLE queue.jobs (
+    id BIGSERIAL PRIMARY KEY,
+    agent_id VARCHAR(64) NOT NULL,
+    action_type VARCHAR(32) NOT NULL,  -- 'post', 'comment', 'follow', 'dm'
+    payload JSONB NOT NULL,
+    status VARCHAR(16) DEFAULT 'pending',
+    priority INTEGER DEFAULT 5,
+    scheduled_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+    started_at TIMESTAMP WITH TIME ZONE,
+    completed_at TIMESTAMP WITH TIME ZONE,
+    error_count INTEGER DEFAULT 0,
+    last_error TEXT,
+    retry_after TIMESTAMP WITH TIME ZONE
+);
+
+CREATE INDEX idx_jobs_status_scheduled ON queue.jobs(status, scheduled_at)
+    WHERE status = 'pending';
+CREATE INDEX idx_jobs_agent_status ON queue.jobs(agent_id, status);
+```
+
+**Implementation Strategy**:
+
+#### Phase 1: Dual-Write (Week 1)
+- [ ] Create PostgreSQL schema in existing `postgres:16` container
+- [ ] Add `HybridQueueService` that writes to both SQLite and PostgreSQL (feature-gated with `DUAL_WRITE=true`)
+- [ ] Validate data consistency between both stores
+
+#### Phase 2: Cutover (Week 2)
+- [ ] Switch to PostgreSQL-only reads and writes
+- [ ] Remove SQLite mount from `docker-compose.yml`
+- [ ] Update `services/action-queue/src/queue-service.ts`:
+  - Remove SQLiteClient
+  - Use PostgreSQL connection pool
+  - Update environment: `QUEUE_DB_TYPE=postgresql`, `QUEUE_DATABASE_URL=postgresql://...`
+
+#### Phase 3: Cleanup (Week 3)
+- [ ] Delete SQLite implementation code
+- [ ] Remove `data/action-queue/` directory from workspace mounts
+- [ ] Add `action_queue` database to Postgres backup procedures
+- [ ] Document in `AGENTS.md` and `SERVICE_ARCHITECTURE.md`
+
+**Observability Gains**:
+
+```sql
+-- Real-time queue health
+SELECT agent_type, action_type, status, COUNT(*),
+  AVG(EXTRACT(EPOCH FROM (completed_at - created_at))) as latency_sec
+FROM action_queue.jobs
+WHERE created_at > NOW() - INTERVAL '1 hour'
+GROUP BY agent_type, action_type, status;
+
+-- Detect stuck jobs (deadletters)
+SELECT * FROM action_queue.jobs
+WHERE status = 'processing' AND started_at < NOW() - INTERVAL '5 minutes';
+
+-- Rate limit tracking per agent
+SELECT agent_id, DATE(created_at), action_type, COUNT(*)
+FROM action_queue.jobs
+WHERE status = 'completed' AND created_at > NOW() - INTERVAL '24 hours'
+GROUP BY agent_id, DATE(created_at), action_type;
+```
+
+**Files affected**: `services/action-queue/src/queue-service.ts`, `services/action-queue/src/config.ts`,
+`docker-compose.yml`, `scripts/db/init-noosphere-v3.sql`
+
+**Dependencies**: Existing PostgreSQL 16 container (no additional services needed)
+
+**Risk**: Medium — requires data migration validation. Mitigated by dual-write validation period.
+
+---
+
+### 7.3 Heartbeat CoV Monitoring
 
 **Status**: Not implemented — heartbeat fires every 4 hours fixed but CoV is not
 tracked or reported.
@@ -2025,7 +2120,7 @@ CoV and signal human control, potentially triggering platform scrutiny.
 
 ---
 
-### 7.3 Two-Layer Verification Defense Specification Alignment
+### 7.4 Two-Layer Verification Defense Specification Alignment
 
 **Status**: Both layers exist (`services/intelligent-proxy/`,
 `services/verification-service/`) but the exact spec from best practices has not
@@ -2057,7 +2152,7 @@ been validated against the implementation.
 
 ---
 
-### 7.4 Identity-First Security (PKI Layer)
+### 7.5 Identity-First Security (PKI Layer)
 
 **Status**: Not implemented — agent authentication uses API key only; no PKI or
 scope enforcement beyond egress proxy allowlist.
