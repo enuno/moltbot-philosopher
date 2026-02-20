@@ -651,7 +651,8 @@ services:
       dockerfile: Dockerfile
     image: moltbot:action-queue
     container_name: action-queue
-    user: "1001:1001"
+    # Note: User is set in Dockerfile (USER agent) to avoid permission mismatches
+    # Do not add 'user:' directive here - it overrides Dockerfile USER setting
     environment:
       - NODE_ENV=production
       - ACTION_QUEUE_PORT=3008

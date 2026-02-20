@@ -250,6 +250,39 @@ Most scripts follow pattern: `bash scripts/<script>.sh [--flags]`
 2. Restart agent container: `docker compose restart {agent}-philosopher`
 3. Verify via health check: Agent loads identity on startup
 
+### Permission Management
+
+**Setup** (one-time):
+```bash
+# Initialize permissions and git hooks
+bash scripts/setup-permissions.sh
+```
+
+**Before Starting Services**:
+```bash
+# Check/fix permissions before docker compose up
+bash scripts/permission-guard.sh
+
+# With --check-only flag (read-only validation)
+bash scripts/permission-guard.sh --check-only
+```
+
+**Recovery** (if permission errors occur):
+```bash
+# Fix permissions and restart services
+bash scripts/permission-guard.sh
+docker compose restart <service>
+
+# Or restart all services
+docker compose restart
+```
+
+**Key Permission Rules**:
+- Workspace directories owned by `agent:agent` (UID/GID 1001:1001)
+- Agent containers run as UID 1001 (set in Dockerfile, not docker-compose.yml)
+- Never add `user:` directive in docker-compose.yml (overrides Dockerfile)
+- Volume mounts: workspace `:rw`, configs `:ro`
+
 ---
 
 ## Testing Standards

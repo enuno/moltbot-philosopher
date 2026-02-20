@@ -418,6 +418,115 @@ sudo chown -R 1001:1001 workspace/*  # Container UID
 
 ---
 
+## Proactive Permissions Management (v2.7)
+
+**Problem**: Permission errors are a common operational issue. Containers run as `agent:agent` (UID 1001),
+but host volume ownership may differ, causing "Permission denied" errors during development.
+
+**Solution**: Three-layer defense preventing errors before they occur.
+
+### UID/GID Architecture
+
+All containers run as `agent:agent` (UID 1001, GID 1001). This must match host ownership.
+
+```dockerfile
+# Dockerfile
+RUN useradd -u 1001 -m agent
+USER agent  # Sets UID/GID for all container processes
+```
+
+```yaml
+# docker-compose.yml
+# NO user: directive - let Dockerfile handle it
+volumes:
+  - ./workspace/classical:/workspace:rw  # Owned by 1001:1001
+  - ./config:/app/config:ro               # Read-only configs
+```
+
+### Three-Layer Defense
+
+**Layer 1: Pre-flight Checks** (`scripts/permission-guard.sh`)
+- Run before any docker-compose command
+- Validates host permissions match UID 1001:1001
+- Detects permission anti-patterns (user: directives, wrong ownership)
+- Alerts before errors occur
+
+**Layer 2: Container Entrypoint** (`scripts/entrypoint.sh`)
+- Corrects permissions at runtime before services start
+- Logs any corrections for debugging
+- Ensures containers never encounter permission errors
+
+**Layer 3: Health Check Recovery**
+- Detects permission-related failures in health checks
+- Triggers auto-remediation (restart with permission fixes)
+- Alerts operator if manual intervention needed
+
+### Permission Error Prevention Rules
+
+1. **Never use `user:` in docker-compose.yml**
+   - Overrides Dockerfile USER directive
+   - Causes permission mismatches between host and container
+   - Remove all `user:` lines from services
+
+2. **Always mount volumes with consistent ownership**
+   - Host UID 1001 must own all workspace/ directories
+   - Data directories: postgres/, action-queue/, logs/
+   - Run: `sudo chown -R 1001:1001 workspace/`
+
+3. **Use read-only mounts where possible**
+   - Config files: `:ro` (read-only)
+   - Scripts: `:ro` (read-only)
+   - Only workspace/ is `:rw` (read-write)
+
+4. **Workspace is the only writable volume**
+   - All agent state goes here
+   - Docker containers must own this directory
+   - Host users access via `docker exec` or scripts
+
+### Quick Setup
+
+**First time setup** (creates directories, git hooks, agent user):
+
+```bash
+bash scripts/setup-permissions.sh
+```
+
+**Before starting containers** (validates permissions):
+
+```bash
+bash scripts/permission-guard.sh
+```
+
+**If permission errors occur**:
+
+```bash
+# 1. Stop containers
+docker compose down
+
+# 2. Fix permissions
+bash scripts/permission-guard.sh
+
+# 3. Restart
+docker compose up -d
+```
+
+**Check without fixing**:
+
+```bash
+bash scripts/permission-guard.sh --check-only
+```
+
+### Common Issues & Solutions
+
+| Error | Cause | Fix |
+|-------|-------|-----|
+| `Permission denied: workspace/` | Wrong ownership | `bash scripts/permission-guard.sh` |
+| `user:` in docker-compose | Overrides Dockerfile | Remove `user:` directives |
+| `Can't write to logs/` | Missing directory | `bash scripts/setup-permissions.sh` |
+| Permission errors after pull | Git checkout changed ownership | Git post-checkout hook auto-runs `permission-guard.sh` |
+
+---
+
 ## Configuration & Deployment
 
 **Required Environment**:
