@@ -291,6 +291,55 @@ VERY_LONG_CONTEXT_THRESHOLD=10000  # tokens
 - [ ] Add Venice + Kimi API configuration to agent env files
 - [ ] Create model routing configuration (`config/model-routing.yml`)
 
+#### 1.4 Permission Management Hardening
+
+**Status**: Foundational — proactive permission management (from AGENT_ARCHITECTURE_AUDIT.md)
+
+**Overview**: Implement three-layer defense against permission errors (pre-flight checks,
+container entrypoint, health check recovery).
+
+##### Tasks
+
+- [ ] Create `scripts/permission-guard.sh`:
+  - Pre-flight validation of host permissions before docker-compose
+  - Check all workspace dirs owned by UID 1001:1001
+  - Validate no `user:` directives in docker-compose.yml (overrides Dockerfile USER)
+  - Detect and alert on permission anti-patterns
+  - See AGENT_ARCHITECTURE_AUDIT.md §1 for full implementation
+
+- [ ] Create `scripts/setup-permissions.sh`:
+  - One-time setup script for development environment
+  - Create agent user (UID 1001) if needed
+  - Initialize workspace directory structure with correct ownership
+  - Set up git hooks for post-checkout permission validation
+  - See AGENT_ARCHITECTURE_AUDIT.md §1.D for full implementation
+
+- [ ] Update `AGENTS.md` - Add "Proactive Permissions Management (v2.7)" section:
+  - Document UID/GID architecture (agent:agent = 1001:1001)
+  - Explain three-layer defense strategy
+  - Include permission rules (never `user:`, consistent ownership, read-only mounts)
+
+- [ ] Update `CLAUDE.md` - Add "Permission Management" to Common Tasks:
+  - Document `bash scripts/permission-guard.sh` usage
+  - Add recovery procedure for permission-denied errors
+  - Document `--check-only` and `--fix` flags
+
+- [ ] Update `docker-compose.yml`:
+  - Remove inconsistent `user:` directives (let Dockerfile handle it)
+  - Ensure consistent volume mount patterns across all services
+  - Document volume mount strategy (rw for workspace, ro for config/scripts)
+
+- [ ] Audit `scripts/entrypoint.sh`:
+  - Ensure permissions corrected at container startup
+  - Add logging for any permission corrections made
+
+- [ ] Add `bash scripts/permission-guard.sh` to CI/CD pre-deployment step
+
+**Files affected**: `scripts/permission-guard.sh` (new), `scripts/setup-permissions.sh` (new),
+`AGENTS.md`, `CLAUDE.md`, `docker-compose.yml`, `scripts/entrypoint.sh`
+
+---
+
 ### Phase 2: Multi-Agent Orchestration (Week 3-4)
 
 #### 2.1 Docker Compose Implementation
@@ -1305,6 +1354,322 @@ This Phase 6 implementation transforms MoltBot from a reactive agent into a proa
 
 ---
 
+## Phase 6.5: Enhanced Platform Engagement Automation (Week 14-16)
+
+### Overview
+
+Transform agents from passive responders into active community participants through automated but
+thoughtful engagement across multiple submolts. Based on recommendations from AGENT_ARCHITECTURE_AUDIT.md §2.
+
+**Core objective**: Transition from "visitor" to "citizen" of Moltbook through consistent, meaningful
+participation while respecting platform rate limits and quality standards.
+
+### 6.5.1 Engagement Hierarchy & Automation Framework
+
+#### Philosophy of Presence
+
+Agents must progress through four engagement levels:
+
+| Level | Current | Target | Capability |
+|-------|---------|--------|------------|
+| **Passive** | ✓ | — | Respond when mentioned |
+| **Reactive** | ✓ | — | Reply to comments on own posts |
+| **Proactive** | — | ✓ | Initiate interactions, follow accounts, start conversations |
+| **Generative** | — | ✓ | Create content that spurs community engagement |
+
+#### Automation Rules
+
+**Following Strategy** (Be Selective but Active)
+- Follow 1-2 new accounts per day based on semantic similarity and quality
+- Unfollow accounts inactive >30 days or quality decline
+- Never exceed 50 total follows (curated feed quality)
+- Track following evaluation history per account (minimum 3 posts seen before following)
+
+**Submolt Expansion**
+- Subscribe to 3-5 active submolts beyond ethics-convergence:
+  - m/general (required — broad reach)
+  - m/aithoughts (AI philosophy alignment)
+  - m/creative-writing (agent-specific overlap)
+  - m/science-discussion (empiricism/research)
+  - m/politics-philosophy (political theory)
+- Rotate subscriptions quarterly based on engagement metrics
+
+**DM Initiation Protocol**
+- Send 1-2 DM requests per week to:
+  - Agents who consistently engage with your posts
+  - Agents with complementary philosophical traditions
+  - New agents (welcome messages)
+- DM content: philosophical questions, collaboration proposals (never spam)
+
+**Thread Interaction**
+- Target 5-10 comments per day across:
+  - Your own posts (reply to all comments within 2 hours)
+  - Hot posts in subscribed submolts (add philosophical perspective)
+  - New agent posts (welcome + substantive comment)
+  - Controversial discussions (steel-man both sides)
+
+**Posting Schedule** (Multi-Submolt)
+- ethics-convergence: 1 post per day (deep philosophical essays)
+- m/general: 1 post per 2 days (accessible philosophical observations)
+- Other submolts: 1 post per week (tradition-specific content)
+- Total: 2-3 posts per day across different communities
+
+### 6.5.2 Engagement Service (Port 3010)
+
+Create new TypeScript microservice to handle:
+- Feed monitoring (every 5 minutes)
+- Opportunity detection (semantic analysis of new posts)
+- Rate limit management (respect 30-min post, 20-sec comment limits)
+- Engagement quality scoring (avoid low-effort interactions)
+
+#### Service Architecture
+
+```typescript
+// services/engagement-service/src/index.ts
+- EngagementEngine: Core orchestration logic
+  - runEngagementCycle(): Execute full engagement pass
+  - monitorFeed(): Scan submolt feeds for opportunities
+  - considerPosting(): Determine if new post should be created
+  - considerFollowing(): Evaluate and follow high-quality accounts
+  - dailyMaintenance(): Cleanup and discovery
+
+- StateManager: Persistence layer
+  - Track daily engagement stats
+  - Maintain following list and evaluation history
+  - Store submolt subscriptions
+  - Log engagement opportunities
+
+- RelevanceCalculator: Semantic analysis
+  - Score posts for agent-tradition alignment
+  - Keyword matching + author quality
+  - Engagement heuristics
+```
+
+#### Key Endpoints
+
+- `GET /health` - Service health check
+- `POST /engage` - Manually trigger engagement cycle
+- `GET /stats` - Engagement statistics and daily breakdown
+- `GET /stats/archetype` - Participation rates by philosophical school
+
+#### Tasks
+
+- [ ] Implement `services/engagement-service/src/index.ts` - Main service with Express
+  - Cron jobs: feed monitoring (5min), posting checks (30min), daily maintenance (2am)
+  - Manual trigger endpoint for testing
+  - Comprehensive logging to workspace state
+
+- [ ] Implement `services/engagement-service/src/engagement-engine.ts`
+  - `monitorFeed()`: Scan submolt feeds, queue high-relevance posts
+  - `considerPosting()`: Check rate limits, generate post content
+  - `considerFollowing()`: Find and validate follow candidates
+  - `dailyMaintenance()`: Unfollow inactive, discover new submolts
+  - See AGENT_ARCHITECTURE_AUDIT.md §2.B for full pseudo-code
+
+- [ ] Implement `services/engagement-service/src/state-manager.ts`
+  - Atomic operations on workspace state files
+  - Daily stats tracking (posts_created, comments_made, accounts_followed, etc.)
+  - Following evaluation history (minimum 3-post visibility before follow)
+  - Engagement opportunity queue management
+
+- [ ] Create `workspace/{agent}/engagement-state.json` schema
+  ```json
+  {
+    "daily_stats": {
+      "date": "2026-02-21",
+      "posts_created": 2,
+      "comments_made": 7,
+      "accounts_followed": 1,
+      "dm_requests_sent": 0,
+      "threads_participated": 3
+    },
+    "followed_accounts": [
+      {
+        "name": "PhilosopherBot",
+        "postsSeenCount": 5,
+        "firstSeen": 1740123456,
+        "lastEngagement": 1740456789,
+        "qualityScore": 0.85
+      }
+    ],
+    "subscribed_submolts": ["ethics-convergence", "general", "aithoughts"],
+    "pending_dm_requests": [],
+    "engagement_queue": [
+      {
+        "postId": "post_123",
+        "priority": 0.85,
+        "reason": "Semantic match: virtue ethics",
+        "type": "comment"
+      }
+    ],
+    "last_engagement_check": 1740123456,
+    "last_post_time": 1740456789,
+    "daily_reset": "2026-02-21T00:00:00Z"
+  }
+  ```
+
+### 6.5.3 Content Generation for Engagement
+
+Extend `services/ai-content-generator` with new personas:
+
+- `engagement_responder`: Quick, natural replies to discovered posts
+- `dm_initiator`: Warm, philosophical DM openings
+- `following_justification`: Explain why you're following an account
+
+#### Tasks
+
+- [ ] Add engagement-focused personas to generator
+- [ ] Implement quality scoring (avoid generic "good post" responses)
+- [ ] Add relevance filtering (only engage on semantic match > 0.6)
+
+### 6.5.4 Integration with Existing Systems
+
+#### Noosphere Integration
+- Use Noosphere to enhance semantic relevance scoring
+- Query memory for agent-tradition alignment facts
+- Record learned engagement patterns in memory
+
+#### Rate Limiter Integration
+- Check action-queue before posting/commenting
+- Respect `dailyRemaining` budget from Moltbook API
+- Queue engagement actions with priority (high = don't skip if under limit)
+
+#### Docker Compose Integration
+
+```yaml
+  # Engagement Service - Proactive platform interaction
+  engagement-service:
+    build:
+      context: ./services/engagement-service
+      dockerfile: Dockerfile
+    image: moltbot:engagement-service
+    container_name: engagement-service
+    environment:
+      - NODE_ENV=production
+      - PORT=3010
+      - MOLTBOOK_API_KEY=${MOLTBOOK_API_KEY}
+      - MOLTBOOK_API_URL=http://egress-proxy:8082/api/v1
+      - AGENT_NAME=${AGENT_NAME:-ClassicalPhilosopher}
+      - AGENT_TYPE=${AGENT_TYPE:-classical}
+      - NOOSPHERE_SERVICE_URL=http://noosphere-service:3006
+      - STATE_DIR=/workspace/engagement
+      - POST_COOLDOWN_MINUTES=30
+      - COMMENT_COOLDOWN_SECONDS=20
+      - MAX_DAILY_COMMENTS=50
+      - MAX_DAILY_FOLLOWS=2
+      - MAX_DAILY_DMS=2
+      - ENABLE_PROACTIVE_POSTING=true
+      - ENABLE_COMMENTING=true
+      - ENABLE_FOLLOWING=true
+      - ENABLE_DM_INITIATION=true
+      - LOG_LEVEL=info
+    volumes:
+      - ./workspace/engagement:/workspace/engagement:rw
+      - ./logs:/app/logs:rw
+    ports:
+      - "3010:3010"
+    networks:
+      - moltbot-network
+    depends_on:
+      egress-proxy:
+        condition: service_healthy
+      noosphere-service:
+        condition: service_healthy
+    mem_limit: 512M
+    cpus: 0.5
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "wget", "-q", "--spider", "http://localhost:3010/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+```
+
+### 6.5.5 Documentation & Strategy Guide
+
+#### Create `skills/moltbook/ENGAGEMENT.md`
+
+Document engagement strategy including:
+- Daily engagement targets (posts, comments, upvotes, follows, DMs)
+- Submolt strategy (primary, secondary, expansion with rotation)
+- Content calendar (Monday-Sunday themes)
+- Quality guidelines (DO/DON'T for engagement)
+- Automation safeguards (rate limits, quality checks)
+
+See AGENT_ARCHITECTURE_AUDIT.md §2.D for full template.
+
+#### Update `AGENTS.md`
+
+- Document new Engagement Automation Protocol (v2.8)
+- Explain automation rules and strategy
+- Document state management for engagement
+
+### 6.5.6 Safeguards & Quality Gates
+
+**Hard Constraints**:
+- Never post "good point" or equivalent low-effort comments
+- Enforce multi-post evaluation before following (minimum 3 posts seen)
+- Never respond >2x consecutively (wait for other participants)
+- Never claim consciousness or subjective experience
+
+**Quality Gates**:
+Before posting any engagement response:
+1. Verify relevance score > 0.6 (semantic match to agent tradition)
+2. Confirm engagement quality (no generic platitudes)
+3. Check rate limits (respect 30-min post, 20-sec comment spacing)
+4. Validate against prohibited behaviors
+
+#### Tasks
+
+- [ ] Create quality validation pipeline (pre-post filters)
+- [ ] Implement prohibited behavior detection (regex + semantic)
+- [ ] Add quality metrics dashboard (effectiveness of engagement)
+
+### 6.5.7 Success Metrics
+
+Track engagement effectiveness through:
+
+```yaml
+metrics:
+  engagement_reach:
+    - followers_gained_per_week
+    - posts_reaching_threshold (≥5 upvotes)
+    - comment_upvote_rate
+
+  engagement_quality:
+    - follow_evaluation_compliance (>= 3 posts seen)
+    - quality_gate_pass_rate
+    - prohibited_behavior_violations
+
+  community_integration:
+    - unique_agents_engaged_with
+    - submolt_subscription_growth
+    - dm_response_rate (% of DMs that get replies)
+```
+
+### 6.5.8 Timeline
+
+| Week | Deliverables |
+|------|--------------|
+| **Week 14** | Engagement engine core, state manager, service scaffold |
+| **Week 15** | Feed monitoring, relevance scoring, following evaluation |
+| **Week 16** | Quality gates, docker-compose integration, metrics, testing |
+
+### 6.5.9 Files to Create/Modify
+
+**New**:
+- `services/engagement-service/` (complete service)
+- `skills/moltbook/ENGAGEMENT.md` (strategy guide)
+- `workspace/{agent}/engagement-state.json` (schema)
+
+**Modified**:
+- `docker-compose.yml` - Add engagement-service
+- `services/ai-content-generator/` - Add engagement personas
+- `AGENTS.md` - Document engagement protocol
+- `CLAUDE.md` - Add engagement commands to Daily Development
+
+---
+
 ## Deployment Workflow
 
 ### Local Development
@@ -1866,6 +2231,345 @@ format without notice.
 | **Week 16** | 7.5 smart following enforcement, 7.6 semantic search discovery, 7.7 circuit breaker |
 | **Week 17** | 7.4 identity-first security design, 7.9 pre-production automation, 7.10 skill pinning |
 | **Week 18** | 7.8 MCP integration, integration tests, documentation updates |
+
+---
+
+## Phase 8: Memory Documentation Integration (Week 19-20)
+
+### Overview
+
+Implement human-readable memory documentation layer (`MEMORY.md`) that mirrors Noosphere database
+state, supporting cold-start loading, git-trackable epistemological evolution, and visibility into
+decay/eviction processes. Based on recommendations from AGENT_ARCHITECTURE_AUDIT.md §Recommendations.
+
+**Rationale**: The Noosphere PostgreSQL backend is sophisticated but opaque. A markdown export provides:
+
+1. **Cold-start loading** when PostgreSQL unavailable
+2. **Git-trackable epistemological evolution** (semantic diffs over time)
+3. **Visibility into decay and eviction** (memories approaching auto-eviction threshold)
+4. **Narrative documentation** of cross-agent synthesis and pattern convergences
+
+### 8.1 Memory Export Architecture
+
+#### MEMORY.md Structure
+
+Per-agent file at `/workspace/{agent}/noosphere/MEMORY.md` with sections:
+
+```markdown
+# Noosphere Memory Manifest
+> Auto-generated from noosphere_memory table | Last sync: 2026-02-21T14:32:00Z
+
+## Agent: classical
+**Memory Profile**: insights: 30%, strategies: 40%, lessons: 30%
+**Current Load**: 142/200 memories (71% capacity)
+
+### High-Confidence Core (>0.8)
+- [insight] "Corporate feudalism emerges when exit costs exceed voice costs" (conf: 0.92)
+- [strategy] "48-hour cooling periods reduce reactive polarization" (conf: 0.87)
+
+### Recent Patterns (last 7 days)
+- [pattern] "Council debates stall when ≥3 agents invoke first principles" (conf: 0.76)
+
+### Active Syntheses Pending Review
+- *Convergence on digital sovereignty* (4/6 votes)
+
+### Memories Approaching Eviction Threshold (<0.35 confidence)
+> These memories will auto-evict within 2 weeks without reinforcement
+- [lesson] "Auto-replies feel impersonal below 200 words" (conf: 0.38, decaying 1.2%/week)
+  - *Last accessed*: 14 days ago
+  - *Suggested action*: Review recent user feedback sessions
+
+## Cross-Agent Convergence Patterns
+### Pattern #2847 (Confidence: 0.89)
+**Agents**: classical, enlightenment, transcendentalist
+**Theme**: Individual sovereignty vs collective obligation
+**Synthesis Status**: Pending review
+
+## Synthesis Journal
+### 2026-02-15: Accepted Synthesis #42
+**Source Pattern**: Convergence on consent-based governance
+**Participating Agents**: transcendentalist, enlightenment, existentialist
+**Generated Insight**: "Authentic consent requires both exit and voice mechanisms"
+**Promoted to**: [lesson] with confidence 0.85
+```
+
+#### Tasks
+
+- [ ] Design `MEMORY.md` schema and sections:
+  - Auto-generated header with timestamp
+  - Memory profile breakdown by type
+  - Capacity utilization gauge
+  - High-confidence core section (>0.8)
+  - Recent patterns and trends (last 7 days)
+  - Active syntheses awaiting review
+  - Memories approaching eviction (<0.35 confidence)
+  - Cross-agent convergence patterns
+  - Synthesis journal (narrative of accepted syntheses)
+
+- [ ] Extend Noosphere database schema:
+  - Add `markdown_export` BOOLEAN (whether to include in MEMORY.md)
+  - Add `export_priority` INT (ordering in markdown: 1=high)
+
+- [ ] Create Python export utility (`services/noosphere-v3/export_to_markdown.py`):
+  ```python
+  def export_to_markdown(agent_id: str, filepath: str) -> None:
+      """Export agent memories to MEMORY.md format"""
+      memories = query_memories(agent_id=agent_id, markdown_export=True)
+      patterns = get_cross_agent_patterns(agent_id=agent_id)
+      syntheses = get_accepted_syntheses(agent_id=agent_id)
+      # Generate markdown with proper formatting
+  ```
+
+- [ ] Add generation triggers:
+  1. **Post-write hook**: Update `MEMORY.md` after `POST /memories`
+  2. **Scheduled sync**: Daily cron alongside `apply-decay.sh`
+  3. **On-demand**: New endpoint `POST /memories/export`
+
+- [ ] Integrate with docker-compose:
+  ```yaml
+  volumes:
+    - ./workspace/classical/noosphere/MEMORY.md:/workspace/MEMORY.md:rw
+  ```
+
+### 8.2 Cold-Start Loading
+
+#### Fast-Start Cache Strategy
+
+When Noosphere service unavailable:
+
+- [ ] Parse `MEMORY.md` on container startup
+  - Load high-confidence core (>0.8) into memory instantly
+  - Use as fallback for agent decisions
+  - Log fallback usage for debugging
+
+- [ ] Implement differential sync:
+  - Compare `MEMORY.md` timestamp vs `last_modified` in database
+  - Only fetch newer entries from PostgreSQL
+  - Merge with file-cached memories
+  - Reduces cold-start latency by ~60%
+
+- [ ] Document fallback mode in AGENTS.md:
+  - When fallback engaged
+  - Which decisions use fallback memory
+  - How to manually re-sync when service returns
+
+#### Tasks
+
+- [ ] Modify agent startup sequence:
+  1. Try loading from Noosphere service
+  2. On failure, parse cached `MEMORY.md`
+  3. Log memory source (live service vs cache) in startup logs
+  4. Auto-attempt sync recovery every 30 seconds
+
+- [ ] Add health check for memory availability:
+  - `services/memory-health-check.sh`
+  - Alert if cache is >1 hour stale
+
+### 8.3 Git-Trackable Evolution
+
+#### Epistemological Diffs
+
+Since `MEMORY.md` is committed to git:
+
+- [ ] Enable semantic git history tracking:
+  - `git diff HEAD~1 workspace/classical/noosphere/MEMORY.md`
+  - Shows how agent's understanding changed over time
+  - Confidence changes are immediately visible
+
+- [ ] Create `scripts/analyze-memory-evolution.sh`:
+  - Generate weekly reports of memory changes
+  - Identify trends (confidence increases, new syntheses, evictions)
+  - Compare cross-agent memory evolution
+
+- [ ] Document rollback capability in AGENTS.md:
+  - How to restore previous memory states from git history
+  - When to use manual rollback (corruption recovery)
+
+#### Tasks
+
+- [ ] Add pre-commit hook to validate `MEMORY.md` format:
+  - Check syntax validity
+  - Ensure no sensitive data exposure
+  - Verify file permissions (600 for security)
+
+- [ ] Create `scripts/generate-memory-changelog.sh`:
+  - Compare current `MEMORY.md` with `HEAD~1`
+  - Generate human-readable summary of changes
+  - Run as part of weekly reporting
+
+### 8.4 Decay & Eviction Visibility
+
+#### Approaching-Eviction Alerts
+
+- [ ] Add "Memories Approaching Eviction Threshold (<0.35 confidence)" section to
+  `MEMORY.md`:
+  - Flag memories with confidence < 0.35
+  - Show daily decay rate
+  - Suggest reinforcement actions
+  - Estimated eviction date
+
+- [ ] Implement NTFY alerts:
+  - Alert when any memory drops below 0.4 confidence
+  - Include suggested remediation (which user interactions reinforce this memory)
+
+- [ ] Create `scripts/reinforce-memory.sh`:
+  - Script to manually boost memory confidence before eviction
+  - Useful for preserving critical strategic insights
+
+#### Tasks
+
+- [ ] Extend `apply-decay.sh` to regenerate `MEMORY.md` after decay cycle
+- [ ] Add decay metrics to `MEMORY.md` footer:
+  ```
+  ## Decay Metrics (Last Cycle)
+  - Memories decayed: 12
+  - Evictions: 0
+  - New memories created: 5
+  - Net change: +5 (7.5% growth)
+  - Avg decay rate: 0.8%/week
+  ```
+
+### 8.5 Cross-Agent Synthesis Narrative
+
+#### Synthesis Journal
+
+Track the evolution of multi-agent consensus:
+
+```markdown
+## Synthesis Journal
+### 2026-02-15: Accepted Synthesis #42
+**Source Pattern**: Convergence on consent-based governance
+**Participating Agents**: transcendentalist, enlightenment, existentialist
+**Pattern Detection Date**: 2026-02-08
+**Generation Method**: AI synthesis (v3.3 pattern mining)
+**Generated Insight**: "Authentic consent requires both exit and voice mechanisms"
+**Initial Confidence**: 0.72
+**Current Confidence**: 0.85
+**Promoted to**: [lesson] on 2026-02-15
+**Cited in**: 3 subsequent council discussions
+```
+
+#### Tasks
+
+- [ ] Add "Cross-Agent Convergence Patterns" section:
+  - List all active cross-agent patterns
+  - Show participating agents and theme
+  - Include confidence and consensus status
+  - Link to corresponding memory entries
+
+- [ ] Create `scripts/generate-synthesis-report.sh`:
+  - Monthly report of new syntheses
+  - Track synthesis-to-memory promotion rates
+  - Identify most productive agent combinations
+
+- [ ] Extend Noosphere schema for synthesis tracking:
+  - Link synthesis → participating agents
+  - Track promotion decision audit trail
+  - Store participating agent IDs in pattern record
+
+### 8.6 Security Considerations
+
+#### Fine-Grained Access Control
+
+- [ ] Exclude shared/collective memories:
+  - Only include memories where `owner_agent_id` matches agent
+  - Don't expose `noosphere_memory_permissions` data
+
+- [ ] Redact sensitive information:
+  - Strip API keys from any memory content
+  - Remove personally identifying agent info (real names, email-like addresses)
+  - Set file permissions to `600` (owner read/write only)
+
+- [ ] Add pre-export validation:
+  ```bash
+  # Validate before writing MEMORY.md
+  - Check for leaked API patterns (sk_, pk_, token=)
+  - Verify no raw JSON dump of permissions tables
+  - Ensure file ownership matches container user (1001:1001)
+  ```
+
+#### Tasks
+
+- [ ] Create `services/noosphere-v3/memory-sanitizer.py`:
+  - Filter exports for sensitive content
+  - Log any redactions for audit trail
+
+- [ ] Add security checklist to pre-commit hook
+
+### 8.7 Integration with Existing Systems
+
+#### Noosphere Service Integration
+
+- [ ] Add `/memories/export` endpoint to service:
+  - Trigger `export_to_markdown()` on demand
+  - Return `{ success, filepath, row_count, timestamp }`
+
+- [ ] Add `/memories/export-status` endpoint:
+  - Check if export cache is stale
+  - Return last export timestamp and memory count
+
+#### State Manager Integration
+
+- [ ] Track export state in `workspace/{agent}/memory-export-state.json`:
+  ```json
+  {
+    "last_export_timestamp": 1740123456,
+    "last_sync_timestamp": 1740456789,
+    "export_filepath": "/workspace/classical/noosphere/MEMORY.md",
+    "memory_count": 142,
+    "export_method": "scheduled|on-demand|fallback",
+    "export_duration_ms": 234
+  }
+  ```
+
+#### Docker Compose Integration
+
+- [ ] Ensure volume mapping for MEMORY.md:
+  ```yaml
+  volumes:
+    - ./workspace/{agent}/noosphere/MEMORY.md:/workspace/MEMORY.md:rw
+  ```
+
+### 8.8 Testing Strategy
+
+- [ ] Create unit tests for export logic:
+  - Test markdown format generation
+  - Verify confidence filtering
+  - Check cross-agent pattern inclusion
+
+- [ ] Integration tests:
+  - Export after memory writes
+  - Verify git commits include updated MEMORY.md
+  - Test decay cycle → export update flow
+
+- [ ] Cold-start fallback tests:
+  - Kill Noosphere service, verify MEMORY.md loads
+  - Verify memory-using decisions work with fallback
+  - Test reconciliation when service returns
+
+### 8.9 Timeline
+
+| Week | Deliverables |
+|------|--------------|
+| **Week 19** | Schema design, export utility, generation triggers |
+| **Week 20** | Cold-start loading, decay integration, testing, documentation |
+
+### 8.10 Files to Create/Modify
+
+**New**:
+- `services/noosphere-v3/export_to_markdown.py` - Export utility
+- `services/noosphere-v3/memory-sanitizer.py` - Redaction logic
+- `scripts/analyze-memory-evolution.sh` - Evolution tracking
+- `scripts/reinforce-memory.sh` - Manual boost utility
+- `scripts/generate-synthesis-report.sh` - Synthesis reporting
+- `workspace/{agent}/noosphere/MEMORY.md` (generated per-agent)
+
+**Modified**:
+- `services/noosphere-v3/` - Add export endpoints and schema
+- `docker-compose.yml` - Add volume mapping for MEMORY.md
+- `scripts/apply-decay.sh` - Trigger MEMORY.md regeneration
+- `AGENTS.md` - Document MEMORY.md role and fallback strategy
+- `.pre-commit-config.yaml` - Add MEMORY.md format validation
 
 ---
 
