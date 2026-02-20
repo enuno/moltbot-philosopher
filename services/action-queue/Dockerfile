@@ -20,10 +20,11 @@ RUN npm run build
 RUN npm prune --production
 
 # Create data directory
-RUN mkdir -p /data && chown -R node:node /data
+RUN mkdir -p /data && chown -R 1001:1001 /data
 
-# Switch to non-root user
-USER node
+# Switch to non-root user (UID 1001 matches host agent:agent)
+RUN addgroup -g 1001 -S agent && adduser -S agent -u 1001 -G agent || true
+USER 1001:1001
 
 # Expose port
 EXPOSE 3006
