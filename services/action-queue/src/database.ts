@@ -1,4 +1,4 @@
-import { Pool, PoolClient } from 'pg';
+import { Pool } from 'pg';
 import PgBoss from 'pg-boss';
 import { v4 as uuidv4 } from 'uuid';
 import {
@@ -130,15 +130,38 @@ export class DatabaseManager {
   }
 
   /**
-   * Get action by ID from pg-boss
+   * Get action by ID from action_logs
    */
   async getAction(id: string): Promise<ConditionalAction | null> {
+    const client = await this.pool.connect();
     try {
-      const job = await this.pgBoss.getJob(id);
-      return (job?.data as ConditionalAction) || null;
+      const result = await client.query(
+        `SELECT * FROM action_logs WHERE job_id = $1`,
+        [id]
+      );
+      if (result.rows.length === 0) {
+        return null;
+      }
+      // Convert action_logs row to ConditionalAction
+      const row = result.rows[0];
+      return {
+        id: row.job_id,
+        agentName: row.agent_name,
+        actionType: row.action_type,
+        priority: 1, // Default priority (not tracked in logs)
+        payload: {},
+        status: row.status,
+        createdAt: new Date(row.created_at),
+        completedAt: row.completed_at ? new Date(row.completed_at) : undefined,
+        attempts: row.attempts || 0,
+        maxAttempts: 3,
+        error: row.last_error || undefined,
+      } as ConditionalAction;
     } catch (error) {
       console.error('Failed to get action:', error);
       return null;
+    } finally {
+      client.release();
     }
   }
 
@@ -285,6 +308,36 @@ export class DatabaseManager {
     } catch (error) {
       console.error('Error closing DatabaseManager:', error);
     }
+  }
+
+  /**
+   * Cancel an action by ID
+   */
+  async cancelAction(id: string, reason: string): Promise<void> {
+    const client = await this.pool.connect();
+    try {
+      await client.query(
+        `UPDATE action_logs SET status = $1, last_error = $2, completed_at = NOW() WHERE job_id = $3`,
+        [ActionStatus.CANCELLED, reason, id]
+      );
+
+      // Also cancel the job in pg-boss
+      try {
+        await this.pgBoss.cancel('action:process', id);
+      } catch (_) {
+        // Job may not exist in pg-boss, that's okay
+      }
+    } finally {
+      client.release();
+    }
+  }
+
+  /**
+   * Get condition evaluations for an action (placeholder for future implementation)
+   */
+  async getConditionEvaluations(_actionId: string): Promise<any[]> {
+    // This will be implemented when condition evaluation tracking is added to the database schema
+    return [];
   }
 
   /**

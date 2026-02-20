@@ -1,7 +1,7 @@
 import { DatabaseManager } from './database';
 import { ActionExecutor } from './action-executor';
 import { RateLimiter } from './rate-limiter';
-import { Priority, ActionStatus } from './types';
+import { Priority, ActionStatus, QueuedAction } from './types';
 import PgBoss from 'pg-boss';
 
 /**
@@ -34,14 +34,11 @@ export class QueueProcessor {
 
     this.pgBoss = this.db.getPgBoss();
 
-    // Subscribe to main action processing queue
-    await this.pgBoss!.subscribe('action:process', async (job) => {
-      await this.executeAction(job);
-    });
-
-    // Subscribe to retry queue (for advanced retry handling)
-    await this.pgBoss!.subscribe('action:process:retry', async (job) => {
-      await this.handleRetryWithBackoff(job);
+    // Register job handler for main action processing queue
+    await this.pgBoss!.work<any>('action:process', async (jobs) => {
+      for (const job of jobs) {
+        await this.executeAction(job);
+      }
     });
 
     this.running = true;
@@ -53,8 +50,7 @@ export class QueueProcessor {
    */
   async stop(): Promise<void> {
     if (!this.pgBoss) return;
-    await this.pgBoss.unsubscribe('action:process');
-    await this.pgBoss.unsubscribe('action:process:retry');
+    await this.pgBoss.offWork('action:process');
     this.running = false;
     console.log('⛔ QueueProcessor stopped');
   }
@@ -63,7 +59,7 @@ export class QueueProcessor {
    * Execute a single action with rate limiting and circuit breaker
    */
   private async executeAction(job: any): Promise<void> {
-    const action = job.data;
+    const action = job.data as unknown as QueuedAction;
     const jobId = job.id;
     console.log(`⚡ Executing action: ${jobId} (${action.actionType} by ${action.agentName})`);
 
@@ -92,9 +88,8 @@ export class QueueProcessor {
       const errorMsg = error instanceof Error ? error.message : String(error);
       console.error(`❌ Action failed: ${jobId} - ${errorMsg}`);
 
-      // Get current job attempt count
-      const currentJob = await this.pgBoss!.getJob(jobId);
-      const attempts = currentJob?.attemptsMade || 0;
+      // Get attempt count from job metadata
+      const attempts = job.attempt || 0;
 
       // Determine if retryable
       if (this.isRetryable(error) && attempts < 3) {
@@ -105,21 +100,12 @@ export class QueueProcessor {
         await this.db.updateActionStatus(jobId, ActionStatus.FAILED, errorMsg);
 
         // Alert if critical
-        if (action.priority === Priority.CRITICAL) {
+        if ((action as any).priority === Priority.CRITICAL) {
           console.error(`🚨 CRITICAL action failed and not retrying: ${jobId}`);
           // In production, send alert to monitoring system
         }
       }
     }
-  }
-
-  /**
-   * Handle retry with exponential backoff (pg-boss handles scheduling)
-   */
-  private async handleRetryWithBackoff(job: any): Promise<void> {
-    // pg-boss handles exponential backoff automatically via job options
-    // This handler is for custom retry logic if needed
-    await this.executeAction(job);
   }
 
   /**
@@ -166,7 +152,7 @@ export class QueueProcessor {
   /**
    * Get queue statistics
    */
-  getStats(): any {
+  async getStats(): Promise<any> {
     return this.db.getStats();
   }
 }
