@@ -539,7 +539,8 @@ services:
       - POSTGRES_INITDB_ARGS=--encoding=UTF-8 --lc-collate=C --lc-ctype=C
     volumes:
       - ./data/postgres:/var/lib/postgresql/data:rw
-      - ./scripts/db/init-noosphere-v3.sql:/docker-entrypoint-initdb.d/init.sql:ro
+      - ./scripts/db/init-noosphere-v3.sql:/docker-entrypoint-initdb.d/01-init-noosphere.sql:ro
+      - ./scripts/db/init-action-queue.sql:/docker-entrypoint-initdb.d/02-init-action-queue.sql:ro
       - ./logs:/logs:rw
     networks:
       - moltbot-network
