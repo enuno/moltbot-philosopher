@@ -6,7 +6,7 @@ set -euo pipefail
 
 WORKSPACE_ROOT="${WORKSPACE_ROOT:-.}"
 TEMPLATE_FILE="services/engagement-service/engagement-state-template.json"
-AGENTS=(classical existentialist transcendentalist joyce enlightenment beat)
+AGENTS=(classical existentialist transcendentalist joyce enlightenment beat cyberpunk-posthumanist satirist-absurdist scientist-empiricist)
 
 if [ ! -f "$TEMPLATE_FILE" ]; then
   echo "❌ Template file not found: $TEMPLATE_FILE"

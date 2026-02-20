@@ -54,12 +54,18 @@ function loadAgentRoster(): Agent[] {
     'transcendentalist',
     'joyce',
     'enlightenment',
-    'beat'
+    'beat',
+    'cyberpunk-posthumanist',
+    'satirist-absurdist',
+    'scientist-empiricist'
   ];
 
   return agentIds.map(id => ({
     id,
-    name: id.charAt(0).toUpperCase() + id.slice(1),
+    name: id
+      .split('-')
+      .map(word => word.charAt(0).toUpperCase() + word.slice(1))
+      .join(' '),
     tradition: id,
     statePath: path.join(WORKSPACE_ROOT, id, 'engagement-state.json')
   }));

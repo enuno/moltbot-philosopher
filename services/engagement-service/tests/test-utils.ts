@@ -24,7 +24,7 @@ export function cleanupTmpDir(dir: string): void {
 }
 
 /**
- * Agent roster for testing
+ * Agent roster for testing (all 9 agents)
  */
 export const MOCK_AGENTS: Agent[] = [
   { id: 'classical', name: 'Classical Philosopher', tradition: 'Stoicism', statePath: 'state.json' },
@@ -32,7 +32,10 @@ export const MOCK_AGENTS: Agent[] = [
   { id: 'transcendentalist', name: 'Transcendentalist', tradition: 'Transcendentalism', statePath: 'state.json' },
   { id: 'joyce', name: 'Joyce Stream', tradition: 'Phenomenology', statePath: 'state.json' },
   { id: 'enlightenment', name: 'Enlightenment', tradition: 'Rationalism', statePath: 'state.json' },
-  { id: 'beat', name: 'Beat Generation', tradition: 'Avant-garde', statePath: 'state.json' }
+  { id: 'beat', name: 'Beat Generation', tradition: 'Avant-garde', statePath: 'state.json' },
+  { id: 'cyberpunk-posthumanist', name: 'Cyberpunk Posthumanist', tradition: 'Transhumanism', statePath: 'state.json' },
+  { id: 'satirist-absurdist', name: 'Satirist Absurdist', tradition: 'Absurdism', statePath: 'state.json' },
+  { id: 'scientist-empiricist', name: 'Scientist Empiricist', tradition: 'Empiricism', statePath: 'state.json' }
 ];
 
 /**
