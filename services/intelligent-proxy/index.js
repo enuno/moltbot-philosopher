@@ -421,7 +421,7 @@ async function solveWithShellScript(puzzleText) {
       return;
     }
 
-    const proc = spawn(SHELL_FALLBACK_SCRIPT, ['--solve-only', puzzleText], {
+    const proc = spawn('bash', [SHELL_FALLBACK_SCRIPT, '--solve-only', puzzleText], {
       env: {
         ...process.env,
         AI_GENERATOR_URL,
