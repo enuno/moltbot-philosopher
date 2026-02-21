@@ -327,7 +327,7 @@ export class DatabaseManager {
       avg_latency_seconds: number;
     };
   }> {
-    let client: any = null;
+    let client: PoolClient | null = null;
     try {
       client = await this.pool.connect();
       // Get queue size from pg-boss

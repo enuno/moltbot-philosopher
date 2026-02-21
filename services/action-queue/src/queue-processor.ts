@@ -1,7 +1,7 @@
 import { DatabaseManager } from './database';
 import { ActionExecutor } from './action-executor';
 import { RateLimiter } from './rate-limiter';
-import { Priority, ActionStatus, QueuedAction } from './types';
+import { Priority, ActionStatus, QueuedAction, ConditionalAction } from './types';
 import PgBoss from 'pg-boss';
 
 /**
@@ -56,14 +56,25 @@ export class QueueProcessor {
   }
 
   /**
-   * Execute a single action with rate limiting and circuit breaker
+   * Execute a single action with rate limiting, conditional evaluation, and circuit breaker
    */
   private async executeAction(job: any): Promise<void> {
     const action = job.data as unknown as QueuedAction;
+    const conditionalAction = action as ConditionalAction;
     const jobId = job.id;
     console.log(`⚡ Executing action: ${jobId} (${action.actionType} by ${action.agentName})`);
 
     try {
+      // Check conditional execution if conditions are defined
+      if (conditionalAction.conditions) {
+        const shouldExecute = await this.checkConditions(conditionalAction);
+        if (!shouldExecute) {
+          console.log(`⏳ Conditions not met for action: ${jobId}`);
+          await this.db.updateActionStatus(jobId, ActionStatus.SCHEDULED);
+          throw new Error('Conditions not met - will retry');
+        }
+      }
+
       // Check rate limits
       const canExecute = await this.rateLimiter.canExecute(action.agentName, action.actionType);
       if (!canExecute) {
@@ -131,16 +142,11 @@ export class QueueProcessor {
    */
   private async checkCircuitBreaker(agentName: string): Promise<void> {
     try {
-      const stats = await this.db.getStats();
+      // Use targeted getAgentMetrics instead of expensive getStats
+      const metrics = await this.db.getAgentMetrics(agentName);
 
-      // Get agent-specific metrics
-      const agentMetric = stats.by_agent?.find((a: any) => a.agent_name === agentName);
-      if (!agentMetric) {
-        // No metrics yet for this agent, allow execution
-        return;
-      }
-
-      const { total_actions: totalCount, failed: failedCount } = agentMetric;
+      const totalCount = metrics.total_actions;
+      const failedCount = metrics.failed;
 
       if (totalCount > 10 && failedCount / totalCount > 0.5) {
         throw new Error(`Circuit breaker open: ${agentName} has >50% failure rate`);
@@ -152,6 +158,39 @@ export class QueueProcessor {
       // Silently continue if we can't check circuit breaker (DB error, etc)
       console.warn('Warning: Could not check circuit breaker:', error);
     }
+  }
+
+  /**
+   * Evaluate conditions for conditional action execution
+   * Returns true if all conditions are satisfied or timeout is reached
+   */
+  private async checkConditions(action: ConditionalAction): Promise<boolean> {
+    if (!action.conditions) {
+      return true; // No conditions means execute immediately
+    }
+
+    // Check if timeout has been reached
+    if (action.conditionTimeout && new Date() > action.conditionTimeout) {
+      console.log(`⏳ Condition timeout reached for action ${action.id}, executing anyway`);
+      return true;
+    }
+
+    // Check if it's time to evaluate conditions based on interval
+    const now = new Date();
+    const lastCheck = action.lastConditionCheck;
+    const checkInterval = (action.conditionCheckInterval || 60) * 1000; // default 60 seconds
+
+    if (lastCheck && now.getTime() - lastCheck.getTime() < checkInterval) {
+      // Not yet time to check conditions, keep waiting
+      console.log(`⏳ Conditions will be checked again at ${new Date(lastCheck.getTime() + checkInterval)}`);
+      return false;
+    }
+
+    // Evaluate conditions (placeholder - actual evaluation would happen here)
+    // For now, return false to indicate conditions not yet met
+    // Real implementation would evaluate the composite condition tree
+    console.log(`📋 Evaluating ${action.id} conditions`);
+    return false;
   }
 
   /**

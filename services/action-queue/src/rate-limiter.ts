@@ -1,5 +1,6 @@
 import { DatabaseManager } from './database';
 import { ActionType, RateLimitState } from './types';
+import { RATE_LIMITS } from './config';
 
 /**
  * Rate Limiter
@@ -21,27 +22,48 @@ export class RateLimiter {
 
   /**
    * Check if an action can execute based on rate limits
+   * Uses rate limit configuration from config.ts
    */
   async canExecute(agentName: string, actionType: ActionType): Promise<boolean> {
     const limits = await this.getRateLimitState(agentName);
     const now = Math.floor(Date.now() / 1000); // unix timestamp in seconds
+    const config = RATE_LIMITS[actionType];
 
+    if (!config) {
+      // No rate limit config for this action type, allow execution
+      return true;
+    }
+
+    // Get the appropriate timestamp for this action type
+    let lastTimestamp = 0;
     switch (actionType) {
       case ActionType.POST:
-        // 30-minute cooldown between posts
-        return (now - limits.lastPostTimestamp) > 1800;
+        lastTimestamp = limits.lastPostTimestamp;
+        break;
       case ActionType.COMMENT:
-        // 20-second cooldown between comments
-        return (now - limits.lastCommentTimestamp) > 20;
+        lastTimestamp = limits.lastCommentTimestamp;
+        break;
       case ActionType.FOLLOW:
-        // 1-minute cooldown between follows
-        return (now - limits.lastFollowTimestamp) > 60;
+      case ActionType.UNFOLLOW:
+        lastTimestamp = limits.lastFollowTimestamp;
+        break;
       case ActionType.SEND_DM:
-        // 5-minute cooldown between DMs
-        return (now - limits.lastDmTimestamp) > 300;
+        lastTimestamp = limits.lastDmTimestamp;
+        break;
+      case ActionType.UPVOTE:
+      case ActionType.DOWNVOTE:
+      case ActionType.CREATE_SUBMOLT:
+      case ActionType.SKILL_UPDATE:
+        // These use lastPostTimestamp as default for now
+        lastTimestamp = limits.lastPostTimestamp;
+        break;
       default:
         return true;
     }
+
+    // Check if enough time has passed since last execution
+    const timeSinceLastExecution = now - lastTimestamp;
+    return timeSinceLastExecution > config.intervalSeconds;
   }
 
   /**

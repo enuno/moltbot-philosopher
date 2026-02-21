@@ -42,9 +42,11 @@ jq -r '.[] | @json' "$ACTIONS_FILE" | while read -r action; do
 
   # Only migrate pending/scheduled actions; skip completed/failed
   if [[ "$status" == "pending" ]] || [[ "$status" == "scheduled" ]]; then
-    # Log the action for pg-boss to pick up
-    PGPASSWORD="$POSTGRES_PASSWORD" psql "$DB_URL" -c \
-      "INSERT INTO action_logs(agent_name, action_type, status, attempts) VALUES('$agent_name', '$action_type', 'pending', 0);"
+    # Use parameterized query via psql -v to prevent SQL injection
+    PGPASSWORD="$POSTGRES_PASSWORD" psql "$DB_URL" \
+      -v agent_name="$agent_name" \
+      -v action_type="$action_type" \
+      -c "INSERT INTO action_logs(agent_name, action_type, status, attempts) VALUES(:'agent_name', :'action_type', 'pending', 0);"
   fi
 done
 
