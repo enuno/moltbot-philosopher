@@ -150,19 +150,28 @@ export const GLOBAL_API_LIMIT = {
 
 /**
  * Queue processing configuration
+ * Loads from environment variables with sensible defaults
  */
 export const QUEUE_CONFIG = {
   // How often to process the queue (seconds)
-  processingInterval: 5,
+  processingInterval: parseInt(
+    process.env.QUEUE_PROCESSING_INTERVAL || '5',
+    10,
+  ),
 
   // How often to check for scheduled actions (seconds)
-  scheduledCheckInterval: 30,
+  scheduledCheckInterval: parseInt(
+    process.env.QUEUE_SCHEDULED_CHECK_INTERVAL || '30',
+    10,
+  ),
 
   // Maximum retry attempts for failed actions
-  maxAttempts: 3,
+  maxAttempts: parseInt(process.env.QUEUE_MAX_ATTEMPTS || '3', 10),
 
   // Backoff multiplier for retries (exponential backoff)
-  retryBackoffMultiplier: 2,
+  retryBackoffMultiplier: parseFloat(
+    process.env.QUEUE_RETRY_BACKOFF_MULTIPLIER || '2',
+  ),
 
   // Database path
   dbPath: process.env.QUEUE_DB_PATH || '/data/action-queue.db',
@@ -176,6 +185,80 @@ export const QUEUE_CONFIG = {
 
   // API key (should be provided via env)
   moltbookApiKey: process.env.MOLTBOOK_API_KEY || '',
+};
+
+/**
+ * pg-boss configuration
+ * Advanced job queue settings
+ */
+export const PGBOSS_CONFIG = {
+  // Number of jobs to process simultaneously
+  workerConcurrency: parseInt(
+    process.env.PGBOSS_WORKER_CONCURRENCY || '1',
+    10,
+  ),
+
+  // How often to run maintenance tasks (minutes)
+  maintenanceIntervalMinutes: parseInt(
+    process.env.PGBOSS_MAINTENANCE_INTERVAL_MINUTES || '60',
+    10,
+  ),
+
+  // Whether to archive completed jobs
+  archiveCompletedJobs:
+    process.env.PGBOSS_ARCHIVE_COMPLETED_JOBS !== 'false',
+
+  // How long to keep archived/completed jobs (days)
+  jobExpirationDays: parseInt(
+    process.env.PGBOSS_JOB_EXPIRATION_DAYS || '30',
+    10,
+  ),
+};
+
+/**
+ * Observability configuration
+ * Logging and monitoring settings
+ */
+export const OBSERVABILITY_CONFIG = {
+  // Enable debug mode (verbose logging)
+  debug: process.env.ACTION_QUEUE_DEBUG === 'true',
+
+  // Log level: debug, info, warn, error
+  logLevel: (process.env.ACTION_QUEUE_LOG_LEVEL || 'info') as
+    | 'debug'
+    | 'info'
+    | 'warn'
+    | 'error',
+
+  // Port for Prometheus metrics (0 = disabled)
+  metricsPort: parseInt(process.env.ACTION_QUEUE_METRICS_PORT || '3009', 10),
+};
+
+/**
+ * Rate limiting and circuit breaker configuration
+ * API protection and resilience settings
+ */
+export const RATE_LIMITING_CONFIG = {
+  // Global API rate limit (requests per minute)
+  globalApiRateLimit: parseInt(
+    process.env.GLOBAL_API_RATE_LIMIT || '100',
+    10,
+  ),
+
+  // Enable/disable rate limiting
+  enableRateLimiting: process.env.ENABLE_RATE_LIMITING !== 'false',
+
+  // Circuit breaker: failures before opening
+  circuitBreakerFailureThreshold: parseInt(
+    process.env.CIRCUIT_BREAKER_FAILURE_THRESHOLD || '5',
+    10,
+  ),
+
+  // Circuit breaker: seconds before half-open attempt
+  circuitBreakerTimeoutSeconds: parseInt(
+    process.env.CIRCUIT_BREAKER_TIMEOUT_SECONDS || '60',
+    10,
+  ),
 };
 
 /**
