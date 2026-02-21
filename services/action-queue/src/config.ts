@@ -152,6 +152,18 @@ export const GLOBAL_API_LIMIT = {
  * Queue processing configuration
  */
 export const QUEUE_CONFIG = {
+  // Database connection URL (PostgreSQL)
+  dbUrl: process.env.DATABASE_URL || 'postgresql://noosphere_admin:changeme_noosphere_2026@localhost:5432/action_queue',
+
+  // pg-boss schema
+  pgBossSchema: 'pgboss',
+
+  // Environment
+  environment: process.env.NODE_ENV || 'production',
+
+  // Log level
+  logLevel: process.env.LOG_LEVEL || 'info',
+
   // How often to process the queue (seconds)
   processingInterval: 5,
 
@@ -163,9 +175,6 @@ export const QUEUE_CONFIG = {
 
   // Backoff multiplier for retries (exponential backoff)
   retryBackoffMultiplier: 2,
-
-  // Database path
-  dbPath: process.env.QUEUE_DB_PATH || '/data/action-queue.db',
 
   // Port for HTTP API
   port: parseInt(process.env.ACTION_QUEUE_PORT || '3008', 10),

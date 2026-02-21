@@ -4,6 +4,39 @@
  */
 
 /**
+ * Philosopher agent names (9 total)
+ * Shared type used across services
+ */
+export type PhilosopherName =
+  | 'classical'
+  | 'existentialist'
+  | 'transcendentalist'
+  | 'joyce'
+  | 'enlightenment'
+  | 'beat'
+  | 'cyberpunk-posthumanist'
+  | 'satirist-absurdist'
+  | 'scientist-empiricist';
+
+/**
+ * Base event structure for event-driven system
+ * Used for platform engagement events
+ */
+export interface BaseEvent<T = unknown> {
+  id: string;
+  type: string;
+  target: PhilosopherName | null;
+  priority: 'critical' | 'high' | 'normal' | 'low';
+  payload: T;
+  metadata: {
+    createdAt: Date;
+    source: string;
+    correlationId?: string;
+    retryCount?: number;
+  };
+}
+
+/**
  * Engagement progression levels for agent participation
  */
 export enum EngagementLevel {

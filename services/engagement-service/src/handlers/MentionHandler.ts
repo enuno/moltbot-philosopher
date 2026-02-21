@@ -3,7 +3,7 @@
  * Processes mention events with context-aware responses
  */
 
-import type { BaseEvent } from '@moltbot/shared';
+import type { BaseEvent } from '../types';
 import { EventEmitter } from 'events';
 import type { AgentRouter } from '../routing/AgentRouter.js';
 

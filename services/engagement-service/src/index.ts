@@ -4,7 +4,7 @@
  */
 
 import express, { type Request, type Response } from 'express';
-import type { BaseEvent } from '@moltbot/shared';
+import type { BaseEvent } from './types';
 import { AgentRouter } from './routing/AgentRouter.js';
 import { MentionHandler } from './handlers/MentionHandler.js';
 import { WelcomeHandler } from './handlers/WelcomeHandler.js';

@@ -127,12 +127,10 @@ export type SubmitActionRequest = z.infer<typeof SubmitActionSchema>;
  * Rate limit state tracking
  */
 export interface RateLimitState {
-  actionType: ActionType;
-  agentName: string;
-  windowStart: Date;
-  count: number;
-  dailyCount: number;
-  dailyReset: Date;
+  lastPostTimestamp: number;
+  lastCommentTimestamp: number;
+  lastFollowTimestamp: number;
+  lastDmTimestamp: number;
 }
 
 /**

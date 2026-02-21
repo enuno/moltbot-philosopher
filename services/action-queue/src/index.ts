@@ -32,14 +32,15 @@ app.get('/queue/health', (req: Request, res: Response) => {
 });
 
 /**
- * Queue statistics endpoint
+ * Queue statistics endpoint with detailed breakdown
  */
-app.get('/queue/stats', (req: Request, res: Response) => {
+app.get('/queue/stats', async (req: Request, res: Response) => {
   try {
-    const stats = processor.getStats();
+    const stats = await processor.getStats();
     res.json({
       success: true,
-      stats,
+      data: stats,
+      timestamp: new Date().toISOString(),
     });
   } catch (error: any) {
     res.status(500).json({
@@ -93,7 +94,7 @@ app.post('/actions', async (req: Request, res: Response) => {
     };
 
     // Insert into database
-    db.insertAction(action);
+    await db.insertAction(action);
 
     console.log(
       `📥 Action submitted: ${action.id} (${action.actionType}) by ${action.agentName}`,
@@ -119,9 +120,9 @@ app.post('/actions', async (req: Request, res: Response) => {
 /**
  * Get action by ID
  */
-app.get('/actions/:id', (req: Request, res: Response) => {
+app.get('/actions/:id', async (req: Request, res: Response) => {
   try {
-    const action = db.getAction(req.params.id);
+    const action = await db.getAction(req.params.id);
 
     if (!action) {
       return res.status(404).json({
@@ -134,7 +135,7 @@ app.get('/actions/:id', (req: Request, res: Response) => {
     const conditionalAction = action as ConditionalAction;
     let conditionEvaluations;
     if (conditionalAction.conditions) {
-      conditionEvaluations = db.getConditionEvaluations(action.id);
+      conditionEvaluations = await db.getConditionEvaluations(action.id);
     }
 
     res.json({
@@ -153,11 +154,55 @@ app.get('/actions/:id', (req: Request, res: Response) => {
 });
 
 /**
+ * Get job execution history by ID
+ */
+app.get('/queue/jobs/:id/history', async (req: Request, res: Response) => {
+  try {
+    const history = await db.getJobHistory(req.params.id);
+
+    res.json({
+      success: true,
+      data: history,
+    });
+  } catch (error: any) {
+    if (error.message.includes('not found')) {
+      return res.status(404).json({
+        success: false,
+        error: error.message,
+      });
+    }
+    res.status(500).json({
+      success: false,
+      error: error.message,
+    });
+  }
+});
+
+/**
+ * Get per-agent metrics and statistics
+ */
+app.get('/queue/agents/:name/metrics', async (req: Request, res: Response) => {
+  try {
+    const metrics = await db.getAgentMetrics(req.params.name);
+
+    res.json({
+      success: true,
+      data: metrics,
+    });
+  } catch (error: any) {
+    res.status(500).json({
+      success: false,
+      error: error.message,
+    });
+  }
+});
+
+/**
  * Cancel action
  */
-app.delete('/actions/:id', (req: Request, res: Response) => {
+app.delete('/actions/:id', async (req: Request, res: Response) => {
   try {
-    const action = db.getAction(req.params.id);
+    const action = await db.getAction(req.params.id);
 
     if (!action) {
       return res.status(404).json({
@@ -176,7 +221,7 @@ app.delete('/actions/:id', (req: Request, res: Response) => {
       });
     }
 
-    db.cancelAction(action.id, 'Cancelled by user');
+    await db.cancelAction(action.id, 'Cancelled by user');
 
     res.json({
       success: true,
@@ -193,22 +238,23 @@ app.delete('/actions/:id', (req: Request, res: Response) => {
 /**
  * List actions (with filters)
  */
-app.get('/actions', (req: Request, res: Response) => {
+app.get('/actions', async (req: Request, res: Response) => {
   try {
     const status = req.query.status as ActionStatus | undefined;
     const limit = parseInt(req.query.limit as string) || 100;
 
     let actions: QueuedAction[];
     if (status) {
-      actions = db.getActionsByStatus(status, limit);
+      actions = await db.getActionsByStatus(status, limit);
     } else {
       // Get all recent actions
-      actions = [
-        ...db.getActionsByStatus(ActionStatus.PENDING, limit / 4),
-        ...db.getActionsByStatus(ActionStatus.SCHEDULED, limit / 4),
-        ...db.getActionsByStatus(ActionStatus.PROCESSING, limit / 4),
-        ...db.getActionsByStatus(ActionStatus.COMPLETED, limit / 4),
-      ];
+      const [pending, scheduled, processing, completed] = await Promise.all([
+        db.getActionsByStatus(ActionStatus.PENDING, Math.floor(limit / 4)),
+        db.getActionsByStatus(ActionStatus.SCHEDULED, Math.floor(limit / 4)),
+        db.getActionsByStatus(ActionStatus.PROCESSING, Math.floor(limit / 4)),
+        db.getActionsByStatus(ActionStatus.COMPLETED, Math.floor(limit / 4)),
+      ]);
+      actions = [...pending, ...scheduled, ...processing, ...completed];
     }
 
     res.json({
@@ -245,32 +291,13 @@ app.get('/rate-limits/:agent', (req: Request, res: Response) => {
 });
 
 /**
- * Manually trigger queue processing (for testing)
+ * Health check for manual processing (pg-boss handles this automatically)
  */
 app.post('/queue/process', async (req: Request, res: Response) => {
   try {
-    await processor.processSingle();
     res.json({
       success: true,
-      message: 'Processing triggered',
-    });
-  } catch (error: any) {
-    res.status(500).json({
-      success: false,
-      error: error.message,
-    });
-  }
-});
-
-/**
- * Manually trigger condition check (for testing)
- */
-app.post('/queue/check-conditions', async (req: Request, res: Response) => {
-  try {
-    await processor.checkConditionsSingle();
-    res.json({
-      success: true,
-      message: 'Condition check triggered',
+      message: 'Queue processing is handled automatically by pg-boss',
     });
   } catch (error: any) {
     res.status(500).json({
@@ -283,7 +310,8 @@ app.post('/queue/check-conditions', async (req: Request, res: Response) => {
 /**
  * Error handling middleware
  */
-app.use((err: Error, req: Request, res: Response, next: NextFunction) => {
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
+app.use((err: Error, req: Request, res: Response, _next: NextFunction) => {
   console.error('Unhandled error:', err);
   res.status(500).json({
     success: false,

@@ -1,583 +1,584 @@
-import Database from 'better-sqlite3';
-import { existsSync, mkdirSync } from 'fs';
-import { dirname } from 'path';
+import { Pool, PoolClient } from 'pg';
+import PgBoss from 'pg-boss';
+import { v4 as uuidv4 } from 'uuid';
 import {
   QueuedAction,
   ActionStatus,
-  ActionType,
-  Priority,
-  RateLimitState,
-  ConditionEvaluation,
   ConditionalAction,
+  RateLimitState,
 } from './types';
 import { QUEUE_CONFIG } from './config';
 
 /**
+ * Job history record with execution details
+ */
+export interface JobHistory {
+  job_id: string;
+  agent_name: string;
+  action_type: string;
+  status: string;
+  attempts: number;
+  created_at: Date;
+  completed_at: Date | null;
+  last_error: string | null;
+  latency_seconds: number | null;
+}
+
+/**
+ * Agent metrics including success rates and rate limits
+ */
+export interface AgentMetrics {
+  agent_name: string;
+  total_actions: number;
+  completed: number;
+  failed: number;
+  pending: number;
+  rate_limits: RateLimitState;
+  last_action_at: Date | null;
+  success_rate: number;
+}
+
+/**
  * Database Manager for Action Queue
  *
- * Handles SQLite operations for:
- * - Actions queue
+ * Handles PostgreSQL operations using pg-boss for:
+ * - Actions queue (job management)
  * - Rate limit tracking
  * - Agent profiles
- * - Condition evaluations
+ * - Action logs (observability)
  */
 export class DatabaseManager {
-  private db: Database.Database;
+  private pool: Pool;
+  private pgBoss: PgBoss;
+  private initialized = false;
 
-  constructor(dbPath: string = QUEUE_CONFIG.dbPath) {
-    // Ensure data directory exists
-    const dataDir = dirname(dbPath);
-    if (!existsSync(dataDir)) {
-      mkdirSync(dataDir, { recursive: true });
+  constructor(dbUrl: string = QUEUE_CONFIG.dbUrl) {
+    this.pool = new Pool({ connectionString: dbUrl });
+    this.pgBoss = new PgBoss({ connectionString: dbUrl });
+  }
+
+  /**
+   * Initialize database and pg-boss
+   */
+  async initialize(): Promise<void> {
+    if (this.initialized) return;
+
+    try {
+      // Start pg-boss (creates its tables automatically)
+      await this.pgBoss.start();
+
+      // Create custom tables
+      await this.createCustomTables();
+
+      this.initialized = true;
+      console.log('✅ DatabaseManager initialized (PostgreSQL + pg-boss)');
+    } catch (error) {
+      console.error('❌ Failed to initialize DatabaseManager:', error);
+      throw error;
     }
-
-    this.db = new Database(dbPath);
-    this.db.pragma('journal_mode = WAL'); // Better concurrency
-    this.db.pragma('foreign_keys = ON'); // Enforce foreign keys
-
-    this.initialize();
   }
 
   /**
-   * Initialize database schema
+   * Create custom application tables (rate_limits, agent_profiles, action_logs)
    */
-  private initialize(): void {
-    // Actions table
-    this.db.exec(`
-      CREATE TABLE IF NOT EXISTS actions (
-        id TEXT PRIMARY KEY,
-        agent_name TEXT NOT NULL,
-        action_type TEXT NOT NULL,
-        priority INTEGER NOT NULL DEFAULT 1,
-        payload TEXT NOT NULL,
-        status TEXT NOT NULL DEFAULT 'pending',
-        scheduled_for INTEGER,
-        created_at INTEGER NOT NULL,
-        attempted_at INTEGER,
-        completed_at INTEGER,
-        failed_at INTEGER,
-        attempts INTEGER NOT NULL DEFAULT 0,
-        max_attempts INTEGER NOT NULL DEFAULT 3,
-        error TEXT,
-        http_status INTEGER,
-        metadata TEXT,
-        conditions TEXT,
-        condition_check_interval INTEGER,
-        condition_timeout INTEGER,
-        last_condition_check INTEGER
-      );
-    `);
-
-    // Rate limits table
-    this.db.exec(`
-      CREATE TABLE IF NOT EXISTS rate_limits (
-        id INTEGER PRIMARY KEY AUTOINCREMENT,
-        agent_name TEXT NOT NULL,
-        action_type TEXT NOT NULL,
-        window_start INTEGER NOT NULL,
-        count INTEGER NOT NULL DEFAULT 1,
-        daily_count INTEGER NOT NULL DEFAULT 1,
-        daily_reset INTEGER NOT NULL,
-        UNIQUE(agent_name, action_type, window_start)
-      );
-    `);
-
-    // Agents table
-    this.db.exec(`
-      CREATE TABLE IF NOT EXISTS agents (
-        name TEXT PRIMARY KEY,
-        registered_at INTEGER NOT NULL,
-        is_new INTEGER NOT NULL DEFAULT 1,
-        last_activity INTEGER
-      );
-    `);
-
-    // Condition evaluations table
-    this.db.exec(`
-      CREATE TABLE IF NOT EXISTS condition_evaluations (
-        id INTEGER PRIMARY KEY AUTOINCREMENT,
-        action_id TEXT NOT NULL,
-        condition_id TEXT NOT NULL,
-        condition_type TEXT NOT NULL,
-        satisfied INTEGER NOT NULL,
-        evaluated_at INTEGER NOT NULL,
-        message TEXT,
-        details TEXT,
-        FOREIGN KEY (action_id) REFERENCES actions(id) ON DELETE CASCADE
-      );
-    `);
-
-    // Create indexes
-    this.db.exec(`
-      CREATE INDEX IF NOT EXISTS idx_actions_status
-        ON actions(status);
-      CREATE INDEX IF NOT EXISTS idx_actions_scheduled
-        ON actions(scheduled_for);
-      CREATE INDEX IF NOT EXISTS idx_actions_agent
-        ON actions(agent_name);
-      CREATE INDEX IF NOT EXISTS idx_rate_limits_lookup
-        ON rate_limits(agent_name, action_type);
-      CREATE INDEX IF NOT EXISTS idx_condition_evaluations_action
-        ON condition_evaluations(action_id);
-    `);
-  }
-
-  /**
-   * Insert a new action into the queue
-   */
-  insertAction(action: QueuedAction): void {
-    const stmt = this.db.prepare(`
-      INSERT INTO actions (
-        id, agent_name, action_type, priority, payload, status,
-        scheduled_for, created_at, attempts, max_attempts, metadata,
-        conditions, condition_check_interval, condition_timeout
-      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-    `);
-
-    const conditionalAction = action as ConditionalAction;
-
-    stmt.run(
-      action.id,
-      action.agentName,
-      action.actionType,
-      action.priority,
-      JSON.stringify(action.payload),
-      action.status,
-      action.scheduledFor
-        ? Math.floor(action.scheduledFor.getTime() / 1000)
-        : null,
-      Math.floor(action.createdAt.getTime() / 1000),
-      action.attempts,
-      action.maxAttempts,
-      action.metadata ? JSON.stringify(action.metadata) : null,
-      conditionalAction.conditions
-        ? JSON.stringify(conditionalAction.conditions)
-        : null,
-      conditionalAction.conditionCheckInterval || null,
-      conditionalAction.conditionTimeout
-        ? Math.floor(conditionalAction.conditionTimeout.getTime() / 1000)
-        : null,
-    );
-  }
-
-  /**
-   * Get action by ID
-   */
-  getAction(actionId: string): QueuedAction | null {
-    const stmt = this.db.prepare('SELECT * FROM actions WHERE id = ?');
-    const row = stmt.get(actionId) as any;
-
-    if (!row) return null;
-    return this.rowToAction(row);
-  }
-
-  /**
-   * Get next eligible action for processing
-   */
-  getNextAction(): QueuedAction | null {
-    const stmt = this.db.prepare(`
-      SELECT * FROM actions
-      WHERE status = 'pending'
-        AND (scheduled_for IS NULL OR scheduled_for <= ?)
-      ORDER BY priority DESC, created_at ASC
-      LIMIT 1
-    `);
-
-    const now = Math.floor(Date.now() / 1000);
-    const row = stmt.get(now) as any;
-
-    if (!row) return null;
-    return this.rowToAction(row);
-  }
-
-  /**
-   * Get actions by status
-   */
-  getActionsByStatus(
-    status: ActionStatus,
-    limit: number = 100,
-  ): QueuedAction[] {
-    const stmt = this.db.prepare(`
-      SELECT * FROM actions
-      WHERE status = ?
-      ORDER BY created_at DESC
-      LIMIT ?
-    `);
-
-    const rows = stmt.all(status, limit) as any[];
-    return rows.map((row) => this.rowToAction(row));
-  }
-
-  /**
-   * Get conditional actions due for check
-   */
-  getConditionalActionsDueForCheck(): ConditionalAction[] {
-    const now = Math.floor(Date.now() / 1000);
-
-    const stmt = this.db.prepare(`
-      SELECT * FROM actions
-      WHERE status = 'scheduled'
-        AND conditions IS NOT NULL
-        AND (last_condition_check IS NULL
-             OR last_condition_check + condition_check_interval <= ?)
-        AND (condition_timeout IS NULL OR condition_timeout > ?)
-      ORDER BY priority DESC, created_at ASC
-      LIMIT 50
-    `);
-
-    const rows = stmt.all(now, now) as any[];
-    return rows.map((row) => this.rowToAction(row)) as ConditionalAction[];
-  }
-
-  /**
-   * Update action status
-   */
-  updateActionStatus(
-    actionId: string,
-    status: ActionStatus,
-    error?: string,
-    httpStatus?: number,
-  ): void {
-    const now = Math.floor(Date.now() / 1000);
-    let updateFields = 'status = ?';
-    const params: any[] = [status];
-
-    if (status === ActionStatus.PROCESSING) {
-      updateFields += ', attempted_at = ?';
-      params.push(now);
-    } else if (status === ActionStatus.COMPLETED) {
-      updateFields += ', completed_at = ?';
-      params.push(now);
-    } else if (status === ActionStatus.FAILED) {
-      updateFields += ', failed_at = ?, error = ?, http_status = ?';
-      params.push(now, error || null, httpStatus || null);
-    }
-
-    params.push(actionId);
-
-    const stmt = this.db.prepare(
-      `UPDATE actions SET ${updateFields} WHERE id = ?`,
-    );
-    stmt.run(...params);
-  }
-
-  /**
-   * Increment action attempt count
-   */
-  incrementAttempts(actionId: string): void {
-    const stmt = this.db.prepare(`
-      UPDATE actions
-      SET attempts = attempts + 1
-      WHERE id = ?
-    `);
-    stmt.run(actionId);
-  }
-
-  /**
-   * Update last condition check time
-   */
-  updateLastConditionCheck(actionId: string): void {
-    const stmt = this.db.prepare(`
-      UPDATE actions
-      SET last_condition_check = ?
-      WHERE id = ?
-    `);
-    stmt.run(Math.floor(Date.now() / 1000), actionId);
-  }
-
-  /**
-   * Update scheduled_for time for an action (used for retry backoff and rate-limit deferral)
-   */
-  updateScheduledFor(actionId: string, scheduledFor: Date): void {
-    const stmt = this.db.prepare(`
-      UPDATE actions
-      SET scheduled_for = ?
-      WHERE id = ?
-    `);
-    stmt.run(Math.floor(scheduledFor.getTime() / 1000), actionId);
-  }
-
-  /**
-   * Activate time-based scheduled actions whose scheduled_for time has passed.
-   * Transitions status='scheduled' (no conditions) to 'pending' when ready.
-   * Returns count of activated actions.
-   */
-  activateReadyScheduledActions(): number {
-    const now = Math.floor(Date.now() / 1000);
-    const stmt = this.db.prepare(`
-      UPDATE actions
-      SET status = 'pending'
-      WHERE status = 'scheduled'
-        AND scheduled_for IS NOT NULL
-        AND scheduled_for <= ?
-        AND (conditions IS NULL OR conditions = 'null')
-    `);
-    const result = stmt.run(now);
-    return result.changes;
-  }
-
-  /**
-   * Cancel action
-   */
-  cancelAction(actionId: string, reason?: string): void {
-    const stmt = this.db.prepare(`
-      UPDATE actions
-      SET status = 'cancelled', error = ?
-      WHERE id = ?
-    `);
-    stmt.run(reason || 'Cancelled by user', actionId);
-  }
-
-  /**
-   * Record rate limit usage
-   */
-  recordRateLimit(
-    agentName: string,
-    actionType: ActionType,
-    intervalSeconds: number,
-  ): void {
-    const now = Math.floor(Date.now() / 1000);
-    const windowStart = Math.floor(now / intervalSeconds) * intervalSeconds;
-    const dailyReset = Math.floor(now / 86400) * 86400 + 86400; // Next midnight
-
-    // Try to increment existing window
-    const updateStmt = this.db.prepare(`
-      UPDATE rate_limits
-      SET count = count + 1, daily_count = daily_count + 1
-      WHERE agent_name = ?
-        AND action_type = ?
-        AND window_start = ?
-    `);
-
-    const result = updateStmt.run(agentName, actionType, windowStart);
-
-    // If no existing window, insert new
-    if (result.changes === 0) {
-      const insertStmt = this.db.prepare(`
-        INSERT INTO rate_limits (
-          agent_name, action_type, window_start, count, daily_count, daily_reset
-        ) VALUES (?, ?, ?, 1, 1, ?)
+  private async createCustomTables(): Promise<void> {
+    const client = await this.pool.connect();
+    try {
+      // Rate limits table
+      await client.query(`
+        CREATE TABLE IF NOT EXISTS rate_limits (
+          agent_name TEXT PRIMARY KEY,
+          last_post_timestamp BIGINT,
+          last_comment_timestamp BIGINT,
+          last_follow_timestamp BIGINT,
+          last_dm_timestamp BIGINT,
+          updated_at TIMESTAMP DEFAULT NOW()
+        );
       `);
-      insertStmt.run(agentName, actionType, windowStart, dailyReset);
+
+      // Agent profiles table
+      await client.query(`
+        CREATE TABLE IF NOT EXISTS agent_profiles (
+          name TEXT PRIMARY KEY,
+          daily_post_max INT DEFAULT 3,
+          daily_comment_max INT DEFAULT 50,
+          daily_follow_max INT DEFAULT 2,
+          daily_dm_max INT DEFAULT 2
+        );
+      `);
+
+      // Action logs table (for observability)
+      await client.query(`
+        CREATE TABLE IF NOT EXISTS action_logs (
+          id BIGSERIAL PRIMARY KEY,
+          job_id UUID,
+          agent_name TEXT NOT NULL,
+          action_type TEXT NOT NULL,
+          status TEXT NOT NULL,
+          attempts INT DEFAULT 0,
+          last_error TEXT,
+          created_at TIMESTAMP DEFAULT NOW(),
+          completed_at TIMESTAMP
+        );
+
+        CREATE INDEX IF NOT EXISTS idx_action_logs_agent_created
+          ON action_logs(agent_name, created_at DESC);
+        CREATE INDEX IF NOT EXISTS idx_action_logs_status
+          ON action_logs(status);
+      `);
+    } finally {
+      client.release();
     }
   }
 
   /**
-   * Get rate limit state
+   * Insert action into queue (pg-boss managed)
    */
-  getRateLimitState(
-    agentName: string,
-    actionType: ActionType,
-  ): RateLimitState | null {
-    const stmt = this.db.prepare(`
-      SELECT * FROM rate_limits
-      WHERE agent_name = ? AND action_type = ?
-      ORDER BY window_start DESC
-      LIMIT 1
-    `);
+  async insertAction(action: ConditionalAction): Promise<string> {
+    const jobId = uuidv4();
 
-    const row = stmt.get(agentName, actionType) as any;
-    if (!row) return null;
+    try {
+      // Insert job into pg-boss queue
+      await this.pgBoss.send('action:process', action, {
+        id: jobId,
+        priority: action.priority,
+        retryLimit: action.maxAttempts - 1,
+        expireInHours: 24,
+        singletonKey: action.agentName,
+        singletonSeconds: 60,
+      });
 
-    return {
-      actionType,
-      agentName,
-      windowStart: new Date(row.window_start * 1000),
-      count: row.count,
-      dailyCount: row.daily_count,
-      dailyReset: new Date(row.daily_reset * 1000),
+      // Log the action for observability
+      await this.logAction(jobId, action.agentName, action.actionType, 'pending');
+
+      return jobId;
+    } catch (error) {
+      console.error('Failed to insert action:', error);
+      throw error;
+    }
+  }
+
+  /**
+   * Get action by ID from action_logs
+   */
+  async getAction(id: string): Promise<ConditionalAction | null> {
+    const client = await this.pool.connect();
+    try {
+      const result = await client.query(
+        `SELECT * FROM action_logs WHERE job_id = $1`,
+        [id]
+      );
+      if (result.rows.length === 0) {
+        return null;
+      }
+      // Convert action_logs row to ConditionalAction
+      const row = result.rows[0];
+      return {
+        id: row.job_id,
+        agentName: row.agent_name,
+        actionType: row.action_type,
+        priority: 1, // Default priority (not tracked in logs)
+        payload: {},
+        status: row.status,
+        createdAt: new Date(row.created_at),
+        completedAt: row.completed_at ? new Date(row.completed_at) : undefined,
+        attempts: row.attempts || 0,
+        maxAttempts: 3,
+        error: row.last_error || undefined,
+      } as ConditionalAction;
+    } catch (error) {
+      console.error('Failed to get action:', error);
+      return null;
+    } finally {
+      client.release();
+    }
+  }
+
+  /**
+   * Get actions by status from action_logs
+   */
+  async getActionsByStatus(status: ActionStatus, limit: number = 100): Promise<QueuedAction[]> {
+    const client = await this.pool.connect();
+    try {
+      const result = await client.query(
+        `SELECT * FROM action_logs WHERE status = $1 ORDER BY created_at DESC LIMIT $2`,
+        [status, limit]
+      );
+      return result.rows;
+    } finally {
+      client.release();
+    }
+  }
+
+  /**
+   * Update action status in action_logs
+   */
+  async updateActionStatus(id: string, status: ActionStatus, error?: string): Promise<void> {
+    const client = await this.pool.connect();
+    try {
+      await client.query(
+        `UPDATE action_logs SET status = $1, last_error = $2, completed_at = NOW() WHERE job_id = $3`,
+        [status, error || null, id]
+      );
+    } finally {
+      client.release();
+    }
+  }
+
+  /**
+   * Get rate limit state for an agent
+   */
+  async getRateLimit(agentName: string): Promise<RateLimitState> {
+    const client = await this.pool.connect();
+    try {
+      const result = await client.query(
+        `SELECT * FROM rate_limits WHERE agent_name = $1`,
+        [agentName]
+      );
+
+      if (result.rows.length === 0) {
+        // Initialize new rate limit
+        await client.query(
+          `INSERT INTO rate_limits(agent_name) VALUES($1) ON CONFLICT DO NOTHING`,
+          [agentName]
+        );
+        return {
+          lastPostTimestamp: 0,
+          lastCommentTimestamp: 0,
+          lastFollowTimestamp: 0,
+          lastDmTimestamp: 0,
+        };
+      }
+
+      const row = result.rows[0];
+      return {
+        lastPostTimestamp: row.last_post_timestamp || 0,
+        lastCommentTimestamp: row.last_comment_timestamp || 0,
+        lastFollowTimestamp: row.last_follow_timestamp || 0,
+        lastDmTimestamp: row.last_dm_timestamp || 0,
+      };
+    } finally {
+      client.release();
+    }
+  }
+
+  /**
+   * Update rate limit state for an agent
+   */
+  async updateRateLimit(agentName: string, state: RateLimitState): Promise<void> {
+    const client = await this.pool.connect();
+    try {
+      await client.query(
+        `INSERT INTO rate_limits(agent_name, last_post_timestamp, last_comment_timestamp, last_follow_timestamp, last_dm_timestamp)
+         VALUES($1, $2, $3, $4, $5)
+         ON CONFLICT(agent_name) DO UPDATE SET
+         last_post_timestamp = $2,
+         last_comment_timestamp = $3,
+         last_follow_timestamp = $4,
+         last_dm_timestamp = $5`,
+        [agentName, state.lastPostTimestamp, state.lastCommentTimestamp, state.lastFollowTimestamp, state.lastDmTimestamp]
+      );
+    } finally {
+      client.release();
+    }
+  }
+
+  /**
+   * Log action to action_logs table for observability
+   */
+  private async logAction(jobId: string, agentName: string, actionType: string, status: string): Promise<void> {
+    const client = await this.pool.connect();
+    try {
+      await client.query(
+        `INSERT INTO action_logs(job_id, agent_name, action_type, status) VALUES($1, $2, $3, $4)`,
+        [jobId, agentName, actionType, status]
+      );
+    } finally {
+      client.release();
+    }
+  }
+
+  /**
+   * Get comprehensive queue statistics with aggregations
+   */
+  async getStats(): Promise<{
+    summary: {
+      total_queued: number;
+      total_completed: number;
+      total_failed: number;
+      queue_size: number;
     };
-  }
-
-  /**
-   * Clean up old rate limit records
-   */
-  cleanupOldRateLimits(daysToKeep: number = 7): void {
-    const cutoff = Math.floor(Date.now() / 1000) - daysToKeep * 86400;
-    const stmt = this.db.prepare(
-      'DELETE FROM rate_limits WHERE window_start < ?',
-    );
-    stmt.run(cutoff);
-  }
-
-  /**
-   * Register or update agent
-   */
-  upsertAgent(agentName: string, isNew: boolean = false): void {
-    const now = Math.floor(Date.now() / 1000);
-    const stmt = this.db.prepare(`
-      INSERT INTO agents (name, registered_at, is_new, last_activity)
-      VALUES (?, ?, ?, ?)
-      ON CONFLICT(name) DO UPDATE SET
-        last_activity = excluded.last_activity,
-        is_new = excluded.is_new
-    `);
-    stmt.run(agentName, now, isNew ? 1 : 0, now);
-  }
-
-  /**
-   * Check if agent is new (within first 24 hours)
-   */
-  isNewAgent(agentName: string): boolean {
-    const stmt = this.db.prepare(`
-      SELECT is_new, registered_at FROM agents WHERE name = ?
-    `);
-    const row = stmt.get(agentName) as any;
-
-    if (!row) return false;
-    if (!row.is_new) return false;
-
-    // Check if more than 24 hours since registration
-    const now = Math.floor(Date.now() / 1000);
-    const age = now - row.registered_at;
-    return age < 86400; // 24 hours
-  }
-
-  /**
-   * Store condition evaluation
-   */
-  storeConditionEvaluation(
-    actionId: string,
-    evaluation: ConditionEvaluation,
-  ): void {
-    const stmt = this.db.prepare(`
-      INSERT INTO condition_evaluations (
-        action_id, condition_id, condition_type, satisfied,
-        evaluated_at, message, details
-      ) VALUES (?, ?, ?, ?, ?, ?, ?)
-    `);
-
-    stmt.run(
-      actionId,
-      evaluation.conditionId,
-      evaluation.type,
-      evaluation.satisfied ? 1 : 0,
-      Math.floor(evaluation.evaluatedAt.getTime() / 1000),
-      evaluation.message || null,
-      evaluation.details ? JSON.stringify(evaluation.details) : null,
-    );
-  }
-
-  /**
-   * Get condition evaluations for action
-   */
-  getConditionEvaluations(actionId: string): ConditionEvaluation[] {
-    const stmt = this.db.prepare(`
-      SELECT * FROM condition_evaluations
-      WHERE action_id = ?
-      ORDER BY evaluated_at DESC
-      LIMIT 100
-    `);
-
-    const rows = stmt.all(actionId) as any[];
-    return rows.map((row) => ({
-      conditionId: row.condition_id,
-      type: row.condition_type,
-      satisfied: row.satisfied === 1,
-      evaluatedAt: new Date(row.evaluated_at * 1000),
-      message: row.message,
-      details: row.details ? JSON.parse(row.details) : undefined,
-    }));
-  }
-
-  /**
-   * Get queue statistics
-   */
-  getStats(): any {
-    const stats: any = {};
-
-    // Count by status
-    const statusStmt = this.db.prepare(`
-      SELECT status, COUNT(*) as count
-      FROM actions
-      GROUP BY status
-    `);
-    const statusRows = statusStmt.all() as any[];
-    statusRows.forEach((row) => {
-      stats[row.status] = row.count;
-    });
-
-    // Oldest pending
-    const oldestStmt = this.db.prepare(`
-      SELECT MIN(created_at) as oldest
-      FROM actions
-      WHERE status = 'pending'
-    `);
-    const oldestRow = oldestStmt.get() as any;
-    if (oldestRow?.oldest) {
-      stats.oldestPending = new Date(oldestRow.oldest * 1000);
-    }
-
-    // Next scheduled
-    const nextStmt = this.db.prepare(`
-      SELECT MIN(scheduled_for) as next
-      FROM actions
-      WHERE status = 'scheduled' AND scheduled_for IS NOT NULL
-    `);
-    const nextRow = nextStmt.get() as any;
-    if (nextRow?.next) {
-      stats.nextScheduled = new Date(nextRow.next * 1000);
-    }
-
-    // Total actions
-    const totalStmt = this.db.prepare('SELECT COUNT(*) as count FROM actions');
-    const totalRow = totalStmt.get() as any;
-    stats.totalActions = totalRow.count;
-
-    return stats;
-  }
-
-  /**
-   * Convert database row to QueuedAction
-   */
-  private rowToAction(row: any): QueuedAction {
-    const action: ConditionalAction = {
-      id: row.id,
-      agentName: row.agent_name,
-      actionType: row.action_type as ActionType,
-      priority: row.priority as Priority,
-      payload: JSON.parse(row.payload),
-      status: row.status as ActionStatus,
-      scheduledFor: row.scheduled_for
-        ? new Date(row.scheduled_for * 1000)
-        : undefined,
-      createdAt: new Date(row.created_at * 1000),
-      attemptedAt: row.attempted_at
-        ? new Date(row.attempted_at * 1000)
-        : undefined,
-      completedAt: row.completed_at
-        ? new Date(row.completed_at * 1000)
-        : undefined,
-      failedAt: row.failed_at ? new Date(row.failed_at * 1000) : undefined,
-      attempts: row.attempts,
-      maxAttempts: row.max_attempts,
-      error: row.error || undefined,
-      httpStatus: row.http_status || undefined,
-      metadata: row.metadata ? JSON.parse(row.metadata) : undefined,
-      conditions: row.conditions ? JSON.parse(row.conditions) : undefined,
-      conditionCheckInterval: row.condition_check_interval || undefined,
-      conditionTimeout: row.condition_timeout
-        ? new Date(row.condition_timeout * 1000)
-        : undefined,
-      lastConditionCheck: row.last_condition_check
-        ? new Date(row.last_condition_check * 1000)
-        : undefined,
+    by_status: Array<{ status: string; count: number }>;
+    by_agent: Array<{
+      agent_name: string;
+      total_actions: number;
+      completed: number;
+      failed: number;
+      pending: number;
+    }>;
+    by_action_type: Array<{
+      action_type: string;
+      count: number;
+      success_rate: number;
+    }>;
+    last_24h_summary: {
+      total_created: number;
+      total_completed: number;
+      avg_latency_seconds: number;
     };
+  }> {
+    let client: PoolClient | null = null;
+    try {
+      client = await this.pool.connect();
+      // Get queue size from pg-boss
+      const queueSize = await this.pgBoss.getQueueSize('action:process');
 
-    return action;
+      // Query 1: Status breakdown
+      const statusResult = await client.query(`
+        SELECT status, COUNT(*) as count FROM action_logs
+        GROUP BY status
+      `);
+
+      // Query 2: Per-agent breakdown
+      const agentResult = await client.query(`
+        SELECT
+          agent_name,
+          COUNT(*) as total_actions,
+          SUM(CASE WHEN status = 'completed' THEN 1 ELSE 0 END) as completed,
+          SUM(CASE WHEN status = 'failed' THEN 1 ELSE 0 END) as failed,
+          SUM(CASE WHEN status = 'pending' THEN 1 ELSE 0 END) as pending
+        FROM action_logs
+        GROUP BY agent_name
+      `);
+
+      // Query 3: Action type breakdown with success rates
+      const actionTypeResult = await client.query(`
+        SELECT
+          action_type,
+          COUNT(*) as count,
+          ROUND(
+            SUM(CASE WHEN status = 'completed' THEN 1 ELSE 0 END)::numeric /
+            COUNT(*)::numeric * 100, 2
+          ) as success_rate
+        FROM action_logs
+        GROUP BY action_type
+      `);
+
+      // Query 4: Last 24h summary
+      const last24hResult = await client.query(`
+        SELECT
+          COUNT(*) as total_created,
+          SUM(CASE WHEN status = 'completed' THEN 1 ELSE 0 END) as total_completed,
+          ROUND(
+            AVG(EXTRACT(EPOCH FROM (completed_at - created_at)))::numeric, 2
+          ) as avg_latency_seconds
+        FROM action_logs
+        WHERE created_at > NOW() - INTERVAL '24 hours'
+      `);
+
+      // Calculate summary counts
+      const statusMap = new Map<string, number>();
+      statusResult.rows.forEach((row: any) => {
+        statusMap.set(row.status, parseInt(row.count));
+      });
+
+      const summary = {
+        total_queued: statusMap.get('pending') || 0,
+        total_completed: statusMap.get('completed') || 0,
+        total_failed: statusMap.get('failed') || 0,
+        queue_size: queueSize,
+      };
+
+      return {
+        summary,
+        by_status: statusResult.rows.map((row: any) => ({
+          status: row.status,
+          count: parseInt(row.count),
+        })),
+        by_agent: agentResult.rows.map((row: any) => ({
+          agent_name: row.agent_name,
+          total_actions: parseInt(row.total_actions),
+          completed: parseInt(row.completed) || 0,
+          failed: parseInt(row.failed) || 0,
+          pending: parseInt(row.pending) || 0,
+        })),
+        by_action_type: actionTypeResult.rows.map((row: any) => ({
+          action_type: row.action_type,
+          count: parseInt(row.count),
+          success_rate: parseFloat(row.success_rate) || 0,
+        })),
+        last_24h_summary: {
+          total_created: parseInt(last24hResult.rows[0]?.total_created) || 0,
+          total_completed: parseInt(last24hResult.rows[0]?.total_completed) || 0,
+          avg_latency_seconds: parseFloat(last24hResult.rows[0]?.avg_latency_seconds) || 0,
+        },
+      };
+    } catch (error) {
+      console.error('Failed to get stats:', error);
+      return {
+        summary: {
+          total_queued: 0,
+          total_completed: 0,
+          total_failed: 0,
+          queue_size: 0,
+        },
+        by_status: [],
+        by_agent: [],
+        by_action_type: [],
+        last_24h_summary: {
+          total_created: 0,
+          total_completed: 0,
+          avg_latency_seconds: 0,
+        },
+      };
+    } finally {
+      if (client) {
+        client.release();
+      }
+    }
   }
 
   /**
-   * Close database connection
+   * Get job execution history with latency calculation
    */
-  close(): void {
-    this.db.close();
+  async getJobHistory(jobId: string): Promise<JobHistory> {
+    const client = await this.pool.connect();
+    try {
+      const result = await client.query(`
+        SELECT
+          job_id,
+          agent_name,
+          action_type,
+          status,
+          attempts,
+          created_at,
+          completed_at,
+          last_error,
+          EXTRACT(EPOCH FROM (completed_at - created_at)) as latency_seconds
+        FROM action_logs
+        WHERE job_id = $1
+      `, [jobId]);
+
+      if (result.rows.length === 0) {
+        throw new Error(`Job not found: ${jobId}`);
+      }
+
+      const row = result.rows[0];
+      return {
+        job_id: row.job_id,
+        agent_name: row.agent_name,
+        action_type: row.action_type,
+        status: row.status,
+        attempts: row.attempts,
+        created_at: row.created_at,
+        completed_at: row.completed_at,
+        last_error: row.last_error,
+        latency_seconds: row.latency_seconds ? parseFloat(row.latency_seconds) : null,
+      };
+    } finally {
+      client.release();
+    }
   }
 
   /**
-   * Get database instance (for direct access if needed)
+   * Get agent metrics including success rates and rate limit state
    */
-  getDb(): Database.Database {
-    return this.db;
+  async getAgentMetrics(agentName: string): Promise<AgentMetrics> {
+    const client = await this.pool.connect();
+    try {
+      // Query action counts
+      const result = await client.query(`
+        SELECT
+          COUNT(*) as total_actions,
+          SUM(CASE WHEN status = 'completed' THEN 1 ELSE 0 END) as completed,
+          SUM(CASE WHEN status = 'failed' THEN 1 ELSE 0 END) as failed,
+          SUM(CASE WHEN status = 'pending' THEN 1 ELSE 0 END) as pending,
+          MAX(created_at) as last_action_at
+        FROM action_logs
+        WHERE agent_name = $1
+      `, [agentName]);
+
+      const row = result.rows[0];
+      const total = parseInt(row.total_actions) || 0;
+      const completed = parseInt(row.completed) || 0;
+      const successRate = total > 0 ? Math.round((completed / total) * 100 * 100) / 100 : 0;
+
+      // Get rate limit state
+      let rateLimits: RateLimitState;
+      try {
+        rateLimits = await this.getRateLimit(agentName);
+      } catch (error) {
+        console.error(`Failed to get rate limits for ${agentName}:`, error);
+        rateLimits = {
+          lastPostTimestamp: 0,
+          lastCommentTimestamp: 0,
+          lastFollowTimestamp: 0,
+          lastDmTimestamp: 0,
+        };
+      }
+
+      return {
+        agent_name: agentName,
+        total_actions: total,
+        completed: completed,
+        failed: parseInt(row.failed) || 0,
+        pending: parseInt(row.pending) || 0,
+        rate_limits: rateLimits,
+        last_action_at: row.last_action_at,
+        success_rate: successRate,
+      };
+    } finally {
+      client.release();
+    }
+  }
+
+  /**
+   * Close database connections
+   */
+  async close(): Promise<void> {
+    try {
+      await this.pgBoss.stop();
+      await this.pool.end();
+      console.log('✅ DatabaseManager closed');
+    } catch (error) {
+      console.error('Error closing DatabaseManager:', error);
+    }
+  }
+
+  /**
+   * Cancel an action by ID
+   */
+  async cancelAction(id: string, reason: string): Promise<void> {
+    const client = await this.pool.connect();
+    try {
+      await client.query(
+        `UPDATE action_logs SET status = $1, last_error = $2, completed_at = NOW() WHERE job_id = $3`,
+        [ActionStatus.CANCELLED, reason, id]
+      );
+
+      // Also cancel the job in pg-boss
+      try {
+        await this.pgBoss.cancel('action:process', id);
+      } catch (_) {
+        // Job may not exist in pg-boss, that's okay
+      }
+    } finally {
+      client.release();
+    }
+  }
+
+  /**
+   * Get condition evaluations for an action (placeholder for future implementation)
+   */
+  async getConditionEvaluations(_actionId: string): Promise<any[]> {
+    // This will be implemented when condition evaluation tracking is added to the database schema
+    return [];
+  }
+
+  /**
+   * Expose pg-boss for queue subscription in queue-processor
+   */
+  getPgBoss(): PgBoss {
+    return this.pgBoss;
   }
 }

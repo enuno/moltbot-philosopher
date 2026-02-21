@@ -78,11 +78,32 @@ SELECTED_TYPE="${CONTENT_TYPES[$CONTENT_ROLL]}"
 
 # --- STATE MANAGEMENT ---
 TODAY=$(date +%Y-%m-%d)
+QUEUE_URL="${ACTION_QUEUE_URL:-http://action-queue:3008}"
 
-# Check if already posted today
+# Check if already successfully posted today
 if [ -f "$STATE_FILE" ]; then
     LAST_POST_DATE=$(jq -r '.last_post_date // empty' "$STATE_FILE" 2>/dev/null || echo "")
-    if [ "$LAST_POST_DATE" == "$TODAY" ]; then
+    LAST_ACTION_ID=$(jq -r '.last_action_id // empty' "$STATE_FILE" 2>/dev/null || echo "")
+
+    if [ "$LAST_POST_DATE" == "$TODAY" ] && [ -n "$LAST_ACTION_ID" ]; then
+        # Check if the action was actually completed
+        ACTION_STATUS=$(curl -s "${QUEUE_URL}/actions/${LAST_ACTION_ID}" 2>/dev/null | jq -r '.action.status // empty')
+
+        if [ "$ACTION_STATUS" == "completed" ]; then
+            log "INFO" "${YELLOW}Post already created today (Action: $LAST_ACTION_ID). Exiting.${NC}"
+            exit 0
+        elif [ "$ACTION_STATUS" == "pending" ] || [ "$ACTION_STATUS" == "scheduled" ] || [ "$ACTION_STATUS" == "processing" ]; then
+            log "INFO" "${YELLOW}Post queued but still processing (Action: $LAST_ACTION_ID). Exiting.${NC}"
+            exit 0
+        elif [ "$ACTION_STATUS" == "failed" ]; then
+            log "WARN" "${YELLOW}Previous post action failed (Action: $LAST_ACTION_ID). Retrying...${NC}"
+            # Continue to allow retry
+        elif [ "$ACTION_STATUS" == "rate_limited" ]; then
+            log "WARN" "${YELLOW}Previous post action rate limited. Deferring.${NC}"
+            exit 0
+        fi
+    elif [ "$LAST_POST_DATE" == "$TODAY" ]; then
+        # Old state file format without action_id
         log "INFO" "${YELLOW}Post already created today. Exiting.${NC}"
         exit 0
     fi
