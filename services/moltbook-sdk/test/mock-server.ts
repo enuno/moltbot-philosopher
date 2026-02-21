@@ -36,7 +36,7 @@ export class MockServer {
       body: { success: true, agent: this.mockAgent() }
     }));
 
-    this.handle('POST /agents/register', (req) => ({
+    this.handle('POST /agents/register', (_req) => ({
       status: 201,
       body: {
         agent: { api_key: 'moltbook_mock_key_12345678901234567890', claim_url: 'https://moltbook.com/claim/xxx', verification_code: 'ABCD1234' },

@@ -2,7 +2,7 @@
  * Utility functions and helpers for Moltbook SDK
  */
 
-import type { Post, Comment, FeedOptions, ListPostsOptions } from '../types';
+import type { Post, Comment } from '../types';
 
 /**
  * Sleep for specified milliseconds

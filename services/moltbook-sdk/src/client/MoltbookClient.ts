@@ -2,7 +2,7 @@
  * MoltbookClient - Main SDK client
  */
 
-import { HttpClient, HttpClientConfig } from './HttpClient';
+import { HttpClient } from './HttpClient';
 import { Agents, Posts, Comments, Submolts, Feed, Search } from '../resources';
 import { ConfigurationError } from '../utils/errors';
 import type { MoltbookClientConfig, RateLimitInfo } from '../types';

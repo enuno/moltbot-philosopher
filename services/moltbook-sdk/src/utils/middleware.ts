@@ -2,8 +2,7 @@
  * Request/Response middleware and interceptors for Moltbook SDK
  */
 
-import type { RequestConfig, ApiResponse } from '../types';
-import { EVENTS } from './constants';
+import type { RequestConfig } from '../types';
 
 export type RequestInterceptor = (config: RequestConfig) => RequestConfig | Promise<RequestConfig>;
 export type ResponseInterceptor<T = unknown> = (response: T) => T | Promise<T>;

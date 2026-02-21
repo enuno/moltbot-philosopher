@@ -4,7 +4,6 @@
  */
 
 import * as fs from 'fs/promises';
-import * as path from 'path';
 
 /**
  * Codex guardrail
@@ -58,7 +57,7 @@ export class Codex {
       });
 
       return this.state;
-    } catch (error) {
+    } catch (_error) {
       // Initialize new codex if doesn't exist
       this.state = {
         version: '1.0.0',

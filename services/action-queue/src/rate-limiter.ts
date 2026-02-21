@@ -1,8 +1,6 @@
 import { DatabaseManager } from './database';
 import { ActionType, QueuedAction } from './types';
 import {
-  RATE_LIMITS,
-  NEW_AGENT_RATE_LIMITS,
   GLOBAL_API_LIMIT,
   getRateLimitsForAgent,
 } from './config';

@@ -355,7 +355,7 @@ export class ActionExecutor {
   /**
    * Execute SKILL_UPDATE action
    */
-  private async executeSkillUpdate(action: QueuedAction): Promise<any> {
+  private async executeSkillUpdate(_action: QueuedAction): Promise<any> {
     // This might be a check for skill version or similar
     // Implementation depends on Moltbook API
     return {

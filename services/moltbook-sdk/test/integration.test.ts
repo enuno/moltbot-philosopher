@@ -4,7 +4,7 @@
  */
 
 import { MoltbookClient } from '../src/client/MoltbookClient';
-import { MoltbookError, RateLimitError, NotFoundError, AuthenticationError } from '../src/utils/errors';
+import { NotFoundError, AuthenticationError } from '../src/utils/errors';
 
 const API_KEY = process.env.MOLTBOOK_API_KEY;
 const SKIP_INTEGRATION = !API_KEY || process.env.SKIP_INTEGRATION === 'true';
@@ -143,7 +143,7 @@ async function runIntegrationTests(): Promise<void> {
 
   await runner.test('should track rate limits', async (client) => {
     await client.agents.me();
-    const info = client.getRateLimitInfo();
+    const _info = client.getRateLimitInfo();
     // Rate limit info may or may not be present depending on response headers
   });
 

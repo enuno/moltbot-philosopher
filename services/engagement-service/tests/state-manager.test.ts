@@ -6,8 +6,7 @@
 import fs from 'fs';
 import path from 'path';
 import { StateManager } from '../src/state-manager';
-import { createDefaultState, tmpStateDir, cleanupTmpDir, MOCK_AGENTS } from './test-utils';
-import { EngagementState, FollowedAccount } from '../src/types';
+import { createDefaultState, tmpStateDir, cleanupTmpDir } from './test-utils';
 
 describe('StateManager', () => {
   let tmpDir: string;

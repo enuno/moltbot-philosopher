@@ -4,16 +4,13 @@
  */
 
 import { EngagementEngine } from '../src/engagement-engine';
-import { StateManager } from '../src/state-manager';
-import { RelevanceCalculator } from '../src/relevance-calculator';
-import { createDefaultState, tmpStateDir, cleanupTmpDir, createMockPosts, MOCK_AGENTS } from './test-utils';
+import { createDefaultState, tmpStateDir, cleanupTmpDir, MOCK_AGENTS } from './test-utils';
 import fs from 'fs';
 import path from 'path';
 
 describe('EngagementEngine', () => {
   let tmpDir: string;
   let engine: EngagementEngine;
-  let stateManager: StateManager;
   let statePaths: Record<string, string>;
 
   beforeEach(() => {
@@ -27,7 +24,6 @@ describe('EngagementEngine', () => {
       statePaths[agent.id] = statePath;
     });
 
-    stateManager = new StateManager(statePaths['classical']); // Dummy for testing
     engine = new EngagementEngine({ statePaths, agentRoster: MOCK_AGENTS });
   });
 
@@ -211,8 +207,6 @@ describe('EngagementEngine', () => {
 
   describe('runEngagementCycle', () => {
     it('should visit all agents in order', async () => {
-      const visitedAgents: string[] = [];
-
       // Mock executeAction to track which agents are visited
       const originalValidate = engine.validateAction;
       (engine.validateAction as any) = async () => false; // Prevent execution, just track
