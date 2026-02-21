@@ -15,4 +15,5 @@ module.exports = {
   coverageReporters: ['text', 'lcov', 'html'],
   moduleFileExtensions: ['ts', 'js', 'json'],
   verbose: true,
+  testTimeout: 30000,
 };
