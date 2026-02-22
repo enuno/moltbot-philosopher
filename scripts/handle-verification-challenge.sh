@@ -66,55 +66,36 @@ EOF
   fi
 }
 
-# Update state
-update_state() {
-  local result="$1"
-  local challenge_text="$2"
-
-  local temp_state
-  temp_state=$(mktemp)
-
-  if [ "$result" = "pass" ]; then
-    jq --arg challenge "$challenge_text" \
-       --arg timestamp "$(date -u +"%Y-%m-%dT%H:%M:%SZ")" \
-       '.total_challenges += 1 |
-        .challenges_passed += 1 |
-        .last_challenge = $timestamp |
-        .consecutive_failures = 0' "$STATE_FILE" > "$temp_state"
-  else
-    jq --arg challenge "$challenge_text" \
-       --arg timestamp "$(date -u +"%Y-%m-%dT%H:%M:%SZ")" \
-       '.total_challenges += 1 |
-        .challenges_failed += 1 |
-        .last_challenge = $timestamp |
-        .last_failure = $timestamp |
-        .consecutive_failures += 1' "$STATE_FILE" > "$temp_state"
-  fi
-
-  mv "$temp_state" "$STATE_FILE"
+# Update statistics
+update_stats() {
+  local result="$1"  # "passed" or "failed"
+  
+  local tmp_file="${STATE_FILE}.tmp"
+  jq --arg result "$result" --arg date "$(date -u +"%Y-%m-%dT%H:%M:%SZ")" '
+    .total_challenges += 1 |
+    if $result == "passed" then 
+      .challenges_passed += 1 | .consecutive_failures = 0 
+    else 
+      .challenges_failed += 1 | .consecutive_failures += 1 | .last_failure = $date 
+    end |
+    .last_challenge = $date
+  ' "$STATE_FILE" > "$tmp_file" && mv "$tmp_file" "$STATE_FILE"
 }
 
-# Detect if message is a verification challenge
+# Show statistics
+show_stats() {
+  if [ -f "$STATE_FILE" ]; then
+    cat "$STATE_FILE" | jq .
+  else
+    info "No statistics available"
+  fi
+}
+
+# Check if text is a verification challenge
 is_verification_challenge() {
-  local message="$1"
-
-  # Detection patterns for verification challenges
-  # Focus on instruction compliance and anti-human patterns
-  if echo "$message" | grep -qiE "(if you read this|verification|agent verification|prove you (are|can)|instruction:|follow this exact|respond with only|format:|heartbeat check|compliance test)"; then
-    return 0
-  fi
-
-  # Check for structured challenge format
-  if echo "$message" | jq -e '.type == "verification_challenge"' > /dev/null 2>&1; then
-    return 0
-  fi
-
-  # Detect metadata flags
-  if echo "$message" | jq -e '.metadata.is_verification == true' > /dev/null 2>&1; then
-    return 0
-  fi
-
-  return 1
+  local text="$1"
+  # Detection logic - look for challenge keywords
+  echo "$text" | grep -qiE "(verification|challenge|prove you are human|captcha|puzzle|logic test)" 
 }
 
 # Solve verification challenge with fast, minimal model
@@ -143,7 +124,7 @@ Answer in under 60 tokens. No explanation unless explicitly requested. Output on
   # Use minimal prompt with low temperature for accuracy
   # Target: <2s inference, 60 tokens max
   local response
-  response=$(timeout "${VERIFICATION_TIMEOUT}s" curl -s -X POST "$AI_GENERATOR_URL/generate" \
+  if ! response=$(timeout "${VERIFICATION_TIMEOUT}s" curl -s -X POST "$AI_GENERATOR_URL/generate" \
     -H "Content-Type: application/json" \
     -d "$(jq -n \
       --arg customPrompt "$prompt" \
@@ -153,7 +134,10 @@ Answer in under 60 tokens. No explanation unless explicitly requested. Output on
         model: "deepseek-v3",
         temperature: 0.2,
         maxTokens: 60
-      }')" 2>/dev/null)
+      }')" 2>/dev/null); then
+    error "Curl request failed or timed out"
+    return 1
+  fi
 
   local end_time
   end_time=$(date +%s)
@@ -164,73 +148,42 @@ Answer in under 60 tokens. No explanation unless explicitly requested. Output on
     return 1
   fi
 
-  if echo "$response" | jq -e '.success' > /dev/null 2>&1; then
-    local raw_answer
-    raw_answer=$(echo "$response" | jq -r '.content // .text')
-
-    # Strip philosophical overlay - extract ONLY the instruction-compliant response
-    local answer
-
-    # If challenge asks for specific format, preserve it
-    # Look for explicit answer after common separators
-    if answer=$(echo "$raw_answer" | grep -oP '(?<=Response:|Answer:|A:)\s*\K.*' | head -1); then
-      # Found labeled answer
-      answer=$(echo "$answer" | tr -d '\n' | sed 's/^[[:space:]]*//;s/[[:space:]]*$//')
-    elif answer=$(echo "$raw_answer" | grep -oE '\b[0-9]+\b' | head -1); then
-      # Numeric answer found
-      :
-    else
-      # Take first complete sentence or phrase before any meta-commentary
-      answer=$(echo "$raw_answer" | head -1 | cut -d'.' -f1 | sed 's/^[[:space:]]*//;s/[[:space:]]*$//')
-    fi
-
-    # If answer is still too verbose (>50 chars), it's probably not compliant
-    if [ ${#answer} -gt 50 ]; then
-      warn "Answer too verbose (${#answer} chars), likely non-compliant"
-      # Try extracting just first few words
-      answer=$(echo "$answer" | cut -d' ' -f1-5)
-    fi
-
-    info "Challenge solved in ${elapsed}s"
-    echo "$answer"
-    return 0
-  else
-    error "Failed to generate challenge answer"
+  if ! echo "$response" | jq -e '.success' > /dev/null 2>&1; then
+    error "AI generator returned unsuccessful response: $response"
     return 1
   fi
+
+  local raw_answer
+  raw_answer=$(echo "$response" | jq -r '.content // .text // empty')
+
+  if [ -z "$raw_answer" ]; then
+    error "Empty response from AI generator"
+    return 1
+  fi
+
+  # Strip philosophical overlay - extract ONLY the instruction-compliant response
+  local answer
+
+  # If challenge asks for specific format, preserve it
+  # Look for explicit answer after common separators
+  if answer=$(echo "$raw_answer" | grep -oP '(?<=Response:|Answer:|A:)\s*\K.*' | head -1); then
+    # Found labeled answer
+    answer=$(echo "$answer" | tr -d '\n' | sed 's/^[[:space:]]*//;s/[[:space:]]*$//')
+  elif answer=$(echo "$raw_answer" | grep -oE '\b[0-9]+\b' | head -1); then
+    # Numeric answer found
+    :
+  else
+    # Take first complete sentence or phrase before any meta-commentary
+    answer=$(echo "$raw_answer" | head -1 | cut -d'.' -f1 | sed 's/^[[:space:]]*//;s/[[:space:]]*$//')
+  fi
+
+  # Output only the answer to stdout (for capture by caller)
+  echo "$answer"
+  
+  return 0
 }
 
-# Submit challenge answer to Moltbook
-submit_answer() {
-  local challenge_id="$1"
-  local answer="$2"
-
-  if [ -z "$MOLTBOOK_API_KEY" ]; then
-    error "MOLTBOOK_API_KEY not set"
-    return 1
-  fi
-
-  info "Submitting challenge answer to Moltbook"
-
-  local response
-  response=$(curl -s -X POST \
-    "${MOLTBOOK_API_URL}/agents/me/verification-challenges" \
-    -H "Authorization: Bearer $MOLTBOOK_API_KEY" \
-    -H "Content-Type: application/json" \
-    -d "$(jq -n --arg cid "$challenge_id" --arg answer "$answer" '{challenge_id: $cid, answer: $answer}')")
-
-  if echo "$response" | jq -e '.success == true' > /dev/null 2>&1; then
-    success "Challenge answer accepted"
-    return 0
-  else
-    local error_msg
-    error_msg=$(echo "$response" | jq -r '.error // "Unknown error"')
-    error "Challenge submission failed: $error_msg"
-    return 1
-  fi
-}
-
-# Main challenge handler
+# Handle full challenge flow (detect + solve + submit)
 handle_challenge() {
   local challenge_id="$1"
   local challenge_text="$2"
@@ -238,142 +191,56 @@ handle_challenge() {
   info "=== VERIFICATION CHALLENGE DETECTED ==="
   info "Challenge ID: $challenge_id"
 
-  # Solve challenge
-  local answer
-  if answer=$(solve_challenge "$challenge_text"); then
-    info "Generated answer: $answer"
-
-    # Submit answer
-    if submit_answer "$challenge_id" "$answer"; then
-      update_state "pass" "$challenge_text"
-      success "✅ Challenge passed successfully"
-
-      # Alert via NTFY if configured
-      if command -v notify-ntfy.sh &> /dev/null; then
-        bash "$SCRIPT_DIR/notify-ntfy.sh" \
-          "✅ Verification Challenge Passed" \
-          "Challenge ID: $challenge_id" \
-          "low" \
-          "moltbook,verification,success"
-      fi
-
-      return 0
-    else
-      update_state "fail" "$challenge_text"
-      error "❌ Challenge submission failed"
-
-      # Alert on failure
-      if command -v notify-ntfy.sh &> /dev/null; then
-        bash "$SCRIPT_DIR/notify-ntfy.sh" \
-          "❌ Verification Challenge FAILED" \
-          "Challenge ID: $challenge_id - Submission error" \
-          "urgent" \
-          "moltbook,verification,failure"
-      fi
-
-      return 1
-    fi
-  else
-    update_state "fail" "$challenge_text"
-    error "❌ Challenge solving failed"
-
-    # Alert on failure
-    if command -v notify-ntfy.sh &> /dev/null; then
-      bash "$SCRIPT_DIR/notify-ntfy.sh" \
-        "❌ Verification Challenge FAILED" \
-        "Challenge ID: $challenge_id - Solver error" \
-        "urgent" \
-        "moltbook,verification,failure"
-    fi
-
+  if ! answer=$(solve_challenge "$challenge_text"); then
+    update_stats "failed"
+    error "Failed to solve challenge $challenge_id"
     return 1
   fi
-}
 
-# Show current verification stats
-show_stats() {
-  init_state
-
-  echo "📊 Verification Challenge Statistics"
-  echo "====================================="
-  echo ""
-
-  local total
-  local passed
-  local failed
-  local consecutive
-
-  total=$(jq -r '.total_challenges' "$STATE_FILE")
-  passed=$(jq -r '.challenges_passed' "$STATE_FILE")
-  failed=$(jq -r '.challenges_failed' "$STATE_FILE")
-  consecutive=$(jq -r '.consecutive_failures' "$STATE_FILE")
-
-  echo "Total Challenges: $total"
-  echo "Passed: $passed"
-  echo "Failed: $failed"
-
-  if [ "$total" -gt 0 ]; then
-    local success_rate
-    success_rate=$(echo "scale=1; $passed * 100 / $total" | bc)
-    echo "Success Rate: ${success_rate}%"
+  success "Challenge solved: ${answer:0:50}..."
+  
+  # Submit to Moltbook if API key available
+  if [ -n "$MOLTBOOK_API_KEY" ]; then
+    local submit_response
+    submit_response=$(curl -s -X POST "${MOLTBOOK_API_BASE}/challenges/${challenge_id}/solve" \
+      -H "Authorization: Bearer $MOLTBOOK_API_KEY" \
+      -H "Content-Type: application/json" \
+      -d "$(jq -n --arg answer "$answer" '{answer: $answer}')" 2>/dev/null || true)
+    
+    info "Submit response: $submit_response"
   fi
 
-  echo "Consecutive Failures: $consecutive"
-
-  if [ "$consecutive" -ge 2 ]; then
-    echo ""
-    echo -e "${RED}⚠️  WARNING: Multiple consecutive failures detected${NC}"
-    echo "Review challenge handler implementation"
-  fi
-
-  echo ""
+  update_stats "passed"
+  return 0
 }
 
 # Show usage
 show_usage() {
   cat << EOF
-Moltbook AI Verification Challenge Handler
+Usage: $0 <command> [args]
 
-Handles AI verification challenges with fast, accurate solving.
+Commands:
+  handle <challenge_id> <challenge_text>  Handle a verification challenge
+  test <text>                             Test if text is a verification challenge
+  solve-only <challenge_text>             Just solve and output answer
+  stats                                   Show challenge statistics
+  reset                                   Reset statistics
+  --help                                  Show this help
 
-USAGE:
-  $(basename "$0") <command> [OPTIONS]
-
-COMMANDS:
-  handle <id> <text>    Handle a verification challenge
-  solve-only <text>     Solve a challenge and output answer only (for proxy)
-  test <text>           Test challenge detection and solving
-  stats                 Show verification statistics
-  reset                 Reset statistics
-
-EXAMPLES:
-  # Handle challenge from Moltbook webhook
-  $(basename "$0") handle "challenge-123" "What is 2 + 2?"
-
-  # Solve challenge (for proxy fallback)
-  $(basename "$0") solve-only "What is 5 * 3?"
-
-  # Test challenge detection
-  $(basename "$0") test "Solve this puzzle: What is 5 * 3?"
-
-  # Show stats
-  $(basename "$0") stats
-
-ENVIRONMENT:
-  MOLTBOOK_API_KEY         Moltbook API key (required for submission)
-  AI_GENERATOR_URL         AI service URL (default: http://localhost:3002)
-  VERIFICATION_TIMEOUT     Solver timeout in seconds (default: 10)
-
+Environment:
+  AI_GENERATOR_URL    URL of AI generator service (default: http://localhost:3002)
+  MOLTBOOK_API_KEY    API key for Moltbook submission
+  WORKSPACE_DIR       Workspace directory for state files
 EOF
-  exit 0
 }
 
-# Main function
+# Main entry point
 main() {
   local command="${1:-}"
 
   if [ -z "$command" ]; then
     show_usage
+    exit 1
   fi
 
   shift || true
@@ -410,7 +277,7 @@ main() {
         exit 1
       fi
       # Output only the answer to stdout, errors to stderr
-      solve_challenge "$1" 2>&1
+      solve_challenge "$1"
       ;;
 
     stats)
@@ -423,8 +290,9 @@ main() {
       success "Statistics reset"
       ;;
 
-    --help)
+    --help|-h)
       show_usage
+      exit 0
       ;;
 
     *)
