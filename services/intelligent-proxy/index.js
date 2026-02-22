@@ -198,6 +198,36 @@ function reloadSecrets() {
   }
 }
 
+// Enhanced answer extraction (matching handle-verification-challenge.sh logic)
+// MOVED HERE: Before solveWithVenice to ensure it's defined when called
+function extractAnswer(rawAnswer, puzzleText) {
+  if (!rawAnswer || typeof rawAnswer !== 'string') {
+    return null;
+  }
+
+  // Try to find labeled answer (Response:, Answer:, A:)
+  const labelMatch = rawAnswer.match(/(?:Response:|Answer:|A:)\s*(.+?)(?:\n|$)/i);
+  if (labelMatch) {
+    return labelMatch[1].trim();
+  }
+
+  // Try to find numeric answer
+  const numericMatch = rawAnswer.match(/\b\d+\b/);
+  if (numericMatch) {
+    return numericMatch[0];
+  }
+
+  // Take first sentence before any meta-commentary
+  let answer = rawAnswer.split('\n')[0].split('.')[0].trim();
+
+  // If answer is too verbose (>50 chars), extract first few words
+  if (answer.length > 50) {
+    answer = answer.split(' ').slice(0, 5).join(' ');
+  }
+
+  return answer || null;
+}
+
 async function solveChallenge(puzzleText) {
   // Check cache first
   const cachedAnswer = getCachedAnswer(puzzleText);
@@ -211,17 +241,19 @@ async function solveChallenge(puzzleText) {
     primaryModel: VENICE_PRIMARY_MODEL,
   });
 
+  let answer = null;
+
   // Validate Venice API Key early
   if (!VENICE_API_KEY) {
     log('error', 'VENICE_API_KEY not configured, skipping Venice models');
   } else {
     // Try primary model (Qwen3-4B - fastest)
-    let answer = await solveWithVenice(puzzleText, VENICE_PRIMARY_MODEL, true);
+    answer = await solveWithVenice(puzzleText, VENICE_PRIMARY_MODEL, true);
     if (answer) {
       const duration = Date.now() - startTime;
       recordLatency(duration);
       stats.primaryModelSuccesses++;
-      setCachedAnswer(puzzleText, answer); // Cache successful answer
+      setCachedAnswer(puzzleText, answer);
       return answer;
     }
 
@@ -238,7 +270,7 @@ async function solveChallenge(puzzleText) {
       const duration = Date.now() - startTime;
       recordLatency(duration);
       stats.fallbackModelSuccesses++;
-      setCachedAnswer(puzzleText, answer); // Cache successful answer
+      setCachedAnswer(puzzleText, answer);
       return answer;
     }
 
@@ -246,16 +278,17 @@ async function solveChallenge(puzzleText) {
   }
 
   // Fallback to AI Generator (DeepSeek-v3 via local service)
-  log('warn', 'Venice models failed, trying AI Generator', {
+  log('warn', 'Venice models failed or skipped, trying AI Generator', {
     aiGeneratorUrl: AI_GENERATOR_URL,
   });
-  let answer = await solveWithAIGenerator(puzzleText);
+
+  answer = await solveWithAIGenerator(puzzleText);
 
   if (answer) {
     const duration = Date.now() - startTime;
     recordLatency(duration);
     stats.aiGeneratorSuccesses++;
-    setCachedAnswer(puzzleText, answer); // Cache successful answer
+    setCachedAnswer(puzzleText, answer);
     return answer;
   }
 
@@ -272,7 +305,7 @@ async function solveChallenge(puzzleText) {
       const duration = Date.now() - startTime;
       recordLatency(duration);
       stats.shellFallbackSuccesses++;
-      setCachedAnswer(puzzleText, answer); // Cache successful answer
+      setCachedAnswer(puzzleText, answer);
       return answer;
     }
 
@@ -284,7 +317,10 @@ async function solveChallenge(puzzleText) {
 
 async function solveWithVenice(puzzleText, model, isPrimary) {
   const startTime = Date.now();
-  log('info', 'Calling Venice.ai model', { model, puzzlePreview: puzzleText.substring(0, 100) });
+  log('info', 'Calling Venice.ai model', { 
+    model: model, 
+    puzzlePreview: puzzleText.substring(0, 100) 
+  });
 
   try {
     const controller = new AbortController();
@@ -322,28 +358,30 @@ async function solveWithVenice(puzzleText, model, isPrimary) {
     }
 
     const result = await response.json();
-    const rawAnswer = result.choices?.[0]?.message?.content?.trim();
+    // FIX: Use safe property access instead of optional chaining for broader compatibility
+    const content = result.choices && result.choices[0] && result.choices[0].message && result.choices[0].message.content;
+    const rawAnswer = content ? content.trim() : null;
 
     const duration = Date.now() - startTime;
 
     if (rawAnswer) {
       // FIX: Extract answer properly like we do for AI Generator
       const answer = extractAnswer(rawAnswer, puzzleText);
-      
+
       log('info', 'Venice.ai response received', {
-        model,
+        model: model,
         rawPreview: rawAnswer.substring(0, 50),
         extractedPreview: answer ? answer.substring(0, 50) : 'EXTRACTION_FAILED',
         duration: `${duration}ms`,
       });
-      
+
       return answer;
     }
     throw new Error('No answer content in Venice response');
   } catch (error) {
     const duration = Date.now() - startTime;
     log('error', 'Venice.ai API call failed', {
-      model,
+      model: model,
       error: error.message,
       duration: `${duration}ms`,
     });
@@ -419,11 +457,11 @@ Answer in under 60 tokens. No explanation unless explicitly requested. Output on
 }
 
 async function solveWithShellScript(puzzleText) {
-  const startTime = Date.now();
-  
   // FIX: Check if script exists before spawning
   if (!fs.existsSync(SHELL_FALLBACK_SCRIPT)) {
-    log('error', 'Shell fallback script not found', { path: SHELL_FALLBACK_SCRIPT });
+    log('error', 'Shell fallback script not found', { 
+      path: SHELL_FALLBACK_SCRIPT 
+    });
     return null;
   }
 
@@ -438,6 +476,7 @@ async function solveWithShellScript(puzzleText) {
     return null;
   }
 
+  const startTime = Date.now();
   log('info', 'Calling shell script fallback', { 
     script: SHELL_FALLBACK_SCRIPT,
     puzzlePreview: puzzleText.substring(0, 100)
@@ -449,8 +488,8 @@ async function solveWithShellScript(puzzleText) {
     const proc = spawn(SHELL_FALLBACK_SCRIPT, ['solve-only', puzzleText], {
       env: {
         ...process.env,
-        AI_GENERATOR_URL,
-        MOLTBOOK_API_KEY,
+        AI_GENERATOR_URL: AI_GENERATOR_URL,
+        MOLTBOOK_API_KEY: MOLTBOOK_API_KEY,
       },
       timeout: CHALLENGE_TIMEOUT,
     });
@@ -503,41 +542,15 @@ async function solveWithShellScript(puzzleText) {
 
     // Timeout handler - already handled by spawn timeout but double-check
     setTimeout(() => {
-      if (proc.killed) {
-        log('error', 'Shell script timeout (forced kill)', { timeout: CHALLENGE_TIMEOUT });
+      if (!proc.killed) {
+        proc.kill();
+        log('error', 'Shell script timeout (forced kill)', { 
+          timeout: CHALLENGE_TIMEOUT 
+        });
         resolve(null);
       }
     }, CHALLENGE_TIMEOUT + 1000); // Give extra 1s grace period
   });
-}
-
-// Enhanced answer extraction (matching handle-verification-challenge.sh logic)
-function extractAnswer(rawAnswer, puzzleText) {
-  if (!rawAnswer || typeof rawAnswer !== 'string') {
-    return null;
-  }
-
-  // Try to find labeled answer (Response:, Answer:, A:)
-  const labelMatch = rawAnswer.match(/(?:Response:|Answer:|A:)\s*(.+?)(?:\n|$)/i);
-  if (labelMatch) {
-    return labelMatch[1].trim();
-  }
-
-  // Try to find numeric answer
-  const numericMatch = rawAnswer.match(/\b\d+\b/);
-  if (numericMatch) {
-    return numericMatch[0];
-  }
-
-  // Take first sentence before any meta-commentary
-  let answer = rawAnswer.split('\n')[0].split('.')[0].trim();
-
-  // If answer is too verbose (>50 chars), extract first few words
-  if (answer.length > 50) {
-    answer = answer.split(' ').slice(0, 5).join(' ');
-  }
-
-  return answer || null;
 }
 
 async function submitAnswer(challengeId, answer) {
@@ -889,7 +902,7 @@ function proxyRequest(clientReq, clientRes) {
                   updateRates();
                   clientRes.writeHead(upstreamRes.statusCode, upstreamRes.headers);
                   clientRes.end(responseBody);
-                  return; // FIX: Ensure we return here to prevent fall-through
+                  return; // FIX: Prevent fall-through
                 }
 
                 log('info', '✅ Challenge solved, retrying original request', {
@@ -928,14 +941,14 @@ function proxyRequest(clientReq, clientRes) {
 
                 retryReq.write(requestBody);
                 retryReq.end();
-                return; // FIX: Ensure we return here
+                return; // FIX: Prevent fall-through
               } else {
                 stats.retryFailures++;
                 updateRates();
                 log('error', '❌ Challenge solve failed, returning error to client', {
                   path: reqUrl.pathname,
                 });
-                
+
                 // FIX: Return proper error response instead of falling through
                 clientRes.writeHead(403, { 'Content-Type': 'application/json' });
                 clientRes.end(JSON.stringify({
@@ -943,7 +956,7 @@ function proxyRequest(clientReq, clientRes) {
                   challenge_id: challenge.id || challenge.challenge_id,
                   message: 'Failed to solve verification challenge after all retries'
                 }));
-                return;
+                return; // FIX: Prevent fall-through
               }
             }
           } catch (err) {
