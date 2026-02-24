@@ -35,7 +35,11 @@ export class QueueProcessor {
     this.pgBoss = this.db.getPgBoss();
 
     try {
-      console.log("📋 Registering job handler for 'action:process' queue...");
+      // Create the queue if it doesn't exist
+      await (this.pgBoss as any).createQueue("action:process").catch(() => {
+        // Queue might already exist, that's fine
+      });
+
       // Register job handler for main action processing queue
       await this.pgBoss!.work<any>("action:process", async (jobs) => {
         console.log(`⚡ Processing ${jobs.length} job(s)...`);
@@ -43,7 +47,6 @@ export class QueueProcessor {
           await this.executeAction(job);
         }
       });
-      console.log("✅ Job handler registered successfully for 'action:process'");
 
       this.running = true;
       console.log("✅ QueueProcessor started - listening to pg-boss queues");

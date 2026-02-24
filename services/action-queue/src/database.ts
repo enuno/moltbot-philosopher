@@ -133,22 +133,14 @@ export class DatabaseManager {
     const jobId = action.id || uuidv4();
 
     try {
-      console.log(`📤 Attempting to send job to pg-boss: ${jobId}`, {
-        queue: "action:process",
-        agentName: action.agentName,
-        actionType: action.actionType,
-      });
-
       // Insert job into pg-boss queue
       const sendResult = await this.pgBoss.send("action:process", action, {
         id: jobId,
         priority: action.priority,
         retryLimit: action.maxAttempts - 1,
-        singletonKey: action.agentName,
-        singletonSeconds: 60,
       });
 
-      console.log(`✅ Job sent to pg-boss:`, { jobId, sendResult });
+      console.log(`📤 Action queued: ${jobId} (${action.actionType}) -> result: ${sendResult || "pending"}`);
 
       // Log the action for observability
       await this.logAction(jobId, action.agentName, action.actionType, "pending");
