@@ -99,7 +99,7 @@ describe('P1.3 - Challenge Caching & Pattern Learning', () => {
       assert.deepStrictEqual(retrieved, solution, 'Should retrieve exact cached solution');
     });
 
-    it('should return null for expired cache entries', () => {
+    it('should return null for expired cache entries', (done) => {
       assert(cacheManager, 'CacheManager module should exist');
 
       const challenge = 'temp_challenge';
@@ -112,10 +112,10 @@ describe('P1.3 - Challenge Caching & Pattern Learning', () => {
       assert(retrieved !== null, 'Should retrieve immediately after caching');
 
       // After expiration should return null
-      // Use synchronous wait to simulate expiration
       setTimeout(() => {
         retrieved = cacheManager.get(challenge);
         assert.strictEqual(retrieved, null, 'Should return null for expired cache');
+        done();
       }, 50);
     });
 

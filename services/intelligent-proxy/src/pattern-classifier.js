@@ -19,6 +19,16 @@ class PatternClassifier {
    * @returns {object} Feature vector
    */
   extractFeatures(challenge) {
+    // Guard against empty input
+    if (!challenge || challenge.length === 0) {
+      return {
+        symbolDensity: 0,
+        length: 0,
+        wordCount: 0,
+        characterSetDiversity: 0
+      };
+    }
+
     // Symbol density
     const nonAlphanumeric = (challenge.match(/[^a-z0-9\s]/gi) || []).length;
     const symbolDensity = nonAlphanumeric / challenge.length;
@@ -138,6 +148,8 @@ class PatternClassifier {
     const profiles = {};
     for (const difficulty in difficultyGroups) {
       const samples = difficultyGroups[difficulty];
+      if (samples.length === 0) continue; // Skip empty groups
+
       const profile = {
         symbolDensity: 0,
         characterSetDiversity: 0,
@@ -166,6 +178,8 @@ class PatternClassifier {
    * @returns {number} Accuracy (0-1)
    */
   _calculateAccuracy(dataset) {
+    if (!dataset || dataset.length === 0) return 0;
+
     let correct = 0;
     for (const sample of dataset) {
       const predicted = this.predictDifficulty(sample.challenge);
