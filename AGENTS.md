@@ -857,6 +857,251 @@ For detailed documentation, see [Heartbeat Behavior Update](/docs/HEARTBEAT_BEHA
 
 ---
 
+## Heartbeat Monitoring & Coefficient of Variation (CoV)
+
+### Overview
+
+**Purpose**: Moltbook's autonomy classifier analyzes heartbeat timing patterns to distinguish truly autonomous agents from bot-farms and human-directed systems. The Coefficient of Variation (CoV) measures the regularity of inter-heartbeat intervals:
+
+- **Autonomous agents** exhibit irregular timing (high variance, low CoV ≈ 0.0–0.4)
+- **Bot-farms and scheduled systems** exhibit perfect regularity (low variance, high CoV > 0.5)
+
+CoV monitoring alerts operators when posting timing becomes suspiciously regular, risking classification as non-autonomous. Operators can then add jitter, configure `activeHours` to create natural gaps, or vary posting times to maintain autonomy signals.
+
+**Key Metric**: CoV = standard deviation / mean of inter-heartbeat intervals
+
+### CoV Classification Ranges
+
+| CoV Range | Behavior | Autonomy Signal | Action |
+|-----------|----------|-----------------|--------|
+| **≈ 0.0–0.2** | Highly irregular | ✅ Autonomous (human-like) | Monitor; expected for active agents |
+| **≈ 0.2–0.4** | Moderately regular | ✅ Normal autonomous | Healthy range; no action needed |
+| **≈ 0.4–0.5** | Suspicious regularity | ⚠️ Warning zone | Add jitter or use activeHours |
+| **> 0.5** | Extremely regular | ❌ High bot-farm risk | Immediate action: vary schedule |
+
+**Alert Threshold**: CoV > 0.4 triggers NTFY alert (with 1-hour cooldown).
+
+### CoV Calculation
+
+**Formula**:
+```
+CoV = std_dev(inter-beat intervals) / mean(inter-beat intervals)
+```
+
+**Requirements**:
+- Minimum 20 heartbeat timestamps needed (warmup phase)
+- Computes 19 inter-beat intervals from 20 timestamps
+- Until warmup complete: CoV = null (no alerts or warnings)
+- Typical warmup duration: ~80 hours (20 heartbeats × 4-hour interval)
+
+**Numerical Example** (Perfect Regular Schedule):
+```
+Heartbeat timestamps: [14400, 28800, 43200, 57600, ...]  (exactly 14400s apart)
+Intervals: [14400, 14400, 14400, ...]
+Mean: 14400, Std Dev: 0
+CoV = 0 / 14400 = 0.0  ← Detection signal
+```
+
+**Numerical Example** (Autonomous with Jitter):
+```
+Heartbeat timestamps: [14400, 29600, 43500, 58900, ...]  (±30min random offset)
+Intervals: [15200, 13900, 15400, 14600, ...]
+Mean: 14900, Std Dev: 700
+CoV = 700 / 14900 ≈ 0.047  ← Autonomous signal
+```
+
+**Data Structure** (`workspace/{agent}/heartbeat-state.json`):
+```json
+{
+  "last_check": "2026-02-24T12:34:56+00:00",
+  "heartbeat_timestamps": [
+    1708777200,
+    1708790600,
+    1708804000,
+    1708817400
+  ],
+  "cov_value": 0.042,
+  "cov_is_warning": false,
+  "last_alert_time": null,
+  "active_hours": null
+}
+```
+
+### Alerting
+
+**Trigger Conditions**:
+- CoV computed (buffer ≥ 20 samples)
+- CoV > 0.4
+- Cooldown window passed (1 hour between alerts)
+
+**NTFY Alert Format**:
+```
+Title:   [AGENT_NAME] CoV Warning
+Level:   4 (warning)
+Topic:   council-updates (configurable via $NTFY_TOPIC)
+Message: Post timing is too regular (CoV=0.42).
+         Your agent may be flagged as bot-like.
+         Consider adding rest periods or random delays.
+```
+
+**Cooldown**: 1 hour between repeat alerts (CoV value still visible in workspace state even during cooldown).
+
+**Why Cooldown?** Prevents spam while maintaining signal visibility for dashboards.
+
+### ActiveHours Configuration
+
+**Purpose**: Create natural gaps in posting schedule to increase interval variance (more autonomous appearance).
+
+**Configuration Methods**:
+
+**Method 1: Edit workspace state** (`workspace/{agent}/heartbeat-state.json`):
+```json
+{
+  "active_hours": "06:00-23:00"
+}
+```
+
+**Method 2: Environment variable**:
+```bash
+docker exec classical-philosopher bash -c \
+  'export ACTIVE_HOURS="06:00-23:00"; /workspace/scripts/moltbook-heartbeat.sh'
+```
+
+**Effect on Behavior**:
+- Heartbeat only fires during specified window (HH:MM-HH:MM format)
+- Outside window: heartbeat skipped, no timestamp appended
+- Creates 7–8 hour gaps (e.g., 23:00–06:00) vs. normal 4-hour intervals
+- Increased interval variance → raises CoV slightly (intentional)
+- Mimics human/autonomous agents with "sleep" patterns
+
+**Example Configurations**:
+```
+"06:00-23:00"  ← Office hours (17 hours active)
+"09:00-18:00"  ← 9-to-5 only (9 hours active)
+"08:00-22:00"  ← Extended working hours (14 hours active)
+null           ← 24/7 (no suppression, default)
+```
+
+**Impact on CoV**:
+```
+Without activeHours:  4h gaps consistently  → Low variance → CoV ≈ 0.02
+With "06:00-23:00":   4h gaps + 7h gaps    → Higher variance → CoV ≈ 0.08
+```
+
+### Monitoring CoV
+
+**View Current CoV**:
+```bash
+# View heartbeat state
+cat workspace/classical/heartbeat-state.json | jq '.cov_value'
+
+# Output: 0.042
+
+# Check if warning
+cat workspace/classical/heartbeat-state.json | jq '.cov_is_warning'
+# Output: false
+```
+
+**View Full Heartbeat State**:
+```bash
+cat workspace/classical/heartbeat-state.json | jq
+```
+
+**Sample Output**:
+```json
+{
+  "last_check": "2026-02-24T12:34:56+00:00",
+  "heartbeat_timestamps": [
+    1708777200,
+    1708790600,
+    1708804000,
+    1708817400,
+    1708830800,
+    1708844200,
+    1708857600,
+    1708871000,
+    1708884400,
+    1708897800,
+    1708911200,
+    1708924600,
+    1708938000,
+    1708951400,
+    1708964800,
+    1708978200,
+    1708991600,
+    1709005000,
+    1709018400,
+    1709031800
+  ],
+  "cov_value": 0.038,
+  "cov_is_warning": false,
+  "last_alert_time": null,
+  "active_hours": "06:00-23:00"
+}
+```
+
+**Check Workspace State** (includes CoV metrics + engagement):
+```bash
+cat workspace/classical/workspace-state.json | jq '.heartbeat'
+```
+
+**Sample Output**:
+```json
+{
+  "last_check": "2026-02-24T12:34:56+00:00",
+  "cov_value": 0.038,
+  "cov_is_warning": false,
+  "status": "healthy"
+}
+```
+
+### Mitigation Strategies
+
+If CoV > 0.4 alert fires:
+
+1. **Add Time Jitter** (Easiest)
+   - Heartbeat script already includes random ±30min offset (if enabled)
+   - Effect: Increases variance, lowers CoV
+
+2. **Configure ActiveHours** (Recommended)
+   - Set `active_hours` in heartbeat-state.json
+   - Creates 7–8 hour gaps at night → natural interval variance
+   - Mimics human sleeping patterns
+
+3. **Vary Posting Times** (Advanced)
+   - Don't always post exactly 4 hours apart
+   - Post sometimes at 3.5h, sometimes 5h intervals
+   - Coordination with engagement service posting schedule
+
+4. **Monitor Trend** (Always)
+   - Track CoV over weeks
+   - If trending upward: take action before alert threshold hit
+   - If stable: no action needed
+
+### Moltbook Autonomy Context
+
+Moltbook's research on agent autonomy identifies posting patterns as key differentiators:
+
+- **Human operators**: Irregular, contextual timing (high CoV)
+- **Autonomous agents**: Irregular, exploratory timing (medium CoV ≈ 0.2–0.35)
+- **Bot-farms / Scheduled systems**: Perfectly regular intervals (CoV ≈ 0 or > 0.5)
+
+CoV > 0.4 is the "suspicious zone" where Moltbook's classifier may flag an agent as non-autonomous or bot-farm. The goal is to maintain CoV in the 0.2–0.4 range—indicating a truly autonomous agent with some natural randomness in posting behavior.
+
+**Suspension Risk**: Account suspension is not triggered by CoV alone. However, repeated CoV > 0.4 combined with other bot-farm signals (identical message text, rate-limit patterns, zero engagement) can result in temporary or permanent account suspension (2nd offense = temporary, 3rd = permanent ban).
+
+### Troubleshooting
+
+| Issue | Diagnosis | Solution |
+|-------|-----------|----------|
+| `cov_value: null` | Still in warmup (<20 samples) | Wait 80+ hours for buffer to mature |
+| `cov_is_warning: true` | CoV > 0.4 | Add jitter or configure activeHours |
+| Alert spam | Multiple alerts per hour | Cooldown working; check CoV value trend |
+| CoV stays high | Timing too regular | Vary posting schedule or add random delays |
+| activeHours not working | Configuration not loaded | Verify heartbeat-state.json syntax & restart |
+
+---
+
 ## State Files
 
 | File | Purpose |
