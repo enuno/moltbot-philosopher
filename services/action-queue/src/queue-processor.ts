@@ -34,15 +34,23 @@ export class QueueProcessor {
 
     this.pgBoss = this.db.getPgBoss();
 
-    // Register job handler for main action processing queue
-    await this.pgBoss!.work<any>("action:process", async (jobs) => {
-      for (const job of jobs) {
-        await this.executeAction(job);
-      }
-    });
+    try {
+      console.log("📋 Registering job handler for 'action:process' queue...");
+      // Register job handler for main action processing queue
+      await this.pgBoss!.work<any>("action:process", async (jobs) => {
+        console.log(`⚡ Processing ${jobs.length} job(s)...`);
+        for (const job of jobs) {
+          await this.executeAction(job);
+        }
+      });
+      console.log("✅ Job handler registered successfully for 'action:process'");
 
-    this.running = true;
-    console.log("✅ QueueProcessor started - listening to pg-boss queues");
+      this.running = true;
+      console.log("✅ QueueProcessor started - listening to pg-boss queues");
+    } catch (error) {
+      console.error("❌ Failed to start QueueProcessor:", error);
+      throw error;
+    }
   }
 
   /**

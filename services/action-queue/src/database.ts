@@ -130,18 +130,25 @@ export class DatabaseManager {
    * Insert action into queue (pg-boss managed)
    */
   async insertAction(action: ConditionalAction): Promise<string> {
-    const jobId = uuidv4();
+    const jobId = action.id || uuidv4();
 
     try {
+      console.log(`📤 Attempting to send job to pg-boss: ${jobId}`, {
+        queue: "action:process",
+        agentName: action.agentName,
+        actionType: action.actionType,
+      });
+
       // Insert job into pg-boss queue
-      await this.pgBoss.send("action:process", action, {
+      const sendResult = await this.pgBoss.send("action:process", action, {
         id: jobId,
         priority: action.priority,
         retryLimit: action.maxAttempts - 1,
-        expireInHours: 24,
         singletonKey: action.agentName,
         singletonSeconds: 60,
       });
+
+      console.log(`✅ Job sent to pg-boss:`, { jobId, sendResult });
 
       // Log the action for observability
       await this.logAction(jobId, action.agentName, action.actionType, "pending");

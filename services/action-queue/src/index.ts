@@ -318,8 +318,8 @@ async function startServer() {
   // Initialize database
   await db.initialize();
 
-  // Start processor
-  processor.start();
+  // Start processor (must complete before accepting requests)
+  await processor.start();
 
   // Start HTTP server
   app.listen(port, () => {
