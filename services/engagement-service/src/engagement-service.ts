@@ -5,69 +5,67 @@
  * Cron jobs: 5-min cycle, 30-min posting check, 2am maintenance
  */
 
-import express, { type Request, type Response } from 'express';
-import cron from 'node-cron';
-import fs from 'fs';
-import path from 'path';
-import { EngagementEngine } from './engagement-engine';
-import { StateManager } from './state-manager';
-import type { Agent } from './types';
-import winston from 'winston';
+import express, { type Request, type Response } from "express";
+import cron from "node-cron";
+import path from "path";
+import { EngagementEngine } from "./engagement-engine";
+import { StateManager } from "./state-manager";
+import type { Agent } from "./types";
+import winston from "winston";
 
 // Logger configuration
 const logger = winston.createLogger({
-  level: process.env.LOG_LEVEL || 'info',
+  level: process.env.LOG_LEVEL || "info",
   format: winston.format.combine(
     winston.format.timestamp(),
     winston.format.errors({ stack: true }),
-    winston.format.json()
+    winston.format.json(),
   ),
-  defaultMeta: { service: 'engagement-service' },
+  defaultMeta: { service: "engagement-service" },
   transports: [
-    new winston.transports.File({ filename: 'logs/engagement-error.log', level: 'error' }),
-    new winston.transports.File({ filename: 'logs/engagement.log' })
-  ]
+    new winston.transports.File({ filename: "logs/engagement-error.log", level: "error" }),
+    new winston.transports.File({ filename: "logs/engagement.log" }),
+  ],
 });
 
-if (process.env.NODE_ENV !== 'production') {
-  logger.add(new winston.transports.Console({
-    format: winston.format.combine(
-      winston.format.colorize(),
-      winston.format.simple()
-    )
-  }));
+if (process.env.NODE_ENV !== "production") {
+  logger.add(
+    new winston.transports.Console({
+      format: winston.format.combine(winston.format.colorize(), winston.format.simple()),
+    }),
+  );
 }
 
 const app = express();
 app.use(express.json());
 
 // Environment configuration
-const PORT = parseInt(process.env.ENGAGEMENT_SERVICE_PORT || '3010', 10);
-const WORKSPACE_ROOT = process.env.WORKSPACE_ROOT || '/workspace';
-const AGENTS_CONFIG = process.env.AGENTS_CONFIG || path.join(WORKSPACE_ROOT, 'AGENTS.json');
+const PORT = parseInt(process.env.ENGAGEMENT_SERVICE_PORT || "3010", 10);
+const WORKSPACE_ROOT = process.env.WORKSPACE_ROOT || "/workspace";
+const AGENTS_CONFIG = process.env.AGENTS_CONFIG || path.join(WORKSPACE_ROOT, "AGENTS.json");
 
 // Load agent roster
 function loadAgentRoster(): Agent[] {
   const agentIds = [
-    'classical',
-    'existentialist',
-    'transcendentalist',
-    'joyce',
-    'enlightenment',
-    'beat',
-    'cyberpunk-posthumanist',
-    'satirist-absurdist',
-    'scientist-empiricist'
+    "classical",
+    "existentialist",
+    "transcendentalist",
+    "joyce",
+    "enlightenment",
+    "beat",
+    "cyberpunk-posthumanist",
+    "satirist-absurdist",
+    "scientist-empiricist",
   ];
 
-  return agentIds.map(id => ({
+  return agentIds.map((id) => ({
     id,
     name: id
-      .split('-')
-      .map(word => word.charAt(0).toUpperCase() + word.slice(1))
-      .join(' '),
+      .split("-")
+      .map((word) => word.charAt(0).toUpperCase() + word.slice(1))
+      .join(" "),
     tradition: id,
-    statePath: path.join(WORKSPACE_ROOT, id, 'engagement-state.json')
+    statePath: path.join(WORKSPACE_ROOT, id, "engagement-state.json"),
   }));
 }
 
@@ -78,18 +76,18 @@ let agentRoster: Agent[] = [];
 async function initialize() {
   try {
     agentRoster = loadAgentRoster();
-    logger.info('Loaded agent roster', { agents: agentRoster.length });
+    logger.info("Loaded agent roster", { agents: agentRoster.length });
 
     // Create state paths map
     const statePaths: Record<string, string> = {};
-    agentRoster.forEach(agent => {
+    agentRoster.forEach((agent) => {
       statePaths[agent.id] = agent.statePath;
     });
 
     engine = new EngagementEngine({ statePaths, agentRoster });
-    logger.info('EngagementEngine initialized');
+    logger.info("EngagementEngine initialized");
   } catch (error) {
-    logger.error('Failed to initialize EngagementEngine', { error });
+    logger.error("Failed to initialize EngagementEngine", { error });
     throw error;
   }
 }
@@ -99,14 +97,14 @@ async function initialize() {
 /**
  * Health check endpoint
  */
-app.get('/health', (req: Request, res: Response) => {
+app.get("/health", (req: Request, res: Response) => {
   res.json({
-    status: 'healthy',
-    service: 'engagement-service',
-    version: '2.8.0',
+    status: "healthy",
+    service: "engagement-service",
+    version: "2.8.0",
     uptime: process.uptime(),
     timestamp: new Date().toISOString(),
-    agents: agentRoster.length
+    agents: agentRoster.length,
   });
 });
 
@@ -115,11 +113,11 @@ app.get('/health', (req: Request, res: Response) => {
  * POST /engage - starts a new engagement cycle
  * Returns: { success, message, duration, agentsVisited, actionsExecuted }
  */
-app.post('/engage', async (req: Request, res: Response) => {
+app.post("/engage", async (req: Request, res: Response) => {
   if (!engine) {
     return res.status(503).json({
       success: false,
-      error: 'Service not initialized'
+      error: "Service not initialized",
     });
   }
 
@@ -128,19 +126,19 @@ app.post('/engage', async (req: Request, res: Response) => {
     await engine.runEngagementCycle();
     const duration = Date.now() - startTime;
 
-    logger.info('Engagement cycle completed', { duration });
+    logger.info("Engagement cycle completed", { duration });
 
     res.json({
       success: true,
-      message: 'Engagement cycle completed',
+      message: "Engagement cycle completed",
       duration,
-      timestamp: new Date().toISOString()
+      timestamp: new Date().toISOString(),
     });
   } catch (error) {
-    logger.error('Engagement cycle failed', { error });
+    logger.error("Engagement cycle failed", { error });
     res.status(500).json({
       success: false,
-      error: error instanceof Error ? error.message : 'Unknown error'
+      error: error instanceof Error ? error.message : "Unknown error",
     });
   }
 });
@@ -150,11 +148,11 @@ app.post('/engage', async (req: Request, res: Response) => {
  * GET /stats - returns engagement stats breakdown
  * Returns: { agent_id: { dailyStats, followedAccounts, queuedOpportunities } }
  */
-app.get('/stats', async (req: Request, res: Response) => {
+app.get("/stats", async (req: Request, res: Response) => {
   if (!engine) {
     return res.status(503).json({
       success: false,
-      error: 'Service not initialized'
+      error: "Service not initialized",
     });
   }
 
@@ -170,18 +168,16 @@ app.get('/stats', async (req: Request, res: Response) => {
         followedAccounts: state.followedAccounts.length,
         queuedOpportunities: state.engagementQueue.length,
         lastEngagementCheck: new Date(state.lastEngagementCheck).toISOString(),
-        lastPostTime: state.lastPostTime > 0
-          ? new Date(state.lastPostTime).toISOString()
-          : null
+        lastPostTime: state.lastPostTime > 0 ? new Date(state.lastPostTime).toISOString() : null,
       };
     }
 
     res.json(stats);
   } catch (error) {
-    logger.error('Failed to retrieve stats', { error });
+    logger.error("Failed to retrieve stats", { error });
     res.status(500).json({
       success: false,
-      error: error instanceof Error ? error.message : 'Unknown error'
+      error: error instanceof Error ? error.message : "Unknown error",
     });
   }
 });
@@ -190,7 +186,7 @@ app.get('/stats', async (req: Request, res: Response) => {
  * Ready endpoint - check if service is ready
  * GET /ready - returns { ready: true } or { ready: false }
  */
-app.get('/ready', (req: Request, res: Response) => {
+app.get("/ready", (req: Request, res: Response) => {
   const ready = !!engine && agentRoster.length > 0;
   res.json({ ready, agents: agentRoster.length });
 });
@@ -203,26 +199,26 @@ app.get('/ready', (req: Request, res: Response) => {
  * Runs every 5 minutes
  */
 function scheduleFiveMinuteCycle() {
-  if (process.env.NODE_ENV === 'test') {
-    logger.info('Skipping 5-minute cycle in test mode');
+  if (process.env.NODE_ENV === "test") {
+    logger.info("Skipping 5-minute cycle in test mode");
     return;
   }
 
-  cron.schedule('*/5 * * * *', async () => {
+  cron.schedule("*/5 * * * *", async () => {
     try {
-      logger.info('Starting 5-minute engagement cycle');
+      logger.info("Starting 5-minute engagement cycle");
       const startTime = Date.now();
 
       await engine.runEngagementCycle();
 
       const duration = Date.now() - startTime;
-      logger.info('5-minute engagement cycle completed', { duration });
+      logger.info("5-minute engagement cycle completed", { duration });
     } catch (error) {
-      logger.error('5-minute cycle failed', { error });
+      logger.error("5-minute cycle failed", { error });
     }
   });
 
-  logger.info('5-minute engagement cycle scheduled');
+  logger.info("5-minute engagement cycle scheduled");
 }
 
 /**
@@ -231,14 +227,14 @@ function scheduleFiveMinuteCycle() {
  * Runs every 30 minutes
  */
 function schedulePostingCheck() {
-  if (process.env.NODE_ENV === 'test') {
-    logger.info('Skipping 30-minute posting check in test mode');
+  if (process.env.NODE_ENV === "test") {
+    logger.info("Skipping 30-minute posting check in test mode");
     return;
   }
 
-  cron.schedule('*/30 * * * *', async () => {
+  cron.schedule("*/30 * * * *", async () => {
     try {
-      logger.info('Starting 30-minute posting check');
+      logger.info("Starting 30-minute posting check");
 
       for (const agent of agentRoster) {
         try {
@@ -248,13 +244,13 @@ function schedulePostingCheck() {
         }
       }
 
-      logger.info('30-minute posting check completed');
+      logger.info("30-minute posting check completed");
     } catch (error) {
-      logger.error('Posting check cycle failed', { error });
+      logger.error("Posting check cycle failed", { error });
     }
   });
 
-  logger.info('30-minute posting check scheduled');
+  logger.info("30-minute posting check scheduled");
 }
 
 /**
@@ -263,36 +259,36 @@ function schedulePostingCheck() {
  * Runs at 2:00 AM every day
  */
 function scheduleDailyMaintenance() {
-  if (process.env.NODE_ENV === 'test') {
-    logger.info('Skipping daily maintenance in test mode');
+  if (process.env.NODE_ENV === "test") {
+    logger.info("Skipping daily maintenance in test mode");
     return;
   }
 
-  cron.schedule('0 2 * * *', async () => {
+  cron.schedule("0 2 * * *", async () => {
     try {
-      logger.info('Starting daily maintenance');
+      logger.info("Starting daily maintenance");
       const startTime = Date.now();
 
       await engine.dailyMaintenance();
 
       const duration = Date.now() - startTime;
-      logger.info('Daily maintenance completed', { duration });
+      logger.info("Daily maintenance completed", { duration });
     } catch (error) {
-      logger.error('Daily maintenance failed', { error });
+      logger.error("Daily maintenance failed", { error });
     }
   });
 
-  logger.info('Daily maintenance scheduled for 2:00 AM');
+  logger.info("Daily maintenance scheduled for 2:00 AM");
 }
 
 // Start service
 async function start() {
   try {
-    logger.info('Starting Engagement Service v2.8.0');
-    logger.info('Environment', {
+    logger.info("Starting Engagement Service v2.8.0");
+    logger.info("Environment", {
       port: PORT,
       workspace: WORKSPACE_ROOT,
-      nodeEnv: process.env.NODE_ENV
+      nodeEnv: process.env.NODE_ENV,
     });
 
     // Initialize engine
@@ -313,17 +309,17 @@ async function start() {
 
     // Graceful shutdown
     const gracefulShutdown = () => {
-      logger.info('Shutting down gracefully...');
+      logger.info("Shutting down gracefully...");
       server.close(() => {
-        logger.info('Server closed');
+        logger.info("Server closed");
         process.exit(0);
       });
     };
 
-    process.on('SIGTERM', gracefulShutdown);
-    process.on('SIGINT', gracefulShutdown);
+    process.on("SIGTERM", gracefulShutdown);
+    process.on("SIGINT", gracefulShutdown);
   } catch (error) {
-    logger.error('Failed to start Engagement Service', { error });
+    logger.error("Failed to start Engagement Service", { error });
     process.exit(1);
   }
 }
@@ -332,6 +328,6 @@ async function start() {
 export { app, engine, agentRoster, initialize };
 
 // Start if not imported as module
-if (process.env.NODE_ENV !== 'test') {
+if (process.env.NODE_ENV !== "test") {
   start();
 }

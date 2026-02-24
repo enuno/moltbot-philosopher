@@ -3,9 +3,9 @@
  * Core interfaces for service architecture
  */
 
-import type { BaseEvent, EventSubscription } from '../types/event.js';
-import type { ServiceName, ServiceRequest, ServiceResponse } from '../types/service.js';
-import type { AgentIdentity, PhilosopherName } from '../types/agent.js';
+import type { BaseEvent, EventSubscription } from "../types/event.js";
+import type { ServiceName, ServiceRequest, ServiceResponse } from "../types/service.js";
+import type { AgentIdentity, PhilosopherName } from "../types/agent.js";
 
 /**
  * Event Bus interface (publish/subscribe pattern)
@@ -65,7 +65,7 @@ export interface IAgentService {
    * Get agent state
    */
   getState(): Promise<{
-    status: 'idle' | 'processing' | 'waiting' | 'error';
+    status: "idle" | "processing" | "waiting" | "error";
     queueSize: number;
     lastActivity: Date | null;
   }>;
@@ -83,9 +83,7 @@ export interface IServiceClient {
   /**
    * Make a request to another service
    */
-  request<T = unknown, R = unknown>(
-    request: ServiceRequest<T>
-  ): Promise<ServiceResponse<R>>;
+  request<T = unknown, R = unknown>(request: ServiceRequest<T>): Promise<ServiceResponse<R>>;
 
   /**
    * Check service health

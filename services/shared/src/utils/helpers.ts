@@ -2,22 +2,22 @@
  * Utility Functions
  */
 
-import { randomBytes } from 'crypto';
-import type { BaseEvent, EventType, EventPriority } from '../types/event.js';
-import type { PhilosopherName } from '../types/agent.js';
+import { randomBytes } from "crypto";
+import type { BaseEvent, EventType, EventPriority } from "../types/event.js";
+import type { PhilosopherName } from "../types/agent.js";
 
 /**
  * Generate a unique event ID
  */
 export function generateEventId(): string {
-  return `evt_${Date.now()}_${randomBytes(8).toString('hex')}`;
+  return `evt_${Date.now()}_${randomBytes(8).toString("hex")}`;
 }
 
 /**
  * Generate a correlation ID
  */
 export function generateCorrelationId(): string {
-  return `cor_${Date.now()}_${randomBytes(8).toString('hex')}`;
+  return `cor_${Date.now()}_${randomBytes(8).toString("hex")}`;
 }
 
 /**
@@ -31,13 +31,13 @@ export function createEvent<T = unknown>(
     priority?: EventPriority;
     source: string;
     correlationId?: string;
-  }
+  },
 ): BaseEvent<T> {
   return {
     id: generateEventId(),
     type,
     target: options.target ?? null,
-    priority: options.priority ?? 'normal',
+    priority: options.priority ?? "normal",
     payload,
     metadata: {
       createdAt: new Date(),
@@ -65,7 +65,7 @@ export async function retryWithBackoff<T>(
     initialDelayMs?: number;
     maxDelayMs?: number;
     backoffMultiplier?: number;
-  } = {}
+  } = {},
 ): Promise<T> {
   const {
     maxAttempts = 3,
@@ -98,26 +98,21 @@ export async function retryWithBackoff<T>(
 /**
  * Check if event type matches pattern (supports wildcards)
  */
-export function matchesEventPattern(
-  eventType: EventType,
-  pattern: string
-): boolean {
-  if (pattern === '*') return true;
+export function matchesEventPattern(eventType: EventType, pattern: string): boolean {
+  if (pattern === "*") return true;
   if (pattern === eventType) return true;
 
-  const patternParts = pattern.split('.');
-  const eventParts = eventType.split('.');
+  const patternParts = pattern.split(".");
+  const eventParts = eventType.split(".");
 
   if (patternParts.length !== eventParts.length) {
     // Support suffix wildcard: "mention.*"
-    if (pattern.endsWith('.*')) {
+    if (pattern.endsWith(".*")) {
       const prefix = pattern.slice(0, -2);
       return eventType.startsWith(prefix);
     }
     return false;
   }
 
-  return patternParts.every(
-    (part, i) => part === '*' || part === eventParts[i]
-  );
+  return patternParts.every((part, i) => part === "*" || part === eventParts[i]);
 }

@@ -3,20 +3,19 @@
  * Tests atomic persistence, daily reset, conflict detection, queue management
  */
 
-import fs from 'fs';
-import path from 'path';
-import { StateManager } from '../src/state-manager';
-import { createDefaultState, tmpStateDir, cleanupTmpDir, MOCK_AGENTS } from './test-utils';
-import { EngagementState, FollowedAccount } from '../src/types';
+import fs from "fs";
+import path from "path";
+import { StateManager } from "../src/state-manager";
+import { createDefaultState, tmpStateDir, cleanupTmpDir } from "./test-utils";
 
-describe('StateManager', () => {
+describe("StateManager", () => {
   let tmpDir: string;
   let stateManager: StateManager;
   let statePath: string;
 
   beforeEach(() => {
     tmpDir = tmpStateDir();
-    statePath = path.join(tmpDir, 'engagement-state.json');
+    statePath = path.join(tmpDir, "engagement-state.json");
     stateManager = new StateManager(statePath);
 
     // Create initial state file
@@ -28,18 +27,18 @@ describe('StateManager', () => {
     cleanupTmpDir(tmpDir);
   });
 
-  describe('loadState', () => {
-    it('should load valid state from disk', async () => {
+  describe("loadState", () => {
+    it("should load valid state from disk", async () => {
       const state = await stateManager.loadState();
       expect(state).toBeDefined();
       expect(state.dailyStats).toBeDefined();
       expect(state.followedAccounts).toEqual([]);
     });
 
-    it('should auto-reset daily stats when day changed', async () => {
+    it("should auto-reset daily stats when day changed", async () => {
       const state = await stateManager.loadState();
       state.dailyStats.postsCreated = 5;
-      state.dailyReset = '2026-02-19'; // Yesterday
+      state.dailyReset = "2026-02-19"; // Yesterday
       fs.writeFileSync(statePath, JSON.stringify(state, null, 2));
 
       const reloadedState = await stateManager.loadState();
@@ -48,7 +47,7 @@ describe('StateManager', () => {
       expect(reloadedState.dailyStats.accountsFollowed).toBe(0);
     });
 
-    it('should preserve daily stats on same day', async () => {
+    it("should preserve daily stats on same day", async () => {
       const state = await stateManager.loadState();
       state.dailyStats.postsCreated = 3;
       state.dailyStats.commentsMade = 12;
@@ -60,8 +59,8 @@ describe('StateManager', () => {
     });
   });
 
-  describe('saveState', () => {
-    it('should persist state to disk', async () => {
+  describe("saveState", () => {
+    it("should persist state to disk", async () => {
       const state = await stateManager.loadState();
       state.dailyStats.postsCreated = 2;
       await stateManager.saveState(state);
@@ -70,7 +69,7 @@ describe('StateManager', () => {
       expect(reloaded.dailyStats.postsCreated).toBe(2);
     });
 
-    it('should handle conflict detection on concurrent writes', async () => {
+    it("should handle conflict detection on concurrent writes", async () => {
       // Simulate two processes loading state
       const state1 = await stateManager.loadState();
       const state2 = await stateManager.loadState();
@@ -93,25 +92,25 @@ describe('StateManager', () => {
       expect(final.dailyStats.postsCreated).toBe(2); // From state2
     });
 
-    it('should maintain queue integrity after conflict merge', async () => {
+    it("should maintain queue integrity after conflict merge", async () => {
       const state1 = await stateManager.loadState();
       const state2 = await stateManager.loadState();
 
       // State1: enqueue opportunity A
       state1.engagementQueue.push({
-        postId: 'post_a',
+        postId: "post_a",
         priority: 0.8,
-        reason: 'semantic match',
-        type: 'comment'
+        reason: "semantic match",
+        type: "comment",
       });
       state1.lastEngagementCheck = Date.now();
 
       // State2: enqueue opportunity B
       state2.engagementQueue.push({
-        postId: 'post_b',
+        postId: "post_b",
         priority: 0.6,
-        reason: 'keyword match',
-        type: 'comment'
+        reason: "keyword match",
+        type: "comment",
       });
       state2.lastEngagementCheck = Date.now() - 1000;
 
@@ -119,21 +118,21 @@ describe('StateManager', () => {
       await stateManager.saveState(state2);
 
       const final = await stateManager.loadState();
-      const postIds = final.engagementQueue.map(q => q.postId);
-      expect(postIds).toContain('post_a');
-      expect(postIds).toContain('post_b');
+      const postIds = final.engagementQueue.map((q) => q.postId);
+      expect(postIds).toContain("post_a");
+      expect(postIds).toContain("post_b");
     });
   });
 
-  describe('enqueueOpportunity', () => {
-    it('should add opportunity to queue sorted by priority', async () => {
+  describe("enqueueOpportunity", () => {
+    it("should add opportunity to queue sorted by priority", async () => {
       let state = await stateManager.loadState();
 
       await stateManager.enqueueOpportunity({
-        postId: 'post_1',
+        postId: "post_1",
         priority: 0.6,
-        reason: 'test',
-        type: 'comment'
+        reason: "test",
+        type: "comment",
       });
 
       state = await stateManager.loadState();
@@ -141,60 +140,60 @@ describe('StateManager', () => {
       expect(state.engagementQueue[0].priority).toBe(0.6);
     });
 
-    it('should maintain priority sort order', async () => {
+    it("should maintain priority sort order", async () => {
       await stateManager.enqueueOpportunity({
-        postId: 'post_1',
+        postId: "post_1",
         priority: 0.5,
-        reason: 'first',
-        type: 'comment'
+        reason: "first",
+        type: "comment",
       });
 
       await stateManager.enqueueOpportunity({
-        postId: 'post_2',
+        postId: "post_2",
         priority: 0.9,
-        reason: 'second',
-        type: 'comment'
+        reason: "second",
+        type: "comment",
       });
 
       await stateManager.enqueueOpportunity({
-        postId: 'post_3',
+        postId: "post_3",
         priority: 0.7,
-        reason: 'third',
-        type: 'comment'
+        reason: "third",
+        type: "comment",
       });
 
       const state = await stateManager.loadState();
-      const priorities = state.engagementQueue.map(q => q.priority);
+      const priorities = state.engagementQueue.map((q) => q.priority);
       expect(priorities).toEqual([0.9, 0.7, 0.5]);
     });
   });
 
-  describe('recordAction', () => {
-    it('should increment comment count', async () => {
+  describe("recordAction", () => {
+    it("should increment comment count", async () => {
       let state = await stateManager.loadState();
       expect(state.dailyStats.commentsMade).toBe(0);
 
-      await stateManager.recordAction('comment');
+      await stateManager.recordAction("comment");
 
       state = await stateManager.loadState();
       expect(state.dailyStats.commentsMade).toBe(1);
     });
 
-    it('should increment post count', async () => {
-      await stateManager.recordAction('post');
+    it("should increment post count", async () => {
+      await stateManager.recordAction("post");
       const state = await stateManager.loadState();
       expect(state.dailyStats.postsCreated).toBe(1);
     });
 
-    it('should increment follow count', async () => {
-      await stateManager.recordAction('follow');
+    it("should increment follow count", async () => {
+      await stateManager.recordAction("follow");
       const state = await stateManager.loadState();
       expect(state.dailyStats.accountsFollowed).toBe(1);
     });
 
-    it('should update last engagement timestamp', async () => {
+    it("should update last engagement timestamp", async () => {
       const before = Date.now();
-      await stateManager.recordAction('comment');
+      await stateManager.recordAction("comment");
       const after = Date.now();
 
       const state = await stateManager.loadState();
@@ -203,32 +202,32 @@ describe('StateManager', () => {
     });
   });
 
-  describe('recordFollow', () => {
-    it('should add followed account with tracking data', async () => {
+  describe("recordFollow", () => {
+    it("should add followed account with tracking data", async () => {
       const account = {
-        name: 'TestPhilosopher',
-        userId: 'user_123',
+        name: "TestPhilosopher",
+        userId: "user_123",
         postsSeenCount: 5,
         firstSeen: Date.now(),
         lastEngagement: Date.now(),
-        qualityScore: 0.75
+        qualityScore: 0.75,
       };
 
       await stateManager.recordFollow(account);
 
       const state = await stateManager.loadState();
       expect(state.followedAccounts.length).toBe(1);
-      expect(state.followedAccounts[0].name).toBe('TestPhilosopher');
+      expect(state.followedAccounts[0].name).toBe("TestPhilosopher");
     });
 
-    it('should update lastEngagement on duplicate follow', async () => {
+    it("should update lastEngagement on duplicate follow", async () => {
       const account = {
-        name: 'TestPhilosopher',
-        userId: 'user_123',
+        name: "TestPhilosopher",
+        userId: "user_123",
         postsSeenCount: 5,
         firstSeen: Date.now(),
         lastEngagement: Date.now(),
-        qualityScore: 0.75
+        qualityScore: 0.75,
       };
 
       await stateManager.recordFollow(account);
@@ -237,7 +236,7 @@ describe('StateManager', () => {
       const newTime = Date.now() + 10000;
       await stateManager.recordFollow({
         ...account,
-        lastEngagement: newTime
+        lastEngagement: newTime,
       });
 
       const state = await stateManager.loadState();
@@ -246,63 +245,63 @@ describe('StateManager', () => {
     });
   });
 
-  describe('getFollowEvaluationStatus', () => {
-    it('should return false if account not followed', async () => {
-      const status = await stateManager.getFollowEvaluationStatus('UnknownAccount');
+  describe("getFollowEvaluationStatus", () => {
+    it("should return false if account not followed", async () => {
+      const status = await stateManager.getFollowEvaluationStatus("UnknownAccount");
       expect(status).toEqual({ canFollow: false, postsSeenCount: 0 });
     });
 
-    it('should return false if posts seen < 3', async () => {
+    it("should return false if posts seen < 3", async () => {
       const account = {
-        name: 'NewAccount',
+        name: "NewAccount",
         postsSeenCount: 2,
         firstSeen: Date.now(),
         lastEngagement: Date.now(),
-        qualityScore: 0.7
+        qualityScore: 0.7,
       };
 
       await stateManager.recordFollow(account);
-      const status = await stateManager.getFollowEvaluationStatus('NewAccount');
+      const status = await stateManager.getFollowEvaluationStatus("NewAccount");
       expect(status.canFollow).toBe(false);
       expect(status.postsSeenCount).toBe(2);
     });
 
-    it('should return true if posts seen >= 3', async () => {
+    it("should return true if posts seen >= 3", async () => {
       const account = {
-        name: 'KnownAccount',
+        name: "KnownAccount",
         postsSeenCount: 3,
         firstSeen: Date.now(),
         lastEngagement: Date.now(),
-        qualityScore: 0.8
+        qualityScore: 0.8,
       };
 
       await stateManager.recordFollow(account);
-      const status = await stateManager.getFollowEvaluationStatus('KnownAccount');
+      const status = await stateManager.getFollowEvaluationStatus("KnownAccount");
       expect(status.canFollow).toBe(true);
       expect(status.postsSeenCount).toBe(3);
     });
   });
 
-  describe('incrementPostsSeen', () => {
-    it('should increase posts seen count for known account', async () => {
+  describe("incrementPostsSeen", () => {
+    it("should increase posts seen count for known account", async () => {
       const account = {
-        name: 'TestAuthor',
+        name: "TestAuthor",
         postsSeenCount: 1,
         firstSeen: Date.now(),
         lastEngagement: Date.now(),
-        qualityScore: 0.6
+        qualityScore: 0.6,
       };
 
       await stateManager.recordFollow(account);
-      await stateManager.incrementPostsSeen('TestAuthor');
+      await stateManager.incrementPostsSeen("TestAuthor");
 
       const state = await stateManager.loadState();
       expect(state.followedAccounts[0].postsSeenCount).toBe(2);
     });
 
-    it('should handle unknown account gracefully', async () => {
+    it("should handle unknown account gracefully", async () => {
       expect(async () => {
-        await stateManager.incrementPostsSeen('UnknownAuthor');
+        await stateManager.incrementPostsSeen("UnknownAuthor");
       }).not.toThrow();
     });
   });

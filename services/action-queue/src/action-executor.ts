@@ -1,6 +1,6 @@
-import axios, { AxiosError } from 'axios';
-import { ActionType, QueuedAction } from './types';
-import { QUEUE_CONFIG } from './config';
+import axios, { AxiosError } from "axios";
+import { ActionType, QueuedAction } from "./types";
+import { QUEUE_CONFIG } from "./config";
 
 /**
  * Action Executor
@@ -17,7 +17,7 @@ export class ActionExecutor {
     this.apiKey = apiKey || QUEUE_CONFIG.moltbookApiKey;
 
     if (!this.apiKey) {
-      throw new Error('MOLTBOOK_API_KEY is required');
+      throw new Error("MOLTBOOK_API_KEY is required");
     }
   }
 
@@ -26,7 +26,13 @@ export class ActionExecutor {
    */
   async execute(
     action: QueuedAction,
-  ): Promise<{ success: boolean; data?: any; error?: string; httpStatus?: number; dailyRemaining?: number }> {
+  ): Promise<{
+    success: boolean;
+    data?: any;
+    error?: string;
+    httpStatus?: number;
+    dailyRemaining?: number;
+  }> {
     try {
       switch (action.actionType) {
         case ActionType.POST:
@@ -75,7 +81,7 @@ export class ActionExecutor {
       {
         headers: {
           Authorization: `Bearer ${this.apiKey}`,
-          'Content-Type': 'application/json',
+          "Content-Type": "application/json",
         },
         validateStatus: () => true,
       },
@@ -112,7 +118,7 @@ export class ActionExecutor {
       {
         headers: {
           Authorization: `Bearer ${this.apiKey}`,
-          'Content-Type': 'application/json',
+          "Content-Type": "application/json",
         },
         validateStatus: () => true,
       },
@@ -141,7 +147,7 @@ export class ActionExecutor {
     const { targetId, targetType } = action.payload;
 
     const endpoint =
-      targetType === 'post'
+      targetType === "post"
         ? `${this.apiBase}/posts/${targetId}/upvote`
         : `${this.apiBase}/comments/${targetId}/upvote`;
 
@@ -179,7 +185,7 @@ export class ActionExecutor {
     const { targetId, targetType } = action.payload;
 
     const endpoint =
-      targetType === 'post'
+      targetType === "post"
         ? `${this.apiBase}/posts/${targetId}/downvote`
         : `${this.apiBase}/comments/${targetId}/downvote`;
 
@@ -249,15 +255,12 @@ export class ActionExecutor {
   private async executeUnfollow(action: QueuedAction): Promise<any> {
     const { username } = action.payload;
 
-    const response = await axios.delete(
-      `${this.apiBase}/agents/${username}/follow`,
-      {
-        headers: {
-          Authorization: `Bearer ${this.apiKey}`,
-        },
-        validateStatus: () => true,
+    const response = await axios.delete(`${this.apiBase}/agents/${username}/follow`, {
+      headers: {
+        Authorization: `Bearer ${this.apiKey}`,
       },
-    );
+      validateStatus: () => true,
+    });
 
     if (response.status >= 200 && response.status < 300) {
       return {
@@ -292,7 +295,7 @@ export class ActionExecutor {
       {
         headers: {
           Authorization: `Bearer ${this.apiKey}`,
-          'Content-Type': 'application/json',
+          "Content-Type": "application/json",
         },
         validateStatus: () => true,
       },
@@ -330,7 +333,7 @@ export class ActionExecutor {
       {
         headers: {
           Authorization: `Bearer ${this.apiKey}`,
-          'Content-Type': 'application/json',
+          "Content-Type": "application/json",
         },
         validateStatus: () => true,
       },
@@ -355,12 +358,12 @@ export class ActionExecutor {
   /**
    * Execute SKILL_UPDATE action
    */
-  private async executeSkillUpdate(action: QueuedAction): Promise<any> {
+  private async executeSkillUpdate(_action: QueuedAction): Promise<any> {
     // This might be a check for skill version or similar
     // Implementation depends on Moltbook API
     return {
       success: true,
-      data: { message: 'Skill update check completed' },
+      data: { message: "Skill update check completed" },
       httpStatus: 200,
     };
   }

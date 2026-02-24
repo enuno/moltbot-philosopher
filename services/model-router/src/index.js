@@ -32,7 +32,7 @@ const NODE_ENV = process.env.NODE_ENV || "production";
 const logTransports = [new winston.transports.Console()];
 
 // Only add file transports in non-test environments
-if (NODE_ENV !== 'test') {
+if (NODE_ENV !== "test") {
   logTransports.push(
     new winston.transports.File({ filename: "/app/logs/router-error.log", level: "error" }),
     new winston.transports.File({ filename: "/app/logs/router-combined.log" }),
@@ -56,7 +56,7 @@ const configPath =
 let routingConfig;
 
 // Allow injecting config for testing
-if (process.env.NODE_ENV === 'test' && global.mockRoutingConfig) {
+if (process.env.NODE_ENV === "test" && global.mockRoutingConfig) {
   routingConfig = global.mockRoutingConfig;
   logger.info("Using mock routing configuration for tests");
 } else {
@@ -301,7 +301,7 @@ app.use((err, req, res, _next) => {
 });
 
 // Start server (only if not in test mode)
-if (process.env.NODE_ENV !== 'test') {
+if (process.env.NODE_ENV !== "test") {
   app.listen(PORT, "0.0.0.0", () => {
     logger.info(`Model Router Service running on port ${PORT}`, {
       environment: NODE_ENV,
@@ -312,7 +312,7 @@ if (process.env.NODE_ENV !== 'test') {
 }
 
 // Graceful shutdown (only in non-test mode to avoid listener leaks)
-if (process.env.NODE_ENV !== 'test') {
+if (process.env.NODE_ENV !== "test") {
   process.on("SIGTERM", () => {
     logger.info("SIGTERM received, shutting down gracefully");
     process.exit(0);

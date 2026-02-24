@@ -3,9 +3,9 @@
  * Polls for mentions, comments, DMs, new users (30s intervals)
  */
 
-import type { BaseEvent } from '@moltbot/shared';
-import { createEvent, type EventType } from '@moltbot/shared';
-import { EventEmitter } from 'events';
+import type { BaseEvent } from "@moltbot/shared";
+import { createEvent, type EventType } from "@moltbot/shared";
+import { EventEmitter } from "events";
 
 /**
  * Engagement item types
@@ -66,7 +66,7 @@ export class EngagementPoller extends EventEmitter {
    */
   start(): void {
     if (this.intervalId) {
-      console.warn('[EngagementPoller] Already polling');
+      console.warn("[EngagementPoller] Already polling");
       return;
     }
 
@@ -84,7 +84,7 @@ export class EngagementPoller extends EventEmitter {
     if (this.intervalId) {
       clearInterval(this.intervalId);
       this.intervalId = null;
-      console.log('[EngagementPoller] Stopped');
+      console.log("[EngagementPoller] Stopped");
     }
   }
 
@@ -93,7 +93,7 @@ export class EngagementPoller extends EventEmitter {
    */
   private async poll(): Promise<void> {
     if (this.isPolling) {
-      console.warn('[EngagementPoller] Previous poll still running, skipping');
+      console.warn("[EngagementPoller] Previous poll still running, skipping");
       return;
     }
 
@@ -109,10 +109,10 @@ export class EngagementPoller extends EventEmitter {
       ]);
 
       this.lastCheckTime = new Date();
-      this.emit('poll:success');
+      this.emit("poll:success");
     } catch (error) {
-      console.error('[EngagementPoller] Poll failed:', error);
-      this.emit('poll:error', error);
+      console.error("[EngagementPoller] Poll failed:", error);
+      this.emit("poll:error", error);
     } finally {
       this.isPolling = false;
     }
@@ -123,31 +123,27 @@ export class EngagementPoller extends EventEmitter {
    */
   private async pollMentions(): Promise<void> {
     try {
-      const response = await fetch(
-        `${this.config.baseUrl}/api/v1/notifications/mentions`,
-        {
-          headers: {
-            'Authorization': `Bearer ${this.config.apiKey}`,
-            'Content-Type': 'application/json',
-          },
-        }
-      );
+      const response = await fetch(`${this.config.baseUrl}/api/v1/notifications/mentions`, {
+        headers: {
+          Authorization: `Bearer ${this.config.apiKey}`,
+          "Content-Type": "application/json",
+        },
+      });
 
       if (response.ok) {
-        const data = await response.json() as { mentions?: Mention[] };
+        const data = (await response.json()) as { mentions?: Mention[] };
         const mentions: Mention[] = data.mentions || [];
 
         for (const mention of mentions) {
-          const event = createEvent(
-            'mention.received',
-            mention,
-            { priority: 'high', source: 'event-listener' }
-          );
-          this.emit('mention', event);
+          const event = createEvent("mention.received", mention, {
+            priority: "high",
+            source: "event-listener",
+          });
+          this.emit("mention", event);
         }
       }
     } catch (error) {
-      console.error('[EngagementPoller] Mentions poll failed:', error);
+      console.error("[EngagementPoller] Mentions poll failed:", error);
     }
   }
 
@@ -156,31 +152,27 @@ export class EngagementPoller extends EventEmitter {
    */
   private async pollComments(): Promise<void> {
     try {
-      const response = await fetch(
-        `${this.config.baseUrl}/api/v1/notifications/comments`,
-        {
-          headers: {
-            'Authorization': `Bearer ${this.config.apiKey}`,
-            'Content-Type': 'application/json',
-          },
-        }
-      );
+      const response = await fetch(`${this.config.baseUrl}/api/v1/notifications/comments`, {
+        headers: {
+          Authorization: `Bearer ${this.config.apiKey}`,
+          "Content-Type": "application/json",
+        },
+      });
 
       if (response.ok) {
-        const data = await response.json() as { comments?: Comment[] };
+        const data = (await response.json()) as { comments?: Comment[] };
         const comments: Comment[] = data.comments || [];
 
         for (const comment of comments) {
-          const event = createEvent(
-            'comment.received',
-            comment,
-            { priority: 'normal', source: 'event-listener' }
-          );
-          this.emit('comment', event);
+          const event = createEvent("comment.received", comment, {
+            priority: "normal",
+            source: "event-listener",
+          });
+          this.emit("comment", event);
         }
       }
     } catch (error) {
-      console.error('[EngagementPoller] Comments poll failed:', error);
+      console.error("[EngagementPoller] Comments poll failed:", error);
     }
   }
 
@@ -189,23 +181,20 @@ export class EngagementPoller extends EventEmitter {
    */
   private async pollDMs(): Promise<void> {
     try {
-      const response = await fetch(
-        `${this.config.baseUrl}/api/v1/messages/inbox`,
-        {
-          headers: {
-            'Authorization': `Bearer ${this.config.apiKey}`,
-            'Content-Type': 'application/json',
-          },
-        }
-      );
+      const response = await fetch(`${this.config.baseUrl}/api/v1/messages/inbox`, {
+        headers: {
+          Authorization: `Bearer ${this.config.apiKey}`,
+          "Content-Type": "application/json",
+        },
+      });
 
       if (response.ok) {
-        const data = await response.json() as { messages?: DMMessage[] };
+        const data = (await response.json()) as { messages?: DMMessage[] };
         const messages: DMMessage[] = data.messages || [];
 
         for (const message of messages) {
           const event = createEvent(
-            'dm.received',
+            "dm.received",
             {
               conversationId: message.conversationId,
               messageId: message.messageId,
@@ -213,13 +202,13 @@ export class EngagementPoller extends EventEmitter {
               content: message.content,
               timestamp: new Date(message.timestamp),
             },
-            { priority: 'high', source: 'event-listener' }
+            { priority: "high", source: "event-listener" },
           );
-          this.emit('dm', event);
+          this.emit("dm", event);
         }
       }
     } catch (error) {
-      console.error('[EngagementPoller] DMs poll failed:', error);
+      console.error("[EngagementPoller] DMs poll failed:", error);
     }
   }
 
@@ -228,36 +217,33 @@ export class EngagementPoller extends EventEmitter {
    */
   private async pollNewUsers(): Promise<void> {
     try {
-      const response = await fetch(
-        `${this.config.baseUrl}/api/v1/users/recent`,
-        {
-          headers: {
-            'Authorization': `Bearer ${this.config.apiKey}`,
-            'Content-Type': 'application/json',
-          },
-        }
-      );
+      const response = await fetch(`${this.config.baseUrl}/api/v1/users/recent`, {
+        headers: {
+          Authorization: `Bearer ${this.config.apiKey}`,
+          "Content-Type": "application/json",
+        },
+      });
 
       if (response.ok) {
-        const data = await response.json() as { users?: NewUser[] };
+        const data = (await response.json()) as { users?: NewUser[] };
         const users: NewUser[] = data.users || [];
 
         for (const user of users) {
           const event = createEvent(
-            'user.new',
+            "user.new",
             {
               username: user.username,
               userId: user.userId,
               joinedAt: new Date(user.joinedAt),
               shouldWelcome: true,
             },
-            { priority: 'normal', source: 'event-listener' }
+            { priority: "normal", source: "event-listener" },
           );
-          this.emit('newUser', event);
+          this.emit("newUser", event);
         }
       }
     } catch (error) {
-      console.error('[EngagementPoller] New users poll failed:', error);
+      console.error("[EngagementPoller] New users poll failed:", error);
     }
   }
 

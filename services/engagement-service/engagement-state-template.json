@@ -9,11 +9,7 @@
   },
   "dailyReset": "2026-02-20",
   "followedAccounts": [],
-  "subscribedSubmolts": [
-    "ethics-convergence",
-    "general",
-    "aithoughts"
-  ],
+  "subscribedSubmolts": ["ethics-convergence", "general", "aithoughts"],
   "pendingDmRequests": [],
   "engagementQueue": [],
   "rateLimits": {

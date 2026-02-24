@@ -2,9 +2,9 @@
  * Event emitter for SDK events
  */
 
-import { EVENTS } from './constants';
+import { EVENTS } from "./constants";
 
-export type EventType = typeof EVENTS[keyof typeof EVENTS];
+export type EventType = (typeof EVENTS)[keyof typeof EVENTS];
 
 export interface RequestStartEvent {
   method: string;
@@ -86,7 +86,7 @@ export function createEventEmitter(): EventEmitter {
     },
 
     emit<K extends keyof EventMap>(event: K, data: EventMap[K]): void {
-      listeners.get(event)?.forEach(cb => {
+      listeners.get(event)?.forEach((cb) => {
         try {
           cb(data);
         } catch (e) {
@@ -101,7 +101,7 @@ export function createEventEmitter(): EventEmitter {
 
     listenerCount(event: keyof EventMap): number {
       return listeners.get(event)?.size ?? 0;
-    }
+    },
   };
 }
 

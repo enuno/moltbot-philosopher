@@ -10,26 +10,24 @@ const {
   ValidationError,
   MoltbookError,
   NetworkError,
-} = require('./utils/errors');
-const { retry } = require('./utils/retry');
+} = require("./utils/errors");
+const { retry } = require("./utils/retry");
 
 class HttpClient {
   constructor(options = {}) {
     // Check for API key first (allow explicit empty string check)
-    const apiKey = options.apiKey !== undefined
-      ? options.apiKey
-      : process.env.MOLTBOOK_API_KEY;
+    const apiKey = options.apiKey !== undefined ? options.apiKey : process.env.MOLTBOOK_API_KEY;
 
     if (!apiKey) {
-      throw new AuthenticationError('API key is required');
+      throw new AuthenticationError("API key is required");
     }
 
     this.apiKey = apiKey;
-    this.baseUrl = options.baseUrl || 'https://www.moltbook.com/api/v1';
+    this.baseUrl = options.baseUrl || "https://www.moltbook.com/api/v1";
     this.timeout = options.timeout || 30000;
     this.retries = options.retries !== undefined ? options.retries : 3;
     this.retryDelay = options.retryDelay || 1000;
-    this.userAgent = options.userAgent || 'moltbot-sdk-adapter/1.0.0';
+    this.userAgent = options.userAgent || "moltbot-sdk-adapter/1.0.0";
 
     // Rate limit tracking
     this.rateLimitInfo = {
@@ -45,9 +43,9 @@ class HttpClient {
   async request(method, endpoint, options = {}) {
     const url = `${this.baseUrl}${endpoint}`;
     const headers = {
-      'Content-Type': 'application/json',
-      'Authorization': `Bearer ${this.apiKey}`,
-      'User-Agent': this.userAgent,
+      "Content-Type": "application/json",
+      Authorization: `Bearer ${this.apiKey}`,
+      "User-Agent": this.userAgent,
       ...options.headers,
     };
 
@@ -69,10 +67,7 @@ class HttpClient {
           response = await fetch(url, fetchOptions);
         } catch (error) {
           // Network errors (DNS, connection refused, timeout, etc.)
-          throw new NetworkError(
-            `Network error: ${error.message}`,
-            error
-          );
+          throw new NetworkError(`Network error: ${error.message}`, error);
         }
 
         // Update rate limit info from headers
@@ -84,8 +79,8 @@ class HttpClient {
         }
 
         // Parse response
-        const contentType = response.headers.get('content-type');
-        if (contentType && contentType.includes('application/json')) {
+        const contentType = response.headers.get("content-type");
+        if (contentType && contentType.includes("application/json")) {
           return response.json();
         }
         return response.text();
@@ -99,10 +94,9 @@ class HttpClient {
             return error instanceof RateLimitError;
           }
           // Retry on network errors and 5xx
-          return error instanceof NetworkError ||
-                 (error.statusCode && error.statusCode >= 500);
+          return error instanceof NetworkError || (error.statusCode && error.statusCode >= 500);
         },
-      }
+      },
     );
   }
 
@@ -110,9 +104,9 @@ class HttpClient {
    * Update rate limit tracking from response headers
    */
   updateRateLimitInfo(response) {
-    const limit = response.headers.get('X-RateLimit-Limit');
-    const remaining = response.headers.get('X-RateLimit-Remaining');
-    const reset = response.headers.get('X-RateLimit-Reset');
+    const limit = response.headers.get("X-RateLimit-Limit");
+    const remaining = response.headers.get("X-RateLimit-Remaining");
+    const reset = response.headers.get("X-RateLimit-Reset");
 
     if (limit) this.rateLimitInfo.limit = parseInt(limit, 10);
     if (remaining) this.rateLimitInfo.remaining = parseInt(remaining, 10);
@@ -123,14 +117,14 @@ class HttpClient {
    * Handle HTTP error responses
    */
   async handleError(response) {
-    const contentType = response.headers.get('content-type');
-    const isJson = contentType && contentType.includes('application/json');
+    const contentType = response.headers.get("content-type");
+    const isJson = contentType && contentType.includes("application/json");
 
     let body;
     try {
       body = isJson ? await response.json() : await response.text();
     } catch (e) {
-      body = { message: 'Unable to parse error response' };
+      body = { message: "Unable to parse error response" };
     }
 
     const errorMessage = body.message || body.error || `HTTP ${response.status}`;
@@ -148,8 +142,8 @@ class HttpClient {
         const retryAfterMinutes = body.retry_after_minutes;
         const retryAfterSeconds = body.retry_after_seconds;
         const dailyRemaining = body.daily_remaining;
-        const retryAfterHeader = response.headers.get('Retry-After') ||
-                                 response.headers.get('X-RateLimit-Reset');
+        const retryAfterHeader =
+          response.headers.get("Retry-After") || response.headers.get("X-RateLimit-Reset");
         // Prefer body fields (more precise) over header
         let retryAfter = retryAfterHeader;
         if (retryAfterSeconds != null) retryAfter = String(retryAfterSeconds);
@@ -167,19 +161,19 @@ class HttpClient {
    * HTTP method helpers
    */
   async get(endpoint, options) {
-    return this.request('GET', endpoint, options);
+    return this.request("GET", endpoint, options);
   }
 
   async post(endpoint, body, options) {
-    return this.request('POST', endpoint, { ...options, body });
+    return this.request("POST", endpoint, { ...options, body });
   }
 
   async patch(endpoint, body, options) {
-    return this.request('PATCH', endpoint, { ...options, body });
+    return this.request("PATCH", endpoint, { ...options, body });
   }
 
   async delete(endpoint, options) {
-    return this.request('DELETE', endpoint, options);
+    return this.request("DELETE", endpoint, options);
   }
 
   /**

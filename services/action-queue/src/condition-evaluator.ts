@@ -1,5 +1,5 @@
-import axios from 'axios';
-import { execSync } from 'child_process';
+import axios from "axios";
+import { execSync } from "child_process";
 import {
   Condition,
   ConditionType,
@@ -18,8 +18,8 @@ import {
   RateLimitAvailableCondition,
   CustomCondition,
   ActionStatus,
-} from './types';
-import { QUEUE_CONFIG } from './config';
+} from "./types";
+import { QUEUE_CONFIG } from "./config";
 
 /**
  * Condition Evaluator Engine
@@ -41,13 +41,11 @@ export class ConditionEvaluator {
   /**
    * Evaluate a composite condition (with AND/OR/NOT logic)
    */
-  async evaluateCompositeCondition(
-    composite: CompositeCondition,
-  ): Promise<ConditionEvaluation[]> {
+  async evaluateCompositeCondition(composite: CompositeCondition): Promise<ConditionEvaluation[]> {
     const evaluations: ConditionEvaluation[] = [];
 
     for (const condition of composite.conditions) {
-      if ('operator' in condition) {
+      if ("operator" in condition) {
         // Nested composite condition
         const nested = await this.evaluateCompositeCondition(condition);
         evaluations.push(...nested);
@@ -64,10 +62,7 @@ export class ConditionEvaluator {
   /**
    * Check if composite condition is satisfied based on operator
    */
-  isCompositeSatisfied(
-    composite: CompositeCondition,
-    evaluations: ConditionEvaluation[],
-  ): boolean {
+  isCompositeSatisfied(composite: CompositeCondition, evaluations: ConditionEvaluation[]): boolean {
     const results = evaluations.map((e) => e.satisfied);
 
     switch (composite.operator) {
@@ -99,37 +94,25 @@ export class ConditionEvaluator {
         result = this.evaluateTimeBetween(condition as TimeBetweenCondition);
         break;
       case ConditionType.ACCOUNT_ACTIVE:
-        result = await this.evaluateAccountActive(
-          condition as AccountActiveCondition,
-        );
+        result = await this.evaluateAccountActive(condition as AccountActiveCondition);
         break;
       case ConditionType.ACTION_COMPLETED:
-        result = await this.evaluateActionCompleted(
-          condition as ActionCompletedCondition,
-        );
+        result = await this.evaluateActionCompleted(condition as ActionCompletedCondition);
         break;
       case ConditionType.KARMA_THRESHOLD:
-        result = await this.evaluateKarmaThreshold(
-          condition as KarmaThresholdCondition,
-        );
+        result = await this.evaluateKarmaThreshold(condition as KarmaThresholdCondition);
         break;
       case ConditionType.FOLLOWER_COUNT:
-        result = await this.evaluateFollowerCount(
-          condition as FollowerCountCondition,
-        );
+        result = await this.evaluateFollowerCount(condition as FollowerCountCondition);
         break;
       case ConditionType.POST_ENGAGEMENT:
-        result = await this.evaluatePostEngagement(
-          condition as PostEngagementCondition,
-        );
+        result = await this.evaluatePostEngagement(condition as PostEngagementCondition);
         break;
       case ConditionType.API_CHECK:
         result = await this.evaluateApiCheck(condition as ApiCheckCondition);
         break;
       case ConditionType.RATE_LIMIT_AVAILABLE:
-        result = await this.evaluateRateLimitAvailable(
-          condition as RateLimitAvailableCondition,
-        );
+        result = await this.evaluateRateLimitAvailable(condition as RateLimitAvailableCondition);
         break;
       case ConditionType.CUSTOM:
         result = await this.evaluateCustom(condition as CustomCondition);
@@ -180,9 +163,7 @@ export class ConditionEvaluator {
   /**
    * Time before condition
    */
-  private evaluateTimeBefore(
-    condition: TimeBeforeCondition,
-  ): ConditionEvaluation {
+  private evaluateTimeBefore(condition: TimeBeforeCondition): ConditionEvaluation {
     const targetTime = new Date(condition.params.timestamp);
     const now = new Date();
     const satisfied = now <= targetTime;
@@ -205,9 +186,7 @@ export class ConditionEvaluator {
   /**
    * Time between condition
    */
-  private evaluateTimeBetween(
-    condition: TimeBetweenCondition,
-  ): ConditionEvaluation {
+  private evaluateTimeBetween(condition: TimeBetweenCondition): ConditionEvaluation {
     const start = new Date(condition.params.start);
     const end = new Date(condition.params.end);
     const now = new Date();
@@ -240,9 +219,9 @@ export class ConditionEvaluator {
       const response = await axios.post(
         `${this.moltbookApiBase}/posts`,
         {
-          title: 'Test',
-          content: 'Test',
-          submolt: 'general',
+          title: "Test",
+          content: "Test",
+          submolt: "general",
         },
         {
           headers: {
@@ -254,8 +233,7 @@ export class ConditionEvaluator {
 
       // If we get 401 with "Account suspended" message, account is inactive
       const isSuspended =
-        response.status === 401 &&
-        response.data?.error?.toLowerCase().includes('suspended');
+        response.status === 401 && response.data?.error?.toLowerCase().includes("suspended");
 
       const satisfied = !isSuspended;
 
@@ -265,8 +243,8 @@ export class ConditionEvaluator {
         satisfied,
         evaluatedAt: new Date(),
         message: satisfied
-          ? 'Account is active'
-          : `Account suspended: ${response.data?.hint || 'unknown reason'}`,
+          ? "Account is active"
+          : `Account suspended: ${response.data?.hint || "unknown reason"}`,
         details: {
           httpStatus: response.status,
           error: response.data?.error,
@@ -291,7 +269,7 @@ export class ConditionEvaluator {
     condition: ActionCompletedCondition,
   ): Promise<ConditionEvaluation> {
     const action = this.db
-      .prepare('SELECT * FROM actions WHERE id = ?')
+      .prepare("SELECT * FROM actions WHERE id = ?")
       .get(condition.params.actionId);
 
     if (!action) {
@@ -304,8 +282,7 @@ export class ConditionEvaluator {
       };
     }
 
-    const requiredStatus =
-      condition.params.requiredStatus || ActionStatus.COMPLETED;
+    const requiredStatus = condition.params.requiredStatus || ActionStatus.COMPLETED;
     const satisfied = action.status === requiredStatus;
 
     return {
@@ -424,14 +401,11 @@ export class ConditionEvaluator {
     condition: PostEngagementCondition,
   ): Promise<ConditionEvaluation> {
     try {
-      const response = await axios.get(
-        `${this.moltbookApiBase}/posts/${condition.params.postId}`,
-        {
-          headers: {
-            Authorization: `Bearer ${this.moltbookApiKey}`,
-          },
+      const response = await axios.get(`${this.moltbookApiBase}/posts/${condition.params.postId}`, {
+        headers: {
+          Authorization: `Bearer ${this.moltbookApiKey}`,
         },
-      );
+      });
 
       const upvotes = response.data?.upvotes || 0;
       const comments = response.data?.comment_count || 0;
@@ -442,9 +416,7 @@ export class ConditionEvaluator {
       const minEngagement = condition.params.minEngagementScore ?? 0;
 
       const satisfied =
-        upvotes >= minUpvotes &&
-        comments >= minComments &&
-        engagementScore >= minEngagement;
+        upvotes >= minUpvotes && comments >= minComments && engagementScore >= minEngagement;
 
       return {
         conditionId: condition.id,
@@ -477,9 +449,7 @@ export class ConditionEvaluator {
   /**
    * API check condition (call external API and check result)
    */
-  private async evaluateApiCheck(
-    condition: ApiCheckCondition,
-  ): Promise<ConditionEvaluation> {
+  private async evaluateApiCheck(condition: ApiCheckCondition): Promise<ConditionEvaluation> {
     try {
       const response = await axios({
         method: condition.params.method,
@@ -495,19 +465,17 @@ export class ConditionEvaluator {
         const statusMatch = response.status === condition.params.expectedStatus;
         satisfied = satisfied && statusMatch;
         checks.push(
-          `Status ${response.status} ${statusMatch ? '==' : '!='} ${condition.params.expectedStatus}`,
+          `Status ${response.status} ${statusMatch ? "==" : "!="} ${condition.params.expectedStatus}`,
         );
       }
 
       // Check body contains string
       if (condition.params.expectedBodyContains !== undefined) {
         const bodyStr = JSON.stringify(response.data);
-        const containsMatch = bodyStr.includes(
-          condition.params.expectedBodyContains,
-        );
+        const containsMatch = bodyStr.includes(condition.params.expectedBodyContains);
         satisfied = satisfied && containsMatch;
         checks.push(
-          `Body ${containsMatch ? 'contains' : 'does not contain'} "${condition.params.expectedBodyContains}"`,
+          `Body ${containsMatch ? "contains" : "does not contain"} "${condition.params.expectedBodyContains}"`,
         );
       }
 
@@ -517,8 +485,8 @@ export class ConditionEvaluator {
         satisfied,
         evaluatedAt: new Date(),
         message: satisfied
-          ? `API check passed: ${checks.join(', ')}`
-          : `API check failed: ${checks.join(', ')}`,
+          ? `API check passed: ${checks.join(", ")}`
+          : `API check failed: ${checks.join(", ")}`,
         details: {
           url: condition.params.url,
           status: response.status,
@@ -558,7 +526,7 @@ export class ConditionEvaluator {
         type: condition.type,
         satisfied: true,
         evaluatedAt: new Date(),
-        message: 'No rate limit record, action available',
+        message: "No rate limit record, action available",
       };
     }
 
@@ -577,7 +545,7 @@ export class ConditionEvaluator {
       satisfied,
       evaluatedAt: now,
       message: satisfied
-        ? 'Rate limit window available'
+        ? "Rate limit window available"
         : `Rate limit active, wait ${Math.ceil(1800 - windowAge)}s`,
       details: {
         windowStart: windowStart.toISOString(),
@@ -590,15 +558,13 @@ export class ConditionEvaluator {
   /**
    * Custom condition (run external script)
    */
-  private async evaluateCustom(
-    condition: CustomCondition,
-  ): Promise<ConditionEvaluation> {
+  private async evaluateCustom(condition: CustomCondition): Promise<ConditionEvaluation> {
     try {
       const args = condition.params.args || [];
-      const command = `${condition.params.scriptPath} ${args.join(' ')}`;
+      const command = `${condition.params.scriptPath} ${args.join(" ")}`;
 
       const result = execSync(command, {
-        encoding: 'utf8',
+        encoding: "utf8",
         timeout: 30000, // 30 second timeout
       });
 

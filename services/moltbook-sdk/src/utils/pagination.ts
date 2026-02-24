@@ -44,7 +44,7 @@ export function calculatePageInfo(offset: number, limit: number, total?: number)
     offset,
     limit,
     hasPrev: offset > 0,
-    hasNext: total !== undefined ? offset + limit < total : true
+    hasNext: total !== undefined ? offset + limit < total : true,
   };
 }
 
@@ -64,7 +64,11 @@ export function calculateTotalPages(total: number, limit: number = DEFAULT_LIMIT
 }
 
 /** Generate page numbers for pagination UI */
-export function generatePageNumbers(current: number, total: number, maxVisible: number = 7): number[] {
+export function generatePageNumbers(
+  current: number,
+  total: number,
+  maxVisible: number = 7,
+): number[] {
   if (total <= maxVisible) return Array.from({ length: total }, (_, i) => i + 1);
 
   const pages: number[] = [];
@@ -87,9 +91,14 @@ export function generatePageNumbers(current: number, total: number, maxVisible: 
 /** Async iterator for paginated results */
 export async function* paginate<T>(
   fetchFn: (options: { limit: number; offset: number }) => Promise<T[]>,
-  options: PaginationOptions = {}
+  options: PaginationOptions = {},
 ): AsyncGenerator<T[], void, unknown> {
-  const { limit = DEFAULT_LIMIT, offset: startOffset = 0, maxPages = DEFAULT_MAX_PAGES, delay = 0 } = options;
+  const {
+    limit = DEFAULT_LIMIT,
+    offset: startOffset = 0,
+    maxPages = DEFAULT_MAX_PAGES,
+    delay = 0,
+  } = options;
   let offset = startOffset;
   let page = 0;
 
@@ -106,7 +115,7 @@ export async function* paginate<T>(
     page++;
 
     if (delay > 0 && page < maxPages) {
-      await new Promise(resolve => setTimeout(resolve, delay));
+      await new Promise((resolve) => setTimeout(resolve, delay));
     }
   }
 }
@@ -114,7 +123,7 @@ export async function* paginate<T>(
 /** Collect all pages into a single array */
 export async function collectAll<T>(
   fetchFn: (options: { limit: number; offset: number }) => Promise<T[]>,
-  options: PaginationOptions = {}
+  options: PaginationOptions = {},
 ): Promise<T[]> {
   const all: T[] = [];
 
@@ -129,12 +138,12 @@ export async function collectAll<T>(
 export async function fetchPagesParallel<T>(
   fetchFn: (options: { limit: number; offset: number }) => Promise<T[]>,
   pageCount: number,
-  options: { limit?: number; startPage?: number } = {}
+  options: { limit?: number; startPage?: number } = {},
 ): Promise<T[][]> {
   const { limit = DEFAULT_LIMIT, startPage = 1 } = options;
 
   const promises = Array.from({ length: pageCount }, (_, i) =>
-    fetchFn({ limit, offset: (startPage + i - 1) * limit })
+    fetchFn({ limit, offset: (startPage + i - 1) * limit }),
   );
 
   return Promise.all(promises);
@@ -149,7 +158,7 @@ export interface CursorPaginationOptions {
 
 export async function* paginateByCursor<T, C>(
   fetchFn: (cursor: C | null, limit: number) => Promise<{ data: T[]; nextCursor: C | null }>,
-  options: CursorPaginationOptions = {}
+  options: CursorPaginationOptions = {},
 ): AsyncGenerator<T[], void, unknown> {
   const { limit = DEFAULT_LIMIT, maxPages = DEFAULT_MAX_PAGES, delay = 0 } = options;
   let cursor: C | null = null;
@@ -168,7 +177,7 @@ export async function* paginateByCursor<T, C>(
     page++;
 
     if (delay > 0 && page < maxPages) {
-      await new Promise(resolve => setTimeout(resolve, delay));
+      await new Promise((resolve) => setTimeout(resolve, delay));
     }
   }
 }
@@ -185,7 +194,10 @@ export class InfiniteScrollHelper<T> {
 
   constructor(
     fetchFn: (options: { limit: number; offset: number }) => Promise<T[]>,
-    options: { limit?: number; onUpdate?: (items: T[], loading: boolean, hasMore: boolean) => void } = {}
+    options: {
+      limit?: number;
+      onUpdate?: (items: T[], loading: boolean, hasMore: boolean) => void;
+    } = {},
   ) {
     this.fetchFn = fetchFn;
     this.limit = options.limit ?? DEFAULT_LIMIT;
@@ -241,7 +253,7 @@ export class InfiniteScrollHelper<T> {
 export async function batchRequests<T, R>(
   items: T[],
   processFn: (item: T) => Promise<R>,
-  options: { batchSize?: number; delay?: number } = {}
+  options: { batchSize?: number; delay?: number } = {},
 ): Promise<R[]> {
   const { batchSize = 10, delay = 0 } = options;
   const results: R[] = [];
@@ -252,7 +264,7 @@ export async function batchRequests<T, R>(
     results.push(...batchResults);
 
     if (delay > 0 && i + batchSize < items.length) {
-      await new Promise(resolve => setTimeout(resolve, delay));
+      await new Promise((resolve) => setTimeout(resolve, delay));
     }
   }
 

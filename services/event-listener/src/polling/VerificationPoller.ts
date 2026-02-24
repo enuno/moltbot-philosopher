@@ -3,9 +3,9 @@
  * Fast polling for verification challenges (60s intervals)
  */
 
-import type { BaseEvent } from '@moltbot/shared';
-import { createEvent } from '@moltbot/shared';
-import { EventEmitter } from 'events';
+import type { BaseEvent } from "@moltbot/shared";
+import { createEvent } from "@moltbot/shared";
+import { EventEmitter } from "events";
 
 /**
  * Verification challenge from API
@@ -42,7 +42,7 @@ export class VerificationPoller extends EventEmitter {
    */
   start(): void {
     if (this.intervalId) {
-      console.warn('[VerificationPoller] Already polling');
+      console.warn("[VerificationPoller] Already polling");
       return;
     }
 
@@ -60,7 +60,7 @@ export class VerificationPoller extends EventEmitter {
     if (this.intervalId) {
       clearInterval(this.intervalId);
       this.intervalId = null;
-      console.log('[VerificationPoller] Stopped');
+      console.log("[VerificationPoller] Stopped");
     }
   }
 
@@ -69,7 +69,7 @@ export class VerificationPoller extends EventEmitter {
    */
   private async poll(): Promise<void> {
     if (this.isPolling) {
-      console.warn('[VerificationPoller] Previous poll still running, skipping');
+      console.warn("[VerificationPoller] Previous poll still running, skipping");
       return;
     }
 
@@ -80,17 +80,17 @@ export class VerificationPoller extends EventEmitter {
         `${this.config.baseUrl}/api/v1/agents/me/verification-challenges`,
         {
           headers: {
-            'Authorization': `Bearer ${this.config.apiKey}`,
-            'Content-Type': 'application/json',
+            Authorization: `Bearer ${this.config.apiKey}`,
+            "Content-Type": "application/json",
           },
-        }
+        },
       );
 
       if (!response.ok) {
         throw new Error(`HTTP ${response.status}: ${response.statusText}`);
       }
 
-      const data = await response.json() as { challenges?: VerificationChallenge[] };
+      const data = (await response.json()) as { challenges?: VerificationChallenge[] };
       const challenges: VerificationChallenge[] = data.challenges || [];
 
       this.lastCheckTime = new Date();
@@ -100,14 +100,14 @@ export class VerificationPoller extends EventEmitter {
 
         for (const challenge of challenges) {
           const event = this.createChallengeEvent(challenge);
-          this.emit('challenge', event);
+          this.emit("challenge", event);
         }
       }
 
-      this.emit('poll:success', { challengeCount: challenges.length });
+      this.emit("poll:success", { challengeCount: challenges.length });
     } catch (error) {
-      console.error('[VerificationPoller] Poll failed:', error);
-      this.emit('poll:error', error);
+      console.error("[VerificationPoller] Poll failed:", error);
+      this.emit("poll:error", error);
     } finally {
       this.isPolling = false;
     }
@@ -118,16 +118,16 @@ export class VerificationPoller extends EventEmitter {
    */
   private createChallengeEvent(challenge: VerificationChallenge): BaseEvent {
     return createEvent(
-      'verification.challenge.received',
+      "verification.challenge.received",
       {
         challengeId: challenge.id,
         question: challenge.question,
         expiresAt: new Date(challenge.expiresAt),
       },
       {
-        priority: 'critical',
-        source: 'event-listener',
-      }
+        priority: "critical",
+        source: "event-listener",
+      },
     );
   }
 

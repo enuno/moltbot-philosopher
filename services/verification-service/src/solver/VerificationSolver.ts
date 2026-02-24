@@ -3,7 +3,7 @@
  * Uses AI Generator to answer Moltbook verification questions
  */
 
-import { EventEmitter } from 'events';
+import { EventEmitter } from "events";
 
 /**
  * Challenge from Moltbook
@@ -53,19 +53,21 @@ export class VerificationSolver extends EventEmitter {
       const moltbookUrl = new URL(this.config.moltbookBaseUrl);
 
       // Only allow specific known hosts
-      if (aiUrl.hostname === 'ai-generator' || aiUrl.hostname === 'localhost') {
+      if (aiUrl.hostname === "ai-generator" || aiUrl.hostname === "localhost") {
         this.ALLOWED_HOSTS.add(aiUrl.host);
       } else {
         throw new Error(`AI Generator URL not allowed: ${aiUrl.hostname}`);
       }
 
-      if (moltbookUrl.hostname.endsWith('.moltbook.com') || moltbookUrl.hostname === 'localhost') {
+      if (moltbookUrl.hostname.endsWith(".moltbook.com") || moltbookUrl.hostname === "localhost") {
         this.ALLOWED_HOSTS.add(moltbookUrl.host);
       } else {
         throw new Error(`Moltbook URL not allowed: ${moltbookUrl.hostname}`);
       }
     } catch (error) {
-      throw new Error(`Invalid configuration URLs: ${error instanceof Error ? error.message : String(error)}`);
+      throw new Error(
+        `Invalid configuration URLs: ${error instanceof Error ? error.message : String(error)}`,
+      );
     }
   }
 
@@ -82,16 +84,20 @@ export class VerificationSolver extends EventEmitter {
       }
 
       // Prevent accessing internal IPs
-      if (parsed.hostname === '127.0.0.1' ||
-          parsed.hostname === '::1' ||
-          parsed.hostname.startsWith('169.254.') ||
-          parsed.hostname.startsWith('10.') ||
-          parsed.hostname.startsWith('172.16.') ||
-          parsed.hostname.startsWith('192.168.')) {
-        throw new Error('Cannot access internal IP addresses');
+      if (
+        parsed.hostname === "127.0.0.1" ||
+        parsed.hostname === "::1" ||
+        parsed.hostname.startsWith("169.254.") ||
+        parsed.hostname.startsWith("10.") ||
+        parsed.hostname.startsWith("172.16.") ||
+        parsed.hostname.startsWith("192.168.")
+      ) {
+        throw new Error("Cannot access internal IP addresses");
       }
     } catch (error) {
-      throw new Error(`URL validation failed: ${error instanceof Error ? error.message : String(error)}`);
+      throw new Error(
+        `URL validation failed: ${error instanceof Error ? error.message : String(error)}`,
+      );
     }
   }
 
@@ -109,7 +115,7 @@ export class VerificationSolver extends EventEmitter {
     if (new Date() >= challenge.expiresAt) {
       return {
         success: false,
-        error: 'Challenge expired',
+        error: "Challenge expired",
         attemptCount: 0,
         duration: Date.now() - startTime,
       };
@@ -130,7 +136,7 @@ export class VerificationSolver extends EventEmitter {
 
         if (success) {
           console.log(`[VerificationSolver] ✓ Solved in ${duration}ms (${attempt} attempts)`);
-          this.emit('solved', { challenge, answer, duration, attemptCount });
+          this.emit("solved", { challenge, answer, duration, attemptCount });
 
           return {
             success: true,
@@ -146,7 +152,7 @@ export class VerificationSolver extends EventEmitter {
 
         if (attempt === this.config.maxRetries) {
           const duration = Date.now() - startTime;
-          this.emit('failed', { challenge, error, duration, attemptCount });
+          this.emit("failed", { challenge, error, duration, attemptCount });
 
           return {
             success: false,
@@ -165,7 +171,7 @@ export class VerificationSolver extends EventEmitter {
     const duration = Date.now() - startTime;
     return {
       success: false,
-      error: 'Max retries exceeded',
+      error: "Max retries exceeded",
       attemptCount,
       duration,
     };
@@ -183,13 +189,13 @@ export class VerificationSolver extends EventEmitter {
 
     try {
       const response = await fetch(url, {
-        method: 'POST',
+        method: "POST",
         headers: {
-          'Content-Type': 'application/json',
+          "Content-Type": "application/json",
         },
         body: JSON.stringify({
           prompt: `Answer this verification question concisely and accurately: ${question}`,
-          model: 'llama-3.3-70b',
+          model: "llama-3.3-70b",
           maxTokens: 100,
           temperature: 0.3,
         }),
@@ -200,11 +206,11 @@ export class VerificationSolver extends EventEmitter {
         throw new Error(`AI Generator HTTP ${response.status}`);
       }
 
-      const data = await response.json() as { content?: string };
+      const data = (await response.json()) as { content?: string };
       const answer = data.content?.trim();
 
       if (!answer) {
-        throw new Error('AI Generator returned empty answer');
+        throw new Error("AI Generator returned empty answer");
       }
 
       return answer;
@@ -221,10 +227,10 @@ export class VerificationSolver extends EventEmitter {
     this.validateUrl(url); // Validate before making request
 
     const response = await fetch(url, {
-      method: 'POST',
+      method: "POST",
       headers: {
-        'Authorization': `Bearer ${this.config.moltbookApiKey}`,
-        'Content-Type': 'application/json',
+        Authorization: `Bearer ${this.config.moltbookApiKey}`,
+        "Content-Type": "application/json",
       },
       body: JSON.stringify({ answer }),
     });
@@ -234,7 +240,7 @@ export class VerificationSolver extends EventEmitter {
       return false;
     }
 
-    const data = await response.json() as { correct?: boolean };
+    const data = (await response.json()) as { correct?: boolean };
     return data.correct === true;
   }
 

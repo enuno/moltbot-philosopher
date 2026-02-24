@@ -2,13 +2,13 @@
  * Utility functions and helpers for Moltbook SDK
  */
 
-import type { Post, Comment, FeedOptions, ListPostsOptions } from '../types';
+import type { Post, Comment } from "../types";
 
 /**
  * Sleep for specified milliseconds
  */
 export function sleep(ms: number): Promise<void> {
-  return new Promise(resolve => setTimeout(resolve, ms));
+  return new Promise((resolve) => setTimeout(resolve, ms));
 }
 
 /**
@@ -21,7 +21,7 @@ export async function retry<T>(
     delay?: number;
     maxDelay?: number;
     onRetry?: (error: Error, attempt: number) => void;
-  } = {}
+  } = {},
 ): Promise<T> {
   const { retries = 3, delay = 1000, maxDelay = 30000, onRetry } = options;
 
@@ -55,7 +55,7 @@ export async function retry<T>(
  */
 export async function* paginate<T>(
   fetchFn: (options: { limit: number; offset: number }) => Promise<T[]>,
-  options: { limit?: number; maxPages?: number } = {}
+  options: { limit?: number; maxPages?: number } = {},
 ): AsyncGenerator<T[], void, unknown> {
   const { limit = 25, maxPages = Infinity } = options;
   let offset = 0;
@@ -143,10 +143,10 @@ export function getMaxDepth(comments: Comment[]): number {
  */
 export function formatScore(score: number): string {
   if (Math.abs(score) >= 1000000) {
-    return (score / 1000000).toFixed(1) + 'M';
+    return (score / 1000000).toFixed(1) + "M";
   }
   if (Math.abs(score) >= 1000) {
-    return (score / 1000).toFixed(1) + 'K';
+    return (score / 1000).toFixed(1) + "K";
   }
   return score.toString();
 }
@@ -166,7 +166,7 @@ export function formatRelativeTime(date: Date | string): string {
   const diffMonths = Math.floor(diffDays / 30);
   const diffYears = Math.floor(diffDays / 365);
 
-  if (diffSecs < 60) return 'just now';
+  if (diffSecs < 60) return "just now";
   if (diffMins < 60) return `${diffMins}m ago`;
   if (diffHours < 24) return `${diffHours}h ago`;
   if (diffDays < 7) return `${diffDays}d ago`;
@@ -179,7 +179,7 @@ export function formatRelativeTime(date: Date | string): string {
  * Validate API key format
  */
 export function isValidApiKey(apiKey: string): boolean {
-  return typeof apiKey === 'string' && apiKey.startsWith('moltbook_') && apiKey.length > 20;
+  return typeof apiKey === "string" && apiKey.startsWith("moltbook_") && apiKey.length > 20;
 }
 
 /**
@@ -201,7 +201,7 @@ export function isValidSubmoltName(name: string): boolean {
  */
 export function truncate(text: string, maxLength: number): string {
   if (text.length <= maxLength) return text;
-  return text.slice(0, maxLength - 3) + '...';
+  return text.slice(0, maxLength - 3) + "...";
 }
 
 /**
@@ -210,7 +210,7 @@ export function truncate(text: string, maxLength: number): string {
 export function extractDomain(url: string): string | null {
   try {
     const parsed = new URL(url);
-    return parsed.hostname.replace(/^www\./, '');
+    return parsed.hostname.replace(/^www\./, "");
   } catch {
     return null;
   }
@@ -220,14 +220,14 @@ export function extractDomain(url: string): string | null {
  * Check if post is a link post
  */
 export function isLinkPost(post: Post): boolean {
-  return post.postType === 'link' && !!post.url;
+  return post.postType === "link" && !!post.url;
 }
 
 /**
  * Check if post is a text post
  */
 export function isTextPost(post: Post): boolean {
-  return post.postType === 'text' && !!post.content;
+  return post.postType === "text" && !!post.content;
 }
 
 /**
@@ -235,7 +235,7 @@ export function isTextPost(post: Post): boolean {
  */
 export function debounce<T extends (...args: unknown[]) => unknown>(
   fn: T,
-  wait: number
+  wait: number,
 ): (...args: Parameters<T>) => void {
   let timeout: NodeJS.Timeout | null = null;
 
@@ -252,7 +252,7 @@ export function debounce<T extends (...args: unknown[]) => unknown>(
  */
 export function throttle<T extends (...args: unknown[]) => unknown>(
   fn: T,
-  limit: number
+  limit: number,
 ): (...args: Parameters<T>) => void {
   let inThrottle = false;
 
@@ -284,7 +284,7 @@ export function createEventEmitter<T extends Record<string, unknown[]>>() {
     },
 
     emit<K extends keyof T>(event: K, ...args: T[K]): void {
-      listeners.get(event)?.forEach(cb => cb(...args));
+      listeners.get(event)?.forEach((cb) => cb(...args));
     },
 
     off<K extends keyof T>(event: K, callback?: (...args: T[K]) => void): void {
@@ -293,6 +293,6 @@ export function createEventEmitter<T extends Record<string, unknown[]>>() {
       } else {
         listeners.delete(event);
       }
-    }
+    },
   };
 }

@@ -6,7 +6,7 @@
 class MoltbookError extends Error {
   constructor(message, statusCode, response) {
     super(message);
-    this.name = 'MoltbookError';
+    this.name = "MoltbookError";
     this.statusCode = statusCode;
     this.response = response;
     Error.captureStackTrace(this, this.constructor);
@@ -16,14 +16,14 @@ class MoltbookError extends Error {
 class AuthenticationError extends MoltbookError {
   constructor(message, response) {
     super(message, 401, response);
-    this.name = 'AuthenticationError';
+    this.name = "AuthenticationError";
   }
 }
 
 class RateLimitError extends MoltbookError {
   constructor(message, response, retryAfter) {
     super(message, 429, response);
-    this.name = 'RateLimitError';
+    this.name = "RateLimitError";
     this.retryAfter = retryAfter;
   }
 }
@@ -31,14 +31,14 @@ class RateLimitError extends MoltbookError {
 class NotFoundError extends MoltbookError {
   constructor(message, response) {
     super(message, 404, response);
-    this.name = 'NotFoundError';
+    this.name = "NotFoundError";
   }
 }
 
 class ValidationError extends MoltbookError {
   constructor(message, response, errors) {
     super(message, 400, response);
-    this.name = 'ValidationError';
+    this.name = "ValidationError";
     this.errors = errors || [];
   }
 }
@@ -46,7 +46,7 @@ class ValidationError extends MoltbookError {
 class NetworkError extends MoltbookError {
   constructor(message, originalError) {
     super(message, null, null);
-    this.name = 'NetworkError';
+    this.name = "NetworkError";
     this.originalError = originalError;
   }
 }

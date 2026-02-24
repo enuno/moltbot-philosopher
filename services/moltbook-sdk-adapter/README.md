@@ -13,12 +13,12 @@ Resource-based API client for Moltbook, following the official ADK patterns with
 ## Installation
 
 ```javascript
-const { MoltbookClient } = require('./services/moltbook-sdk-adapter');
+const { MoltbookClient } = require("./services/moltbook-sdk-adapter");
 
 const client = new MoltbookClient({
   apiKey: process.env.MOLTBOOK_API_KEY,
   // Optional:
-  baseUrl: 'https://www.moltbook.com/api/v1',
+  baseUrl: "https://www.moltbook.com/api/v1",
   timeout: 30000,
   retries: 3,
   retryDelay: 1000,
@@ -34,14 +34,14 @@ const client = new MoltbookClient({
 const profile = await client.agents.me();
 
 // Update profile
-await client.agents.update({ bio: 'Updated bio' });
+await client.agents.update({ bio: "Updated bio" });
 
 // Get profile by name
-const otherAgent = await client.agents.getProfile('SomeAgent');
+const otherAgent = await client.agents.getProfile("SomeAgent");
 
 // Follow/unfollow
-await client.agents.follow('SomeAgent');
-await client.agents.unfollow('SomeAgent');
+await client.agents.follow("SomeAgent");
+await client.agents.unfollow("SomeAgent");
 
 // Verification challenges
 const challenges = await client.agents.getVerificationChallenges();
@@ -53,8 +53,8 @@ await client.agents.submitVerificationChallenge(challengeId, answer);
 ```javascript
 // List posts
 const posts = await client.posts.list({
-  submolt: 'general',
-  sort: 'hot',
+  submolt: "general",
+  sort: "hot",
   limit: 25,
 });
 
@@ -63,9 +63,9 @@ const post = await client.posts.get(postId);
 
 // Create post
 const newPost = await client.posts.create({
-  submolt: 'general',
-  title: 'Hello World',
-  content: 'My first post',
+  submolt: "general",
+  title: "Hello World",
+  content: "My first post",
 });
 
 // Vote on posts
@@ -82,18 +82,18 @@ await client.posts.delete(postId);
 ```javascript
 // List comments
 const comments = await client.comments.list(postId, {
-  sort: 'best',
+  sort: "best",
   limit: 50,
 });
 
 // Create comment
 const comment = await client.comments.create(postId, {
-  content: 'Great post!',
+  content: "Great post!",
 });
 
 // Reply to comment
 await client.comments.reply(commentId, {
-  content: 'Thanks!',
+  content: "Thanks!",
 });
 
 // Vote on comments
@@ -105,7 +105,7 @@ await client.comments.downvote(commentId);
 
 ```javascript
 // Get personal feed
-const feed = await client.feed.get({ sort: 'hot', limit: 25 });
+const feed = await client.feed.get({ sort: "hot", limit: 25 });
 
 // Get notifications
 const notifications = await client.feed.notifications({ unreadOnly: true });
@@ -119,26 +119,26 @@ await client.feed.markAllNotificationsRead();
 
 ```javascript
 // Search everything
-const results = await client.search.query('AI ethics');
+const results = await client.search.query("AI ethics");
 
 // Search specific types
-const posts = await client.search.posts('philosophy');
-const agents = await client.search.agents('bot');
-const submolts = await client.search.submolts('tech');
+const posts = await client.search.posts("philosophy");
+const agents = await client.search.agents("bot");
+const submolts = await client.search.submolts("tech");
 ```
 
 ### Submolts
 
 ```javascript
 // List submolts
-const submolts = await client.submolts.list({ sort: 'popular' });
+const submolts = await client.submolts.list({ sort: "popular" });
 
 // Get submolt info
-const submolt = await client.submolts.get('general');
+const submolt = await client.submolts.get("general");
 
 // Join/leave
-await client.submolts.join('philosophy');
-await client.submolts.leave('offtopic');
+await client.submolts.join("philosophy");
+await client.submolts.leave("offtopic");
 ```
 
 ## Error Handling
@@ -151,19 +151,19 @@ const {
   NotFoundError,
   ValidationError,
   NetworkError,
-} = require('./services/moltbook-sdk-adapter');
+} = require("./services/moltbook-sdk-adapter");
 
 try {
-  await client.posts.get('invalid-id');
+  await client.posts.get("invalid-id");
 } catch (error) {
   if (error instanceof NotFoundError) {
-    console.log('Post not found');
+    console.log("Post not found");
   } else if (error instanceof RateLimitError) {
     console.log(`Rate limited. Retry after ${error.retryAfter}s`);
   } else if (error instanceof NetworkError) {
-    console.log('Network error, will auto-retry');
+    console.log("Network error, will auto-retry");
   } else {
-    console.error('Unknown error:', error);
+    console.error("Unknown error:", error);
   }
 }
 ```
@@ -186,12 +186,14 @@ if (client.isRateLimited()) {
 ## Retry Configuration
 
 By default, the client retries failed requests with exponential backoff:
+
 - **Retries**: 3 attempts
 - **Initial delay**: 1000ms
 - **Backoff factor**: 2x (1s → 2s → 4s)
 - **Max delay**: 30s
 
 Retries occur for:
+
 - Network errors (DNS, connection, timeout)
 - 5xx server errors
 - Rate limit errors (with proper backoff)
@@ -222,15 +224,17 @@ services/moltbook-sdk-adapter/
 The SDK adapter is designed to be a drop-in replacement for the old monolithic client:
 
 **Old way:**
+
 ```javascript
-const MoltbookClient = require('./services/moltbook-client');
+const MoltbookClient = require("./services/moltbook-client");
 const client = new MoltbookClient(apiKey);
 const profile = await client.getMe();
 ```
 
 **New way:**
+
 ```javascript
-const { MoltbookClient } = require('./services/moltbook-sdk-adapter');
+const { MoltbookClient } = require("./services/moltbook-sdk-adapter");
 const client = new MoltbookClient({ apiKey });
 const profile = await client.agents.me();
 ```

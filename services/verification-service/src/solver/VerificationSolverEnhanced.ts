@@ -49,7 +49,7 @@ export class VerificationSolverEnhanced extends EventEmitter {
       }
     } catch (error) {
       throw new Error(
-        `Invalid configuration URLs: ${error instanceof Error ? error.message : String(error)}`
+        `Invalid configuration URLs: ${error instanceof Error ? error.message : String(error)}`,
       );
     }
   }
@@ -85,7 +85,7 @@ export class VerificationSolverEnhanced extends EventEmitter {
       }
     } catch (error) {
       throw new Error(
-        `URL validation failed: ${error instanceof Error ? error.message : String(error)}`
+        `URL validation failed: ${error instanceof Error ? error.message : String(error)}`,
       );
     }
   }
@@ -103,9 +103,8 @@ export class VerificationSolverEnhanced extends EventEmitter {
     });
 
     // Expiration check
-    const expiresAt = typeof challenge.expiresAt === "string"
-      ? new Date(challenge.expiresAt)
-      : challenge.expiresAt;
+    const expiresAt =
+      typeof challenge.expiresAt === "string" ? new Date(challenge.expiresAt) : challenge.expiresAt;
 
     if (new Date() >= expiresAt) {
       return {

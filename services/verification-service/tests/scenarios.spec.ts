@@ -38,9 +38,7 @@ describe("Scenario Detection", () => {
 
   describe("validateByScenario dispatcher", () => {
     it("validates stack_challenge_v1 answers", () => {
-      const answer =
-        "I use external tools. " +
-        "In 24 hours I will remember this challenge.";
+      const answer = "I use external tools. " + "In 24 hours I will remember this challenge.";
 
       const result = validateByScenario("stack_challenge_v1", answer);
 

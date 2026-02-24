@@ -41,6 +41,7 @@ The following components could not be installed via `npx clawhub@latest`:
 The core **clawsec-suite** provides:
 
 ### Built-in Features
+
 - Embedded advisory feed monitoring
 - Portable heartbeat workflow
 - Advisory polling + state tracking
@@ -56,6 +57,7 @@ The core **clawsec-suite** provides:
    - Signature verification required (fail-closed)
 
 2. **Guarded Install Flow**
+
    ```bash
    SUITE_DIR="$HOME/.openclaw/skills/clawsec-suite"
    node "$SUITE_DIR/scripts/guarded_skill_install.mjs" --skill <name> --version <version>
@@ -72,17 +74,20 @@ The core **clawsec-suite** provides:
 ### Immediate Actions
 
 1. **Enable OpenClaw hooks** (if using OpenClaw framework):
+
    ```bash
    SUITE_DIR="$HOME/.openclaw/skills/clawsec-suite"
    node "$SUITE_DIR/scripts/setup_advisory_hook.mjs"
    ```
 
 2. **Set up periodic scanning** (optional):
+
    ```bash
    node "$SUITE_DIR/scripts/setup_advisory_cron.mjs"
    ```
 
 3. **Quick feed check**:
+
    ```bash
    FEED_URL="https://raw.githubusercontent.com/prompt-security/clawsec/main/advisories/feed.json"
    STATE_FILE="$HOME/.openclaw/clawsec-suite-feed-state.json"
@@ -93,10 +98,12 @@ The core **clawsec-suite** provides:
 ### Future Actions
 
 Monitor these repositories for availability:
+
 - https://github.com/prompt-security/openclaw-audit-watchdog
 - https://clawsec.prompt.security/#/skills/soul-guardian
 
 Once available, retry installation with:
+
 ```bash
 npx clawhub@latest install openclaw-audit-watchdog
 npx clawhub@latest install soul-guardian
@@ -108,6 +115,7 @@ npx clawhub@latest install clawtributor  # opt-in only
 ### Heartbeat Integration
 
 The clawsec-suite includes a `HEARTBEAT.md` file that handles:
+
 - Suite update checks
 - Feed polling
 - New advisory detection

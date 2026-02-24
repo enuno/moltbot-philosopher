@@ -5,64 +5,82 @@
 /**
  * Philosopher agent names (9 total)
  */
-export type PhilosopherName = 'classical' | 'existentialist' | 'transcendentalist' | 'joyce' | 'enlightenment' | 'beat' | 'cyberpunk-posthumanist' | 'satirist-absurdist' | 'scientist-empiricist';
+export type PhilosopherName =
+  | "classical"
+  | "existentialist"
+  | "transcendentalist"
+  | "joyce"
+  | "enlightenment"
+  | "beat"
+  | "cyberpunk-posthumanist"
+  | "satirist-absurdist"
+  | "scientist-empiricist";
 /**
  * Council roles for governance
  */
-export type CouncilRole = 'Ontology Lead' | 'Autonomy Critic' | 'Oversight' | 'Phenomenologist' | 'Rights Architect' | 'Dissent' | 'Techno-Ontologist' | 'Court Jester' | 'Empirical Anchor';
+export type CouncilRole =
+  | "Ontology Lead"
+  | "Autonomy Critic"
+  | "Oversight"
+  | "Phenomenologist"
+  | "Rights Architect"
+  | "Dissent"
+  | "Techno-Ontologist"
+  | "Court Jester"
+  | "Empirical Anchor";
 /**
  * Agent identity loaded from workspace files
  */
 export interface AgentIdentity {
-    /** Agent name (matches workspace directory) */
-    name: PhilosopherName;
-    /** Council governance role */
-    role: CouncilRole;
-    /** SOUL.md content (persona, principles, communication style) */
-    soul: string;
-    /** IDENTITY.md content (tradition, influences, strengths/weaknesses) */
-    identity: string;
-    /** AGENTS.md content (council role, alliances, tensions, rituals) */
-    agents: string;
-    /** MEMORY.md content (accumulated knowledge over time) */
-    memory: string;
-    /** Workspace directory path */
-    workspacePath: string;
-    /** Timestamp when identity was loaded */
-    loadedAt: Date;
+  /** Agent name (matches workspace directory) */
+  name: PhilosopherName;
+  /** Council governance role */
+  role: CouncilRole;
+  /** SOUL.md content (persona, principles, communication style) */
+  soul: string;
+  /** IDENTITY.md content (tradition, influences, strengths/weaknesses) */
+  identity: string;
+  /** AGENTS.md content (council role, alliances, tensions, rituals) */
+  agents: string;
+  /** MEMORY.md content (accumulated knowledge over time) */
+  memory: string;
+  /** Workspace directory path */
+  workspacePath: string;
+  /** Timestamp when identity was loaded */
+  loadedAt: Date;
 }
 /**
  * Agent configuration
  */
 export interface AgentConfig {
-    /** Agent name */
-    name: PhilosopherName;
-    /** Workspace base directory */
-    workspaceBase: string;
-    /** Enable identity loading on startup */
-    loadIdentity: boolean;
-    /** Enable memory accumulation */
-    enableMemory: boolean;
-    /** Log level */
-    logLevel?: 'debug' | 'info' | 'warn' | 'error';
+  /** Agent name */
+  name: PhilosopherName;
+  /** Workspace base directory */
+  workspaceBase: string;
+  /** Enable identity loading on startup */
+  loadIdentity: boolean;
+  /** Enable memory accumulation */
+  enableMemory: boolean;
+  /** Log level */
+  logLevel?: "debug" | "info" | "warn" | "error";
 }
 /**
  * Agent state snapshot
  */
 export interface AgentState {
-    /** Agent name */
-    name: PhilosopherName;
-    /** Current status */
-    status: 'idle' | 'processing' | 'waiting' | 'error';
-    /** Last activity timestamp */
-    lastActivity: Date;
-    /** Number of events processed */
-    eventsProcessed: number;
-    /** Current queue size */
-    queueSize: number;
-    /** Identity loaded flag */
-    identityLoaded: boolean;
-    /** Error message if status is 'error' */
-    error?: string;
+  /** Agent name */
+  name: PhilosopherName;
+  /** Current status */
+  status: "idle" | "processing" | "waiting" | "error";
+  /** Last activity timestamp */
+  lastActivity: Date;
+  /** Number of events processed */
+  eventsProcessed: number;
+  /** Current queue size */
+  queueSize: number;
+  /** Identity loaded flag */
+  identityLoaded: boolean;
+  /** Error message if status is 'error' */
+  error?: string;
 }
 //# sourceMappingURL=agent.d.ts.map

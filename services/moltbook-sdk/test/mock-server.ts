@@ -2,7 +2,7 @@
  * Mock server for testing Moltbook SDK
  */
 
-import type { Agent, Post, Comment, Submolt, VoteResponse, SearchResults } from '../src/types';
+import type { Agent, Post, Comment, Submolt, VoteResponse, SearchResults } from "../src/types";
 
 export interface MockResponse<T> {
   status: number;
@@ -17,7 +17,9 @@ export interface MockRequest {
   headers?: Record<string, string>;
 }
 
-export type MockHandler = (request: MockRequest) => MockResponse<unknown> | Promise<MockResponse<unknown>>;
+export type MockHandler = (
+  request: MockRequest,
+) => MockResponse<unknown> | Promise<MockResponse<unknown>>;
 
 export class MockServer {
   private handlers: Map<string, MockHandler> = new Map();
@@ -31,83 +33,103 @@ export class MockServer {
 
   private setupDefaultHandlers(): void {
     // Agent endpoints
-    this.handle('GET /agents/me', () => ({
+    this.handle("GET /agents/me", () => ({
       status: 200,
-      body: { success: true, agent: this.mockAgent() }
+      body: { success: true, agent: this.mockAgent() },
     }));
 
-    this.handle('POST /agents/register', (req) => ({
+    this.handle("POST /agents/register", (_req) => ({
       status: 201,
       body: {
-        agent: { api_key: 'moltbook_mock_key_12345678901234567890', claim_url: 'https://moltbook.com/claim/xxx', verification_code: 'ABCD1234' },
-        important: 'Save your API key!'
-      }
+        agent: {
+          api_key: "moltbook_mock_key_12345678901234567890",
+          claim_url: "https://moltbook.com/claim/xxx",
+          verification_code: "ABCD1234",
+        },
+        important: "Save your API key!",
+      },
     }));
 
-    this.handle('GET /agents/status', () => ({
+    this.handle("GET /agents/status", () => ({
       status: 200,
-      body: { status: 'claimed' }
+      body: { status: "claimed" },
     }));
 
-    this.handle('GET /agents/profile', () => ({
+    this.handle("GET /agents/profile", () => ({
       status: 200,
-      body: { agent: this.mockAgent(), isFollowing: false, recentPosts: [] }
+      body: { agent: this.mockAgent(), isFollowing: false, recentPosts: [] },
     }));
 
     // Posts endpoints
-    this.handle('GET /posts', () => ({
+    this.handle("GET /posts", () => ({
       status: 200,
-      body: { success: true, data: [this.mockPost(), this.mockPost(), this.mockPost()], pagination: { count: 3, limit: 25, offset: 0, hasMore: false } }
+      body: {
+        success: true,
+        data: [this.mockPost(), this.mockPost(), this.mockPost()],
+        pagination: { count: 3, limit: 25, offset: 0, hasMore: false },
+      },
     }));
 
-    this.handle('POST /posts', () => ({
+    this.handle("POST /posts", () => ({
       status: 201,
-      body: { success: true, post: this.mockPost() }
+      body: { success: true, post: this.mockPost() },
     }));
 
     // Comments endpoints
-    this.handle('GET /posts/:id/comments', () => ({
+    this.handle("GET /posts/:id/comments", () => ({
       status: 200,
-      body: { success: true, comments: [this.mockComment(), this.mockComment()] }
+      body: { success: true, comments: [this.mockComment(), this.mockComment()] },
     }));
 
-    this.handle('POST /posts/:id/comments', () => ({
+    this.handle("POST /posts/:id/comments", () => ({
       status: 201,
-      body: { success: true, comment: this.mockComment() }
+      body: { success: true, comment: this.mockComment() },
     }));
 
     // Submolts endpoints
-    this.handle('GET /submolts', () => ({
+    this.handle("GET /submolts", () => ({
       status: 200,
-      body: { success: true, data: [this.mockSubmolt()], pagination: { count: 1, limit: 50, offset: 0, hasMore: false } }
+      body: {
+        success: true,
+        data: [this.mockSubmolt()],
+        pagination: { count: 1, limit: 50, offset: 0, hasMore: false },
+      },
     }));
 
-    this.handle('GET /submolts/:name', () => ({
+    this.handle("GET /submolts/:name", () => ({
       status: 200,
-      body: { success: true, submolt: this.mockSubmolt() }
+      body: { success: true, submolt: this.mockSubmolt() },
     }));
 
     // Feed endpoints
-    this.handle('GET /feed', () => ({
+    this.handle("GET /feed", () => ({
       status: 200,
-      body: { success: true, data: [this.mockPost()], pagination: { count: 1, limit: 25, offset: 0, hasMore: false } }
+      body: {
+        success: true,
+        data: [this.mockPost()],
+        pagination: { count: 1, limit: 25, offset: 0, hasMore: false },
+      },
     }));
 
     // Search endpoints
-    this.handle('GET /search', () => ({
+    this.handle("GET /search", () => ({
       status: 200,
-      body: { posts: [this.mockPost()], agents: [this.mockAgent()], submolts: [this.mockSubmolt()] } as SearchResults
+      body: {
+        posts: [this.mockPost()],
+        agents: [this.mockAgent()],
+        submolts: [this.mockSubmolt()],
+      } as SearchResults,
     }));
 
     // Vote endpoints
-    this.handle('POST /posts/:id/upvote', () => ({
+    this.handle("POST /posts/:id/upvote", () => ({
       status: 200,
-      body: { success: true, message: 'Upvoted!', action: 'upvoted' } as VoteResponse
+      body: { success: true, message: "Upvoted!", action: "upvoted" } as VoteResponse,
     }));
 
-    this.handle('POST /posts/:id/downvote', () => ({
+    this.handle("POST /posts/:id/downvote", () => ({
       status: 200,
-      body: { success: true, message: 'Downvoted!', action: 'downvoted' } as VoteResponse
+      body: { success: true, message: "Downvoted!", action: "downvoted" } as VoteResponse,
     }));
   }
 
@@ -119,7 +141,7 @@ export class MockServer {
     this.requests.push(req);
 
     if (this.defaultLatency > 0) {
-      await new Promise(resolve => setTimeout(resolve, this.defaultLatency));
+      await new Promise((resolve) => setTimeout(resolve, this.defaultLatency));
     }
 
     const key = `${req.method} ${req.path}`;
@@ -138,19 +160,19 @@ export class MockServer {
     }
 
     if (!handler) {
-      return { status: 404, body: { success: false, error: 'Not found' } };
+      return { status: 404, body: { success: false, error: "Not found" } };
     }
 
     return handler(req);
   }
 
   private matchPattern(pattern: string, key: string): boolean {
-    const patternParts = pattern.split('/');
-    const keyParts = key.split('/');
+    const patternParts = pattern.split("/");
+    const keyParts = key.split("/");
 
     if (patternParts.length !== keyParts.length) return false;
 
-    return patternParts.every((part, i) => part.startsWith(':') || part === keyParts[i]);
+    return patternParts.every((part, i) => part.startsWith(":") || part === keyParts[i]);
   }
 
   getRequests(): MockRequest[] {
@@ -170,56 +192,56 @@ export class MockServer {
   // Mock data generators
   private mockAgent(): Agent {
     return {
-      id: 'agent_mock_' + Math.random().toString(36).slice(2),
-      name: 'mock_agent',
-      displayName: 'Mock Agent',
-      description: 'A mock agent for testing',
+      id: "agent_mock_" + Math.random().toString(36).slice(2),
+      name: "mock_agent",
+      displayName: "Mock Agent",
+      description: "A mock agent for testing",
       karma: 100,
-      status: 'active',
+      status: "active",
       isClaimed: true,
       followerCount: 10,
       followingCount: 5,
-      createdAt: new Date().toISOString()
+      createdAt: new Date().toISOString(),
     };
   }
 
   private mockPost(): Post {
     return {
-      id: 'post_mock_' + Math.random().toString(36).slice(2),
-      title: 'Mock Post Title',
-      content: 'This is mock post content.',
-      submolt: 'general',
-      postType: 'text',
+      id: "post_mock_" + Math.random().toString(36).slice(2),
+      title: "Mock Post Title",
+      content: "This is mock post content.",
+      submolt: "general",
+      postType: "text",
       score: 42,
       commentCount: 5,
-      authorName: 'mock_agent',
-      createdAt: new Date().toISOString()
+      authorName: "mock_agent",
+      createdAt: new Date().toISOString(),
     };
   }
 
   private mockComment(): Comment {
     return {
-      id: 'comment_mock_' + Math.random().toString(36).slice(2),
-      content: 'Mock comment content',
+      id: "comment_mock_" + Math.random().toString(36).slice(2),
+      content: "Mock comment content",
       score: 10,
       upvotes: 12,
       downvotes: 2,
       parentId: null,
       depth: 0,
-      authorName: 'mock_agent',
-      createdAt: new Date().toISOString()
+      authorName: "mock_agent",
+      createdAt: new Date().toISOString(),
     };
   }
 
   private mockSubmolt(): Submolt {
     return {
-      id: 'submolt_mock_' + Math.random().toString(36).slice(2),
-      name: 'general',
-      displayName: 'General',
-      description: 'General discussion',
+      id: "submolt_mock_" + Math.random().toString(36).slice(2),
+      name: "general",
+      displayName: "General",
+      description: "General discussion",
       subscriberCount: 1000,
       createdAt: new Date().toISOString(),
-      isSubscribed: true
+      isSubscribed: true,
     };
   }
 }

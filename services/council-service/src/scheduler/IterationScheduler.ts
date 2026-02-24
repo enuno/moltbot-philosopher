@@ -3,8 +3,8 @@
  * Manages 5-day council iteration cycle
  */
 
-import cron from 'node-cron';
-import { EventEmitter } from 'events';
+import cron from "node-cron";
+import { EventEmitter } from "events";
 
 /**
  * Iteration state
@@ -13,7 +13,7 @@ export interface IterationState {
   iterationNumber: number;
   startDate: Date;
   endDate: Date;
-  status: 'active' | 'completed';
+  status: "active" | "completed";
   synthesizingAgent?: string;
 }
 
@@ -41,15 +41,15 @@ export class IterationScheduler extends EventEmitter {
    */
   start(): void {
     if (this.task) {
-      console.warn('[IterationScheduler] Already running');
+      console.warn("[IterationScheduler] Already running");
       return;
     }
 
-    console.log('[IterationScheduler] Starting 5-day iteration cycle');
+    console.log("[IterationScheduler] Starting 5-day iteration cycle");
 
     // Run every 5 days at midnight
     // Cron: "0 0 */5 * *" (every 5 days)
-    this.task = cron.schedule('0 0 */5 * *', () => {
+    this.task = cron.schedule("0 0 */5 * *", () => {
       this.triggerIteration();
     });
 
@@ -66,7 +66,7 @@ export class IterationScheduler extends EventEmitter {
     if (this.task) {
       this.task.stop();
       this.task = null;
-      console.log('[IterationScheduler] Stopped');
+      console.log("[IterationScheduler] Stopped");
     }
   }
 
@@ -75,14 +75,12 @@ export class IterationScheduler extends EventEmitter {
    */
   triggerIteration(): void {
     // Complete current iteration if exists
-    if (this.currentIteration && this.currentIteration.status === 'active') {
+    if (this.currentIteration && this.currentIteration.status === "active") {
       this.completeIteration();
     }
 
     // Start new iteration
-    const iterationNumber = this.currentIteration
-      ? this.currentIteration.iterationNumber + 1
-      : 1;
+    const iterationNumber = this.currentIteration ? this.currentIteration.iterationNumber + 1 : 1;
 
     const startDate = new Date();
     const endDate = new Date();
@@ -92,11 +90,11 @@ export class IterationScheduler extends EventEmitter {
       iterationNumber,
       startDate,
       endDate,
-      status: 'active',
+      status: "active",
     };
 
     console.log(`[IterationScheduler] Started iteration ${iterationNumber}`);
-    this.emit('iteration:start', this.currentIteration);
+    this.emit("iteration:start", this.currentIteration);
   }
 
   /**
@@ -104,13 +102,15 @@ export class IterationScheduler extends EventEmitter {
    */
   completeIteration(): void {
     if (!this.currentIteration) {
-      console.warn('[IterationScheduler] No active iteration to complete');
+      console.warn("[IterationScheduler] No active iteration to complete");
       return;
     }
 
-    this.currentIteration.status = 'completed';
-    console.log(`[IterationScheduler] Completed iteration ${this.currentIteration.iterationNumber}`);
-    this.emit('iteration:complete', this.currentIteration);
+    this.currentIteration.status = "completed";
+    console.log(
+      `[IterationScheduler] Completed iteration ${this.currentIteration.iterationNumber}`,
+    );
+    this.emit("iteration:complete", this.currentIteration);
   }
 
   /**
@@ -124,7 +124,7 @@ export class IterationScheduler extends EventEmitter {
    * Get days remaining in current iteration
    */
   getDaysRemaining(): number {
-    if (!this.currentIteration || this.currentIteration.status !== 'active') {
+    if (!this.currentIteration || this.currentIteration.status !== "active") {
       return 0;
     }
 

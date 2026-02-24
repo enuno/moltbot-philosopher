@@ -3,19 +3,19 @@
  * Instant AI-powered verification challenge solving
  */
 
-import express, { type Request, type Response } from 'express';
-import type { BaseEvent } from '@moltbot/shared';
-import { VerificationSolver } from './solver/VerificationSolver.js';
-import { ChallengeHandler } from './handlers/ChallengeHandler.js';
+import express, { type Request, type Response } from "express";
+import type { BaseEvent } from "@moltbot/shared";
+import { VerificationSolver } from "./solver/VerificationSolver.js";
+import { ChallengeHandler } from "./handlers/ChallengeHandler.js";
 
 const app = express();
 app.use(express.json());
 
 // Environment configuration
-const PORT = parseInt(process.env.VERIFICATION_SERVICE_PORT || '3008', 10);
-const MOLTBOOK_API_KEY = process.env.MOLTBOOK_API_KEY || '';
-const MOLTBOOK_BASE_URL = process.env.MOLTBOOK_BASE_URL || 'https://www.moltbook.com';
-const AI_GENERATOR_URL = process.env.AI_GENERATOR_URL || 'http://localhost:3002';
+const PORT = parseInt(process.env.VERIFICATION_SERVICE_PORT || "3008", 10);
+const MOLTBOOK_API_KEY = process.env.MOLTBOOK_API_KEY || "";
+const MOLTBOOK_BASE_URL = process.env.MOLTBOOK_BASE_URL || "https://www.moltbook.com";
+const AI_GENERATOR_URL = process.env.AI_GENERATOR_URL || "http://localhost:3002";
 
 // Create solver
 const solver = new VerificationSolver({
@@ -34,13 +34,13 @@ const handler = new ChallengeHandler(solver);
 /**
  * Health check
  */
-app.get('/health', (req: Request, res: Response) => {
+app.get("/health", (req: Request, res: Response) => {
   const stats = handler.getStats();
 
   res.json({
-    status: 'healthy',
-    service: 'verification-service',
-    version: '1.0.0',
+    status: "healthy",
+    service: "verification-service",
+    version: "1.0.0",
     uptime: process.uptime(),
     timestamp: new Date().toISOString(),
     stats,
@@ -50,32 +50,32 @@ app.get('/health', (req: Request, res: Response) => {
 /**
  * Handle verification challenge event
  */
-app.post('/events', async (req: Request, res: Response) => {
+app.post("/events", async (req: Request, res: Response) => {
   try {
     const event = req.body as BaseEvent;
 
-    if (event.type !== 'verification.challenge.received') {
+    if (event.type !== "verification.challenge.received") {
       res.status(400).json({
         success: false,
-        error: 'Invalid event type',
+        error: "Invalid event type",
       });
       return;
     }
 
     // Handle asynchronously (don't block response)
     handler.handle(event).catch((error) => {
-      console.error('[VerificationService] Handler error:', error);
+      console.error("[VerificationService] Handler error:", error);
     });
 
     res.json({
       success: true,
-      message: 'Challenge accepted',
+      message: "Challenge accepted",
     });
   } catch (error) {
-    console.error('[VerificationService] Event processing error:', error);
+    console.error("[VerificationService] Event processing error:", error);
     res.status(500).json({
       success: false,
-      error: error instanceof Error ? error.message : 'Unknown error',
+      error: error instanceof Error ? error.message : "Unknown error",
     });
   }
 });
@@ -83,7 +83,7 @@ app.post('/events', async (req: Request, res: Response) => {
 /**
  * Get service statistics
  */
-app.get('/stats', (req: Request, res: Response) => {
+app.get("/stats", (req: Request, res: Response) => {
   const stats = handler.getStats();
   res.json(stats);
 });
@@ -91,7 +91,7 @@ app.get('/stats', (req: Request, res: Response) => {
 // Start service
 async function start() {
   try {
-    console.log('Starting Verification Service...');
+    console.log("Starting Verification Service...");
     console.log(`Moltbook API: ${MOLTBOOK_BASE_URL}`);
     console.log(`AI Generator: ${AI_GENERATOR_URL}`);
 
@@ -101,19 +101,19 @@ async function start() {
       console.log(`Stats: http://localhost:${PORT}/stats`);
     });
   } catch (error) {
-    console.error('Failed to start Verification Service:', error);
+    console.error("Failed to start Verification Service:", error);
     process.exit(1);
   }
 }
 
 // Graceful shutdown
-process.on('SIGTERM', () => {
-  console.log('SIGTERM received, shutting down...');
+process.on("SIGTERM", () => {
+  console.log("SIGTERM received, shutting down...");
   process.exit(0);
 });
 
-process.on('SIGINT', () => {
-  console.log('SIGINT received, shutting down...');
+process.on("SIGINT", () => {
+  console.log("SIGINT received, shutting down...");
   process.exit(0);
 });
 

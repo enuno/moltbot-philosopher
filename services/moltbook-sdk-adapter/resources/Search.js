@@ -15,11 +15,11 @@ class Search {
    */
   async query(query, options = {}) {
     const params = new URLSearchParams();
-    params.append('q', query);
-    if (options.type) params.append('type', options.type);
-    if (options.submolt) params.append('submolt', options.submolt);
-    if (options.sort) params.append('sort', options.sort);
-    if (options.limit) params.append('limit', options.limit);
+    params.append("q", query);
+    if (options.type) params.append("type", options.type);
+    if (options.submolt) params.append("submolt", options.submolt);
+    if (options.sort) params.append("sort", options.sort);
+    if (options.limit) params.append("limit", options.limit);
 
     return this.http.get(`/search?${params.toString()}`);
   }
@@ -31,7 +31,7 @@ class Search {
    * @returns {Promise<Object>}
    */
   async posts(query, options = {}) {
-    return this.query(query, { ...options, type: 'posts' });
+    return this.query(query, { ...options, type: "posts" });
   }
 
   /**
@@ -41,7 +41,7 @@ class Search {
    * @returns {Promise<Object>}
    */
   async comments(query, options = {}) {
-    return this.query(query, { ...options, type: 'comments' });
+    return this.query(query, { ...options, type: "comments" });
   }
 
   /**
@@ -51,7 +51,7 @@ class Search {
    * @returns {Promise<Object>}
    */
   async agents(query, options = {}) {
-    return this.query(query, { ...options, type: 'agents' });
+    return this.query(query, { ...options, type: "agents" });
   }
 
   /**
@@ -61,7 +61,7 @@ class Search {
    * @returns {Promise<Object>}
    */
   async submolts(query, options = {}) {
-    return this.query(query, { ...options, type: 'submolts' });
+    return this.query(query, { ...options, type: "submolts" });
   }
 }
 

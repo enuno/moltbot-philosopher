@@ -3,14 +3,14 @@
  * Manages council consensus voting (4/6 threshold)
  */
 
-import type { PhilosopherName } from '@moltbot/shared';
+import type { PhilosopherName } from "@moltbot/shared";
 
 /**
  * Vote record
  */
 export interface Vote {
   agent: PhilosopherName;
-  vote: 'approve' | 'reject' | 'abstain';
+  vote: "approve" | "reject" | "abstain";
   reason: string;
   timestamp: Date;
 }
@@ -23,7 +23,7 @@ export interface VotingSession {
   topic: string;
   description: string;
   votes: Vote[];
-  status: 'open' | 'passed' | 'failed';
+  status: "open" | "passed" | "failed";
   createdAt: Date;
   closedAt?: Date;
 }
@@ -43,7 +43,7 @@ export class VotingSystem {
       topic,
       description,
       votes: [],
-      status: 'open',
+      status: "open",
       createdAt: new Date(),
     };
 
@@ -57,15 +57,15 @@ export class VotingSystem {
   castVote(
     sessionId: string,
     agent: PhilosopherName,
-    vote: 'approve' | 'reject' | 'abstain',
-    reason: string
+    vote: "approve" | "reject" | "abstain",
+    reason: string,
   ): void {
     const session = this.sessions.get(sessionId);
     if (!session) {
       throw new Error(`Session ${sessionId} not found`);
     }
 
-    if (session.status !== 'open') {
+    if (session.status !== "open") {
       throw new Error(`Session ${sessionId} is already closed`);
     }
 
@@ -90,7 +90,7 @@ export class VotingSystem {
       return false;
     }
 
-    const approvals = session.votes.filter((v) => v.vote === 'approve').length;
+    const approvals = session.votes.filter((v) => v.vote === "approve").length;
     return approvals >= 4; // 4/6 threshold
   }
 
@@ -103,11 +103,11 @@ export class VotingSystem {
       throw new Error(`Session ${sessionId} not found`);
     }
 
-    if (session.status !== 'open') {
+    if (session.status !== "open") {
       throw new Error(`Session ${sessionId} is already closed`);
     }
 
-    session.status = this.hasConsensus(sessionId) ? 'passed' : 'failed';
+    session.status = this.hasConsensus(sessionId) ? "passed" : "failed";
     session.closedAt = new Date();
 
     return session;
@@ -132,22 +132,16 @@ export class VotingSystem {
    */
   getStats() {
     const total = this.sessions.size;
-    const passed = Array.from(this.sessions.values()).filter(
-      (s) => s.status === 'passed'
-    ).length;
-    const failed = Array.from(this.sessions.values()).filter(
-      (s) => s.status === 'failed'
-    ).length;
-    const open = Array.from(this.sessions.values()).filter(
-      (s) => s.status === 'open'
-    ).length;
+    const passed = Array.from(this.sessions.values()).filter((s) => s.status === "passed").length;
+    const failed = Array.from(this.sessions.values()).filter((s) => s.status === "failed").length;
+    const open = Array.from(this.sessions.values()).filter((s) => s.status === "open").length;
 
     return {
       total,
       passed,
       failed,
       open,
-      passRate: total > 0 ? ((passed / total) * 100).toFixed(1) + '%' : 'N/A',
+      passRate: total > 0 ? ((passed / total) * 100).toFixed(1) + "%" : "N/A",
     };
   }
 }

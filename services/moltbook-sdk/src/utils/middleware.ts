@@ -2,8 +2,7 @@
  * Request/Response middleware and interceptors for Moltbook SDK
  */
 
-import type { RequestConfig, ApiResponse } from '../types';
-import { EVENTS } from './constants';
+import type { RequestConfig } from "../types";
 
 export type RequestInterceptor = (config: RequestConfig) => RequestConfig | Promise<RequestConfig>;
 export type ResponseInterceptor<T = unknown> = (response: T) => T | Promise<T>;
@@ -61,25 +60,27 @@ export function createMiddlewareManager(): MiddlewareManager {
 
     clear(): void {
       middlewares.length = 0;
-    }
+    },
   };
 }
 
 /** Logging middleware */
-export function createLoggingMiddleware(logger: { log: (...args: unknown[]) => void } = console): Middleware {
+export function createLoggingMiddleware(
+  logger: { log: (...args: unknown[]) => void } = console,
+): Middleware {
   return {
     request(config) {
       logger.log(`[Moltbook] ${config.method} ${config.path}`);
       return config;
     },
     response(response) {
-      logger.log('[Moltbook] Response received');
+      logger.log("[Moltbook] Response received");
       return response;
     },
     error(error) {
-      logger.log('[Moltbook] Error:', error.message);
+      logger.log("[Moltbook] Error:", error.message);
       return error;
-    }
+    },
   };
 }
 
@@ -94,29 +95,33 @@ export function createTimingMiddleware(): Middleware {
     },
     response(response) {
       return response;
-    }
+    },
   };
 }
 
 /** Rate limit tracking middleware */
-export function createRateLimitMiddleware(onRateLimit?: (remaining: number, resetAt: Date) => void): Middleware {
+export function createRateLimitMiddleware(
+  onRateLimit?: (remaining: number, resetAt: Date) => void,
+): Middleware {
   return {
     response(response: unknown) {
       const resp = response as { headers?: { get?: (key: string) => string | null } };
       if (resp?.headers?.get) {
-        const remaining = resp.headers.get('X-RateLimit-Remaining');
-        const reset = resp.headers.get('X-RateLimit-Reset');
+        const remaining = resp.headers.get("X-RateLimit-Remaining");
+        const reset = resp.headers.get("X-RateLimit-Reset");
         if (remaining && reset && onRateLimit) {
           onRateLimit(parseInt(remaining, 10), new Date(parseInt(reset, 10) * 1000));
         }
       }
       return response;
-    }
+    },
   };
 }
 
 /** Cache middleware */
-export function createCacheMiddleware(options: { ttl?: number; maxSize?: number } = {}): Middleware {
+export function createCacheMiddleware(
+  options: { ttl?: number; maxSize?: number } = {},
+): Middleware {
   const { ttl = 60000, maxSize = 100 } = options;
   const cache = new Map<string, { data: unknown; timestamp: number }>();
 
@@ -139,7 +144,7 @@ export function createCacheMiddleware(options: { ttl?: number; maxSize?: number 
 
   return {
     request(config) {
-      if (config.method !== 'GET') return config;
+      if (config.method !== "GET") return config;
 
       const key = getCacheKey(config);
       const cached = cache.get(key);
@@ -153,12 +158,14 @@ export function createCacheMiddleware(options: { ttl?: number; maxSize?: number 
     response(response) {
       cleanup();
       return response;
-    }
+    },
   };
 }
 
 /** Retry middleware */
-export function createRetryMiddleware(options: { maxRetries?: number; delay?: number; shouldRetry?: (error: Error) => boolean } = {}): Middleware {
+export function createRetryMiddleware(
+  options: { maxRetries?: number; delay?: number; shouldRetry?: (error: Error) => boolean } = {},
+): Middleware {
   const { maxRetries = 3, delay = 1000, shouldRetry = () => true } = options;
 
   return {
@@ -166,17 +173,19 @@ export function createRetryMiddleware(options: { maxRetries?: number; delay?: nu
       if (!shouldRetry(error)) return error;
 
       for (let attempt = 0; attempt < maxRetries; attempt++) {
-        await new Promise(resolve => setTimeout(resolve, delay * Math.pow(2, attempt)));
+        await new Promise((resolve) => setTimeout(resolve, delay * Math.pow(2, attempt)));
         // Retry logic would be handled by the HTTP client
       }
 
       return error;
-    }
+    },
   };
 }
 
 /** Authentication middleware */
-export function createAuthMiddleware(getToken: () => string | null | Promise<string | null>): Middleware {
+export function createAuthMiddleware(
+  getToken: () => string | null | Promise<string | null>,
+): Middleware {
   return {
     async request(config) {
       const token = await getToken();
@@ -184,7 +193,7 @@ export function createAuthMiddleware(getToken: () => string | null | Promise<str
         config.headers = { ...config.headers, Authorization: `Bearer ${token}` };
       }
       return config;
-    }
+    },
   };
 }
 
@@ -194,9 +203,9 @@ export function createRequestIdMiddleware(): Middleware {
 
   return {
     request(config) {
-      config.headers = { ...config.headers, 'X-Request-ID': `${Date.now()}-${++counter}` };
+      config.headers = { ...config.headers, "X-Request-ID": `${Date.now()}-${++counter}` };
       return config;
-    }
+    },
   };
 }
 
@@ -204,8 +213,8 @@ export function createRequestIdMiddleware(): Middleware {
 export function createCompressionMiddleware(): Middleware {
   return {
     request(config) {
-      config.headers = { ...config.headers, 'Accept-Encoding': 'gzip, deflate' };
+      config.headers = { ...config.headers, "Accept-Encoding": "gzip, deflate" };
       return config;
-    }
+    },
   };
 }

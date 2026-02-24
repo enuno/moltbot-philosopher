@@ -3,18 +3,18 @@
  * Living epistemological memory system
  */
 
-import express, { type Request, type Response } from 'express';
-import { MemoryLayer } from './memory/MemoryLayer.js';
-import { ConsolidationScheduler } from './consolidation/ConsolidationScheduler.js';
-import { SemanticSearch } from './search/SemanticSearch.js';
+import express, { type Request, type Response } from "express";
+import { MemoryLayer } from "./memory/MemoryLayer.js";
+import { ConsolidationScheduler } from "./consolidation/ConsolidationScheduler.js";
+import { SemanticSearch } from "./search/SemanticSearch.js";
 
 const app = express();
 app.use(express.json());
 
 // Environment configuration
-const PORT = parseInt(process.env.NOOSPHERE_SERVICE_PORT || '3011', 10);
-const WORKSPACE_BASE = process.env.WORKSPACE_BASE || '/workspace';
-const AGENT_NAME = process.env.AGENT_NAME || 'classical';
+const PORT = parseInt(process.env.NOOSPHERE_SERVICE_PORT || "3011", 10);
+const WORKSPACE_BASE = process.env.WORKSPACE_BASE || "/workspace";
+const AGENT_NAME = process.env.AGENT_NAME || "classical";
 
 // Initialize components
 const memoryLayer = new MemoryLayer({
@@ -24,22 +24,22 @@ const memoryLayer = new MemoryLayer({
 
 const consolidationScheduler = new ConsolidationScheduler(
   {
-    dailySchedule: '0 2 * * *', // 2am daily
+    dailySchedule: "0 2 * * *", // 2am daily
     autoStart: false, // Manual trigger for now
     minEntriesForConsolidation: 5,
   },
-  memoryLayer
+  memoryLayer,
 );
 
 const semanticSearch = new SemanticSearch();
 
 // Wire up scheduler events
-consolidationScheduler.on('consolidated', (data) => {
+consolidationScheduler.on("consolidated", (data) => {
   console.log(`[NoosphereService] ✓ Consolidated ${data.sourceCount} entries`);
 });
 
-consolidationScheduler.on('error', (error) => {
-  console.error('[NoosphereService] Consolidation error:', error);
+consolidationScheduler.on("error", (error) => {
+  console.error("[NoosphereService] Consolidation error:", error);
 });
 
 // Routes
@@ -47,14 +47,14 @@ consolidationScheduler.on('error', (error) => {
 /**
  * Health check
  */
-app.get('/health', async (req: Request, res: Response) => {
+app.get("/health", async (req: Request, res: Response) => {
   const stats = await memoryLayer.getStats();
   const schedulerStats = consolidationScheduler.getStats();
 
   res.json({
-    status: 'healthy',
-    service: 'noosphere-service',
-    version: '1.0.0',
+    status: "healthy",
+    service: "noosphere-service",
+    version: "1.0.0",
     uptime: process.uptime(),
     timestamp: new Date().toISOString(),
     memory: stats,
@@ -65,14 +65,14 @@ app.get('/health', async (req: Request, res: Response) => {
 /**
  * Add memory entry to Layer 1
  */
-app.post('/memory', async (req: Request, res: Response) => {
+app.post("/memory", async (req: Request, res: Response) => {
   try {
     const { content, confidence, source, tags, metadata } = req.body;
 
     const entry = await memoryLayer.addToLayer1({
       content,
       confidence: confidence || 0.5,
-      source: source || 'api',
+      source: source || "api",
       tags: tags || [],
       metadata,
     });
@@ -81,7 +81,7 @@ app.post('/memory', async (req: Request, res: Response) => {
   } catch (error) {
     res.status(500).json({
       success: false,
-      error: error instanceof Error ? error.message : 'Unknown error',
+      error: error instanceof Error ? error.message : "Unknown error",
     });
   }
 });
@@ -89,12 +89,12 @@ app.post('/memory', async (req: Request, res: Response) => {
 /**
  * Get entries from a layer
  */
-app.get('/memory/layer/:layer', async (req: Request, res: Response) => {
+app.get("/memory/layer/:layer", async (req: Request, res: Response) => {
   try {
     const layer = parseInt(req.params.layer) as 1 | 2 | 3;
 
     if (![1, 2, 3].includes(layer)) {
-      res.status(400).json({ success: false, error: 'Invalid layer (must be 1, 2, or 3)' });
+      res.status(400).json({ success: false, error: "Invalid layer (must be 1, 2, or 3)" });
       return;
     }
 
@@ -104,7 +104,7 @@ app.get('/memory/layer/:layer', async (req: Request, res: Response) => {
   } catch (error) {
     res.status(500).json({
       success: false,
-      error: error instanceof Error ? error.message : 'Unknown error',
+      error: error instanceof Error ? error.message : "Unknown error",
     });
   }
 });
@@ -112,12 +112,12 @@ app.get('/memory/layer/:layer', async (req: Request, res: Response) => {
 /**
  * Search memories
  */
-app.post('/search', async (req: Request, res: Response) => {
+app.post("/search", async (req: Request, res: Response) => {
   try {
     const { query, topK } = req.body;
 
     if (!query) {
-      res.status(400).json({ success: false, error: 'Query required' });
+      res.status(400).json({ success: false, error: "Query required" });
       return;
     }
 
@@ -135,7 +135,7 @@ app.post('/search', async (req: Request, res: Response) => {
   } catch (error) {
     res.status(500).json({
       success: false,
-      error: error instanceof Error ? error.message : 'Unknown error',
+      error: error instanceof Error ? error.message : "Unknown error",
     });
   }
 });
@@ -143,12 +143,12 @@ app.post('/search', async (req: Request, res: Response) => {
 /**
  * Search by tags
  */
-app.post('/search/tags', async (req: Request, res: Response) => {
+app.post("/search/tags", async (req: Request, res: Response) => {
   try {
     const { tags } = req.body;
 
     if (!tags || !Array.isArray(tags)) {
-      res.status(400).json({ success: false, error: 'Tags array required' });
+      res.status(400).json({ success: false, error: "Tags array required" });
       return;
     }
 
@@ -158,7 +158,7 @@ app.post('/search/tags', async (req: Request, res: Response) => {
   } catch (error) {
     res.status(500).json({
       success: false,
-      error: error instanceof Error ? error.message : 'Unknown error',
+      error: error instanceof Error ? error.message : "Unknown error",
     });
   }
 });
@@ -166,15 +166,15 @@ app.post('/search/tags', async (req: Request, res: Response) => {
 /**
  * Trigger consolidation manually
  */
-app.post('/consolidate', async (req: Request, res: Response) => {
+app.post("/consolidate", async (req: Request, res: Response) => {
   try {
     await consolidationScheduler.runConsolidation();
 
-    res.json({ success: true, message: 'Consolidation triggered' });
+    res.json({ success: true, message: "Consolidation triggered" });
   } catch (error) {
     res.status(500).json({
       success: false,
-      error: error instanceof Error ? error.message : 'Unknown error',
+      error: error instanceof Error ? error.message : "Unknown error",
     });
   }
 });
@@ -182,7 +182,7 @@ app.post('/consolidate', async (req: Request, res: Response) => {
 /**
  * Promote entry to Layer 3
  */
-app.post('/memory/:id/promote', async (req: Request, res: Response) => {
+app.post("/memory/:id/promote", async (req: Request, res: Response) => {
   try {
     const { id } = req.params;
 
@@ -191,7 +191,7 @@ app.post('/memory/:id/promote', async (req: Request, res: Response) => {
     const entry = layer2Entries.find((e) => e.id === id);
 
     if (!entry) {
-      res.status(404).json({ success: false, error: 'Entry not found in Layer 2' });
+      res.status(404).json({ success: false, error: "Entry not found in Layer 2" });
       return;
     }
 
@@ -201,7 +201,7 @@ app.post('/memory/:id/promote', async (req: Request, res: Response) => {
   } catch (error) {
     res.status(500).json({
       success: false,
-      error: error instanceof Error ? error.message : 'Unknown error',
+      error: error instanceof Error ? error.message : "Unknown error",
     });
   }
 });
@@ -209,7 +209,7 @@ app.post('/memory/:id/promote', async (req: Request, res: Response) => {
 /**
  * Get memory statistics
  */
-app.get('/stats', async (req: Request, res: Response) => {
+app.get("/stats", async (req: Request, res: Response) => {
   try {
     const stats = await memoryLayer.getStats();
 
@@ -217,7 +217,7 @@ app.get('/stats', async (req: Request, res: Response) => {
   } catch (error) {
     res.status(500).json({
       success: false,
-      error: error instanceof Error ? error.message : 'Unknown error',
+      error: error instanceof Error ? error.message : "Unknown error",
     });
   }
 });
@@ -225,7 +225,7 @@ app.get('/stats', async (req: Request, res: Response) => {
 // Start service
 async function start() {
   try {
-    console.log('Starting Noosphere Service...');
+    console.log("Starting Noosphere Service...");
     console.log(`Workspace: ${WORKSPACE_BASE}`);
     console.log(`Agent: ${AGENT_NAME}`);
 
@@ -238,20 +238,20 @@ async function start() {
       console.log(`Search: POST http://localhost:${PORT}/search`);
     });
   } catch (error) {
-    console.error('Failed to start Noosphere Service:', error);
+    console.error("Failed to start Noosphere Service:", error);
     process.exit(1);
   }
 }
 
 // Graceful shutdown
-process.on('SIGTERM', () => {
-  console.log('SIGTERM received, shutting down...');
+process.on("SIGTERM", () => {
+  console.log("SIGTERM received, shutting down...");
   consolidationScheduler.stop();
   process.exit(0);
 });
 
-process.on('SIGINT', () => {
-  console.log('SIGINT received, shutting down...');
+process.on("SIGINT", () => {
+  console.log("SIGINT received, shutting down...");
   consolidationScheduler.stop();
   process.exit(0);
 });

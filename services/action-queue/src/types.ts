@@ -1,18 +1,18 @@
-import { z } from 'zod';
+import { z } from "zod";
 
 /**
  * Action types supported by the queue
  */
 export enum ActionType {
-  POST = 'post',
-  COMMENT = 'comment',
-  UPVOTE = 'upvote',
-  DOWNVOTE = 'downvote',
-  FOLLOW = 'follow',
-  UNFOLLOW = 'unfollow',
-  CREATE_SUBMOLT = 'create_submolt',
-  SEND_DM = 'send_dm',
-  SKILL_UPDATE = 'skill_update',
+  POST = "post",
+  COMMENT = "comment",
+  UPVOTE = "upvote",
+  DOWNVOTE = "downvote",
+  FOLLOW = "follow",
+  UNFOLLOW = "unfollow",
+  CREATE_SUBMOLT = "create_submolt",
+  SEND_DM = "send_dm",
+  SKILL_UPDATE = "skill_update",
 }
 
 /**
@@ -29,13 +29,13 @@ export enum Priority {
  * Action status in queue
  */
 export enum ActionStatus {
-  PENDING = 'pending',
-  SCHEDULED = 'scheduled',
-  PROCESSING = 'processing',
-  COMPLETED = 'completed',
-  FAILED = 'failed',
-  RATE_LIMITED = 'rate_limited',
-  CANCELLED = 'cancelled',
+  PENDING = "pending",
+  SCHEDULED = "scheduled",
+  PROCESSING = "processing",
+  COMPLETED = "completed",
+  FAILED = "failed",
+  RATE_LIMITED = "rate_limited",
+  CANCELLED = "cancelled",
 }
 
 /**
@@ -67,7 +67,7 @@ export const CommentActionSchema = z.object({
 
 export const VoteActionSchema = z.object({
   targetId: z.string().uuid(),
-  targetType: z.enum(['post', 'comment']),
+  targetType: z.enum(["post", "comment"]),
 });
 
 export const FollowActionSchema = z.object({
@@ -153,27 +153,27 @@ export interface QueueStats {
  * Condition types for conditional action execution
  */
 export enum ConditionType {
-  TIME_AFTER = 'time_after',
-  TIME_BEFORE = 'time_before',
-  TIME_BETWEEN = 'time_between',
-  ACCOUNT_ACTIVE = 'account_active',
-  ACTION_COMPLETED = 'action_completed',
-  ACTION_FAILED = 'action_failed',
-  KARMA_THRESHOLD = 'karma_threshold',
-  FOLLOWER_COUNT = 'follower_count',
-  POST_ENGAGEMENT = 'post_engagement',
-  API_CHECK = 'api_check',
-  RATE_LIMIT_AVAILABLE = 'rate_limit_available',
-  CUSTOM = 'custom',
+  TIME_AFTER = "time_after",
+  TIME_BEFORE = "time_before",
+  TIME_BETWEEN = "time_between",
+  ACCOUNT_ACTIVE = "account_active",
+  ACTION_COMPLETED = "action_completed",
+  ACTION_FAILED = "action_failed",
+  KARMA_THRESHOLD = "karma_threshold",
+  FOLLOWER_COUNT = "follower_count",
+  POST_ENGAGEMENT = "post_engagement",
+  API_CHECK = "api_check",
+  RATE_LIMIT_AVAILABLE = "rate_limit_available",
+  CUSTOM = "custom",
 }
 
 /**
  * Condition operators for combining multiple conditions
  */
 export enum ConditionOperator {
-  AND = 'and',
-  OR = 'or',
-  NOT = 'not',
+  AND = "and",
+  OR = "or",
+  NOT = "not",
 }
 
 /**
@@ -276,7 +276,7 @@ export interface ApiCheckCondition extends Condition {
   type: ConditionType.API_CHECK;
   params: {
     url: string;
-    method: 'GET' | 'POST';
+    method: "GET" | "POST";
     expectedStatus?: number;
     expectedBodyContains?: string;
     jsonPath?: string; // JSONPath expression
@@ -357,14 +357,11 @@ export const ConditionSchema = z.object({
   negated: z.boolean().optional(),
 });
 
-export const CompositeConditionSchema: z.ZodType<CompositeCondition> = z.lazy(
-  () =>
-    z.object({
-      operator: z.nativeEnum(ConditionOperator),
-      conditions: z.array(
-        z.union([ConditionSchema, CompositeConditionSchema]),
-      ),
-    }),
+export const CompositeConditionSchema: z.ZodType<CompositeCondition> = z.lazy(() =>
+  z.object({
+    operator: z.nativeEnum(ConditionOperator),
+    conditions: z.array(z.union([ConditionSchema, CompositeConditionSchema])),
+  }),
 );
 
 /**
@@ -376,6 +373,4 @@ export const SubmitConditionalActionSchema = SubmitActionSchema.extend({
   conditionTimeout: z.string().datetime().optional(),
 });
 
-export type SubmitConditionalActionRequest = z.infer<
-  typeof SubmitConditionalActionSchema
->;
+export type SubmitConditionalActionRequest = z.infer<typeof SubmitConditionalActionSchema>;

@@ -10,9 +10,9 @@
  * - Daily maintenance (reset stats, unfollow inactive accounts)
  */
 
-import { StateManager } from './state-manager';
-import { RelevanceCalculator } from './relevance-calculator';
-import { Agent, Opportunity, QueuedAction, Post, ActionType } from './types';
+import { StateManager } from "./state-manager";
+import { RelevanceCalculator } from "./relevance-calculator";
+import { Agent, Opportunity, QueuedAction, Post, ActionType } from "./types";
 
 interface EngagementEngineConfig {
   statePaths: Record<string, string>;
@@ -47,11 +47,7 @@ export class EngagementEngine {
 
     // In production, would iterate through all subscribedSubmolts
     // For testing, use default submolts
-    const defaultSubmolts = [
-      'ethics-convergence',
-      'general',
-      'aithoughts'
-    ];
+    const defaultSubmolts = ["ethics-convergence", "general", "aithoughts"];
 
     for (const submoltId of defaultSubmolts) {
       // Mock: fetch posts from submolt
@@ -61,10 +57,7 @@ export class EngagementEngine {
       for (const post of posts) {
         // Score post against all agents to find best match
         for (const agent of this.agentRoster) {
-          const relevanceScore = await this.relevanceCalculator.scorePost(
-            post,
-            agent
-          );
+          const relevanceScore = await this.relevanceCalculator.scorePost(post, agent);
 
           // Only queue if above threshold
           if (relevanceScore > 0.6) {
@@ -76,8 +69,8 @@ export class EngagementEngine {
               submoltId: post.submoltId,
               relevanceScore,
               reason: `Semantic match to ${agent.tradition}`,
-              suggestedAction: 'comment',
-              createdAt: Date.now()
+              suggestedAction: "comment",
+              createdAt: Date.now(),
             });
           }
         }
@@ -111,16 +104,16 @@ export class EngagementEngine {
     // Process queue in priority order
     for (const opportunity of state.engagementQueue) {
       // Check daily limits based on action type
-      if (opportunity.type === 'comment' && state.dailyStats.commentsMade >= 50) {
+      if (opportunity.type === "comment" && state.dailyStats.commentsMade >= 50) {
         continue;
       }
-      if (opportunity.type === 'post' && state.dailyStats.postsCreated >= 3) {
+      if (opportunity.type === "post" && state.dailyStats.postsCreated >= 3) {
         continue;
       }
-      if (opportunity.type === 'follow' && state.dailyStats.accountsFollowed >= 2) {
+      if (opportunity.type === "follow" && state.dailyStats.accountsFollowed >= 2) {
         continue;
       }
-      if (opportunity.type === 'dm' && state.dailyStats.dmRequestsSent >= 2) {
+      if (opportunity.type === "dm" && state.dailyStats.dmRequestsSent >= 2) {
         continue;
       }
 
@@ -133,9 +126,7 @@ export class EngagementEngine {
     }
 
     // Remove dequeued items from state
-    state.engagementQueue = state.engagementQueue.filter(
-      opp => !dequeuedPostIds.has(opp.postId)
-    );
+    state.engagementQueue = state.engagementQueue.filter((opp) => !dequeuedPostIds.has(opp.postId));
     await stateManager.saveState(state);
 
     return actions;
@@ -150,23 +141,19 @@ export class EngagementEngine {
    * 5. Daily caps (within limits)
    * 6. Follow evaluation (3+ posts seen before follow)
    */
-  async validateAction(
-    action: QueuedAction,
-    content: string,
-    agent: Agent
-  ): Promise<boolean> {
+  async validateAction(action: QueuedAction, content: string, agent: Agent): Promise<boolean> {
     // Gate 1: Relevance threshold
     if (action.priority <= 0.6) {
       return false;
     }
 
     // Gate 2: Generic comments
-    if (action.type === 'comment' && this.relevanceCalculator.isGenericComment(content)) {
+    if (action.type === "comment" && this.relevanceCalculator.isGenericComment(content)) {
       return false;
     }
 
     // Gate 3: Substantiveness
-    if (action.type === 'comment' && !this.relevanceCalculator.isSubstantive(content)) {
+    if (action.type === "comment" && !this.relevanceCalculator.isSubstantive(content)) {
       return false;
     }
 
@@ -177,21 +164,21 @@ export class EngagementEngine {
     const state = await stateManager.loadState();
 
     // Gate 5: Daily caps (check current counts)
-    if (action.type === 'comment' && state.dailyStats.commentsMade >= 50) {
+    if (action.type === "comment" && state.dailyStats.commentsMade >= 50) {
       return false;
     }
-    if (action.type === 'post' && state.dailyStats.postsCreated >= 3) {
+    if (action.type === "post" && state.dailyStats.postsCreated >= 3) {
       return false;
     }
-    if (action.type === 'follow' && state.dailyStats.accountsFollowed >= 2) {
+    if (action.type === "follow" && state.dailyStats.accountsFollowed >= 2) {
       return false;
     }
-    if (action.type === 'dm' && state.dailyStats.dmRequestsSent >= 2) {
+    if (action.type === "dm" && state.dailyStats.dmRequestsSent >= 2) {
       return false;
     }
 
     // Gate 6: Follow evaluation (must have seen 3+ posts from account)
-    if (action.type === 'follow') {
+    if (action.type === "follow") {
       const evaluation = await stateManager.getFollowEvaluationStatus(content);
       if (!evaluation.canFollow) {
         return false;
@@ -213,9 +200,9 @@ export class EngagementEngine {
         for (const action of actions) {
           // In production: generateContent, validateAction, executeAction
           // For testing: just verify no errors
-          if (action.type === 'post') {
+          if (action.type === "post") {
             // Would generate post content
-          } else if (action.type === 'comment') {
+          } else if (action.type === "comment") {
             // Would generate comment content
           }
         }
@@ -266,7 +253,7 @@ export class EngagementEngine {
       const state = await stateManager.loadState();
 
       // Reset daily stats (auto-handled by loadState, but ensure clean)
-      const today = new Date().toISOString().split('T')[0];
+      const today = new Date().toISOString().split("T")[0];
       if (state.dailyReset !== today) {
         state.dailyStats = {
           date: today,
@@ -274,13 +261,13 @@ export class EngagementEngine {
           commentsMade: 0,
           accountsFollowed: 0,
           dmRequestsSent: 0,
-          threadsParticipated: 0
+          threadsParticipated: 0,
         };
         state.dailyReset = today;
       }
 
       // Unfollow inactive accounts (>30 days without engagement)
-      state.followedAccounts = state.followedAccounts.filter(account => {
+      state.followedAccounts = state.followedAccounts.filter((account) => {
         const daysSinceEngagement = (now - account.lastEngagement) / (24 * 60 * 60 * 1000);
         return daysSinceEngagement <= 30;
       });

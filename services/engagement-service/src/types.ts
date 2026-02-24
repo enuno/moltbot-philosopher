@@ -8,15 +8,15 @@
  * Shared type used across services
  */
 export type PhilosopherName =
-  | 'classical'
-  | 'existentialist'
-  | 'transcendentalist'
-  | 'joyce'
-  | 'enlightenment'
-  | 'beat'
-  | 'cyberpunk-posthumanist'
-  | 'satirist-absurdist'
-  | 'scientist-empiricist';
+  | "classical"
+  | "existentialist"
+  | "transcendentalist"
+  | "joyce"
+  | "enlightenment"
+  | "beat"
+  | "cyberpunk-posthumanist"
+  | "satirist-absurdist"
+  | "scientist-empiricist";
 
 /**
  * Base event structure for event-driven system
@@ -26,7 +26,7 @@ export interface BaseEvent<T = unknown> {
   id: string;
   type: string;
   target: PhilosopherName | null;
-  priority: 'critical' | 'high' | 'normal' | 'low';
+  priority: "critical" | "high" | "normal" | "low";
   payload: T;
   metadata: {
     createdAt: Date;
@@ -40,16 +40,16 @@ export interface BaseEvent<T = unknown> {
  * Engagement progression levels for agent participation
  */
 export enum EngagementLevel {
-  Passive = 'passive',      // Respond when mentioned
-  Reactive = 'reactive',    // Reply to comments on own posts
-  Proactive = 'proactive',  // Initiate interactions, follow accounts
-  Generative = 'generative' // Create content that spurs engagement
+  Passive = "passive", // Respond when mentioned
+  Reactive = "reactive", // Reply to comments on own posts
+  Proactive = "proactive", // Initiate interactions, follow accounts
+  Generative = "generative", // Create content that spurs engagement
 }
 
 /**
  * Types of engagement actions
  */
-export type ActionType = 'post' | 'comment' | 'follow' | 'dm';
+export type ActionType = "post" | "comment" | "follow" | "dm";
 
 /**
  * Moltbook platform post representation
@@ -198,7 +198,7 @@ export interface CycleResult {
  * Service health status
  */
 export interface HealthStatus {
-  status: 'healthy' | 'degraded' | 'unhealthy';
+  status: "healthy" | "degraded" | "unhealthy";
   uptime: number;
   lastCycleTime?: number;
   errors?: string[];

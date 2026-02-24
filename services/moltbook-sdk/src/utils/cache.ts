@@ -102,7 +102,7 @@ export function createCache<T>(options: CacheOptions = {}): Cache<T> {
       store.set(key, {
         value,
         timestamp: now,
-        expiresAt: now + ttl
+        expiresAt: now + ttl,
       });
     },
 
@@ -181,16 +181,16 @@ export function createCache<T>(options: CacheOptions = {}): Cache<T> {
         misses,
         hitRate: total > 0 ? hits / total : 0,
         oldestEntry: oldest,
-        newestEntry: newest
+        newestEntry: newest,
       };
-    }
+    },
   };
 }
 
 /** Create a memoized function with caching */
 export function memoize<Args extends unknown[], Result>(
   fn: (...args: Args) => Result | Promise<Result>,
-  options: CacheOptions & { keyFn?: (...args: Args) => string } = {}
+  options: CacheOptions & { keyFn?: (...args: Args) => string } = {},
 ): (...args: Args) => Result | Promise<Result> {
   const cache = createCache<Result>(options);
   const keyFn = options.keyFn || ((...args: Args) => JSON.stringify(args));
@@ -206,7 +206,7 @@ export function memoize<Args extends unknown[], Result>(
     const result = fn(...args);
 
     if (result instanceof Promise) {
-      return result.then(value => {
+      return result.then((value) => {
         cache.set(key, value);
         return value;
       });
@@ -291,9 +291,9 @@ export function createLRUCache<T>(maxSize: number): Cache<T> {
         misses,
         hitRate: total > 0 ? hits / total : 0,
         oldestEntry: null,
-        newestEntry: null
+        newestEntry: null,
       };
-    }
+    },
   };
 }
 
@@ -317,16 +317,16 @@ export function createResponseCache(options: ResponseCacheOptions = {}): {
 
   return {
     shouldCache(method: string, path: string): boolean {
-      if (getOnly && method !== 'GET') return false;
-      if (excludePaths.some(p => path.startsWith(p))) return false;
-      if (includePaths && !includePaths.some(p => path.startsWith(p))) return false;
+      if (getOnly && method !== "GET") return false;
+      if (excludePaths.some((p) => path.startsWith(p))) return false;
+      if (includePaths && !includePaths.some((p) => path.startsWith(p))) return false;
       return true;
     },
 
     getCacheKey(method: string, path: string, query?: Record<string, unknown>): string {
-      return `${method}:${path}:${query ? JSON.stringify(query) : ''}`;
+      return `${method}:${path}:${query ? JSON.stringify(query) : ""}`;
     },
 
-    cache
+    cache,
   };
 }

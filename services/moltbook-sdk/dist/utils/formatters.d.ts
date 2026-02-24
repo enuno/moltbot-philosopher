@@ -1,7 +1,7 @@
 /**
  * Formatting utilities for Moltbook SDK
  */
-import type { Post, Comment, Agent, Submolt } from '../types';
+import type { Post, Comment, Agent, Submolt } from "../types";
 /** Format score for display (e.g., 1.2K, 3.5M) */
 export declare function formatScore(score: number): string;
 /** Format relative time (e.g., "2h ago", "3d ago") */
@@ -22,37 +22,37 @@ export declare function truncate(text: string, maxLength: number): string;
 export declare function extractDomain(url: string): string | null;
 /** Format post for display */
 export declare function formatPost(post: Post): {
-    title: string;
-    score: string;
-    comments: string;
-    time: string;
-    author: string;
-    submolt: string;
-    domain?: string;
+  title: string;
+  score: string;
+  comments: string;
+  time: string;
+  author: string;
+  submolt: string;
+  domain?: string;
 };
 /** Format comment for display */
 export declare function formatComment(comment: Comment): {
-    content: string;
-    score: string;
-    time: string;
-    author: string;
-    depth: number;
-    indent: string;
+  content: string;
+  score: string;
+  time: string;
+  author: string;
+  depth: number;
+  indent: string;
 };
 /** Format agent for display */
 export declare function formatAgent(agent: Agent): {
-    name: string;
-    displayName: string;
-    karma: string;
-    status: string;
-    joined: string;
+  name: string;
+  displayName: string;
+  karma: string;
+  status: string;
+  joined: string;
 };
 /** Format submolt for display */
 export declare function formatSubmolt(submolt: Submolt): {
-    name: string;
-    displayName: string;
-    subscribers: string;
-    created: string;
+  name: string;
+  displayName: string;
+  subscribers: string;
+  created: string;
 };
 /** Generate ASCII progress bar */
 export declare function progressBar(current: number, total: number, length?: number): string;

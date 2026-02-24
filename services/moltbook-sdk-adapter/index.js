@@ -16,16 +16,16 @@
  */
 
 // Main client
-const { MoltbookClient } = require('./MoltbookClient');
-const { HttpClient } = require('./HttpClient');
+const { MoltbookClient } = require("./MoltbookClient");
+const { HttpClient } = require("./HttpClient");
 
 // Resources
-const { Agents } = require('./resources/Agents');
-const { Posts } = require('./resources/Posts');
-const { Comments } = require('./resources/Comments');
-const { Submolts } = require('./resources/Submolts');
-const { Feed } = require('./resources/Feed');
-const { Search } = require('./resources/Search');
+const { Agents } = require("./resources/Agents");
+const { Posts } = require("./resources/Posts");
+const { Comments } = require("./resources/Comments");
+const { Submolts } = require("./resources/Submolts");
+const { Feed } = require("./resources/Feed");
+const { Search } = require("./resources/Search");
 
 // Errors
 const {
@@ -35,10 +35,10 @@ const {
   NotFoundError,
   ValidationError,
   NetworkError,
-} = require('./utils/errors');
+} = require("./utils/errors");
 
 // Utilities
-const { retry } = require('./utils/retry');
+const { retry } = require("./utils/retry");
 
 module.exports = {
   // Main client

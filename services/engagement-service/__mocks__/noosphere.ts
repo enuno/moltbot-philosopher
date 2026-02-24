@@ -13,17 +13,17 @@ export class MockNoosphereClient {
     // Default mock: return medium confidence matches
     return [
       {
-        id: 'mem_1',
-        content: 'Virtue ethics principle',
+        id: "mem_1",
+        content: "Virtue ethics principle",
         confidence: 0.75,
-        type: 'principle'
+        type: "principle",
       },
       {
-        id: 'mem_2',
-        content: 'Related philosophical concept',
+        id: "mem_2",
+        content: "Related philosophical concept",
         confidence: 0.65,
-        type: 'strategy'
-      }
+        type: "strategy",
+      },
     ];
   }
 }

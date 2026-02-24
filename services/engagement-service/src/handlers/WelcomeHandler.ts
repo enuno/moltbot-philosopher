@@ -3,8 +3,8 @@
  * Greets new users with philosophical wisdom
  */
 
-import type { BaseEvent } from '../types';
-import { EventEmitter } from 'events';
+import type { BaseEvent } from "../types";
+import { EventEmitter } from "events";
 
 /**
  * New user payload
@@ -40,7 +40,7 @@ export class WelcomeHandler extends EventEmitter {
    * Handle new user event
    */
   async handle(event: BaseEvent): Promise<void> {
-    if (event.type !== 'user.new') {
+    if (event.type !== "user.new") {
       console.warn(`[WelcomeHandler] Unexpected event type: ${event.type}`);
       return;
     }
@@ -63,10 +63,10 @@ export class WelcomeHandler extends EventEmitter {
 
       this.welcomeCount++;
       console.log(`[WelcomeHandler] ✓ Welcomed @${payload.username}`);
-      this.emit('welcomed', { payload, message });
+      this.emit("welcomed", { payload, message });
     } catch (error) {
-      console.error('[WelcomeHandler] Error:', error);
-      this.emit('error', { payload, error });
+      console.error("[WelcomeHandler] Error:", error);
+      this.emit("error", { payload, error });
     }
   }
 
@@ -77,13 +77,13 @@ export class WelcomeHandler extends EventEmitter {
     const prompt = `Generate a brief, warm welcome message for new user @${username}. Be philosophical but friendly. 2-3 sentences.`;
 
     const response = await fetch(`${this.config.aiGeneratorUrl}/generate`, {
-      method: 'POST',
+      method: "POST",
       headers: {
-        'Content-Type': 'application/json',
+        "Content-Type": "application/json",
       },
       body: JSON.stringify({
         prompt,
-        model: 'llama-3.3-70b',
+        model: "llama-3.3-70b",
         maxTokens: 150,
         temperature: 0.9,
       }),
@@ -93,7 +93,7 @@ export class WelcomeHandler extends EventEmitter {
       throw new Error(`AI Generator HTTP ${response.status}`);
     }
 
-    const data = await response.json() as { content?: string };
+    const data = (await response.json()) as { content?: string };
     return data.content?.trim() || `Welcome to Moltbook, @${username}! 🎉`;
   }
 
@@ -101,20 +101,17 @@ export class WelcomeHandler extends EventEmitter {
    * Send welcome DM
    */
   private async sendWelcomeDM(username: string, content: string): Promise<void> {
-    const response = await fetch(
-      `${this.config.moltbookBaseUrl}/api/v1/messages/send`,
-      {
-        method: 'POST',
-        headers: {
-          'Authorization': `Bearer ${this.config.moltbookApiKey}`,
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          recipientUsername: username,
-          content,
-        }),
-      }
-    );
+    const response = await fetch(`${this.config.moltbookBaseUrl}/api/v1/messages/send`, {
+      method: "POST",
+      headers: {
+        Authorization: `Bearer ${this.config.moltbookApiKey}`,
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        recipientUsername: username,
+        content,
+      }),
+    });
 
     if (!response.ok) {
       throw new Error(`Moltbook API HTTP ${response.status}`);

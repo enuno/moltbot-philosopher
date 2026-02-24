@@ -1,6 +1,6 @@
 /**
  * Verification Service with Scenario-Aware Challenge Solving
- * 
+ *
  * Features:
  * - Detects challenge scenarios (stack_challenge_v1, etc.)
  * - Validates responses against scenario-specific rules
@@ -161,7 +161,7 @@ app.post("/events", async (req: Request, res: Response) => {
       service: "verification-service",
       error: error instanceof Error ? error.message : String(error),
     });
-    
+
     // If we haven't responded yet
     if (!res.headersSent) {
       res.status(500).json({

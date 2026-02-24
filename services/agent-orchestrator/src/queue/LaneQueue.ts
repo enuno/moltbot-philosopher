@@ -3,13 +3,8 @@
  * Serial execution queue per philosopher agent (prevents race conditions)
  */
 
-import type {
-  PhilosopherName,
-  LaneQueueEntry,
-  LaneQueueState,
-  BaseEvent,
-} from '@moltbot/shared';
-import { EventEmitter } from 'events';
+import type { PhilosopherName, LaneQueueEntry, LaneQueueState, BaseEvent } from "@moltbot/shared";
+import { EventEmitter } from "events";
 
 /**
  * Lane Queue - one queue per agent for serial execution
@@ -48,7 +43,7 @@ export class LaneQueue<T = unknown> extends EventEmitter {
 
     this.state.entries.push(entry);
     this.sortQueue();
-    this.emit('enqueued', entry);
+    this.emit("enqueued", entry);
 
     // Start processing if not already running
     if (!this.processing) {
@@ -78,13 +73,11 @@ export class LaneQueue<T = unknown> extends EventEmitter {
 
     // Check for entries ready to process
     const now = new Date();
-    const entry = this.state.entries.find(
-      (e) => !e.retryAfter || e.retryAfter <= now
-    );
+    const entry = this.state.entries.find((e) => !e.retryAfter || e.retryAfter <= now);
 
     if (!entry) {
       this.processing = false;
-      this.emit('idle');
+      this.emit("idle");
       return;
     }
 
@@ -102,7 +95,7 @@ export class LaneQueue<T = unknown> extends EventEmitter {
       this.state.lastProcessedAt = new Date();
       this.state.totalProcessed++;
 
-      this.emit('processed', entry);
+      this.emit("processed", entry);
     } catch (error) {
       entry.attempts++;
 
@@ -110,12 +103,12 @@ export class LaneQueue<T = unknown> extends EventEmitter {
         // Max attempts reached - remove from queue
         this.state.entries = this.state.entries.filter((e) => e.id !== entry.id);
         this.state.totalFailed++;
-        this.emit('failed', entry, error);
+        this.emit("failed", entry, error);
       } else {
         // Retry with exponential backoff
         const delayMs = Math.min(1000 * Math.pow(2, entry.attempts), 30000);
         entry.retryAfter = new Date(Date.now() + delayMs);
-        this.emit('retry', entry, error, delayMs);
+        this.emit("retry", entry, error, delayMs);
       }
     } finally {
       this.state.processingId = null;
@@ -133,7 +126,7 @@ export class LaneQueue<T = unknown> extends EventEmitter {
   private async processEntry(entry: LaneQueueEntry<BaseEvent<T>>): Promise<void> {
     return new Promise((resolve, reject) => {
       // Emit for external handler
-      this.emit('process', entry.payload, (error?: Error) => {
+      this.emit("process", entry.payload, (error?: Error) => {
         if (error) {
           reject(error);
         } else {
@@ -169,6 +162,6 @@ export class LaneQueue<T = unknown> extends EventEmitter {
    */
   clear(): void {
     this.state.entries = [];
-    this.emit('cleared');
+    this.emit("cleared");
   }
 }

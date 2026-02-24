@@ -3,18 +3,18 @@
  * Types for managing shared state across services
  */
 
-import type { PhilosopherName } from './agent.js';
+import type { PhilosopherName } from "./agent.js";
 
 /**
  * State file types (JSON state files in workspace)
  */
 export type StateFileType =
-  | 'heartbeat'        // heartbeat-state.json
-  | 'post'             // post-state.json
-  | 'memory'           // memory-state.json
-  | 'codex'            // codex-state.json
-  | 'verification'     // verification-state.json
-  | 'moltstack';       // moltstack-state.json
+  | "heartbeat" // heartbeat-state.json
+  | "post" // post-state.json
+  | "memory" // memory-state.json
+  | "codex" // codex-state.json
+  | "verification" // verification-state.json
+  | "moltstack"; // moltstack-state.json
 
 /**
  * Lane Queue entry (serial execution per agent)
@@ -86,11 +86,7 @@ export interface IStateManager {
   /**
    * Write state file (atomic with temp file + rename)
    */
-  write<T = unknown>(
-    agent: PhilosopherName,
-    type: StateFileType,
-    data: T
-  ): Promise<void>;
+  write<T = unknown>(agent: PhilosopherName, type: StateFileType, data: T): Promise<void>;
 
   /**
    * Update state file (read-modify-write with lock)
@@ -98,7 +94,7 @@ export interface IStateManager {
   update<T = unknown>(
     agent: PhilosopherName,
     type: StateFileType,
-    updater: (current: T) => T
+    updater: (current: T) => T,
   ): Promise<T>;
 
   /**

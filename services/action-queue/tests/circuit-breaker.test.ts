@@ -1,13 +1,13 @@
-import { CircuitBreaker } from '../src/circuit-breaker';
+import { CircuitBreaker } from "../src/circuit-breaker";
 
-describe('CircuitBreaker (7.7)', () => {
-  it('starts CLOSED', () => {
+describe("CircuitBreaker (7.7)", () => {
+  it("starts CLOSED", () => {
     const cb = new CircuitBreaker();
     expect(cb.isTripped).toBe(false);
     expect(cb.getState()).toEqual({ isOpen: false, consecutiveFailures: 0 });
   });
 
-  it('recordSuccess resets consecutive failures', () => {
+  it("recordSuccess resets consecutive failures", () => {
     const cb = new CircuitBreaker();
     cb.recordFailure();
     cb.recordFailure();
@@ -16,14 +16,14 @@ describe('CircuitBreaker (7.7)', () => {
     expect(cb.isTripped).toBe(false);
   });
 
-  it('two failures do not trip the circuit (default threshold 3)', () => {
+  it("two failures do not trip the circuit (default threshold 3)", () => {
     const cb = new CircuitBreaker();
     cb.recordFailure();
     cb.recordFailure();
     expect(cb.isTripped).toBe(false);
   });
 
-  it('three consecutive failures trip the circuit', () => {
+  it("three consecutive failures trip the circuit", () => {
     const cb = new CircuitBreaker();
     cb.recordFailure();
     cb.recordFailure();
@@ -31,7 +31,7 @@ describe('CircuitBreaker (7.7)', () => {
     expect(cb.isTripped).toBe(true);
   });
 
-  it('onTripped callback fires exactly once when threshold reached', () => {
+  it("onTripped callback fires exactly once when threshold reached", () => {
     const onTripped = jest.fn();
     const cb = new CircuitBreaker({ maxConsecutiveFailures: 3, onTripped });
     cb.recordFailure();
@@ -44,7 +44,7 @@ describe('CircuitBreaker (7.7)', () => {
     expect(onTripped).toHaveBeenCalledTimes(1);
   });
 
-  it('additional failures after trip do not re-call onTripped', () => {
+  it("additional failures after trip do not re-call onTripped", () => {
     const onTripped = jest.fn();
     const cb = new CircuitBreaker({ maxConsecutiveFailures: 2, onTripped });
     cb.recordFailure();
@@ -54,7 +54,7 @@ describe('CircuitBreaker (7.7)', () => {
     expect(onTripped).toHaveBeenCalledTimes(1);
   });
 
-  it('reset closes the circuit and clears failures', () => {
+  it("reset closes the circuit and clears failures", () => {
     const cb = new CircuitBreaker();
     cb.recordFailure();
     cb.recordFailure();
@@ -65,13 +65,13 @@ describe('CircuitBreaker (7.7)', () => {
     expect(cb.getState()).toEqual({ isOpen: false, consecutiveFailures: 0 });
   });
 
-  it('custom maxConsecutiveFailures is respected', () => {
+  it("custom maxConsecutiveFailures is respected", () => {
     const cb = new CircuitBreaker({ maxConsecutiveFailures: 1 });
     cb.recordFailure();
     expect(cb.isTripped).toBe(true);
   });
 
-  it('getState returns accurate state', () => {
+  it("getState returns accurate state", () => {
     const cb = new CircuitBreaker({ maxConsecutiveFailures: 5 });
     cb.recordFailure();
     cb.recordFailure();

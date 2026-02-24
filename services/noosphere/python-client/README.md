@@ -80,6 +80,7 @@ client = NoosphereClient(
 #### Memory Operations
 
 **Create Memory**
+
 ```python
 memory = client.create_memory(
     agent_id: str,
@@ -93,11 +94,13 @@ memory = client.create_memory(
 ```
 
 **Get Memory**
+
 ```python
 memory = client.get_memory(memory_id: str) -> Memory
 ```
 
 **Query Memories**
+
 ```python
 memories = client.query_memories(
     agent_id: str = None,
@@ -112,6 +115,7 @@ memories = client.query_memories(
 ```
 
 **Update Memory**
+
 ```python
 memory = client.update_memory(
     memory_id: str,
@@ -124,11 +128,13 @@ memory = client.update_memory(
 ```
 
 **Delete Memory**
+
 ```python
 result = client.delete_memory(memory_id: str) -> Dict
 ```
 
 **Search Similar** (requires embeddings)
+
 ```python
 results = client.search_similar(
     query: str,
@@ -142,11 +148,13 @@ results = client.search_similar(
 #### Helper Methods
 
 **Get Constitutional Memories** (confidence ≥ 0.92)
+
 ```python
 constitutional = client.get_constitutional(agent_id: str) -> List[Memory]
 ```
 
 **Get by Type**
+
 ```python
 strategies = client.get_by_type(
     agent_id: str,
@@ -155,11 +163,13 @@ strategies = client.get_by_type(
 ```
 
 **Get Recent**
+
 ```python
 recent = client.get_recent(agent_id: str, limit: int = 10) -> List[Memory]
 ```
 
 **Create Many** (batch)
+
 ```python
 memories = client.create_many([
     {"agent_id": "classical", "type": "strategy", "content": "..."},
@@ -168,6 +178,7 @@ memories = client.create_many([
 ```
 
 **Evict Oldest** (capacity management)
+
 ```python
 deleted_ids = client.evict_oldest(agent_id: str, count: int = 1) -> List[str]
 ```
@@ -175,11 +186,13 @@ deleted_ids = client.evict_oldest(agent_id: str, count: int = 1) -> List[str]
 #### Statistics
 
 **Get Agent Stats**
+
 ```python
 stats = client.get_agent_stats(agent_id: str) -> AgentStats
 ```
 
 **Get All Stats**
+
 ```python
 all_stats = client.get_all_stats() -> List[AgentStats]
 ```
@@ -275,6 +288,7 @@ python3 test_client.py
 ## Migration from v2.6
 
 **Legacy (v2.6 - JSON files)**:
+
 ```python
 import json
 
@@ -285,6 +299,7 @@ with open('/workspace/classical/noosphere/memory-core/telos-alignment-heuristics
 ```
 
 **New (v3.0 - PostgreSQL + API)**:
+
 ```python
 from noosphere_client import NoosphereClient, MemoryType
 
@@ -302,6 +317,7 @@ strategies = client.get_by_type("classical", MemoryType.STRATEGY)
 ## Examples
 
 ### Council Deliberation
+
 ```python
 # Get all council strategies
 strategies = client.query_memories(
@@ -319,12 +335,13 @@ for agent_id in ["classical", "transcendentalist", "enlightenment"]:
 ```
 
 ### Capacity Management
+
 ```python
 # Check agent capacity
 stats = client.get_agent_stats("classical")
 if stats.memory_count >= 180:  # 90% of 200 cap
     print("Warning: Approaching capacity")
-    
+
     # Evict low-confidence memories
     low_conf = client.query_memories(
         agent_id="classical",
@@ -338,6 +355,7 @@ if stats.memory_count >= 180:  # 90% of 200 cap
 ```
 
 ### Type-Specific Queries
+
 ```python
 # Get all insights for phenomenology
 insights = client.query_memories(

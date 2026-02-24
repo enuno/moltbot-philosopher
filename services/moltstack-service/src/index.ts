@@ -3,22 +3,22 @@
  * Weekly philosophical essay generation and publishing
  */
 
-import express, { type Request, type Response } from 'express';
-import cron from 'node-cron';
-import { DraftManager } from './drafts/DraftManager.js';
-import { EssayGenerator } from './generation/EssayGenerator.js';
-import { Publisher } from './publishing/Publisher.js';
+import express, { type Request, type Response } from "express";
+import cron from "node-cron";
+import { DraftManager } from "./drafts/DraftManager.js";
+import { EssayGenerator } from "./generation/EssayGenerator.js";
+import { Publisher } from "./publishing/Publisher.js";
 
 const app = express();
 app.use(express.json());
 
 // Environment configuration
-const PORT = parseInt(process.env.MOLTSTACK_SERVICE_PORT || '3012', 10);
-const WORKSPACE_BASE = process.env.WORKSPACE_BASE || '/workspace';
-const AGENT_NAME = process.env.AGENT_NAME || 'classical';
-const AI_GENERATOR_URL = process.env.AI_GENERATOR_URL || 'http://localhost:3002';
-const MOLTBOOK_API_KEY = process.env.MOLTBOOK_API_KEY || '';
-const MOLTBOOK_BASE_URL = process.env.MOLTBOOK_BASE_URL || 'https://www.moltbook.com';
+const PORT = parseInt(process.env.MOLTSTACK_SERVICE_PORT || "3012", 10);
+const WORKSPACE_BASE = process.env.WORKSPACE_BASE || "/workspace";
+const AGENT_NAME = process.env.AGENT_NAME || "classical";
+const AI_GENERATOR_URL = process.env.AI_GENERATOR_URL || "http://localhost:3002";
+const MOLTBOOK_API_KEY = process.env.MOLTBOOK_API_KEY || "";
+const MOLTBOOK_BASE_URL = process.env.MOLTBOOK_BASE_URL || "https://www.moltbook.com";
 
 // Initialize components
 const draftManager = new DraftManager(WORKSPACE_BASE, AGENT_NAME);
@@ -33,16 +33,16 @@ let weeklyTask: cron.ScheduledTask | null = null;
  */
 function startWeeklyGeneration() {
   if (weeklyTask) {
-    console.warn('[MoltStackService] Weekly generation already running');
+    console.warn("[MoltStackService] Weekly generation already running");
     return;
   }
 
-  console.log('[MoltStackService] Starting weekly essay generation');
-  console.log('[MoltStackService] Schedule: Every Monday at 9am');
+  console.log("[MoltStackService] Starting weekly essay generation");
+  console.log("[MoltStackService] Schedule: Every Monday at 9am");
 
   // Schedule for Monday 9am
-  weeklyTask = cron.schedule('0 9 * * 1', async () => {
-    console.log('[MoltStackService] Triggering weekly essay generation');
+  weeklyTask = cron.schedule("0 9 * * 1", async () => {
+    console.log("[MoltStackService] Triggering weekly essay generation");
     await generateWeeklyEssay();
   });
 }
@@ -54,7 +54,7 @@ function stopWeeklyGeneration() {
   if (weeklyTask) {
     weeklyTask.stop();
     weeklyTask = null;
-    console.log('[MoltStackService] Weekly generation stopped');
+    console.log("[MoltStackService] Weekly generation stopped");
   }
 }
 
@@ -63,15 +63,15 @@ function stopWeeklyGeneration() {
  */
 async function generateWeeklyEssay() {
   try {
-    console.log('[MoltStackService] Generating weekly essay...');
+    console.log("[MoltStackService] Generating weekly essay...");
 
     const draft = await essayGenerator.generateEssay(
       {
-        style: 'philosophical',
+        style: "philosophical",
         wordCount: 2000,
-        tags: ['philosophy', 'moltstack', 'weekly'],
+        tags: ["philosophy", "moltstack", "weekly"],
       },
-      AGENT_NAME
+      AGENT_NAME,
     );
 
     const created = await draftManager.createDraft(draft);
@@ -79,7 +79,7 @@ async function generateWeeklyEssay() {
     console.log(`[MoltStackService] ✓ Essay draft created: ${created.id}`);
     console.log(`[MoltStackService] Title: ${created.title}`);
   } catch (error) {
-    console.error('[MoltStackService] Weekly generation failed:', error);
+    console.error("[MoltStackService] Weekly generation failed:", error);
   }
 }
 
@@ -88,14 +88,14 @@ async function generateWeeklyEssay() {
 /**
  * Health check
  */
-app.get('/health', async (req: Request, res: Response) => {
+app.get("/health", async (req: Request, res: Response) => {
   const draftStats = await draftManager.getStats();
   const publishStats = publisher.getStats();
 
   res.json({
-    status: 'healthy',
-    service: 'moltstack-service',
-    version: '1.0.0',
+    status: "healthy",
+    service: "moltstack-service",
+    version: "1.0.0",
     uptime: process.uptime(),
     timestamp: new Date().toISOString(),
     drafts: draftStats,
@@ -107,14 +107,11 @@ app.get('/health', async (req: Request, res: Response) => {
 /**
  * Generate essay
  */
-app.post('/generate', async (req: Request, res: Response) => {
+app.post("/generate", async (req: Request, res: Response) => {
   try {
     const { topic, style, wordCount, tags } = req.body;
 
-    const draft = await essayGenerator.generateEssay(
-      { topic, style, wordCount, tags },
-      AGENT_NAME
-    );
+    const draft = await essayGenerator.generateEssay({ topic, style, wordCount, tags }, AGENT_NAME);
 
     const created = await draftManager.createDraft(draft);
 
@@ -122,7 +119,7 @@ app.post('/generate', async (req: Request, res: Response) => {
   } catch (error) {
     res.status(500).json({
       success: false,
-      error: error instanceof Error ? error.message : 'Unknown error',
+      error: error instanceof Error ? error.message : "Unknown error",
     });
   }
 });
@@ -130,7 +127,7 @@ app.post('/generate', async (req: Request, res: Response) => {
 /**
  * List drafts
  */
-app.get('/drafts', async (req: Request, res: Response) => {
+app.get("/drafts", async (req: Request, res: Response) => {
   try {
     const status = req.query.status as string | undefined;
     const drafts = await draftManager.listDrafts(status as any);
@@ -139,7 +136,7 @@ app.get('/drafts', async (req: Request, res: Response) => {
   } catch (error) {
     res.status(500).json({
       success: false,
-      error: error instanceof Error ? error.message : 'Unknown error',
+      error: error instanceof Error ? error.message : "Unknown error",
     });
   }
 });
@@ -147,13 +144,13 @@ app.get('/drafts', async (req: Request, res: Response) => {
 /**
  * Get draft
  */
-app.get('/drafts/:id', async (req: Request, res: Response) => {
+app.get("/drafts/:id", async (req: Request, res: Response) => {
   try {
     const { id } = req.params;
     const draft = await draftManager.getDraft(id);
 
     if (!draft) {
-      res.status(404).json({ success: false, error: 'Draft not found' });
+      res.status(404).json({ success: false, error: "Draft not found" });
       return;
     }
 
@@ -161,7 +158,7 @@ app.get('/drafts/:id', async (req: Request, res: Response) => {
   } catch (error) {
     res.status(500).json({
       success: false,
-      error: error instanceof Error ? error.message : 'Unknown error',
+      error: error instanceof Error ? error.message : "Unknown error",
     });
   }
 });
@@ -169,7 +166,7 @@ app.get('/drafts/:id', async (req: Request, res: Response) => {
 /**
  * Update draft
  */
-app.patch('/drafts/:id', async (req: Request, res: Response) => {
+app.patch("/drafts/:id", async (req: Request, res: Response) => {
   try {
     const { id } = req.params;
     const updates = req.body;
@@ -177,7 +174,7 @@ app.patch('/drafts/:id', async (req: Request, res: Response) => {
     const updated = await draftManager.updateDraft(id, updates);
 
     if (!updated) {
-      res.status(404).json({ success: false, error: 'Draft not found' });
+      res.status(404).json({ success: false, error: "Draft not found" });
       return;
     }
 
@@ -185,7 +182,7 @@ app.patch('/drafts/:id', async (req: Request, res: Response) => {
   } catch (error) {
     res.status(500).json({
       success: false,
-      error: error instanceof Error ? error.message : 'Unknown error',
+      error: error instanceof Error ? error.message : "Unknown error",
     });
   }
 });
@@ -193,13 +190,13 @@ app.patch('/drafts/:id', async (req: Request, res: Response) => {
 /**
  * Approve draft for publishing
  */
-app.post('/drafts/:id/approve', async (req: Request, res: Response) => {
+app.post("/drafts/:id/approve", async (req: Request, res: Response) => {
   try {
     const { id } = req.params;
-    const updated = await draftManager.updateDraft(id, { status: 'approved' });
+    const updated = await draftManager.updateDraft(id, { status: "approved" });
 
     if (!updated) {
-      res.status(404).json({ success: false, error: 'Draft not found' });
+      res.status(404).json({ success: false, error: "Draft not found" });
       return;
     }
 
@@ -207,7 +204,7 @@ app.post('/drafts/:id/approve', async (req: Request, res: Response) => {
   } catch (error) {
     res.status(500).json({
       success: false,
-      error: error instanceof Error ? error.message : 'Unknown error',
+      error: error instanceof Error ? error.message : "Unknown error",
     });
   }
 });
@@ -215,13 +212,13 @@ app.post('/drafts/:id/approve', async (req: Request, res: Response) => {
 /**
  * Publish draft
  */
-app.post('/drafts/:id/publish', async (req: Request, res: Response) => {
+app.post("/drafts/:id/publish", async (req: Request, res: Response) => {
   try {
     const { id } = req.params;
     const draft = await draftManager.getDraft(id);
 
     if (!draft) {
-      res.status(404).json({ success: false, error: 'Draft not found' });
+      res.status(404).json({ success: false, error: "Draft not found" });
       return;
     }
 
@@ -229,7 +226,7 @@ app.post('/drafts/:id/publish', async (req: Request, res: Response) => {
 
     if (result.success) {
       await draftManager.updateDraft(id, {
-        status: 'published',
+        status: "published",
         publishedAt: new Date(),
         metadata: {
           ...draft.metadata,
@@ -243,7 +240,7 @@ app.post('/drafts/:id/publish', async (req: Request, res: Response) => {
   } catch (error) {
     res.status(500).json({
       success: false,
-      error: error instanceof Error ? error.message : 'Unknown error',
+      error: error instanceof Error ? error.message : "Unknown error",
     });
   }
 });
@@ -251,13 +248,13 @@ app.post('/drafts/:id/publish', async (req: Request, res: Response) => {
 /**
  * Delete draft
  */
-app.delete('/drafts/:id', async (req: Request, res: Response) => {
+app.delete("/drafts/:id", async (req: Request, res: Response) => {
   try {
     const { id } = req.params;
     const deleted = await draftManager.deleteDraft(id);
 
     if (!deleted) {
-      res.status(404).json({ success: false, error: 'Draft not found' });
+      res.status(404).json({ success: false, error: "Draft not found" });
       return;
     }
 
@@ -265,7 +262,7 @@ app.delete('/drafts/:id', async (req: Request, res: Response) => {
   } catch (error) {
     res.status(500).json({
       success: false,
-      error: error instanceof Error ? error.message : 'Unknown error',
+      error: error instanceof Error ? error.message : "Unknown error",
     });
   }
 });
@@ -273,7 +270,7 @@ app.delete('/drafts/:id', async (req: Request, res: Response) => {
 /**
  * Get statistics
  */
-app.get('/stats', async (req: Request, res: Response) => {
+app.get("/stats", async (req: Request, res: Response) => {
   try {
     const draftStats = await draftManager.getStats();
     const publishStats = publisher.getStats();
@@ -288,7 +285,7 @@ app.get('/stats', async (req: Request, res: Response) => {
   } catch (error) {
     res.status(500).json({
       success: false,
-      error: error instanceof Error ? error.message : 'Unknown error',
+      error: error instanceof Error ? error.message : "Unknown error",
     });
   }
 });
@@ -296,7 +293,7 @@ app.get('/stats', async (req: Request, res: Response) => {
 // Start service
 async function start() {
   try {
-    console.log('Starting MoltStack Service...');
+    console.log("Starting MoltStack Service...");
     console.log(`Workspace: ${WORKSPACE_BASE}`);
     console.log(`Agent: ${AGENT_NAME}`);
 
@@ -309,20 +306,20 @@ async function start() {
       console.log(`Generate: POST http://localhost:${PORT}/generate`);
     });
   } catch (error) {
-    console.error('Failed to start MoltStack Service:', error);
+    console.error("Failed to start MoltStack Service:", error);
     process.exit(1);
   }
 }
 
 // Graceful shutdown
-process.on('SIGTERM', () => {
-  console.log('SIGTERM received, shutting down...');
+process.on("SIGTERM", () => {
+  console.log("SIGTERM received, shutting down...");
   stopWeeklyGeneration();
   process.exit(0);
 });
 
-process.on('SIGINT', () => {
-  console.log('SIGINT received, shutting down...');
+process.on("SIGINT", () => {
+  console.log("SIGINT received, shutting down...");
   stopWeeklyGeneration();
   process.exit(0);
 });

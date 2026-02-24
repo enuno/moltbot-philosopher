@@ -19,13 +19,11 @@ const VENICE_API_KEY = process.env.VENICE_API_KEY;
 const VENICE_API_URL = "https://api.venice.ai/api/v1/chat/completions";
 const VENICE_PRIMARY_MODEL = "venice/qwen3-4b"; // Fastest model for reasoning
 const VENICE_FALLBACK_MODEL = "venice/llama-3.2-3b"; // Backup model
-const AI_GENERATOR_URL =
-  process.env.AI_GENERATOR_URL || "http://ai-generator:3002";
+const AI_GENERATOR_URL = process.env.AI_GENERATOR_URL || "http://ai-generator:3002";
 const VERIFICATION_SERVICE_URL =
   process.env.VERIFICATION_SERVICE_URL || "http://verification-service:3007";
 const SHELL_FALLBACK_SCRIPT =
-  process.env.SHELL_FALLBACK_SCRIPT ||
-  "/app/scripts/handle-verification-challenge.sh";
+  process.env.SHELL_FALLBACK_SCRIPT || "/app/scripts/handle-verification-challenge.sh";
 const SHELL_FALLBACK_ENABLED = process.env.SHELL_FALLBACK_ENABLED !== "false";
 const MOLTBOOK_API_KEY = process.env.MOLTBOOK_API_KEY;
 const CHALLENGE_TIMEOUT = 10000;
@@ -175,12 +173,10 @@ function updatePercentiles() {
 
 function updateRates() {
   const totalCache = stats.cacheHits + stats.cacheMisses;
-  stats.cacheHitRate =
-    totalCache > 0 ? (stats.cacheHits / totalCache).toFixed(2) : 0;
+  stats.cacheHitRate = totalCache > 0 ? (stats.cacheHits / totalCache).toFixed(2) : 0;
 
   const totalRetries = stats.retrySuccesses + stats.retryFailures;
-  stats.retrySuccessRate =
-    totalRetries > 0 ? (stats.retrySuccesses / totalRetries).toFixed(2) : 0;
+  stats.retrySuccessRate = totalRetries > 0 ? (stats.retrySuccesses / totalRetries).toFixed(2) : 0;
 
   // Circuit breaker: trip if failure rate > 20%
   const totalChallenges = stats.challengesSolved + stats.challengesFailed;
@@ -195,9 +191,7 @@ function reloadSecrets() {
   try {
     // In production, read from Docker secrets or env reload
     if (process.env.VENICE_API_KEY_FILE) {
-      process.env.VENICE_API_KEY = fs
-        .readFileSync(process.env.VENICE_API_KEY_FILE, "utf8")
-        .trim();
+      process.env.VENICE_API_KEY = fs.readFileSync(process.env.VENICE_API_KEY_FILE, "utf8").trim();
     }
     if (process.env.MOLTBOOK_API_KEY_FILE) {
       process.env.MOLTBOOK_API_KEY = fs
@@ -218,9 +212,7 @@ function extractAnswer(rawAnswer, puzzleText) {
   }
 
   // Try to find labeled answer (Response:, Answer:, A:)
-  const labelMatch = rawAnswer.match(
-    /(?:Response:|Answer:|A:)\s*(.+?)(?:\n|$)/i,
-  );
+  const labelMatch = rawAnswer.match(/(?:Response:|Answer:|A:)\s*(.+?)(?:\n|$)/i);
   if (labelMatch) {
     return labelMatch[1].trim();
   }
@@ -389,9 +381,7 @@ async function solveWithVenice(puzzleText, model, isPrimary) {
       log("info", "Venice.ai response received", {
         model: model,
         rawPreview: rawAnswer.substring(0, 50),
-        extractedPreview: answer
-          ? answer.substring(0, 50)
-          : "EXTRACTION_FAILED",
+        extractedPreview: answer ? answer.substring(0, 50) : "EXTRACTION_FAILED",
         duration: `${duration}ms`,
       });
 
@@ -505,9 +495,16 @@ async function solveWithShellScript(puzzleText) {
   });
 
   return new Promise((resolve) => {
-    // FIX: Use 'solve-only' (without dashes) to match bash script argument parsing
+    // Check if script exists
+    if (!fs.existsSync(SHELL_FALLBACK_SCRIPT)) {
+      log("error", "Shell fallback script not found", { path: SHELL_FALLBACK_SCRIPT });
+      resolve(null);
+      return;
+    }
+
+    // Use 'solve-only' (without dashes) to match bash script argument parsing
     // The bash script uses case statement with 'solve-only' not '--solve-only'
-    const proc = spawn(SHELL_FALLBACK_SCRIPT, ["solve-only", puzzleText], {
+    const proc = spawn("bash", [SHELL_FALLBACK_SCRIPT, "solve-only", puzzleText], {
       env: {
         ...process.env,
         AI_GENERATOR_URL: AI_GENERATOR_URL,
@@ -628,6 +625,12 @@ async function submitAnswer(challengeId, answer) {
  * Check if text contains obfuscation markers (for reverse CAPTCHA detection)
  * Looks for: reversed words, index patterns, placeholders
  */
+/**
+ * Lightweight obfuscation detection for proxy-level triage.
+ * NOTE: This is a heuristic filter for initial detection only.
+ * The verification-service has sophisticated bigram analysis in obfuscation-decoder.ts
+ * for accurate reversal detection. This proxy function simply pre-filters candidates.
+ */
 function containsObfuscationMarkers(text) {
   // Common reversed word patterns (reversed English words)
   if (/txet|elbissopmi|hsilgnE/.test(text)) {
@@ -651,8 +654,7 @@ function containsObfuscationMarkers(text) {
  * Detect if challenge is complex/adversarial and should be delegated
  */
 function detectComplexChallenge(challenge) {
-  const question =
-    challenge.puzzle || challenge.question || challenge.text || "";
+  const question = challenge.puzzle || challenge.question || challenge.text || "";
   const lowerQuestion = question.toLowerCase();
 
   // Pattern 1: Explicit stack_challenge_v1 marker
@@ -682,19 +684,13 @@ function detectComplexChallenge(challenge) {
   }
 
   // Pattern 4: Upvote test style
-  if (
-    /upvote.*post|upvote.*this/i.test(question) &&
-    /do not.*anything else/i.test(question)
-  ) {
+  if (/upvote.*post|upvote.*this/i.test(question) && /do not.*anything else/i.test(question)) {
     return "upvote_test";
   }
 
   // Pattern 5: Lobster reverse CAPTCHA
   // Look for "lobster" keyword combined with obfuscation markers
-  if (
-    lowerQuestion.includes("lobster") &&
-    containsObfuscationMarkers(question)
-  ) {
+  if (lowerQuestion.includes("lobster") && containsObfuscationMarkers(question)) {
     return "lobster_reverse_captcha";
   }
 
@@ -710,9 +706,7 @@ async function delegateToVerificationService(challenge) {
   const id = challenge.id || challenge.challenge_id;
   const question = challenge.puzzle || challenge.question || challenge.text;
   const expiresAt =
-    challenge.expiresAt ||
-    challenge.expires_at ||
-    new Date(Date.now() + 300000).toISOString();
+    challenge.expiresAt || challenge.expires_at || new Date(Date.now() + 300000).toISOString();
 
   log("info", "🔀 Delegating complex challenge to verification service", {
     challengeId: id,
@@ -801,14 +795,10 @@ async function handleChallenge(challenge) {
   // Check if this is a complex/adversarial challenge
   const complexReason = detectComplexChallenge(challenge);
   if (complexReason) {
-    log(
-      "info",
-      "Complex challenge detected, delegating to verification service",
-      {
-        challengeId: id,
-        reason: complexReason,
-      },
-    );
+    log("info", "Complex challenge detected, delegating to verification service", {
+      challengeId: id,
+      reason: complexReason,
+    });
 
     const delegated = await delegateToVerificationService(challenge);
     if (delegated) {
@@ -856,10 +846,7 @@ async function handleChallenge(challenge) {
 function proxyRequest(clientReq, clientRes) {
   stats.totalRequests++;
 
-  const reqUrl = new URL(
-    clientReq.url,
-    `http://${clientReq.headers.host || "localhost"}`,
-  );
+  const reqUrl = new URL(clientReq.url, `http://${clientReq.headers.host || "localhost"}`);
 
   log("info", "Proxying request", {
     method: clientReq.method,
@@ -905,10 +892,7 @@ function proxyRequest(clientReq, clientRes) {
               detectionMethod = "top_level_challenge";
             }
             // Method 2: Nested type field
-            else if (
-              json.type === "verification_challenge" &&
-              (json.id || json.challengeId)
-            ) {
+            else if (json.type === "verification_challenge" && (json.id || json.challengeId)) {
               challenge = json;
               detectionMethod = "nested_type_field";
             }
@@ -975,20 +959,13 @@ function proxyRequest(clientReq, clientRes) {
                   // Challenge was embedded in a success response (e.g. 201 post creation).
                   // The action already completed — pass through the original response.
                   // Retrying would create a duplicate action.
-                  log(
-                    "info",
-                    "✅ Challenge solved, passing through original success response",
-                    {
-                      path: reqUrl.pathname,
-                      status: upstreamRes.statusCode,
-                    },
-                  );
+                  log("info", "✅ Challenge solved, passing through original success response", {
+                    path: reqUrl.pathname,
+                    status: upstreamRes.statusCode,
+                  });
                   stats.retrySuccesses++;
                   updateRates();
-                  clientRes.writeHead(
-                    upstreamRes.statusCode,
-                    upstreamRes.headers,
-                  );
+                  clientRes.writeHead(upstreamRes.statusCode, upstreamRes.headers);
                   clientRes.end(responseBody);
                   return; // FIX: Prevent fall-through
                 }
@@ -1033,13 +1010,9 @@ function proxyRequest(clientReq, clientRes) {
               } else {
                 stats.retryFailures++;
                 updateRates();
-                log(
-                  "error",
-                  "❌ Challenge solve failed, returning error to client",
-                  {
-                    path: reqUrl.pathname,
-                  },
-                );
+                log("error", "❌ Challenge solve failed, returning error to client", {
+                  path: reqUrl.pathname,
+                });
 
                 // FIX: Return proper error response instead of falling through
                 clientRes.writeHead(403, {
@@ -1049,8 +1022,7 @@ function proxyRequest(clientReq, clientRes) {
                   JSON.stringify({
                     error: "Verification challenge failed",
                     challenge_id: challenge.id || challenge.challenge_id,
-                    message:
-                      "Failed to solve verification challenge after all retries",
+                    message: "Failed to solve verification challenge after all retries",
                   }),
                 );
                 return; // FIX: Prevent fall-through
@@ -1120,9 +1092,7 @@ const server = http.createServer((req, res) => {
     updateRates();
     const totalChallenges = stats.challengesSolved + stats.challengesFailed;
     const failureRate =
-      totalChallenges > 0
-        ? (stats.challengesFailed / totalChallenges).toFixed(2)
-        : 0;
+      totalChallenges > 0 ? (stats.challengesFailed / totalChallenges).toFixed(2) : 0;
 
     res.writeHead(200, { "Content-Type": "application/json" });
     res.end(
@@ -1142,13 +1112,11 @@ const server = http.createServer((req, res) => {
 
   // Cache stats endpoint
   if (req.url === "/cache-stats" || req.url === "/_cache-stats") {
-    const entries = Array.from(challengeCache.entries()).map(
-      ([puzzle, data]) => ({
-        puzzlePreview: puzzle.substring(0, 50),
-        age: `${Math.floor((Date.now() - data.timestamp) / 1000)}s`,
-        hits: data.hits,
-      }),
-    );
+    const entries = Array.from(challengeCache.entries()).map(([puzzle, data]) => ({
+      puzzlePreview: puzzle.substring(0, 50),
+      age: `${Math.floor((Date.now() - data.timestamp) / 1000)}s`,
+      hits: data.hits,
+    }));
 
     res.writeHead(200, { "Content-Type": "application/json" });
     res.end(
@@ -1178,10 +1146,7 @@ const server = http.createServer((req, res) => {
 
     const delegationSuccessRate =
       stats.delegationAttempts > 0
-        ? (
-            (stats.delegationSuccesses / stats.delegationAttempts) *
-            100
-          ).toFixed(1) + "%"
+        ? ((stats.delegationSuccesses / stats.delegationAttempts) * 100).toFixed(1) + "%"
         : "N/A";
 
     res.writeHead(200, { "Content-Type": "application/json" });
@@ -1207,9 +1172,7 @@ const server = http.createServer((req, res) => {
             failures: stats.primaryModelFailures,
             successRate:
               totalAttempts > 0
-                ? ((stats.primaryModelSuccesses / totalAttempts) * 100).toFixed(
-                    1,
-                  ) + "%"
+                ? ((stats.primaryModelSuccesses / totalAttempts) * 100).toFixed(1) + "%"
                 : "N/A",
           },
           {
@@ -1220,10 +1183,7 @@ const server = http.createServer((req, res) => {
             failures: stats.fallbackModelFailures,
             successRate:
               totalAttempts > 0
-                ? (
-                    (stats.fallbackModelSuccesses / totalAttempts) *
-                    100
-                  ).toFixed(1) + "%"
+                ? ((stats.fallbackModelSuccesses / totalAttempts) * 100).toFixed(1) + "%"
                 : "N/A",
           },
           {
@@ -1235,9 +1195,7 @@ const server = http.createServer((req, res) => {
             failures: stats.aiGeneratorFailures,
             successRate:
               totalAttempts > 0
-                ? ((stats.aiGeneratorSuccesses / totalAttempts) * 100).toFixed(
-                    1,
-                  ) + "%"
+                ? ((stats.aiGeneratorSuccesses / totalAttempts) * 100).toFixed(1) + "%"
                 : "N/A",
           },
           {
@@ -1249,10 +1207,7 @@ const server = http.createServer((req, res) => {
             failures: stats.shellFallbackFailures,
             successRate:
               totalAttempts > 0
-                ? (
-                    (stats.shellFallbackSuccesses / totalAttempts) *
-                    100
-                  ).toFixed(1) + "%"
+                ? ((stats.shellFallbackSuccesses / totalAttempts) * 100).toFixed(1) + "%"
                 : "N/A",
           },
         ],
@@ -1263,17 +1218,13 @@ const server = http.createServer((req, res) => {
           overallSuccessRate:
             stats.challengesSolved + stats.challengesFailed > 0
               ? (
-                  (stats.challengesSolved /
-                    (stats.challengesSolved + stats.challengesFailed)) *
+                  (stats.challengesSolved / (stats.challengesSolved + stats.challengesFailed)) *
                   100
                 ).toFixed(1) + "%"
               : "N/A",
           delegationRate:
             stats.challengesDetected > 0
-              ? (
-                  (stats.delegationAttempts / stats.challengesDetected) *
-                  100
-                ).toFixed(1) + "%"
+              ? ((stats.delegationAttempts / stats.challengesDetected) * 100).toFixed(1) + "%"
               : "N/A",
         },
       }),

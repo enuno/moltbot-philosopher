@@ -78,12 +78,12 @@ global:
 
   # Fallback chain
   fallback_chain:
-      - "venice/claude-opus-4-6"
-      - "venice/claude-sonnet-4-6"
-      - "venice/llama-3.3-70b"
-      - "venice/deepseek-v3"
-      - "venice/google-gemma-3-27b-it"
-      - "venice/glm-4.7-flash-heretic"  # new uncensored model
+    - "venice/claude-opus-4-6"
+    - "venice/claude-sonnet-4-6"
+    - "venice/llama-3.3-70b"
+    - "venice/deepseek-v3"
+    - "venice/google-gemma-3-27b-it"
+    - "venice/glm-4.7-flash-heretic"  # new uncensored model
 
 # Persona-specific routing preferences
 personas:

@@ -3,13 +3,13 @@
  * Manages essay drafts lifecycle
  */
 
-import * as fs from 'fs/promises';
-import * as path from 'path';
+import * as fs from "fs/promises";
+import * as path from "path";
 
 /**
  * Draft status
  */
-export type DraftStatus = 'generating' | 'review' | 'approved' | 'published' | 'archived';
+export type DraftStatus = "generating" | "review" | "approved" | "published" | "archived";
 
 /**
  * Draft metadata
@@ -33,8 +33,11 @@ export interface Draft {
 export class DraftManager {
   private readonly draftsPath: string;
 
-  constructor(private readonly workspaceBase: string, private readonly agentName: string) {
-    this.draftsPath = path.join(workspaceBase, agentName, 'moltstack', 'drafts');
+  constructor(
+    private readonly workspaceBase: string,
+    private readonly agentName: string,
+  ) {
+    this.draftsPath = path.join(workspaceBase, agentName, "moltstack", "drafts");
   }
 
   /**
@@ -42,9 +45,9 @@ export class DraftManager {
    */
   private sanitizeId(id: string): string {
     // Only allow alphanumeric, hyphens, and underscores
-    const sanitized = id.replace(/[^a-zA-Z0-9_-]/g, '');
+    const sanitized = id.replace(/[^a-zA-Z0-9_-]/g, "");
     if (sanitized !== id || sanitized.length === 0) {
-      throw new Error('Invalid draft ID format');
+      throw new Error("Invalid draft ID format");
     }
     return sanitized;
   }
@@ -52,7 +55,7 @@ export class DraftManager {
   /**
    * Create new draft
    */
-  async createDraft(data: Omit<Draft, 'id' | 'createdAt' | 'updatedAt'>): Promise<Draft> {
+  async createDraft(data: Omit<Draft, "id" | "createdAt" | "updatedAt">): Promise<Draft> {
     const draft: Draft = {
       ...data,
       id: this.generateId(),
@@ -72,7 +75,7 @@ export class DraftManager {
     try {
       const safeId = this.sanitizeId(id);
       const filepath = path.join(this.draftsPath, `${safeId}.json`);
-      const content = await fs.readFile(filepath, 'utf-8');
+      const content = await fs.readFile(filepath, "utf-8");
       const draft = JSON.parse(content) as Draft;
 
       // Parse dates
@@ -118,12 +121,12 @@ export class DraftManager {
       await this.ensureDirectory();
 
       const files = await fs.readdir(this.draftsPath);
-      const jsonFiles = files.filter((f) => f.endsWith('.json'));
+      const jsonFiles = files.filter((f) => f.endsWith(".json"));
 
       const drafts: Draft[] = [];
       for (const file of jsonFiles) {
         const filepath = path.join(this.draftsPath, file);
-        const content = await fs.readFile(filepath, 'utf-8');
+        const content = await fs.readFile(filepath, "utf-8");
         const draft = JSON.parse(content) as Draft;
 
         // Parse dates
@@ -168,11 +171,11 @@ export class DraftManager {
     const allDrafts = await this.listDrafts();
 
     const byStatus = {
-      generating: allDrafts.filter((d) => d.status === 'generating').length,
-      review: allDrafts.filter((d) => d.status === 'review').length,
-      approved: allDrafts.filter((d) => d.status === 'approved').length,
-      published: allDrafts.filter((d) => d.status === 'published').length,
-      archived: allDrafts.filter((d) => d.status === 'archived').length,
+      generating: allDrafts.filter((d) => d.status === "generating").length,
+      review: allDrafts.filter((d) => d.status === "review").length,
+      approved: allDrafts.filter((d) => d.status === "approved").length,
+      published: allDrafts.filter((d) => d.status === "published").length,
+      archived: allDrafts.filter((d) => d.status === "archived").length,
     };
 
     return {
@@ -188,7 +191,7 @@ export class DraftManager {
     await this.ensureDirectory();
 
     const filepath = path.join(this.draftsPath, `${draft.id}.json`);
-    await fs.writeFile(filepath, JSON.stringify(draft, null, 2), 'utf-8');
+    await fs.writeFile(filepath, JSON.stringify(draft, null, 2), "utf-8");
   }
 
   private generateId(): string {

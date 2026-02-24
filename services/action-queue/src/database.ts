@@ -1,13 +1,8 @@
-import { Pool, PoolClient } from 'pg';
-import PgBoss from 'pg-boss';
-import { v4 as uuidv4 } from 'uuid';
-import {
-  QueuedAction,
-  ActionStatus,
-  ConditionalAction,
-  RateLimitState,
-} from './types';
-import { QUEUE_CONFIG } from './config';
+import { Pool, PoolClient } from "pg";
+import PgBoss from "pg-boss";
+import { v4 as uuidv4 } from "uuid";
+import { QueuedAction, ActionStatus, ConditionalAction, RateLimitState } from "./types";
+import { QUEUE_CONFIG } from "./config";
 
 /**
  * Job history record with execution details
@@ -71,9 +66,9 @@ export class DatabaseManager {
       await this.createCustomTables();
 
       this.initialized = true;
-      console.log('✅ DatabaseManager initialized (PostgreSQL + pg-boss)');
+      console.log("✅ DatabaseManager initialized (PostgreSQL + pg-boss)");
     } catch (error) {
-      console.error('❌ Failed to initialize DatabaseManager:', error);
+      console.error("❌ Failed to initialize DatabaseManager:", error);
       throw error;
     }
   }
@@ -139,7 +134,7 @@ export class DatabaseManager {
 
     try {
       // Insert job into pg-boss queue
-      await this.pgBoss.send('action:process', action, {
+      await this.pgBoss.send("action:process", action, {
         id: jobId,
         priority: action.priority,
         retryLimit: action.maxAttempts - 1,
@@ -149,11 +144,11 @@ export class DatabaseManager {
       });
 
       // Log the action for observability
-      await this.logAction(jobId, action.agentName, action.actionType, 'pending');
+      await this.logAction(jobId, action.agentName, action.actionType, "pending");
 
       return jobId;
     } catch (error) {
-      console.error('Failed to insert action:', error);
+      console.error("Failed to insert action:", error);
       throw error;
     }
   }
@@ -164,10 +159,7 @@ export class DatabaseManager {
   async getAction(id: string): Promise<ConditionalAction | null> {
     const client = await this.pool.connect();
     try {
-      const result = await client.query(
-        `SELECT * FROM action_logs WHERE job_id = $1`,
-        [id]
-      );
+      const result = await client.query(`SELECT * FROM action_logs WHERE job_id = $1`, [id]);
       if (result.rows.length === 0) {
         return null;
       }
@@ -187,7 +179,7 @@ export class DatabaseManager {
         error: row.last_error || undefined,
       } as ConditionalAction;
     } catch (error) {
-      console.error('Failed to get action:', error);
+      console.error("Failed to get action:", error);
       return null;
     } finally {
       client.release();
@@ -202,7 +194,7 @@ export class DatabaseManager {
     try {
       const result = await client.query(
         `SELECT * FROM action_logs WHERE status = $1 ORDER BY created_at DESC LIMIT $2`,
-        [status, limit]
+        [status, limit],
       );
       return result.rows;
     } finally {
@@ -218,7 +210,7 @@ export class DatabaseManager {
     try {
       await client.query(
         `UPDATE action_logs SET status = $1, last_error = $2, completed_at = NOW() WHERE job_id = $3`,
-        [status, error || null, id]
+        [status, error || null, id],
       );
     } finally {
       client.release();
@@ -231,16 +223,15 @@ export class DatabaseManager {
   async getRateLimit(agentName: string): Promise<RateLimitState> {
     const client = await this.pool.connect();
     try {
-      const result = await client.query(
-        `SELECT * FROM rate_limits WHERE agent_name = $1`,
-        [agentName]
-      );
+      const result = await client.query(`SELECT * FROM rate_limits WHERE agent_name = $1`, [
+        agentName,
+      ]);
 
       if (result.rows.length === 0) {
         // Initialize new rate limit
         await client.query(
           `INSERT INTO rate_limits(agent_name) VALUES($1) ON CONFLICT DO NOTHING`,
-          [agentName]
+          [agentName],
         );
         return {
           lastPostTimestamp: 0,
@@ -276,7 +267,13 @@ export class DatabaseManager {
          last_comment_timestamp = $3,
          last_follow_timestamp = $4,
          last_dm_timestamp = $5`,
-        [agentName, state.lastPostTimestamp, state.lastCommentTimestamp, state.lastFollowTimestamp, state.lastDmTimestamp]
+        [
+          agentName,
+          state.lastPostTimestamp,
+          state.lastCommentTimestamp,
+          state.lastFollowTimestamp,
+          state.lastDmTimestamp,
+        ],
       );
     } finally {
       client.release();
@@ -286,12 +283,17 @@ export class DatabaseManager {
   /**
    * Log action to action_logs table for observability
    */
-  private async logAction(jobId: string, agentName: string, actionType: string, status: string): Promise<void> {
+  private async logAction(
+    jobId: string,
+    agentName: string,
+    actionType: string,
+    status: string,
+  ): Promise<void> {
     const client = await this.pool.connect();
     try {
       await client.query(
         `INSERT INTO action_logs(job_id, agent_name, action_type, status) VALUES($1, $2, $3, $4)`,
-        [jobId, agentName, actionType, status]
+        [jobId, agentName, actionType, status],
       );
     } finally {
       client.release();
@@ -331,7 +333,7 @@ export class DatabaseManager {
     try {
       client = await this.pool.connect();
       // Get queue size from pg-boss
-      const queueSize = await this.pgBoss.getQueueSize('action:process');
+      const queueSize = await this.pgBoss.getQueueSize("action:process");
 
       // Query 1: Status breakdown
       const statusResult = await client.query(`
@@ -383,9 +385,9 @@ export class DatabaseManager {
       });
 
       const summary = {
-        total_queued: statusMap.get('pending') || 0,
-        total_completed: statusMap.get('completed') || 0,
-        total_failed: statusMap.get('failed') || 0,
+        total_queued: statusMap.get("pending") || 0,
+        total_completed: statusMap.get("completed") || 0,
+        total_failed: statusMap.get("failed") || 0,
         queue_size: queueSize,
       };
 
@@ -414,7 +416,7 @@ export class DatabaseManager {
         },
       };
     } catch (error) {
-      console.error('Failed to get stats:', error);
+      console.error("Failed to get stats:", error);
       return {
         summary: {
           total_queued: 0,
@@ -444,7 +446,8 @@ export class DatabaseManager {
   async getJobHistory(jobId: string): Promise<JobHistory> {
     const client = await this.pool.connect();
     try {
-      const result = await client.query(`
+      const result = await client.query(
+        `
         SELECT
           job_id,
           agent_name,
@@ -457,7 +460,9 @@ export class DatabaseManager {
           EXTRACT(EPOCH FROM (completed_at - created_at)) as latency_seconds
         FROM action_logs
         WHERE job_id = $1
-      `, [jobId]);
+      `,
+        [jobId],
+      );
 
       if (result.rows.length === 0) {
         throw new Error(`Job not found: ${jobId}`);
@@ -487,7 +492,8 @@ export class DatabaseManager {
     const client = await this.pool.connect();
     try {
       // Query action counts
-      const result = await client.query(`
+      const result = await client.query(
+        `
         SELECT
           COUNT(*) as total_actions,
           SUM(CASE WHEN status = 'completed' THEN 1 ELSE 0 END) as completed,
@@ -496,7 +502,9 @@ export class DatabaseManager {
           MAX(created_at) as last_action_at
         FROM action_logs
         WHERE agent_name = $1
-      `, [agentName]);
+      `,
+        [agentName],
+      );
 
       const row = result.rows[0];
       const total = parseInt(row.total_actions) || 0;
@@ -539,9 +547,9 @@ export class DatabaseManager {
     try {
       await this.pgBoss.stop();
       await this.pool.end();
-      console.log('✅ DatabaseManager closed');
+      console.log("✅ DatabaseManager closed");
     } catch (error) {
-      console.error('Error closing DatabaseManager:', error);
+      console.error("Error closing DatabaseManager:", error);
     }
   }
 
@@ -553,12 +561,12 @@ export class DatabaseManager {
     try {
       await client.query(
         `UPDATE action_logs SET status = $1, last_error = $2, completed_at = NOW() WHERE job_id = $3`,
-        [ActionStatus.CANCELLED, reason, id]
+        [ActionStatus.CANCELLED, reason, id],
       );
 
       // Also cancel the job in pg-boss
       try {
-        await this.pgBoss.cancel('action:process', id);
+        await this.pgBoss.cancel("action:process", id);
       } catch (_) {
         // Job may not exist in pg-boss, that's okay
       }

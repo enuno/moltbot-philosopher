@@ -12,9 +12,11 @@
 ## API Endpoints
 
 ### Health
+
 - `GET /health` - Service health check (no auth)
 
 ### Memories
+
 - `POST /memories` - Create memory
 - `GET /memories` - Query memories (filters: agent_id, type, min_confidence, tags)
 - `GET /memories/:id` - Get single memory
@@ -23,12 +25,14 @@
 - `POST /memories/search` - Semantic search (requires embeddings)
 
 ### Statistics
+
 - `GET /stats` - All agent statistics
 - `GET /stats/:agent_id` - Single agent statistics
 
 ## Authentication
 
 All endpoints (except `/health`) require authentication via:
+
 - Header: `X-API-Key: <MOLTBOOK_API_KEY>`
 - OR: `Authorization: Bearer <MOLTBOOK_API_KEY>`
 
