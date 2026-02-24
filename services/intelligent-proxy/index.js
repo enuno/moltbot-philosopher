@@ -17,8 +17,8 @@ const { spawn } = require("child_process");
 const PROXY_PORT = process.env.PROXY_PORT || 8082;
 const VENICE_API_KEY = process.env.VENICE_API_KEY;
 const VENICE_API_URL = "https://api.venice.ai/api/v1/chat/completions";
-const VENICE_PRIMARY_MODEL = "qwen3-235b-a22b-thinking-2507"; // Thinking model for reasoning
-const VENICE_FALLBACK_MODEL = "qwen3-4b"; // Fast fallback model
+const VENICE_PRIMARY_MODEL = "llama-3.2-3b"; // Primary model for challenge solving (67% success)
+const VENICE_FALLBACK_MODEL = "mistral-31-24b"; // Fallback model (tested via model comparison)
 const AI_GENERATOR_URL = process.env.AI_GENERATOR_URL || "http://ai-generator:3002";
 const VERIFICATION_SERVICE_URL =
   process.env.VERIFICATION_SERVICE_URL || "http://verification-service:3007";
@@ -211,10 +211,9 @@ function extractAnswer(rawAnswer, puzzleText) {
     return null;
   }
 
-  // Strip whitespace
-  let cleaned = rawAnswer.trim();
+  // Strip thinking blocks first (<think>...</think>)
+  let cleaned = rawAnswer.replace(/<think>[\s\S]*?<\/think>/gi, "").trim();
 
-  // With temperature 0.0 and max_tokens 8, response should be just a number
   // Try to extract pure numeric answer (handles cases like "92", "45.50", "92.00")
   const pureNumMatch = cleaned.match(/^[\s\*]*(\d+(?:\.\d+)?)\s*[\*]*$/);
   if (pureNumMatch) {
