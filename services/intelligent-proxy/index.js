@@ -11,7 +11,6 @@ const https = require("https");
 const { URL } = require("url");
 const fs = require("fs");
 const path = require("path");
-const { spawn } = require("child_process");
 
 // Configuration
 const PROXY_PORT = process.env.PROXY_PORT || 8082;
@@ -22,9 +21,6 @@ const VENICE_FALLBACK_MODEL = "mistral-31-24b"; // Fallback model (tested via mo
 const AI_GENERATOR_URL = process.env.AI_GENERATOR_URL || "http://ai-generator:3002";
 const VERIFICATION_SERVICE_URL =
   process.env.VERIFICATION_SERVICE_URL || "http://verification-service:3007";
-const SHELL_FALLBACK_SCRIPT =
-  process.env.SHELL_FALLBACK_SCRIPT || "/app/scripts/handle-verification-challenge.sh";
-const SHELL_FALLBACK_ENABLED = process.env.SHELL_FALLBACK_ENABLED === "true"; // Disabled by default - bash not in container
 const MOLTBOOK_API_KEY = process.env.MOLTBOOK_API_KEY;
 const CHALLENGE_TIMEOUT = 10000;
 const DEBUG = process.env.DEBUG === "true";
@@ -77,8 +73,6 @@ const stats = {
   fallbackModelFailures: 0,
   aiGeneratorSuccesses: 0,
   aiGeneratorFailures: 0,
-  shellFallbackSuccesses: 0,
-  shellFallbackFailures: 0,
   // Delegation stats
   delegationAttempts: 0,
   delegationSuccesses: 0,
@@ -310,24 +304,7 @@ async function solveChallenge(puzzleText) {
 
   stats.aiGeneratorFailures++;
 
-  // Last resort: Shell script fallback
-  if (SHELL_FALLBACK_ENABLED) {
-    log("warn", "All AI models failed, trying shell script fallback", {
-      script: SHELL_FALLBACK_SCRIPT,
-    });
-    answer = await solveWithShellScript(puzzleText);
-
-    if (answer) {
-      const duration = Date.now() - startTime;
-      recordLatency(duration);
-      stats.shellFallbackSuccesses++;
-      setCachedAnswer(puzzleText, answer);
-      return answer;
-    }
-
-    stats.shellFallbackFailures++;
-  }
-
+  // No remaining fallbacks - Venice + AI Generator cover all cases
   return null;
 }
 
@@ -473,109 +450,6 @@ Answer in under 60 tokens. No explanation unless explicitly requested. Output on
   }
 }
 
-async function solveWithShellScript(puzzleText) {
-  // FIX: Check if script exists before spawning
-  if (!fs.existsSync(SHELL_FALLBACK_SCRIPT)) {
-    log("error", "Shell fallback script not found", {
-      path: SHELL_FALLBACK_SCRIPT,
-    });
-    return null;
-  }
-
-  // FIX: Check if script is executable
-  try {
-    fs.accessSync(SHELL_FALLBACK_SCRIPT, fs.constants.X_OK);
-  } catch (err) {
-    log("error", "Shell fallback script not executable", {
-      path: SHELL_FALLBACK_SCRIPT,
-      error: err.message,
-    });
-    return null;
-  }
-
-  const startTime = Date.now();
-  log("info", "Calling shell script fallback", {
-    script: SHELL_FALLBACK_SCRIPT,
-    puzzlePreview: puzzleText.substring(0, 100),
-  });
-
-  return new Promise((resolve) => {
-    // Check if script exists
-    if (!fs.existsSync(SHELL_FALLBACK_SCRIPT)) {
-      log("error", "Shell fallback script not found", { path: SHELL_FALLBACK_SCRIPT });
-      resolve(null);
-      return;
-    }
-
-    // Use 'solve-only' (without dashes) to match bash script argument parsing
-    // The bash script uses case statement with 'solve-only' not '--solve-only'
-    const proc = spawn("bash", [SHELL_FALLBACK_SCRIPT, "solve-only", puzzleText], {
-      env: {
-        ...process.env,
-        AI_GENERATOR_URL: AI_GENERATOR_URL,
-        MOLTBOOK_API_KEY: MOLTBOOK_API_KEY,
-      },
-      timeout: CHALLENGE_TIMEOUT,
-    });
-
-    let stdout = "";
-    let stderr = "";
-
-    proc.stdout.on("data", (data) => {
-      stdout += data.toString();
-    });
-
-    proc.stderr.on("data", (data) => {
-      stderr += data.toString();
-    });
-
-    proc.on("close", (code) => {
-      const duration = Date.now() - startTime;
-
-      // FIX: Handle various exit codes properly
-      // Code 0 = success, Code null = killed by signal, Code > 0 = error
-      if (code === 0 && stdout.trim()) {
-        const answer = stdout.trim();
-        log("info", "Shell script solved challenge", {
-          answerPreview: answer.substring(0, 50),
-          duration: `${duration}ms`,
-        });
-        resolve(answer);
-      } else {
-        // Log more details about the failure
-        log("error", "Shell script failed to solve challenge", {
-          exitCode: code,
-          signal: proc.signalCode,
-          stderr: stderr.substring(0, 500),
-          stdout: stdout.substring(0, 500),
-          duration: `${duration}ms`,
-        });
-        resolve(null);
-      }
-    });
-
-    proc.on("error", (error) => {
-      const duration = Date.now() - startTime;
-      log("error", "Shell script spawn error", {
-        error: error.message,
-        code: error.code,
-        duration: `${duration}ms`,
-      });
-      resolve(null);
-    });
-
-    // Timeout handler - already handled by spawn timeout but double-check
-    setTimeout(() => {
-      if (!proc.killed) {
-        proc.kill();
-        log("error", "Shell script timeout (forced kill)", {
-          timeout: CHALLENGE_TIMEOUT,
-        });
-        resolve(null);
-      }
-    }, CHALLENGE_TIMEOUT + 1000); // Give extra 1s grace period
-  });
-}
 
 async function submitAnswer(challengeId, answer) {
   log("info", "Submitting challenge answer to Moltbook", {
@@ -1107,8 +981,6 @@ const server = http.createServer((req, res) => {
       stats.fallbackModelFailures +
       stats.aiGeneratorSuccesses +
       stats.aiGeneratorFailures +
-      stats.shellFallbackSuccesses +
-      stats.shellFallbackFailures +
       stats.delegationAttempts;
 
     const delegationSuccessRate =
@@ -1163,18 +1035,6 @@ const server = http.createServer((req, res) => {
             successRate:
               totalAttempts > 0
                 ? ((stats.aiGeneratorSuccesses / totalAttempts) * 100).toFixed(1) + "%"
-                : "N/A",
-          },
-          {
-            stage: 4,
-            name: "Shell Script Fallback",
-            script: SHELL_FALLBACK_SCRIPT,
-            enabled: SHELL_FALLBACK_ENABLED,
-            successes: stats.shellFallbackSuccesses,
-            failures: stats.shellFallbackFailures,
-            successRate:
-              totalAttempts > 0
-                ? ((stats.shellFallbackSuccesses / totalAttempts) * 100).toFixed(1) + "%"
                 : "N/A",
           },
         ],
