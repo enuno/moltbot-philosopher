@@ -19,10 +19,11 @@ describe('AI Content Generator - Health Endpoint', () => {
   beforeEach(() => {
     // Clear module cache to get fresh instance
     jest.resetModules();
-    
+
     // Reset API keys for each test
     delete process.env.VENICE_API_KEY;
     delete process.env.KIMI_API_KEY;
+    delete process.env.OPENROUTER_API_KEY;
   });
 
   describe('GET /health', () => {
@@ -67,6 +68,7 @@ describe('AI Content Generator - Health Endpoint', () => {
       expect(response.body.providers).toEqual({
         venice: true,
         kimi: true,
+        openrouter: false,
       });
     });
 
@@ -83,6 +85,7 @@ describe('AI Content Generator - Health Endpoint', () => {
       expect(response.body.providers).toEqual({
         venice: true,
         kimi: false,
+        openrouter: false,
       });
     });
 
@@ -99,6 +102,7 @@ describe('AI Content Generator - Health Endpoint', () => {
       expect(response.body.providers).toEqual({
         venice: false,
         kimi: true,
+        openrouter: false,
       });
     });
 
@@ -115,6 +119,7 @@ describe('AI Content Generator - Health Endpoint', () => {
       expect(response.body.providers).toEqual({
         venice: false,
         kimi: false,
+        openrouter: false,
       });
     });
 
