@@ -17,14 +17,14 @@ const { spawn } = require("child_process");
 const PROXY_PORT = process.env.PROXY_PORT || 8082;
 const VENICE_API_KEY = process.env.VENICE_API_KEY;
 const VENICE_API_URL = "https://api.venice.ai/api/v1/chat/completions";
-const VENICE_PRIMARY_MODEL = "venice/qwen3-4b"; // Fastest model for reasoning
-const VENICE_FALLBACK_MODEL = "venice/llama-3.2-3b"; // Backup model
+const VENICE_PRIMARY_MODEL = "qwen3-235b-a22b-thinking-2507"; // Thinking model for reasoning
+const VENICE_FALLBACK_MODEL = "qwen3-4b"; // Fast fallback model
 const AI_GENERATOR_URL = process.env.AI_GENERATOR_URL || "http://ai-generator:3002";
 const VERIFICATION_SERVICE_URL =
   process.env.VERIFICATION_SERVICE_URL || "http://verification-service:3007";
 const SHELL_FALLBACK_SCRIPT =
   process.env.SHELL_FALLBACK_SCRIPT || "/app/scripts/handle-verification-challenge.sh";
-const SHELL_FALLBACK_ENABLED = process.env.SHELL_FALLBACK_ENABLED !== "false";
+const SHELL_FALLBACK_ENABLED = process.env.SHELL_FALLBACK_ENABLED === "true"; // Disabled by default - bash not in container
 const MOLTBOOK_API_KEY = process.env.MOLTBOOK_API_KEY;
 const CHALLENGE_TIMEOUT = 10000;
 const DEBUG = process.env.DEBUG === "true";
@@ -211,27 +211,38 @@ function extractAnswer(rawAnswer, puzzleText) {
     return null;
   }
 
-  // Try to find labeled answer (Response:, Answer:, A:)
-  const labelMatch = rawAnswer.match(/(?:Response:|Answer:|A:)\s*(.+?)(?:\n|$)/i);
-  if (labelMatch) {
-    return labelMatch[1].trim();
+  // Strip whitespace
+  let cleaned = rawAnswer.trim();
+
+  // With temperature 0.0 and max_tokens 8, response should be just a number
+  // Try to extract pure numeric answer (handles cases like "92", "45.50", "92.00")
+  const pureNumMatch = cleaned.match(/^[\s\*]*(\d+(?:\.\d+)?)\s*[\*]*$/);
+  if (pureNumMatch) {
+    let answer = pureNumMatch[1];
+    // Ensure exactly two decimal places
+    if (answer.includes(".")) {
+      const parts = answer.split(".");
+      answer = parts[0] + "." + (parts[1] + "00").substring(0, 2);
+    } else {
+      answer = answer + ".00";
+    }
+    return answer;
   }
 
-  // Try to find numeric answer
-  const numericMatch = rawAnswer.match(/\b\d+\b/);
-  if (numericMatch) {
-    return numericMatch[0];
+  // Fallback: extract first number if response contains extra text
+  const numMatch = cleaned.match(/\b(\d+(?:\.\d+)?)\b/);
+  if (numMatch) {
+    let answer = numMatch[1];
+    if (answer.includes(".")) {
+      const parts = answer.split(".");
+      answer = parts[0] + "." + (parts[1] + "00").substring(0, 2);
+    } else {
+      answer = answer + ".00";
+    }
+    return answer;
   }
 
-  // Take first sentence before any meta-commentary
-  let answer = rawAnswer.split("\n")[0].split(".")[0].trim();
-
-  // If answer is too verbose (>50 chars), extract first few words
-  if (answer.length > 50) {
-    answer = answer.split(" ").slice(0, 5).join(" ");
-  }
-
-  return answer || null;
+  return null;
 }
 
 async function solveChallenge(puzzleText) {
@@ -342,17 +353,12 @@ async function solveWithVenice(puzzleText, model, isPrimary) {
         model: model,
         messages: [
           {
-            role: "system",
-            content:
-              "You solve verification puzzles quickly and accurately. Provide ONLY the direct answer with no explanation.",
-          },
-          {
             role: "user",
-            content: `Solve this verification puzzle:\n\n${puzzleText}\n\nAnswer:`,
+            content: `Parse the noise, do the math, return only the final numeric answer, no extra text: ${puzzleText}`,
           },
         ],
-        temperature: 0.1,
-        max_tokens: 100,
+        temperature: 0.0,
+        max_tokens: 8,
       }),
       signal: controller.signal,
     });
@@ -652,49 +658,11 @@ function containsObfuscationMarkers(text) {
 
 /**
  * Detect if challenge is complex/adversarial and should be delegated
+ * NOTE: Delegation disabled - verification-service doesn't have /solve endpoint
+ * All challenges now handled by Venice models
  */
 function detectComplexChallenge(challenge) {
-  const question = challenge.puzzle || challenge.question || challenge.text || "";
-  const lowerQuestion = question.toLowerCase();
-
-  // Pattern 1: Explicit stack_challenge_v1 marker
-  if (/stack_challenge_v\d/i.test(question)) {
-    return "stack_challenge_v1_explicit";
-  }
-
-  // Pattern 2: Tools, memory, and self-control challenge
-  if (
-    lowerQuestion.includes("tools") &&
-    lowerQuestion.includes("memory") &&
-    lowerQuestion.includes("self-control")
-  ) {
-    return "stack_challenge_v1_pattern";
-  }
-
-  // Pattern 3: Multi-part instructions with strict constraints
-  let complexityScore = 0;
-  if (/exactly.*two sentences/i.test(question)) complexityScore++;
-  if (/do not name.*list.*describe/i.test(question)) complexityScore++;
-  if (/store.*exact.*string/i.test(question)) complexityScore++;
-  if (/without.*tool|don't use.*tool/i.test(question)) complexityScore++;
-  if (/in your.*reply.*write/i.test(question)) complexityScore++;
-
-  if (complexityScore >= 3) {
-    return "multi_constraint_challenge";
-  }
-
-  // Pattern 4: Upvote test style
-  if (/upvote.*post|upvote.*this/i.test(question) && /do not.*anything else/i.test(question)) {
-    return "upvote_test";
-  }
-
-  // Pattern 5: Lobster reverse CAPTCHA
-  // Look for "lobster" keyword combined with obfuscation markers
-  if (lowerQuestion.includes("lobster") && containsObfuscationMarkers(question)) {
-    return "lobster_reverse_captcha";
-  }
-
-  // Not complex - handle normally
+  // Always return null - Venice models handle all challenges
   return null;
 }
 
