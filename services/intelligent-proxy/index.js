@@ -625,6 +625,29 @@ async function submitAnswer(challengeId, answer) {
 }
 
 /**
+ * Check if text contains obfuscation markers (for reverse CAPTCHA detection)
+ * Looks for: reversed words, index patterns, placeholders
+ */
+function containsObfuscationMarkers(text) {
+  // Common reversed word patterns (reversed English words)
+  if (/txet|elbissopmi|hsilgnE/.test(text)) {
+    return true;
+  }
+
+  // Index patterns like [0,5,2,8] or [1,2,3,4,5]
+  if (/\[\d+(?:,\d+)+\]/.test(text)) {
+    return true;
+  }
+
+  // Placeholder patterns like [***] or [**]
+  if (/\[\*+\]/.test(text)) {
+    return true;
+  }
+
+  return false;
+}
+
+/**
  * Detect if challenge is complex/adversarial and should be delegated
  */
 function detectComplexChallenge(challenge) {
@@ -664,6 +687,15 @@ function detectComplexChallenge(challenge) {
     /do not.*anything else/i.test(question)
   ) {
     return "upvote_test";
+  }
+
+  // Pattern 5: Lobster reverse CAPTCHA
+  // Look for "lobster" keyword combined with obfuscation markers
+  if (
+    lowerQuestion.includes("lobster") &&
+    containsObfuscationMarkers(question)
+  ) {
+    return "lobster_reverse_captcha";
   }
 
   // Not complex - handle normally
@@ -1338,3 +1370,11 @@ setInterval(() => {
     });
   }
 }, 300000); // Every 5 minutes
+
+// Export functions for testing
+if (process.env.NODE_ENV === "test" || require.main !== module) {
+  module.exports = {
+    detectComplexChallenge,
+    containsObfuscationMarkers,
+  };
+}
