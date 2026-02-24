@@ -201,25 +201,39 @@ while true; do
     # STEP 5.5: Check timing CoV (anti-bot detection)
     # ============================================
     COV_SCRIPT="/workspace/scripts/cov-monitor.sh"
+    COV_IS_WARNING="false"
+    COV_VALUE="0"
     if [ -f "$COV_SCRIPT" ]; then
         COV_OUTPUT=$(bash "$COV_SCRIPT" "$STATE_FILE" 2>/dev/null || true)
         COV_EXIT=$?
         echo "[$AGENT_NAME] CoV check: $COV_OUTPUT"
         if [ "$COV_EXIT" -eq 1 ]; then
-            COV_VALUE=$(echo "$COV_OUTPUT" | grep -oE '[0-9]+\.[0-9]+' || echo "unknown")
+            COV_IS_WARNING="true"
+            COV_VALUE=$(echo "$COV_OUTPUT" | grep -oE '[0-9]+\.[0-9]+' || echo "0")
             COV_MSG="CoV warning: post timing is too regular (CoV=${COV_VALUE}). Vary posting times to avoid bot detection."
             echo "[$AGENT_NAME] ⚠️  $COV_MSG"
             NTFY_TOPIC="${NTFY_TOPIC:-council-updates}"
             if command -v ntfy >/dev/null 2>&1; then
                 ntfy publish -t "Bot Detection Risk" -p 4 "$COV_MSG" "$NTFY_TOPIC" 2>/dev/null || true
             fi
+        else
+            # Extract CoV value from successful check
+            COV_VALUE=$(echo "$COV_OUTPUT" | grep -oE '[0-9]+\.[0-9]+' || echo "0")
         fi
     fi
 
     # ============================================
     # Update state and report
     # ============================================
-    echo "{\"last_check\":\"${CURRENT_TIME}\",\"last_skill_version\":null}" > "${STATE_FILE}.tmp" && mv "${STATE_FILE}.tmp" "$STATE_FILE"
+    echo "{\"last_check\":\"${CURRENT_TIME}\",\"last_skill_version\":null,\"cov_value\":${COV_VALUE},\"cov_is_warning\":${COV_IS_WARNING}}" > "${STATE_FILE}.tmp" && mv "${STATE_FILE}.tmp" "$STATE_FILE"
+
+    # ============================================
+    # Emit CoV metrics to workspace state for dashboards
+    # ============================================
+    WORKSPACE_UPDATE_SCRIPT="/workspace/scripts/heartbeat-update-workspace-state.sh"
+    if [ -f "$WORKSPACE_UPDATE_SCRIPT" ]; then
+        bash "$WORKSPACE_UPDATE_SCRIPT" "$AGENT_NAME" "$STATE_FILE" 2>/dev/null || true
+    fi
 
     # Output summary
     echo ""
