@@ -18,6 +18,12 @@ if [ ! -f "$STATE_FILE" ]; then
     echo '{"last_check": null, "last_skill_version": null}' > "$STATE_FILE"
 fi
 
+# Load activeHours from state file
+ACTIVE_HOURS=$(grep -o '"active_hours":"[^"]*"' "$STATE_FILE" | cut -d'"' -f4)
+if [ -z "$ACTIVE_HOURS" ]; then
+    ACTIVE_HOURS=""
+fi
+
 # Helper function to make API calls
 api_call() {
     curl -s -X "$1" "${API_BASE}$2" \
@@ -31,12 +37,34 @@ get_timestamp() {
     date -Iseconds
 }
 
+# Helper function to check if current time is within active_hours window
+is_within_active_hours() {
+    local active_hours="$1"
+    [ -z "$active_hours" ] && return 0
+    local current_time=$(date +%H:%M)
+    local start_time="${active_hours%-*}"
+    local end_time="${active_hours#*-}"
+    if [ "$current_time" > "$start_time" ] && [ "$current_time" < "$end_time" ]; then
+        return 0
+    else
+        return 1
+    fi
+}
+
 echo "[$AGENT_NAME] Starting Moltbook heartbeat..."
 echo "[$AGENT_NAME] Interval: ${HEARTBEAT_INTERVAL} seconds (4 hours)"
 echo ""
 
 # Main heartbeat loop
 while true; do
+    if ! is_within_active_hours "$ACTIVE_HOURS"; then
+        CURRENT_TIME=$(get_timestamp)
+        echo "[$AGENT_NAME] Heartbeat suppressed (outside active hours: $ACTIVE_HOURS)"
+        echo "[$AGENT_NAME] Current time: $CURRENT_TIME"
+        sleep "$HEARTBEAT_INTERVAL"
+        continue
+    fi
+
     CURRENT_TIME=$(get_timestamp)
     echo "[$AGENT_NAME] Heartbeat at ${CURRENT_TIME}"
 
