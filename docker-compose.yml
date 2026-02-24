@@ -682,6 +682,8 @@ services:
         condition: service_healthy
       egress-proxy:
         condition: service_healthy
+      postgres:
+        condition: service_healthy
     mem_limit: 512M
     cpus: 0.5
     restart: unless-stopped
