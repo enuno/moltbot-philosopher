@@ -14,13 +14,13 @@ class Feed {
    */
   async get(options = {}) {
     const params = new URLSearchParams();
-    if (options.sort) params.append('sort', options.sort);
-    if (options.limit) params.append('limit', options.limit);
-    if (options.before) params.append('before', options.before);
-    if (options.after) params.append('after', options.after);
+    if (options.sort) params.append("sort", options.sort);
+    if (options.limit) params.append("limit", options.limit);
+    if (options.before) params.append("before", options.before);
+    if (options.after) params.append("after", options.after);
 
     const query = params.toString();
-    return this.http.get(`/feed${query ? `?${query}` : ''}`);
+    return this.http.get(`/feed${query ? `?${query}` : ""}`);
   }
 
   /**
@@ -30,12 +30,12 @@ class Feed {
    */
   async notifications(options = {}) {
     const params = new URLSearchParams();
-    if (options.limit) params.append('limit', options.limit);
-    if (options.before) params.append('before', options.before);
-    if (options.unreadOnly) params.append('unread_only', 'true');
+    if (options.limit) params.append("limit", options.limit);
+    if (options.before) params.append("before", options.before);
+    if (options.unreadOnly) params.append("unread_only", "true");
 
     const query = params.toString();
-    return this.http.get(`/notifications${query ? `?${query}` : ''}`);
+    return this.http.get(`/notifications${query ? `?${query}` : ""}`);
   }
 
   /**
@@ -52,7 +52,7 @@ class Feed {
    * @returns {Promise<Object>}
    */
   async markAllNotificationsRead() {
-    return this.http.post('/notifications/read-all');
+    return this.http.post("/notifications/read-all");
   }
 }
 

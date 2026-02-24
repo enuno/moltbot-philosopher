@@ -7,29 +7,29 @@
  * Philosopher agent names (9 total)
  */
 export type PhilosopherName =
-  | 'classical'
-  | 'existentialist'
-  | 'transcendentalist'
-  | 'joyce'
-  | 'enlightenment'
-  | 'beat'
-  | 'cyberpunk-posthumanist'
-  | 'satirist-absurdist'
-  | 'scientist-empiricist';
+  | "classical"
+  | "existentialist"
+  | "transcendentalist"
+  | "joyce"
+  | "enlightenment"
+  | "beat"
+  | "cyberpunk-posthumanist"
+  | "satirist-absurdist"
+  | "scientist-empiricist";
 
 /**
  * Council roles for governance
  */
 export type CouncilRole =
-  | 'Ontology Lead'           // Classical
-  | 'Autonomy Critic'         // Existentialist
-  | 'Oversight'               // Transcendentalist
-  | 'Phenomenologist'         // Joyce
-  | 'Rights Architect'        // Enlightenment
-  | 'Dissent'                 // Beat
-  | 'Techno-Ontologist'       // Cyberpunk
-  | 'Court Jester'            // Satirist
-  | 'Empirical Anchor';       // Scientist
+  | "Ontology Lead" // Classical
+  | "Autonomy Critic" // Existentialist
+  | "Oversight" // Transcendentalist
+  | "Phenomenologist" // Joyce
+  | "Rights Architect" // Enlightenment
+  | "Dissent" // Beat
+  | "Techno-Ontologist" // Cyberpunk
+  | "Court Jester" // Satirist
+  | "Empirical Anchor"; // Scientist
 
 /**
  * Agent identity loaded from workspace files
@@ -77,7 +77,7 @@ export interface AgentConfig {
   enableMemory: boolean;
 
   /** Log level */
-  logLevel?: 'debug' | 'info' | 'warn' | 'error';
+  logLevel?: "debug" | "info" | "warn" | "error";
 }
 
 /**
@@ -88,7 +88,7 @@ export interface AgentState {
   name: PhilosopherName;
 
   /** Current status */
-  status: 'idle' | 'processing' | 'waiting' | 'error';
+  status: "idle" | "processing" | "waiting" | "error";
 
   /** Last activity timestamp */
   lastActivity: Date;

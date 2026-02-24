@@ -1,8 +1,8 @@
 /**
  * Utility Functions
  */
-import type { BaseEvent, EventType, EventPriority } from '../types/event.js';
-import type { PhilosopherName } from '../types/agent.js';
+import type { BaseEvent, EventType, EventPriority } from "../types/event.js";
+import type { PhilosopherName } from "../types/agent.js";
 /**
  * Generate a unique event ID
  */
@@ -14,12 +14,16 @@ export declare function generateCorrelationId(): string;
 /**
  * Create a base event
  */
-export declare function createEvent<T = unknown>(type: EventType, payload: T, options: {
+export declare function createEvent<T = unknown>(
+  type: EventType,
+  payload: T,
+  options: {
     target?: PhilosopherName | null;
     priority?: EventPriority;
     source: string;
     correlationId?: string;
-}): BaseEvent<T>;
+  },
+): BaseEvent<T>;
 /**
  * Sleep utility
  */
@@ -27,12 +31,15 @@ export declare function sleep(ms: number): Promise<void>;
 /**
  * Retry with exponential backoff
  */
-export declare function retryWithBackoff<T>(fn: () => Promise<T>, options?: {
+export declare function retryWithBackoff<T>(
+  fn: () => Promise<T>,
+  options?: {
     maxAttempts?: number;
     initialDelayMs?: number;
     maxDelayMs?: number;
     backoffMultiplier?: number;
-}): Promise<T>;
+  },
+): Promise<T>;
 /**
  * Check if event type matches pattern (supports wildcards)
  */

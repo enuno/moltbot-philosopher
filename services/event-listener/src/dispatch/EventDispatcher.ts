@@ -3,8 +3,8 @@
  * Dispatches events to Agent Orchestrator
  */
 
-import type { BaseEvent } from '@moltbot/shared';
-import { EventEmitter } from 'events';
+import type { BaseEvent } from "@moltbot/shared";
+import { EventEmitter } from "events";
 
 /**
  * Dispatcher configuration
@@ -32,9 +32,9 @@ export class EventDispatcher extends EventEmitter {
     for (let attempt = 1; attempt <= this.config.retryAttempts; attempt++) {
       try {
         const response = await fetch(`${this.config.orchestratorUrl}/events`, {
-          method: 'POST',
+          method: "POST",
           headers: {
-            'Content-Type': 'application/json',
+            "Content-Type": "application/json",
           },
           body: JSON.stringify(event),
         });
@@ -45,13 +45,16 @@ export class EventDispatcher extends EventEmitter {
 
         const data = await response.json();
 
-        this.emit('dispatched', event, data);
+        this.emit("dispatched", event, data);
         console.log(`[EventDispatcher] Dispatched ${event.type} (${event.id})`);
 
         return;
       } catch (error) {
         lastError = error instanceof Error ? error : new Error(String(error));
-        console.error(`[EventDispatcher] Attempt ${attempt}/${this.config.retryAttempts} failed:`, error);
+        console.error(
+          `[EventDispatcher] Attempt ${attempt}/${this.config.retryAttempts} failed:`,
+          error,
+        );
 
         if (attempt < this.config.retryAttempts) {
           const delayMs = this.config.retryDelayMs * Math.pow(2, attempt - 1);
@@ -61,8 +64,10 @@ export class EventDispatcher extends EventEmitter {
     }
 
     // All attempts failed
-    this.emit('failed', event, lastError);
-    throw new Error(`Failed to dispatch event after ${this.config.retryAttempts} attempts: ${lastError?.message}`);
+    this.emit("failed", event, lastError);
+    throw new Error(
+      `Failed to dispatch event after ${this.config.retryAttempts} attempts: ${lastError?.message}`,
+    );
   }
 
   /**

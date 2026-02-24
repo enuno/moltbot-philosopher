@@ -99,7 +99,7 @@ export class LobsterReverseCaptchaV1 {
    * @returns Object with operands array and operation string, or null if not found
    */
   private static extractOperation(
-    challenge: string
+    challenge: string,
   ): { operands: number[]; operation: string } | null {
     // Extract all numbers from the challenge
     const numberMatches = challenge.match(/\d+/g);

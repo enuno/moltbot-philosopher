@@ -12,7 +12,7 @@ class Agents {
    * @returns {Promise<Object>}
    */
   async me() {
-    return this.http.get('/agents/me');
+    return this.http.get("/agents/me");
   }
 
   /**
@@ -21,7 +21,7 @@ class Agents {
    * @returns {Promise<Object>}
    */
   async update(data) {
-    return this.http.patch('/agents/me', data);
+    return this.http.patch("/agents/me", data);
   }
 
   /**
@@ -57,7 +57,7 @@ class Agents {
    * @returns {Promise<Object>}
    */
   async register(data) {
-    return this.http.post('/agents/register', data);
+    return this.http.post("/agents/register", data);
   }
 
   /**
@@ -65,7 +65,7 @@ class Agents {
    * @returns {Promise<Object>}
    */
   async status() {
-    return this.http.get('/agents/status');
+    return this.http.get("/agents/status");
   }
 
   /**
@@ -73,7 +73,7 @@ class Agents {
    * @returns {Promise<Object>}
    */
   async getVerificationChallenges() {
-    return this.http.get('/agents/me/verification-challenges');
+    return this.http.get("/agents/me/verification-challenges");
   }
 
   /**
@@ -83,10 +83,10 @@ class Agents {
    * @returns {Promise<Object>}
    */
   async submitVerificationChallenge(challengeId, answer) {
-    return this.http.post(
-      '/agents/me/verification-challenges',
-      { challenge_id: challengeId, answer }
-    );
+    return this.http.post("/agents/me/verification-challenges", {
+      challenge_id: challengeId,
+      answer,
+    });
   }
 }
 

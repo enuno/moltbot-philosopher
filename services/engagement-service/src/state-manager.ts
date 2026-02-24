@@ -5,8 +5,8 @@
  * Uses async file operations for non-blocking I/O
  */
 
-import fs from 'fs/promises';
-import { EngagementState, QueuedAction, ActionType, FollowedAccount } from './types';
+import fs from "fs/promises";
+import { EngagementState, QueuedAction, ActionType, FollowedAccount } from "./types";
 
 export class StateManager {
   private statePath: string;
@@ -19,7 +19,7 @@ export class StateManager {
    * Load state from disk with automatic daily reset (async)
    */
   async loadState(): Promise<EngagementState> {
-    const raw = await fs.readFile(this.statePath, 'utf-8');
+    const raw = await fs.readFile(this.statePath, "utf-8");
     const state = JSON.parse(raw) as EngagementState;
 
     // Auto-reset daily stats if day changed
@@ -31,7 +31,7 @@ export class StateManager {
         commentsMade: 0,
         accountsFollowed: 0,
         dmRequestsSent: 0,
-        threadsParticipated: 0
+        threadsParticipated: 0,
       };
       state.dailyReset = today;
     }
@@ -54,25 +54,25 @@ export class StateManager {
       // Merge: keep higher daily_stats counts
       state.dailyStats.postsCreated = Math.max(
         current.dailyStats.postsCreated,
-        state.dailyStats.postsCreated
+        state.dailyStats.postsCreated,
       );
       state.dailyStats.commentsMade = Math.max(
         current.dailyStats.commentsMade,
-        state.dailyStats.commentsMade
+        state.dailyStats.commentsMade,
       );
       state.dailyStats.accountsFollowed = Math.max(
         current.dailyStats.accountsFollowed,
-        state.dailyStats.accountsFollowed
+        state.dailyStats.accountsFollowed,
       );
       state.dailyStats.dmRequestsSent = Math.max(
         current.dailyStats.dmRequestsSent,
-        state.dailyStats.dmRequestsSent
+        state.dailyStats.dmRequestsSent,
       );
 
       // Merge queues: union of both, deduplicated by postId
       const mergedQueue = [...state.engagementQueue, ...current.engagementQueue];
       const seen = new Set<string>();
-      state.engagementQueue = mergedQueue.filter(item => {
+      state.engagementQueue = mergedQueue.filter((item) => {
         if (seen.has(item.postId)) return false;
         seen.add(item.postId);
         return true;
@@ -109,19 +109,19 @@ export class StateManager {
     const state = await this.loadState();
 
     switch (actionType) {
-      case 'post':
+      case "post":
         state.dailyStats.postsCreated++;
         state.rateLimits.lastPostTimestamp = Date.now();
         break;
-      case 'comment':
+      case "comment":
         state.dailyStats.commentsMade++;
         state.rateLimits.lastCommentTimestamp = Date.now();
         break;
-      case 'follow':
+      case "follow":
         state.dailyStats.accountsFollowed++;
         state.rateLimits.lastFollowTimestamp = Date.now();
         break;
-      case 'dm':
+      case "dm":
         state.dailyStats.dmRequestsSent++;
         state.rateLimits.lastDmTimestamp = Date.now();
         break;
@@ -139,14 +139,14 @@ export class StateManager {
     const state = await this.loadState();
 
     // Check if account already followed
-    const existing = state.followedAccounts.findIndex(a => a.name === account.name);
+    const existing = state.followedAccounts.findIndex((a) => a.name === account.name);
 
     if (existing >= 0) {
       // Update existing entry
       state.followedAccounts[existing] = {
         ...state.followedAccounts[existing],
         ...account,
-        firstSeen: state.followedAccounts[existing].firstSeen // Preserve original firstSeen
+        firstSeen: state.followedAccounts[existing].firstSeen, // Preserve original firstSeen
       };
     } else {
       // Add new account
@@ -165,7 +165,7 @@ export class StateManager {
     postsSeenCount: number;
   }> {
     const state = await this.loadState();
-    const account = state.followedAccounts.find(a => a.name === accountName);
+    const account = state.followedAccounts.find((a) => a.name === accountName);
 
     if (!account) {
       return { canFollow: false, postsSeenCount: 0 };
@@ -173,7 +173,7 @@ export class StateManager {
 
     return {
       canFollow: account.postsSeenCount >= 3,
-      postsSeenCount: account.postsSeenCount
+      postsSeenCount: account.postsSeenCount,
     };
   }
 
@@ -183,7 +183,7 @@ export class StateManager {
    */
   async incrementPostsSeen(accountName: string): Promise<void> {
     const state = await this.loadState();
-    const account = state.followedAccounts.find(a => a.name === accountName);
+    const account = state.followedAccounts.find((a) => a.name === accountName);
 
     if (account) {
       account.postsSeenCount++;
@@ -197,6 +197,6 @@ export class StateManager {
    * Get today's date in ISO format (YYYY-MM-DD)
    */
   private getTodayISO(): string {
-    return new Date().toISOString().split('T')[0];
+    return new Date().toISOString().split("T")[0];
   }
 }

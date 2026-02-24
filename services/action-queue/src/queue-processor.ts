@@ -1,8 +1,8 @@
-import { DatabaseManager } from './database';
-import { ActionExecutor } from './action-executor';
-import { RateLimiter } from './rate-limiter';
-import { Priority, ActionStatus, QueuedAction, ConditionalAction } from './types';
-import PgBoss from 'pg-boss';
+import { DatabaseManager } from "./database";
+import { ActionExecutor } from "./action-executor";
+import { RateLimiter } from "./rate-limiter";
+import { Priority, ActionStatus, QueuedAction, ConditionalAction } from "./types";
+import PgBoss from "pg-boss";
 
 /**
  * Queue Processor
@@ -35,14 +35,14 @@ export class QueueProcessor {
     this.pgBoss = this.db.getPgBoss();
 
     // Register job handler for main action processing queue
-    await this.pgBoss!.work<any>('action:process', async (jobs) => {
+    await this.pgBoss!.work<any>("action:process", async (jobs) => {
       for (const job of jobs) {
         await this.executeAction(job);
       }
     });
 
     this.running = true;
-    console.log('✅ QueueProcessor started - listening to pg-boss queues');
+    console.log("✅ QueueProcessor started - listening to pg-boss queues");
   }
 
   /**
@@ -50,9 +50,9 @@ export class QueueProcessor {
    */
   async stop(): Promise<void> {
     if (!this.pgBoss) return;
-    await this.pgBoss.offWork('action:process');
+    await this.pgBoss.offWork("action:process");
     this.running = false;
-    console.log('⛔ QueueProcessor stopped');
+    console.log("⛔ QueueProcessor stopped");
   }
 
   /**
@@ -71,7 +71,7 @@ export class QueueProcessor {
         if (!shouldExecute) {
           console.log(`⏳ Conditions not met for action: ${jobId}`);
           await this.db.updateActionStatus(jobId, ActionStatus.SCHEDULED);
-          throw new Error('Conditions not met - will retry');
+          throw new Error("Conditions not met - will retry");
         }
       }
 
@@ -80,7 +80,7 @@ export class QueueProcessor {
       if (!canExecute) {
         console.log(`⏸️  Rate limited: ${action.agentName}`);
         await this.db.updateActionStatus(jobId, ActionStatus.RATE_LIMITED);
-        throw new Error('Rate limited - will retry');
+        throw new Error("Rate limited - will retry");
       }
 
       // Check circuit breaker
@@ -124,12 +124,12 @@ export class QueueProcessor {
    */
   private isRetryable(error: any): boolean {
     const retryableErrors = [
-      'ECONNREFUSED',
-      'RATE_LIMIT_EXCEEDED',
-      'TIMEOUT',
-      'TEMPORARY_ERROR',
-      'ENOTFOUND',
-      'ECONNRESET',
+      "ECONNREFUSED",
+      "RATE_LIMIT_EXCEEDED",
+      "TIMEOUT",
+      "TEMPORARY_ERROR",
+      "ENOTFOUND",
+      "ECONNRESET",
     ];
 
     const errorMsg = error instanceof Error ? error.message : String(error);
@@ -152,11 +152,11 @@ export class QueueProcessor {
         throw new Error(`Circuit breaker open: ${agentName} has >50% failure rate`);
       }
     } catch (error) {
-      if ((error as any)?.message?.includes('Circuit breaker')) {
+      if ((error as any)?.message?.includes("Circuit breaker")) {
         throw error;
       }
       // Silently continue if we can't check circuit breaker (DB error, etc)
-      console.warn('Warning: Could not check circuit breaker:', error);
+      console.warn("Warning: Could not check circuit breaker:", error);
     }
   }
 
@@ -182,7 +182,9 @@ export class QueueProcessor {
 
     if (lastCheck && now.getTime() - lastCheck.getTime() < checkInterval) {
       // Not yet time to check conditions, keep waiting
-      console.log(`⏳ Conditions will be checked again at ${new Date(lastCheck.getTime() + checkInterval)}`);
+      console.log(
+        `⏳ Conditions will be checked again at ${new Date(lastCheck.getTime() + checkInterval)}`,
+      );
       return false;
     }
 

@@ -12,6 +12,7 @@ clawdis:
 # ClawSec Suite
 
 This means `clawsec-suite` can:
+
 - monitor the ClawSec advisory feed,
 - track which advisories are new since last check,
 - cross-reference advisories against locally installed skills,
@@ -21,6 +22,7 @@ This means `clawsec-suite` can:
 ## Included vs Optional Protections
 
 ### Built into clawsec-suite
+
 - Embedded feed seed file: `advisories/feed.json`
 - Portable heartbeat workflow in `HEARTBEAT.md`
 - Advisory polling + state tracking + affected-skill checks
@@ -29,6 +31,7 @@ This means `clawsec-suite` can:
 - Guarded installer: `scripts/guarded_skill_install.mjs`
 
 ### installed separately
+
 - `openclaw-audit-watchdog`
 - `soul-guardian`
 - `clawtributor` (explicit opt-in)
@@ -160,6 +163,7 @@ node "$SUITE_DIR/scripts/setup_advisory_cron.mjs"
 ```
 
 What this adds:
+
 - scan on `agent:bootstrap` and `/new` (`command:new`),
 - compare advisory `affected` entries against installed skills,
 - notify when new matches appear,
@@ -177,6 +181,7 @@ node "$SUITE_DIR/scripts/guarded_skill_install.mjs" --skill helper-plus --versio
 ```
 
 Behavior:
+
 - If no advisory match is found, install proceeds.
 - If `--version` is omitted, matching is conservative: any advisory that references the skill name is treated as a match.
 - If advisory match is found, the script prints advisory context and exits with code `42`.
@@ -187,6 +192,7 @@ node "$SUITE_DIR/scripts/guarded_skill_install.mjs" --skill helper-plus --versio
 ```
 
 This enforces:
+
 1. First confirmation: user asked to install.
 2. Second confirmation: user explicitly approves install after seeing advisory details.
 
@@ -252,6 +258,7 @@ Use the suite heartbeat script as the single periodic security check entrypoint:
 - `skills/clawsec-suite/HEARTBEAT.md`
 
 It handles:
+
 - suite update checks,
 - feed polling,
 - new-advisory detection,

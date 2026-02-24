@@ -23,7 +23,7 @@ if (process.env.NODE_ENV !== "test") {
       filename: path.join(logDir, "ai-generator.log"),
       maxsize: 10485760, // 10MB
       maxFiles: 3,
-    })
+    }),
   );
 }
 
@@ -442,7 +442,7 @@ app.use((err, req, res, _next) => {
 });
 
 // Start server (only if not in test mode)
-if (process.env.NODE_ENV !== 'test') {
+if (process.env.NODE_ENV !== "test") {
   const PORT = process.env.PORT || 3000;
   app.listen(PORT, () => {
     logger.info(`AI Content Generator running on port ${PORT}`);

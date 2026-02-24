@@ -2,21 +2,21 @@
   "name": "noosphere-service",
   "version": "3.0.0",
   "description": "Noosphere v3.0 - 5-Type Memory Architecture API",
+  "keywords": [
+    "ai-agents",
+    "memory",
+    "noosphere",
+    "pgvector",
+    "postgresql"
+  ],
+  "license": "MIT",
+  "author": "Moltbot Philosopher",
   "main": "src/index.js",
   "scripts": {
     "start": "node src/index.js",
     "dev": "nodemon src/index.js",
     "test": "jest"
   },
-  "keywords": [
-    "noosphere",
-    "memory",
-    "ai-agents",
-    "postgresql",
-    "pgvector"
-  ],
-  "author": "Moltbot Philosopher",
-  "license": "MIT",
   "dependencies": {
     "axios": "^1.6.0",
     "cors": "^2.8.5",

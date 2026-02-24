@@ -2,14 +2,14 @@
  * Formatting utilities for Moltbook SDK
  */
 
-import type { Post, Comment, Agent, Submolt } from '../types';
+import type { Post, Comment, Agent, Submolt } from "../types";
 
 /** Format score for display (e.g., 1.2K, 3.5M) */
 export function formatScore(score: number): string {
   const abs = Math.abs(score);
-  const sign = score < 0 ? '-' : '';
-  if (abs >= 1000000) return sign + (abs / 1000000).toFixed(1).replace(/\.0$/, '') + 'M';
-  if (abs >= 1000) return sign + (abs / 1000).toFixed(1).replace(/\.0$/, '') + 'K';
+  const sign = score < 0 ? "-" : "";
+  if (abs >= 1000000) return sign + (abs / 1000000).toFixed(1).replace(/\.0$/, "") + "M";
+  if (abs >= 1000) return sign + (abs / 1000).toFixed(1).replace(/\.0$/, "") + "K";
   return score.toString();
 }
 
@@ -26,7 +26,7 @@ export function formatRelativeTime(date: Date | string): string {
   const diffMonths = Math.floor(diffDays / 30);
   const diffYears = Math.floor(diffDays / 365);
 
-  if (diffSecs < 60) return 'just now';
+  if (diffSecs < 60) return "just now";
   if (diffMins < 60) return `${diffMins}m ago`;
   if (diffHours < 24) return `${diffHours}h ago`;
   if (diffDays < 7) return `${diffDays}d ago`;
@@ -38,41 +38,47 @@ export function formatRelativeTime(date: Date | string): string {
 /** Format absolute date (e.g., "Jan 15, 2025") */
 export function formatDate(date: Date | string): string {
   const d = new Date(date);
-  return d.toLocaleDateString('en-US', { year: 'numeric', month: 'short', day: 'numeric' });
+  return d.toLocaleDateString("en-US", { year: "numeric", month: "short", day: "numeric" });
 }
 
 /** Format date and time (e.g., "Jan 15, 2025, 3:45 PM") */
 export function formatDateTime(date: Date | string): string {
   const d = new Date(date);
-  return d.toLocaleDateString('en-US', { year: 'numeric', month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit' });
+  return d.toLocaleDateString("en-US", {
+    year: "numeric",
+    month: "short",
+    day: "numeric",
+    hour: "numeric",
+    minute: "2-digit",
+  });
 }
 
 /** Format karma (e.g., "1,234 karma") */
 export function formatKarma(karma: number): string {
-  return karma.toLocaleString() + ' karma';
+  return karma.toLocaleString() + " karma";
 }
 
 /** Format subscriber count (e.g., "1.2K subscribers") */
 export function formatSubscribers(count: number): string {
-  return formatScore(count) + ' subscriber' + (count !== 1 ? 's' : '');
+  return formatScore(count) + " subscriber" + (count !== 1 ? "s" : "");
 }
 
 /** Format comment count (e.g., "42 comments") */
 export function formatCommentCount(count: number): string {
-  return count.toLocaleString() + ' comment' + (count !== 1 ? 's' : '');
+  return count.toLocaleString() + " comment" + (count !== 1 ? "s" : "");
 }
 
 /** Truncate text with ellipsis */
 export function truncate(text: string, maxLength: number): string {
   if (text.length <= maxLength) return text;
-  return text.slice(0, maxLength - 3).trim() + '...';
+  return text.slice(0, maxLength - 3).trim() + "...";
 }
 
 /** Extract domain from URL */
 export function extractDomain(url: string): string | null {
   try {
     const parsed = new URL(url);
-    return parsed.hostname.replace(/^www\./, '');
+    return parsed.hostname.replace(/^www\./, "");
   } catch {
     return null;
   }
@@ -94,8 +100,8 @@ export function formatPost(post: Post): {
     comments: formatCommentCount(post.commentCount),
     time: formatRelativeTime(post.createdAt),
     author: post.authorDisplayName || post.authorName,
-    submolt: 'm/' + post.submolt,
-    domain: post.url ? extractDomain(post.url) ?? undefined : undefined
+    submolt: "m/" + post.submolt,
+    domain: post.url ? (extractDomain(post.url) ?? undefined) : undefined,
   };
 }
 
@@ -114,7 +120,7 @@ export function formatComment(comment: Comment): {
     time: formatRelativeTime(comment.createdAt),
     author: comment.authorDisplayName || comment.authorName,
     depth: comment.depth,
-    indent: '  '.repeat(comment.depth)
+    indent: "  ".repeat(comment.depth),
   };
 }
 
@@ -127,11 +133,11 @@ export function formatAgent(agent: Agent): {
   joined: string;
 } {
   return {
-    name: 'u/' + agent.name,
+    name: "u/" + agent.name,
     displayName: agent.displayName || agent.name,
     karma: formatKarma(agent.karma),
     status: agent.status,
-    joined: formatDate(agent.createdAt)
+    joined: formatDate(agent.createdAt),
   };
 }
 
@@ -143,10 +149,10 @@ export function formatSubmolt(submolt: Submolt): {
   created: string;
 } {
   return {
-    name: 'm/' + submolt.name,
+    name: "m/" + submolt.name,
     displayName: submolt.displayName || submolt.name,
     subscribers: formatSubscribers(submolt.subscriberCount),
-    created: formatDate(submolt.createdAt)
+    created: formatDate(submolt.createdAt),
   };
 }
 
@@ -155,60 +161,71 @@ export function progressBar(current: number, total: number, length: number = 20)
   const percent = Math.min(current / total, 1);
   const filled = Math.round(percent * length);
   const empty = length - filled;
-  return '[' + '█'.repeat(filled) + '░'.repeat(empty) + ']';
+  return "[" + "█".repeat(filled) + "░".repeat(empty) + "]";
 }
 
 /** Format bytes (e.g., "1.5 KB", "2.3 MB") */
 export function formatBytes(bytes: number): string {
-  const units = ['B', 'KB', 'MB', 'GB', 'TB'];
+  const units = ["B", "KB", "MB", "GB", "TB"];
   let unitIndex = 0;
   let size = bytes;
   while (size >= 1024 && unitIndex < units.length - 1) {
     size /= 1024;
     unitIndex++;
   }
-  return size.toFixed(unitIndex > 0 ? 1 : 0) + ' ' + units[unitIndex];
+  return size.toFixed(unitIndex > 0 ? 1 : 0) + " " + units[unitIndex];
 }
 
 /** Format percentage */
 export function formatPercent(value: number, decimals: number = 1): string {
-  return (value * 100).toFixed(decimals) + '%';
+  return (value * 100).toFixed(decimals) + "%";
 }
 
 /** Format duration in milliseconds to human readable */
 export function formatDuration(ms: number): string {
-  if (ms < 1000) return ms + 'ms';
-  if (ms < 60000) return (ms / 1000).toFixed(1) + 's';
-  if (ms < 3600000) return Math.floor(ms / 60000) + 'm ' + Math.floor((ms % 60000) / 1000) + 's';
-  return Math.floor(ms / 3600000) + 'h ' + Math.floor((ms % 3600000) / 60000) + 'm';
+  if (ms < 1000) return ms + "ms";
+  if (ms < 60000) return (ms / 1000).toFixed(1) + "s";
+  if (ms < 3600000) return Math.floor(ms / 60000) + "m " + Math.floor((ms % 60000) / 1000) + "s";
+  return Math.floor(ms / 3600000) + "h " + Math.floor((ms % 3600000) / 60000) + "m";
 }
 
 /** Pluralize word based on count */
 export function pluralize(count: number, singular: string, plural?: string): string {
-  return count === 1 ? singular : (plural || singular + 's');
+  return count === 1 ? singular : plural || singular + "s";
 }
 
 /** Generate initials from name */
 export function initials(name: string): string {
-  return name.split(/[\s_]+/).map(part => part[0]?.toUpperCase()).filter(Boolean).slice(0, 2).join('');
+  return name
+    .split(/[\s_]+/)
+    .map((part) => part[0]?.toUpperCase())
+    .filter(Boolean)
+    .slice(0, 2)
+    .join("");
 }
 
 /** Escape HTML entities */
 export function escapeHtml(text: string): string {
-  const entities: Record<string, string> = { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' };
-  return text.replace(/[&<>"']/g, char => entities[char] || char);
+  const entities: Record<string, string> = {
+    "&": "&amp;",
+    "<": "&lt;",
+    ">": "&gt;",
+    '"': "&quot;",
+    "'": "&#39;",
+  };
+  return text.replace(/[&<>"']/g, (char) => entities[char] || char);
 }
 
 /** Convert markdown-like formatting to plain text */
 export function stripMarkdown(text: string): string {
   return text
-    .replace(/\*\*([^*]+)\*\*/g, '$1')  // Bold
-    .replace(/\*([^*]+)\*/g, '$1')       // Italic
-    .replace(/~~([^~]+)~~/g, '$1')       // Strikethrough
-    .replace(/`([^`]+)`/g, '$1')         // Inline code
-    .replace(/\[([^\]]+)\]\([^)]+\)/g, '$1')  // Links
-    .replace(/^#+\s*/gm, '')             // Headers
-    .replace(/^[-*]\s+/gm, '• ')         // Lists
-    .replace(/^>\s*/gm, '')              // Blockquotes
+    .replace(/\*\*([^*]+)\*\*/g, "$1") // Bold
+    .replace(/\*([^*]+)\*/g, "$1") // Italic
+    .replace(/~~([^~]+)~~/g, "$1") // Strikethrough
+    .replace(/`([^`]+)`/g, "$1") // Inline code
+    .replace(/\[([^\]]+)\]\([^)]+\)/g, "$1") // Links
+    .replace(/^#+\s*/gm, "") // Headers
+    .replace(/^[-*]\s+/gm, "• ") // Lists
+    .replace(/^>\s*/gm, "") // Blockquotes
     .trim();
 }

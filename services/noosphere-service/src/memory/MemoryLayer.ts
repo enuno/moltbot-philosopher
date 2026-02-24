@@ -3,8 +3,8 @@
  * Manages 3-layer epistemological memory structure
  */
 
-import * as fs from 'fs/promises';
-import * as path from 'path';
+import * as fs from "fs/promises";
+import * as path from "path";
 
 /**
  * Memory entry
@@ -38,16 +38,18 @@ export class MemoryLayer {
   private readonly layer3Path: string;
 
   constructor(private readonly config: LayerConfig) {
-    const basePath = path.join(config.workspaceBase, config.agentName, 'noosphere');
-    this.layer1Path = path.join(basePath, 'daily-notes');
-    this.layer2Path = path.join(basePath, 'consolidated');
-    this.layer3Path = path.join(basePath, 'archival');
+    const basePath = path.join(config.workspaceBase, config.agentName, "noosphere");
+    this.layer1Path = path.join(basePath, "daily-notes");
+    this.layer2Path = path.join(basePath, "consolidated");
+    this.layer3Path = path.join(basePath, "archival");
   }
 
   /**
    * Add entry to Layer 1 (daily notes)
    */
-  async addToLayer1(entry: Omit<MemoryEntry, 'id' | 'layer' | 'createdAt' | 'updatedAt'>): Promise<MemoryEntry> {
+  async addToLayer1(
+    entry: Omit<MemoryEntry, "id" | "layer" | "createdAt" | "updatedAt">,
+  ): Promise<MemoryEntry> {
     const id = this.generateId();
     const memoryEntry: MemoryEntry = {
       ...entry,
@@ -59,10 +61,10 @@ export class MemoryLayer {
 
     await this.ensureDirectory(this.layer1Path);
 
-    const filename = `${new Date().toISOString().split('T')[0]}-${id}.json`;
+    const filename = `${new Date().toISOString().split("T")[0]}-${id}.json`;
     const filepath = path.join(this.layer1Path, filename);
 
-    await fs.writeFile(filepath, JSON.stringify(memoryEntry, null, 2), 'utf-8');
+    await fs.writeFile(filepath, JSON.stringify(memoryEntry, null, 2), "utf-8");
 
     return memoryEntry;
   }
@@ -74,10 +76,10 @@ export class MemoryLayer {
     // Combine entries into consolidated memory
     const consolidated: MemoryEntry = {
       id: this.generateId(),
-      content: entries.map((e) => e.content).join('\n\n'),
+      content: entries.map((e) => e.content).join("\n\n"),
       layer: 2,
       confidence: this.calculateAverageConfidence(entries),
-      source: 'consolidated',
+      source: "consolidated",
       createdAt: new Date(),
       updatedAt: new Date(),
       tags: this.mergeTags(entries),
@@ -92,7 +94,7 @@ export class MemoryLayer {
     const filename = `consolidated-${consolidated.id}.json`;
     const filepath = path.join(this.layer2Path, filename);
 
-    await fs.writeFile(filepath, JSON.stringify(consolidated, null, 2), 'utf-8');
+    await fs.writeFile(filepath, JSON.stringify(consolidated, null, 2), "utf-8");
 
     return consolidated;
   }
@@ -112,7 +114,7 @@ export class MemoryLayer {
     const filename = `constitutional-${promoted.id}.json`;
     const filepath = path.join(this.layer3Path, filename);
 
-    await fs.writeFile(filepath, JSON.stringify(promoted, null, 2), 'utf-8');
+    await fs.writeFile(filepath, JSON.stringify(promoted, null, 2), "utf-8");
 
     return promoted;
   }
@@ -125,12 +127,12 @@ export class MemoryLayer {
 
     try {
       const files = await fs.readdir(layerPath);
-      const jsonFiles = files.filter((f) => f.endsWith('.json'));
+      const jsonFiles = files.filter((f) => f.endsWith(".json"));
 
       const entries: MemoryEntry[] = [];
       for (const file of jsonFiles) {
         const filepath = path.join(layerPath, file);
-        const content = await fs.readFile(filepath, 'utf-8');
+        const content = await fs.readFile(filepath, "utf-8");
         const entry = JSON.parse(content) as MemoryEntry;
 
         // Parse dates
@@ -157,9 +159,7 @@ export class MemoryLayer {
       ...(await this.getLayerEntries(3)),
     ];
 
-    return allEntries.filter((entry) =>
-      tags.some((tag) => entry.tags.includes(tag))
-    );
+    return allEntries.filter((entry) => tags.some((tag) => entry.tags.includes(tag)));
   }
 
   /**
@@ -171,9 +171,9 @@ export class MemoryLayer {
     const layer3Count = (await this.getLayerEntries(3)).length;
 
     return {
-      layer1: { count: layer1Count, name: 'Daily Notes' },
-      layer2: { count: layer2Count, name: 'Consolidated' },
-      layer3: { count: layer3Count, name: 'Constitutional' },
+      layer1: { count: layer1Count, name: "Daily Notes" },
+      layer2: { count: layer2Count, name: "Consolidated" },
+      layer3: { count: layer3Count, name: "Constitutional" },
       total: layer1Count + layer2Count + layer3Count,
     };
   }

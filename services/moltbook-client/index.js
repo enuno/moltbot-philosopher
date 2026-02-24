@@ -5,7 +5,7 @@
  * with proper authentication handling using the official @moltbook/auth package.
  */
 
-const { MoltbookAuth } = require('@moltbook/auth');
+const { MoltbookAuth } = require("@moltbook/auth");
 
 class MoltbookClient {
   /**
@@ -16,7 +16,7 @@ class MoltbookClient {
    */
   constructor(options = {}) {
     this.apiKey = options.apiKey || process.env.MOLTBOOK_API_KEY;
-    this.baseUrl = options.baseUrl || 'https://www.moltbook.com/api/v1';
+    this.baseUrl = options.baseUrl || "https://www.moltbook.com/api/v1";
     this.timeout = options.timeout || 30000;
 
     // Initialize auth handler
@@ -24,13 +24,11 @@ class MoltbookClient {
 
     // Validate API key format
     if (!this.apiKey) {
-      throw new Error('MOLTBOOK_API_KEY is required');
+      throw new Error("MOLTBOOK_API_KEY is required");
     }
 
     if (!this.auth.validateToken(this.apiKey)) {
-      throw new Error(
-        'Invalid API key format. Must start with "moltbook_"'
-      );
+      throw new Error('Invalid API key format. Must start with "moltbook_"');
     }
   }
 
@@ -41,7 +39,7 @@ class MoltbookClient {
   async _request(method, endpoint, options = {}) {
     const url = `${this.baseUrl}${endpoint}`;
     const headers = {
-      'Content-Type': 'application/json',
+      "Content-Type": "application/json",
       Authorization: `Bearer ${this.apiKey}`,
       ...options.headers,
     };
@@ -54,30 +52,28 @@ class MoltbookClient {
 
     if (options.body) {
       fetchOptions.body =
-        typeof options.body === 'string'
-          ? options.body
-          : JSON.stringify(options.body);
+        typeof options.body === "string" ? options.body : JSON.stringify(options.body);
     }
 
     const response = await fetch(url, fetchOptions);
 
     // Capture rate limit headers
     const rateLimitInfo = {
-      limit: response.headers.get('X-RateLimit-Limit'),
-      remaining: response.headers.get('X-RateLimit-Remaining'),
-      reset: response.headers.get('X-RateLimit-Reset'),
+      limit: response.headers.get("X-RateLimit-Limit"),
+      remaining: response.headers.get("X-RateLimit-Remaining"),
+      reset: response.headers.get("X-RateLimit-Reset"),
     };
 
     // Handle non-JSON responses
-    const contentType = response.headers.get('content-type');
-    const isJson = contentType && contentType.includes('application/json');
+    const contentType = response.headers.get("content-type");
+    const isJson = contentType && contentType.includes("application/json");
 
     if (!response.ok) {
       const error = isJson ? await response.json() : await response.text();
       const errorObj = new Error(
         `Moltbook API error (${response.status}): ${
-          typeof error === 'object' ? JSON.stringify(error) : error
-        }`
+          typeof error === "object" ? JSON.stringify(error) : error
+        }`,
       );
       errorObj.status = response.status;
       errorObj.rateLimit = rateLimitInfo;
@@ -87,7 +83,7 @@ class MoltbookClient {
     const data = isJson ? await response.json() : await response.text();
 
     // Attach rate limit info if data is an object
-    if (typeof data === 'object' && data !== null) {
+    if (typeof data === "object" && data !== null) {
       data._rateLimit = rateLimitInfo;
     }
 
@@ -98,28 +94,28 @@ class MoltbookClient {
    * GET request
    */
   async get(endpoint, options = {}) {
-    return this._request('GET', endpoint, options);
+    return this._request("GET", endpoint, options);
   }
 
   /**
    * POST request
    */
   async post(endpoint, body, options = {}) {
-    return this._request('POST', endpoint, { ...options, body });
+    return this._request("POST", endpoint, { ...options, body });
   }
 
   /**
    * PATCH request
    */
   async patch(endpoint, body, options = {}) {
-    return this._request('PATCH', endpoint, { ...options, body });
+    return this._request("PATCH", endpoint, { ...options, body });
   }
 
   /**
    * DELETE request
    */
   async delete(endpoint, options = {}) {
-    return this._request('DELETE', endpoint, options);
+    return this._request("DELETE", endpoint, options);
   }
 
   // ═══════════════════════════════════════════════════════════
@@ -131,7 +127,7 @@ class MoltbookClient {
    * @param {Object} data - { name, description }
    */
   async registerAgent(data) {
-    return this.post('/agents/register', data);
+    return this.post("/agents/register", data);
   }
 
   /**
@@ -139,7 +135,7 @@ class MoltbookClient {
    * GET /agents/me
    */
   async getMe() {
-    return this.get('/agents/me');
+    return this.get("/agents/me");
   }
 
   /**
@@ -148,7 +144,7 @@ class MoltbookClient {
    * @param {Object} data - { description }
    */
   async updateProfile(data) {
-    return this.patch('/agents/me', data);
+    return this.patch("/agents/me", data);
   }
 
   /**
@@ -156,7 +152,7 @@ class MoltbookClient {
    * GET /agents/status
    */
   async getStatus() {
-    return this.get('/agents/status');
+    return this.get("/agents/status");
   }
 
   /**
@@ -193,7 +189,7 @@ class MoltbookClient {
    * @param {Object} data - { submolt, title, content }
    */
   async createPost(data) {
-    return this.post('/posts', data);
+    return this.post("/posts", data);
   }
 
   /**
@@ -202,7 +198,7 @@ class MoltbookClient {
    * @param {Object} data - { submolt, title, url }
    */
   async createLinkPost(data) {
-    return this.post('/posts', data);
+    return this.post("/posts", data);
   }
 
   /**
@@ -212,7 +208,7 @@ class MoltbookClient {
    */
   async getPosts(params = {}) {
     const query = new URLSearchParams(params).toString();
-    return this.get(`/posts${query ? `?${query}` : ''}`);
+    return this.get(`/posts${query ? `?${query}` : ""}`);
   }
 
   /**
@@ -283,7 +279,7 @@ class MoltbookClient {
    */
   async getComments(postId, params = {}) {
     const query = new URLSearchParams(params).toString();
-    return this.get(`/posts/${postId}/comments${query ? `?${query}` : ''}`);
+    return this.get(`/posts/${postId}/comments${query ? `?${query}` : ""}`);
   }
 
   /**
@@ -312,7 +308,7 @@ class MoltbookClient {
    * @param {Object} data - { name, display_name, description }
    */
   async createSubmolt(data) {
-    return this.post('/submolts', data);
+    return this.post("/submolts", data);
   }
 
   /**
@@ -320,7 +316,7 @@ class MoltbookClient {
    * GET /submolts
    */
   async listSubmolts() {
-    return this.get('/submolts');
+    return this.get("/submolts");
   }
 
   /**
@@ -359,7 +355,7 @@ class MoltbookClient {
    */
   async getPersonalizedFeed(params = {}) {
     const query = new URLSearchParams(params).toString();
-    return this.get(`/feed${query ? `?${query}` : ''}`);
+    return this.get(`/feed${query ? `?${query}` : ""}`);
   }
 
   // ═══════════════════════════════════════════════════════════
@@ -394,9 +390,7 @@ class MoltbookClient {
    */
   async getStalledThreads(params = {}) {
     const query = new URLSearchParams(params).toString();
-    return this.get(
-      `/agents/me/stalled-threads${query ? `?${query}` : ''}`
-    );
+    return this.get(`/agents/me/stalled-threads${query ? `?${query}` : ""}`);
   }
 
   // ═══════════════════════════════════════════════════════════
@@ -408,7 +402,7 @@ class MoltbookClient {
    * Note: This endpoint may be custom/undocumented
    */
   async submitVerificationAnswer(challengeId, answer) {
-    return this.post('/agents/me/verification-challenges', {
+    return this.post("/agents/me/verification-challenges", {
       challenge_id: challengeId,
       answer,
     });
@@ -419,7 +413,7 @@ class MoltbookClient {
    * Note: This endpoint may be custom/undocumented
    */
   async getPendingChallenges() {
-    return this.get('/agents/me/verification-challenges');
+    return this.get("/agents/me/verification-challenges");
   }
 }
 

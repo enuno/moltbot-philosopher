@@ -1,14 +1,14 @@
-import { RateLimiter } from '../src/rate-limiter';
-import { DatabaseManager } from '../src/database';
-import { ActionType, ActionStatus, Priority, QueuedAction } from '../src/types';
+import { RateLimiter } from "../src/rate-limiter";
+import { DatabaseManager } from "../src/database";
+import { ActionType, ActionStatus, Priority, QueuedAction } from "../src/types";
 
 function makeAction(overrides: Partial<QueuedAction> = {}): QueuedAction {
   return {
-    id: 'test-action-1',
-    agentName: 'test-agent',
+    id: "test-action-1",
+    agentName: "test-agent",
     actionType: ActionType.POST,
     priority: Priority.NORMAL,
-    payload: { content: 'Test', title: 'Test' },
+    payload: { content: "Test", title: "Test" },
     status: ActionStatus.PENDING,
     createdAt: new Date(),
     attempts: 0,
@@ -17,12 +17,12 @@ function makeAction(overrides: Partial<QueuedAction> = {}): QueuedAction {
   };
 }
 
-describe('RateLimiter - syncFromApiResponse (7.1)', () => {
+describe("RateLimiter - syncFromApiResponse (7.1)", () => {
   let db: DatabaseManager;
   let rateLimiter: RateLimiter;
 
   beforeEach(() => {
-    db = new DatabaseManager(':memory:');
+    db = new DatabaseManager(":memory:");
     rateLimiter = new RateLimiter(db);
   });
 
@@ -30,7 +30,7 @@ describe('RateLimiter - syncFromApiResponse (7.1)', () => {
     db.close();
   });
 
-  it('syncFromApiResponse(0) blocks further post actions until next midnight', async () => {
+  it("syncFromApiResponse(0) blocks further post actions until next midnight", async () => {
     const action = makeAction({ actionType: ActionType.POST });
 
     // Initially allowed
@@ -38,7 +38,7 @@ describe('RateLimiter - syncFromApiResponse (7.1)', () => {
     expect(before.allowed).toBe(true);
 
     // API reports 0 remaining
-    rateLimiter.syncFromApiResponse('test-agent', ActionType.POST, 0);
+    rateLimiter.syncFromApiResponse("test-agent", ActionType.POST, 0);
 
     // Now blocked
     const after = await rateLimiter.isAllowed(action);
@@ -47,21 +47,21 @@ describe('RateLimiter - syncFromApiResponse (7.1)', () => {
     expect(after.retryAfter).toBeGreaterThan(0);
   });
 
-  it('syncFromApiResponse with non-zero remaining does not block', async () => {
+  it("syncFromApiResponse with non-zero remaining does not block", async () => {
     const action = makeAction({ actionType: ActionType.COMMENT });
 
-    rateLimiter.syncFromApiResponse('test-agent', ActionType.COMMENT, 5);
+    rateLimiter.syncFromApiResponse("test-agent", ActionType.COMMENT, 5);
 
     const check = await rateLimiter.isAllowed(action);
     expect(check.allowed).toBe(true);
   });
 
-  it('block is per-agent and per-action-type', async () => {
+  it("block is per-agent and per-action-type", async () => {
     const postAction = makeAction({ actionType: ActionType.POST });
     const commentAction = makeAction({ actionType: ActionType.COMMENT });
 
     // Block posts for test-agent
-    rateLimiter.syncFromApiResponse('test-agent', ActionType.POST, 0);
+    rateLimiter.syncFromApiResponse("test-agent", ActionType.POST, 0);
 
     // Posts blocked
     const postCheck = await rateLimiter.isAllowed(postAction);
@@ -72,11 +72,11 @@ describe('RateLimiter - syncFromApiResponse (7.1)', () => {
     expect(commentCheck.allowed).toBe(true);
   });
 
-  it('block is per-agent - other agents not affected', async () => {
-    const agentAAction = makeAction({ agentName: 'agent-a', actionType: ActionType.POST });
-    const agentBAction = makeAction({ agentName: 'agent-b', actionType: ActionType.POST });
+  it("block is per-agent - other agents not affected", async () => {
+    const agentAAction = makeAction({ agentName: "agent-a", actionType: ActionType.POST });
+    const agentBAction = makeAction({ agentName: "agent-b", actionType: ActionType.POST });
 
-    rateLimiter.syncFromApiResponse('agent-a', ActionType.POST, 0);
+    rateLimiter.syncFromApiResponse("agent-a", ActionType.POST, 0);
 
     const aCheck = await rateLimiter.isAllowed(agentAAction);
     expect(aCheck.allowed).toBe(false);

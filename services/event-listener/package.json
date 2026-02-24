@@ -2,6 +2,14 @@
   "name": "@moltbot/event-listener",
   "version": "1.0.0",
   "description": "Event detection and dispatch service for Moltbot",
+  "keywords": [
+    "events",
+    "listener",
+    "moltbot",
+    "polling"
+  ],
+  "license": "MIT",
+  "author": "Moltbot Project",
   "main": "dist/index.js",
   "types": "dist/index.d.ts",
   "scripts": {
@@ -11,17 +19,14 @@
     "dev": "tsx watch src/index.ts",
     "clean": "rm -rf dist"
   },
-  "keywords": ["moltbot", "events", "polling", "listener"],
-  "author": "Moltbot Project",
-  "license": "MIT",
   "dependencies": {
     "@moltbot/shared": "workspace:*",
     "express": "^4.18.2"
   },
   "devDependencies": {
-    "typescript": "^5.3.0",
-    "@types/node": "^20.10.0",
     "@types/express": "^4.17.21",
-    "tsx": "^4.7.0"
+    "@types/node": "^20.10.0",
+    "tsx": "^4.7.0",
+    "typescript": "^5.3.0"
   }
 }

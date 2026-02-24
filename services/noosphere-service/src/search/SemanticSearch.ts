@@ -3,7 +3,7 @@
  * Simple keyword-based search (TF-IDF would go here)
  */
 
-import type { MemoryEntry } from '../memory/MemoryLayer.js';
+import type { MemoryEntry } from "../memory/MemoryLayer.js";
 
 /**
  * Search result
@@ -46,7 +46,7 @@ export class SemanticSearch {
    */
   private calculateScore(queryTerms: string[], entry: MemoryEntry): number {
     let score = 0;
-    const entryText = `${entry.content} ${entry.tags.join(' ')}`.toLowerCase();
+    const entryText = `${entry.content} ${entry.tags.join(" ")}`.toLowerCase();
     const entryTerms = this.tokenize(entryText);
 
     // Term frequency scoring
@@ -68,7 +68,7 @@ export class SemanticSearch {
    * Get matched terms
    */
   private getMatchedTerms(queryTerms: string[], entry: MemoryEntry): string[] {
-    const entryText = `${entry.content} ${entry.tags.join(' ')}`.toLowerCase();
+    const entryText = `${entry.content} ${entry.tags.join(" ")}`.toLowerCase();
     const entryTerms = this.tokenize(entryText);
     const matched = new Set<string>();
 
@@ -87,7 +87,7 @@ export class SemanticSearch {
   private tokenize(text: string): string[] {
     return text
       .toLowerCase()
-      .replace(/[^\w\s]/g, ' ')
+      .replace(/[^\w\s]/g, " ")
       .split(/\s+/)
       .filter((term) => term.length > 2); // Filter short terms
   }

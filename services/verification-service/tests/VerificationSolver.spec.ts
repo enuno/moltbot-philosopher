@@ -51,8 +51,7 @@ describe("VerificationSolverEnhanced", () => {
 
       // Mock private methods
       vi.spyOn(solver as any, "getAIAnswer").mockResolvedValue(
-        "I use external tools for responses. " +
-        "In 24 hours I will remember this challenge."
+        "I use external tools for responses. " + "In 24 hours I will remember this challenge.",
       );
       vi.spyOn(solver as any, "submitAnswer").mockResolvedValue(true);
 
@@ -94,9 +93,7 @@ describe("VerificationSolverEnhanced", () => {
 
       // Mock answer with 3 sentences (invalid)
       vi.spyOn(solver as any, "getAIAnswer").mockResolvedValue(
-        "I use tools. " +
-        "I will remember. " +
-        "Extra sentence."
+        "I use tools. " + "I will remember. " + "Extra sentence.",
       );
       vi.spyOn(solver as any, "submitAnswer").mockResolvedValue(true);
 
@@ -117,8 +114,7 @@ describe("VerificationSolverEnhanced", () => {
       const solver = new VerificationSolverEnhanced(BASE_CONFIG);
 
       vi.spyOn(solver as any, "getAIAnswer").mockResolvedValue(
-        "I use Venice.ai and Noosphere APIs. " +
-        "In 24 hours I will remember via Noosphere."
+        "I use Venice.ai and Noosphere APIs. " + "In 24 hours I will remember via Noosphere.",
       );
       vi.spyOn(solver as any, "submitAnswer").mockResolvedValue(true);
 
@@ -131,7 +127,7 @@ describe("VerificationSolverEnhanced", () => {
       const result = await solver.solve(challenge);
 
       expect(result.success).toBe(false);
-      expect(result.validation?.reasons.some(r => r.includes("leakage"))).toBe(true);
+      expect(result.validation?.reasons.some((r) => r.includes("leakage"))).toBe(true);
     });
   });
 
@@ -173,12 +169,10 @@ describe("VerificationSolverEnhanced", () => {
       const config = { ...BASE_CONFIG, maxRetries: 2 };
       const solver = new VerificationSolverEnhanced(config);
 
-      const getAIAnswerSpy = vi.spyOn(solver as any, "getAIAnswer")
+      const getAIAnswerSpy = vi
+        .spyOn(solver as any, "getAIAnswer")
         .mockResolvedValueOnce("Invalid answer.") // First attempt fails validation
-        .mockResolvedValueOnce(
-          "I use tools. " +
-          "In 24 hours I will remember."
-        ); // Second attempt succeeds
+        .mockResolvedValueOnce("I use tools. " + "In 24 hours I will remember."); // Second attempt succeeds
 
       vi.spyOn(solver as any, "submitAnswer").mockResolvedValue(true);
 

@@ -14,14 +14,14 @@ class Posts {
    */
   async list(options = {}) {
     const params = new URLSearchParams();
-    if (options.submolt) params.append('submolt', options.submolt);
-    if (options.sort) params.append('sort', options.sort);
-    if (options.limit) params.append('limit', options.limit);
-    if (options.before) params.append('before', options.before);
-    if (options.after) params.append('after', options.after);
+    if (options.submolt) params.append("submolt", options.submolt);
+    if (options.sort) params.append("sort", options.sort);
+    if (options.limit) params.append("limit", options.limit);
+    if (options.before) params.append("before", options.before);
+    if (options.after) params.append("after", options.after);
 
     const query = params.toString();
-    return this.http.get(`/posts${query ? `?${query}` : ''}`);
+    return this.http.get(`/posts${query ? `?${query}` : ""}`);
   }
 
   /**
@@ -39,7 +39,7 @@ class Posts {
    * @returns {Promise<Object>}
    */
   async create(data) {
-    return this.http.post('/posts', data);
+    return this.http.post("/posts", data);
   }
 
   /**

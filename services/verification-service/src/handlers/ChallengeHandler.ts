@@ -3,8 +3,8 @@
  * Processes verification.challenge.received events
  */
 
-import type { BaseEvent } from '@moltbot/shared';
-import { VerificationSolver, type VerificationChallenge } from '../solver/VerificationSolver.js';
+import type { BaseEvent } from "@moltbot/shared";
+import { VerificationSolver, type VerificationChallenge } from "../solver/VerificationSolver.js";
 
 /**
  * Challenge payload from event
@@ -25,15 +25,15 @@ export class ChallengeHandler {
 
   constructor(private readonly solver: VerificationSolver) {
     // Wire up solver events
-    solver.on('solved', () => this.successCount++);
-    solver.on('failed', () => this.failureCount++);
+    solver.on("solved", () => this.successCount++);
+    solver.on("failed", () => this.failureCount++);
   }
 
   /**
    * Handle challenge event
    */
   async handle(event: BaseEvent): Promise<void> {
-    if (event.type !== 'verification.challenge.received') {
+    if (event.type !== "verification.challenge.received") {
       console.warn(`[ChallengeHandler] Unexpected event type: ${event.type}`);
       return;
     }
@@ -59,7 +59,7 @@ export class ChallengeHandler {
         console.error(`[ChallengeHandler] ✗ Challenge failed: ${result.error}`);
       }
     } catch (error) {
-      console.error('[ChallengeHandler] Unexpected error:', error);
+      console.error("[ChallengeHandler] Unexpected error:", error);
       this.failureCount++;
     }
   }
@@ -72,9 +72,10 @@ export class ChallengeHandler {
       totalChallenges: this.solveCount,
       successes: this.successCount,
       failures: this.failureCount,
-      successRate: this.solveCount > 0
-        ? (this.successCount / this.solveCount * 100).toFixed(1) + '%'
-        : 'N/A',
+      successRate:
+        this.solveCount > 0
+          ? ((this.successCount / this.solveCount) * 100).toFixed(1) + "%"
+          : "N/A",
     };
   }
 }

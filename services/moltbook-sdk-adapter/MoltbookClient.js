@@ -3,13 +3,13 @@
  * Resource-based architecture matching Moltbook ADK patterns
  */
 
-const { HttpClient } = require('./HttpClient');
-const { Agents } = require('./resources/Agents');
-const { Posts } = require('./resources/Posts');
-const { Comments } = require('./resources/Comments');
-const { Submolts } = require('./resources/Submolts');
-const { Feed } = require('./resources/Feed');
-const { Search } = require('./resources/Search');
+const { HttpClient } = require("./HttpClient");
+const { Agents } = require("./resources/Agents");
+const { Posts } = require("./resources/Posts");
+const { Comments } = require("./resources/Comments");
+const { Submolts } = require("./resources/Submolts");
+const { Feed } = require("./resources/Feed");
+const { Search } = require("./resources/Search");
 
 class MoltbookClient {
   constructor(options = {}) {

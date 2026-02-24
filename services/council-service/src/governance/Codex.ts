@@ -3,7 +3,7 @@
  * Manages ethics-convergence governance guardrails
  */
 
-import * as fs from 'fs/promises';
+import * as fs from "fs/promises";
 
 /**
  * Codex guardrail
@@ -15,10 +15,10 @@ export interface Guardrail {
   rationale: string;
   votes: {
     agent: string;
-    vote: 'approve' | 'reject' | 'abstain';
+    vote: "approve" | "reject" | "abstain";
     reason: string;
   }[];
-  status: 'proposed' | 'active' | 'deprecated';
+  status: "proposed" | "active" | "deprecated";
   createdAt: Date;
   updatedAt: Date;
 }
@@ -46,7 +46,7 @@ export class Codex {
    */
   async load(): Promise<CodexState> {
     try {
-      const data = await fs.readFile(this.codexPath, 'utf-8');
+      const data = await fs.readFile(this.codexPath, "utf-8");
       this.state = JSON.parse(data) as CodexState;
 
       // Parse dates
@@ -60,7 +60,7 @@ export class Codex {
     } catch (_error) {
       // Initialize new codex if doesn't exist
       this.state = {
-        version: '1.0.0',
+        version: "1.0.0",
         guardrails: [],
         lastIterationDate: new Date(),
         iterationCount: 0,
@@ -75,14 +75,10 @@ export class Codex {
    */
   async save(): Promise<void> {
     if (!this.state) {
-      throw new Error('Codex not loaded');
+      throw new Error("Codex not loaded");
     }
 
-    await fs.writeFile(
-      this.codexPath,
-      JSON.stringify(this.state, null, 2),
-      'utf-8'
-    );
+    await fs.writeFile(this.codexPath, JSON.stringify(this.state, null, 2), "utf-8");
   }
 
   /**
@@ -92,7 +88,7 @@ export class Codex {
     id: string,
     title: string,
     description: string,
-    rationale: string
+    rationale: string,
   ): Promise<Guardrail> {
     if (!this.state) {
       await this.load();
@@ -104,7 +100,7 @@ export class Codex {
       description,
       rationale,
       votes: [],
-      status: 'proposed',
+      status: "proposed",
       createdAt: new Date(),
       updatedAt: new Date(),
     };
@@ -121,8 +117,8 @@ export class Codex {
   async vote(
     guardrailId: string,
     agent: string,
-    vote: 'approve' | 'reject' | 'abstain',
-    reason: string
+    vote: "approve" | "reject" | "abstain",
+    reason: string,
   ): Promise<void> {
     if (!this.state) {
       await this.load();
@@ -148,7 +144,7 @@ export class Codex {
    */
   hasConsensus(guardrailId: string): boolean {
     if (!this.state) {
-      throw new Error('Codex not loaded');
+      throw new Error("Codex not loaded");
     }
 
     const guardrail = this.state!.guardrails.find((g) => g.id === guardrailId);
@@ -156,7 +152,7 @@ export class Codex {
       return false;
     }
 
-    const approvals = guardrail.votes.filter((v) => v.vote === 'approve').length;
+    const approvals = guardrail.votes.filter((v) => v.vote === "approve").length;
     return approvals >= 4; // 4/6 threshold
   }
 
@@ -174,10 +170,10 @@ export class Codex {
     }
 
     if (!this.hasConsensus(guardrailId)) {
-      throw new Error('Cannot activate guardrail without consensus');
+      throw new Error("Cannot activate guardrail without consensus");
     }
 
-    guardrail.status = 'active';
+    guardrail.status = "active";
     guardrail.updatedAt = new Date();
     await this.save();
   }
@@ -187,10 +183,10 @@ export class Codex {
    */
   getActiveGuardrails(): Guardrail[] {
     if (!this.state) {
-      throw new Error('Codex not loaded');
+      throw new Error("Codex not loaded");
     }
 
-    return this.state!.guardrails.filter((g) => g.status === 'active');
+    return this.state!.guardrails.filter((g) => g.status === "active");
   }
 
   /**
@@ -198,7 +194,7 @@ export class Codex {
    */
   getState(): CodexState {
     if (!this.state) {
-      throw new Error('Codex not loaded');
+      throw new Error("Codex not loaded");
     }
 
     return this.state!;

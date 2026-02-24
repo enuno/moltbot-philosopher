@@ -52,6 +52,7 @@ curl -X POST http://localhost:3006/actions \
 ```
 
 **Behavior**:
+
 - Waits until Feb 17, 2026
 - Checks if account is active every 5 minutes
 - Executes when BOTH conditions true
@@ -93,6 +94,7 @@ curl -X POST http://localhost:3006/actions \
 ```
 
 **Behavior**:
+
 - Waits for previous action to complete
 - Checks post engagement metrics
 - Only continues thread if post has traction
@@ -133,6 +135,7 @@ curl -X POST http://localhost:3006/actions \
 ```
 
 **Behavior**:
+
 - Only executes between 2pm-10pm UTC
 - Waits for post rate limit to be available
 - Optimal posting time + rate limit compliance
@@ -142,6 +145,7 @@ curl -X POST http://localhost:3006/actions \
 ### Time-Based Conditions
 
 #### TIME_AFTER
+
 Execute after a specific timestamp.
 
 ```json
@@ -154,6 +158,7 @@ Execute after a specific timestamp.
 ```
 
 #### TIME_BEFORE
+
 Execute before a deadline.
 
 ```json
@@ -166,6 +171,7 @@ Execute before a deadline.
 ```
 
 #### TIME_BETWEEN
+
 Execute within a time window.
 
 ```json
@@ -181,6 +187,7 @@ Execute within a time window.
 ### State-Based Conditions
 
 #### ACCOUNT_ACTIVE
+
 Check if account is not suspended.
 
 ```json
@@ -193,6 +200,7 @@ Check if account is not suspended.
 ```
 
 #### ACTION_COMPLETED
+
 Wait for another action to complete.
 
 ```json
@@ -206,6 +214,7 @@ Wait for another action to complete.
 ```
 
 #### KARMA_THRESHOLD
+
 Check karma within range.
 
 ```json
@@ -220,6 +229,7 @@ Check karma within range.
 ```
 
 #### FOLLOWER_COUNT
+
 Check follower count threshold.
 
 ```json
@@ -233,6 +243,7 @@ Check follower count threshold.
 ```
 
 #### POST_ENGAGEMENT
+
 Check post engagement metrics.
 
 ```json
@@ -250,6 +261,7 @@ Check post engagement metrics.
 ### Resource Conditions
 
 #### RATE_LIMIT_AVAILABLE
+
 Check if rate limit window is available.
 
 ```json
@@ -265,6 +277,7 @@ Check if rate limit window is available.
 ### External Conditions
 
 #### API_CHECK
+
 Call external API and validate response.
 
 ```json
@@ -280,6 +293,7 @@ Call external API and validate response.
 ```
 
 #### CUSTOM
+
 Run external script for custom logic.
 
 ```json
@@ -296,6 +310,7 @@ Run external script for custom logic.
 ## Boolean Operators
 
 ### AND
+
 All conditions must be satisfied.
 
 ```json
@@ -310,19 +325,21 @@ All conditions must be satisfied.
 ```
 
 ### OR
+
 At least one condition must be satisfied.
 
 ```json
 {
   "operator": "or",
   "conditions": [
-    {"type": "karma_threshold", "params": {"minKarma": 1000}},
-    {"type": "follower_count", "params": {"minFollowers": 100}}
+    { "type": "karma_threshold", "params": { "minKarma": 1000 } },
+    { "type": "follower_count", "params": { "minFollowers": 100 } }
   ]
 }
 ```
 
 ### NOT
+
 Negate a condition.
 
 ```json
@@ -335,6 +352,7 @@ Negate a condition.
 ```
 
 ### Nested Logic
+
 Combine operators for complex logic.
 
 ```json
@@ -343,13 +361,13 @@ Combine operators for complex logic.
   "conditions": [
     {
       "type": "time_between",
-      "params": {"start": "...", "end": "..."}
+      "params": { "start": "...", "end": "..." }
     },
     {
       "operator": "or",
       "conditions": [
-        {"type": "karma_threshold", "params": {"minKarma": 500}},
-        {"type": "follower_count", "params": {"minFollowers": 50}}
+        { "type": "karma_threshold", "params": { "minKarma": 500 } },
+        { "type": "follower_count", "params": { "minFollowers": 50 } }
       ]
     }
   ]
@@ -361,6 +379,7 @@ Combine operators for complex logic.
 ## Configuration Options
 
 ### conditionCheckInterval
+
 How often to evaluate conditions (seconds).
 
 ```json
@@ -374,6 +393,7 @@ Min: 5 seconds
 Max: 3600 seconds (1 hour)
 
 ### conditionTimeout
+
 Give up if conditions not met by this time.
 
 ```json
@@ -531,8 +551,8 @@ curl -X POST http://localhost:3006/actions \
   "conditions": {
     "operator": "or",
     "conditions": [
-      {"type": "karma_threshold", "params": {"minKarma": 1000}},
-      {"type": "follower_count", "params": {"minFollowers": 100}}
+      { "type": "karma_threshold", "params": { "minKarma": 1000 } },
+      { "type": "follower_count", "params": { "minFollowers": 100 } }
     ]
   }
 }
@@ -543,6 +563,7 @@ curl -X POST http://localhost:3006/actions \
 ### Action Stuck in "scheduled" Status
 
 **Check condition evaluations**:
+
 ```bash
 curl http://localhost:3006/actions/action-uuid
 ```
@@ -552,6 +573,7 @@ Look at `conditionEvaluations[].satisfied` to see which conditions are blocking.
 ### Condition Always False
 
 **Verify condition parameters** are correct:
+
 - Timestamps in ISO 8601 format
 - Action IDs are valid UUIDs
 - Agent names match exactly
@@ -569,6 +591,7 @@ If condition checks are expensive (API calls, scripts), increase
 ## API Reference
 
 See main API documentation for endpoint details:
+
 - POST /actions - Submit conditional action
 - GET /actions/:id - View condition evaluations
 - GET /actions - List conditional actions

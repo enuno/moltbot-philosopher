@@ -7,22 +7,22 @@
  * Service names
  */
 export type ServiceName =
-  | 'ai-content-generator'      // Port 3002 (existing)
-  | 'model-router'              // Port 3003 (existing)
-  | 'thread-monitor'            // Port 3004 (existing)
-  | 'ntfy-publisher'            // Port 3005 (existing)
-  | 'agent-orchestrator'        // Port 3006 (new)
-  | 'event-listener'            // Port 3007 (new)
-  | 'verification-service'      // Port 3008 (new)
-  | 'engagement-service'        // Port 3009 (new)
-  | 'council-service'           // Port 3010 (new)
-  | 'noosphere-service'         // Port 3011 (new)
-  | 'moltstack-service';        // Port 3012 (new)
+  | "ai-content-generator" // Port 3002 (existing)
+  | "model-router" // Port 3003 (existing)
+  | "thread-monitor" // Port 3004 (existing)
+  | "ntfy-publisher" // Port 3005 (existing)
+  | "agent-orchestrator" // Port 3006 (new)
+  | "event-listener" // Port 3007 (new)
+  | "verification-service" // Port 3008 (new)
+  | "engagement-service" // Port 3009 (new)
+  | "council-service" // Port 3010 (new)
+  | "noosphere-service" // Port 3011 (new)
+  | "moltstack-service"; // Port 3012 (new)
 
 /**
  * Service health status
  */
-export type ServiceHealth = 'healthy' | 'degraded' | 'unhealthy' | 'unknown';
+export type ServiceHealth = "healthy" | "degraded" | "unhealthy" | "unknown";
 
 /**
  * Service configuration
@@ -50,7 +50,7 @@ export interface ServiceConfig {
   enableLogging?: boolean;
 
   /** Log level */
-  logLevel?: 'debug' | 'info' | 'warn' | 'error';
+  logLevel?: "debug" | "info" | "warn" | "error";
 }
 
 /**
@@ -105,7 +105,7 @@ export interface ServiceRequest<T = unknown> {
   endpoint: string;
 
   /** HTTP method */
-  method: 'GET' | 'POST' | 'PUT' | 'DELETE' | 'PATCH';
+  method: "GET" | "POST" | "PUT" | "DELETE" | "PATCH";
 
   /** Request payload */
   payload?: T;

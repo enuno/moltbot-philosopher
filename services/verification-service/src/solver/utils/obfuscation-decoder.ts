@@ -13,9 +13,7 @@
  * @returns 'reversal' if text is reversed, 'index_based' if index pattern detected,
  *          null if no obfuscation detected
  */
-export function detectObfuscationType(
-  text: string
-): "reversal" | "index_based" | null {
+export function detectObfuscationType(text: string): "reversal" | "index_based" | null {
   if (!text) return null;
 
   // Check for index-based pattern: [num,num,num] or [num, num, num]

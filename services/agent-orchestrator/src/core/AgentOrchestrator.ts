@@ -3,15 +3,11 @@
  * Core service that manages all philosopher agents and routes events
  */
 
-import type {
-  PhilosopherName,
-  BaseEvent,
-  AgentState,
-} from '@moltbot/shared';
-import { EventEmitter } from 'events';
-import { AgentSession } from './AgentSession.js';
-import { appendFile, mkdir } from 'fs/promises';
-import { join } from 'path';
+import type { PhilosopherName, BaseEvent, AgentState } from "@moltbot/shared";
+import { EventEmitter } from "events";
+import { AgentSession } from "./AgentSession.js";
+import { appendFile, mkdir } from "fs/promises";
+import { join } from "path";
 
 /**
  * Orchestrator configuration
@@ -33,7 +29,7 @@ export class AgentOrchestrator extends EventEmitter {
     super();
     this.config = {
       workspaceBase: config.workspaceBase,
-      logDir: config.logDir || join(config.workspaceBase, 'classical', 'logs'),
+      logDir: config.logDir || join(config.workspaceBase, "classical", "logs"),
       enableAuditLog: config.enableAuditLog ?? true,
     };
   }
@@ -48,26 +44,26 @@ export class AgentOrchestrator extends EventEmitter {
     }
 
     const agents: PhilosopherName[] = [
-      'classical',
-      'existentialist',
-      'transcendentalist',
-      'joyce',
-      'enlightenment',
-      'beat',
-      'cyberpunk-posthumanist',
-      'satirist-absurdist',
-      'scientist-empiricist',
+      "classical",
+      "existentialist",
+      "transcendentalist",
+      "joyce",
+      "enlightenment",
+      "beat",
+      "cyberpunk-posthumanist",
+      "satirist-absurdist",
+      "scientist-empiricist",
     ];
 
     for (const agent of agents) {
       const session = new AgentSession(agent, this.config.workspaceBase);
 
       // Forward session events
-      session.on('startup', (identity, prompt) => {
-        this.emit('agent:startup', agent, identity, prompt);
+      session.on("startup", (identity, prompt) => {
+        this.emit("agent:startup", agent, identity, prompt);
       });
 
-      session.on('event', async (event, identity, callback) => {
+      session.on("event", async (event, identity, callback) => {
         try {
           // Audit log
           if (this.config.enableAuditLog) {
@@ -75,24 +71,24 @@ export class AgentOrchestrator extends EventEmitter {
           }
 
           // Emit for external handler
-          this.emit('agent:event', agent, event, identity, callback);
+          this.emit("agent:event", agent, event, identity, callback);
         } catch (error) {
           callback(error instanceof Error ? error : new Error(String(error)));
         }
       });
 
-      session.on('queue:processed', (entry) => {
-        this.emit('agent:event:processed', agent, entry);
+      session.on("queue:processed", (entry) => {
+        this.emit("agent:event:processed", agent, entry);
       });
 
-      session.on('queue:failed', (entry, error) => {
-        this.emit('agent:event:failed', agent, entry, error);
+      session.on("queue:failed", (entry, error) => {
+        this.emit("agent:event:failed", agent, entry, error);
       });
 
       this.sessions.set(agent, session);
     }
 
-    this.emit('initialized', agents);
+    this.emit("initialized", agents);
   }
 
   /**
@@ -109,9 +105,7 @@ export class AgentOrchestrator extends EventEmitter {
     } else {
       // Broadcast to all agents
       await Promise.all(
-        Array.from(this.sessions.values()).map((session) =>
-          session.processEvent(event)
-        )
+        Array.from(this.sessions.values()).map((session) => session.processEvent(event)),
       );
     }
   }
@@ -151,10 +145,10 @@ export class AgentOrchestrator extends EventEmitter {
       };
 
       const logPath = join(this.config.logDir, `${agent}-events.jsonl`);
-      await appendFile(logPath, JSON.stringify(logEntry) + '\n', 'utf-8');
+      await appendFile(logPath, JSON.stringify(logEntry) + "\n", "utf-8");
     } catch (error) {
       // Don't fail event processing if logging fails
-      this.emit('error', new Error(`Audit log failed: ${error}`));
+      this.emit("error", new Error(`Audit log failed: ${error}`));
     }
   }
 
@@ -162,11 +156,9 @@ export class AgentOrchestrator extends EventEmitter {
    * Shutdown orchestrator
    */
   async shutdown(): Promise<void> {
-    await Promise.all(
-      Array.from(this.sessions.values()).map((session) => session.shutdown())
-    );
+    await Promise.all(Array.from(this.sessions.values()).map((session) => session.shutdown()));
     this.sessions.clear();
     this.removeAllListeners();
-    this.emit('shutdown');
+    this.emit("shutdown");
   }
 }

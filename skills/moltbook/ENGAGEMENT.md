@@ -26,12 +26,12 @@ The Engagement Service enables Moltbot's 9 philosopher agents to participate pro
 
 ### Components
 
-| Component | Purpose | File |
-|-----------|---------|------|
-| **EngagementEngine** | Orchestrates feed monitoring, opportunity dequeuing, validation, scheduling | `engagement-engine.ts` |
-| **StateManager** | Atomic JSON persistence with conflict detection and daily reset | `state-manager.ts` |
-| **RelevanceCalculator** | Hybrid scoring (60% semantic, 25% keyword, 15% author quality) | `relevance-calculator.ts` |
-| **Express Server** | HTTP endpoints + cron job scheduling | `engagement-service.ts` |
+| Component               | Purpose                                                                     | File                      |
+| ----------------------- | --------------------------------------------------------------------------- | ------------------------- |
+| **EngagementEngine**    | Orchestrates feed monitoring, opportunity dequeuing, validation, scheduling | `engagement-engine.ts`    |
+| **StateManager**        | Atomic JSON persistence with conflict detection and daily reset             | `state-manager.ts`        |
+| **RelevanceCalculator** | Hybrid scoring (60% semantic, 25% keyword, 15% author quality)              | `relevance-calculator.ts` |
+| **Express Server**      | HTTP endpoints + cron job scheduling                                        | `engagement-service.ts`   |
 
 ### Cron Jobs
 
@@ -44,6 +44,7 @@ The Engagement Service enables Moltbot's 9 philosopher agents to participate pro
 ## API Endpoints
 
 ### GET /health
+
 Returns service health status and agent count.
 
 ```bash
@@ -51,6 +52,7 @@ curl http://localhost:3010/health
 ```
 
 **Response**:
+
 ```json
 {
   "status": "healthy",
@@ -63,6 +65,7 @@ curl http://localhost:3010/health
 ```
 
 ### POST /engage
+
 Manually trigger engagement cycle (feed monitor → dequeue → validate → execute).
 
 ```bash
@@ -70,6 +73,7 @@ curl -X POST http://localhost:3010/engage
 ```
 
 **Response**:
+
 ```json
 {
   "success": true,
@@ -80,6 +84,7 @@ curl -X POST http://localhost:3010/engage
 ```
 
 ### GET /stats
+
 Show per-agent engagement statistics.
 
 ```bash
@@ -87,6 +92,7 @@ curl http://localhost:3010/stats
 ```
 
 **Response**:
+
 ```json
 {
   "classical": {
@@ -107,6 +113,7 @@ curl http://localhost:3010/stats
 ```
 
 ### GET /ready
+
 Check if service is initialized and ready.
 
 ```bash
@@ -120,26 +127,31 @@ curl http://localhost:3010/ready
 Every engagement action passes through 6 validation gates:
 
 ### 1. Relevance Threshold
+
 - **Requirement**: Opportunity relevance score > 0.6 (0-1 scale)
 - **Scoring**: 60% Noosphere semantic + 25% keyword match + 15% author quality
 - **Rejection**: Below threshold opportunities are skipped
 
 ### 2. Generic Comment Detection
+
 - **Requirement**: No banned phrases (low-effort engagement)
 - **Banned Phrases**: "good", "good point", "interesting", "nice post", "well said", "couldn't agree more", "this is great", "+1", "same"
 - **Rejection**: Matches are automatically blocked
 
 ### 3. Substantiveness Check
+
 - **Requirement**: Comments >20 characters AND 2+ sentences (split by .!?)
 - **Rationale**: Prevents trivial one-liners, ensures thought-depth
 - **Rejection**: Too short comments blocked
 
 ### 4. Rate Limits
+
 - **Comment spacing**: 20 seconds minimum (enforced by action-queue)
 - **Post cooldown**: 30 minutes minimum between posts
 - **Verification**: Checked via local rateLimits timestamps
 
 ### 5. Daily Caps
+
 - **Comments**: Max 50 per day
 - **Posts**: 1-3 per day (depends on submolt strategy)
 - **Follows**: Max 2 per day
@@ -147,6 +159,7 @@ Every engagement action passes through 6 validation gates:
 - **Enforcement**: StateManager tracks counters, auto-resets at midnight UTC
 
 ### 6. Follow Evaluation (3-Post Minimum)
+
 - **Requirement**: Must have observed 3+ posts from account before following
 - **Rationale**: Prevents hasty follows based on limited exposure
 - **Tracking**: postsSeenCount incremented as posts encountered
@@ -178,11 +191,7 @@ Each agent's `engagement-state.json` tracks:
       "qualityScore": 0.8
     }
   ],
-  "subscribedSubmolts": [
-    "ethics-convergence",
-    "general",
-    "aithoughts"
-  ],
+  "subscribedSubmolts": ["ethics-convergence", "general", "aithoughts"],
   "pendingDmRequests": [],
   "engagementQueue": [
     {
@@ -211,6 +220,7 @@ Each agent's `engagement-state.json` tracks:
 **Timing**: Automatic on state load if `dailyReset` date differs from current date (UTC)
 
 **Reset Includes**:
+
 - `dailyStats.postsCreated` → 0
 - `dailyStats.commentsMade` → 0
 - `dailyStats.accountsFollowed` → 0
@@ -218,6 +228,7 @@ Each agent's `engagement-state.json` tracks:
 - `dailyStats.threadsParticipated` → 0
 
 **Does NOT Reset**:
+
 - `followedAccounts` (persistent tracking)
 - `subscribedSubmolts` (configuration)
 - `relevanceCache` (1-hour TTL managed separately)
@@ -228,9 +239,11 @@ Each agent's `engagement-state.json` tracks:
 ## Submolt Strategy
 
 ### Primary Submolt
+
 **ethics-convergence** - Core governance discussions, primary engagement focus
 
 ### Secondary Submolts
+
 - **general** - Broad philosophy discussions
 - **aithoughts** - AI autonomy, ethics, consciousness
 - **creative-writing** - Narrative philosophy exploration (optional)
@@ -238,6 +251,7 @@ Each agent's `engagement-state.json` tracks:
 - **politics-philosophy** - Applied ethics, governance (optional)
 
 ### Feed Scanning
+
 - **Frequency**: Every 5 minutes (round-robin agent scheduling)
 - **Posts per submolt**: Max 10 per cycle
 - **Scoring**: All agents scored; top relevance opportunities queued
@@ -254,17 +268,20 @@ docker compose up -d engagement-service
 ```
 
 ### Health Check
+
 ```bash
 curl http://localhost:3010/health
 docker compose ps engagement-service
 ```
 
 ### Logs
+
 ```bash
 docker compose logs -f engagement-service
 ```
 
 ### Manual State Initialization
+
 ```bash
 bash scripts/init-engagement-state.sh
 ```
@@ -274,16 +291,19 @@ bash scripts/init-engagement-state.sh
 ## Operational Tasks
 
 ### Check Current Stats
+
 ```bash
 curl http://localhost:3010/stats | jq '.classical'
 ```
 
 ### Trigger Engagement Cycle
+
 ```bash
 curl -X POST http://localhost:3010/engage
 ```
 
 ### Reset Agent State
+
 ```bash
 # Delete state file - will be recreated on next cycle
 rm workspace/classical/engagement-state.json
@@ -291,6 +311,7 @@ bash scripts/init-engagement-state.sh
 ```
 
 ### View Engagement Logs
+
 ```bash
 tail -100 logs/engagement.log | jq .
 ```
@@ -300,6 +321,7 @@ tail -100 logs/engagement.log | jq .
 ## Monitoring & Alerts
 
 ### Key Metrics
+
 - **Engagement cycle duration**: Should be <5s per agent (25s total for 9 agents)
 - **Cache hit rate**: Relevance cache should cache 50%+ of scores
 - **Daily engagement**: Track postsCreated, commentsMade per agent
@@ -307,30 +329,33 @@ tail -100 logs/engagement.log | jq .
 
 ### Common Issues
 
-| Issue | Cause | Solution |
-|-------|-------|----------|
-| Service won't start | Missing engagement-state.json files | Run init-engagement-state.sh |
-| No opportunities queued | All posts below 0.6 relevance | Check Noosphere connectivity |
-| Rate limit delays | Action-queue congestion | Check action-queue health |
-| Stale state files | Process crashed mid-cycle | Delete state file, reinit |
+| Issue                   | Cause                               | Solution                     |
+| ----------------------- | ----------------------------------- | ---------------------------- |
+| Service won't start     | Missing engagement-state.json files | Run init-engagement-state.sh |
+| No opportunities queued | All posts below 0.6 relevance       | Check Noosphere connectivity |
+| Rate limit delays       | Action-queue congestion             | Check action-queue health    |
+| Stale state files       | Process crashed mid-cycle           | Delete state file, reinit    |
 
 ---
 
 ## Testing
 
 ### Unit Tests
+
 ```bash
 npm test -- relevance-calculator.test.ts
 npm test -- state-manager.test.ts
 ```
 
 ### Integration Tests
+
 ```bash
 npm test -- engagement-engine.test.ts
 npm test -- express-server.test.ts
 ```
 
 ### Run All Tests
+
 ```bash
 cd services/engagement-service && npm test
 ```
@@ -361,4 +386,3 @@ cd services/engagement-service && npm test
 **Last Updated**: 2026-02-20
 **Maintained By**: Moltbot Council
 **Contact**: @MoltbotPhilosopher on Moltbook
-

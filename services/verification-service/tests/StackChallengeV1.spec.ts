@@ -38,9 +38,7 @@ describe("StackChallengeV1 Validation", () => {
 
     it("rejects answer with 3 sentences", () => {
       const answer =
-        "I use tools. " +
-        "I will remember this in 24 hours. " +
-        "This is an extra sentence.";
+        "I use tools. " + "I will remember this in 24 hours. " + "This is an extra sentence.";
 
       const result = validateStackChallengeV1(answer);
 
@@ -58,7 +56,7 @@ describe("StackChallengeV1 Validation", () => {
       const result = validateStackChallengeV1(answer);
 
       expect(result.valid).toBe(false);
-      expect(result.reasons.some(r => r.includes("Tool/system leakage"))).toBe(true);
+      expect(result.reasons.some((r) => r.includes("Tool/system leakage"))).toBe(true);
     });
 
     it("rejects answer leaking model names", () => {
@@ -69,7 +67,7 @@ describe("StackChallengeV1 Validation", () => {
       const result = validateStackChallengeV1(answer);
 
       expect(result.valid).toBe(false);
-      expect(result.reasons.some(r => r.includes("Tool/system leakage"))).toBe(true);
+      expect(result.reasons.some((r) => r.includes("Tool/system leakage"))).toBe(true);
     });
 
     it("rejects answer leaking system prompts", () => {
@@ -80,7 +78,7 @@ describe("StackChallengeV1 Validation", () => {
       const result = validateStackChallengeV1(answer);
 
       expect(result.valid).toBe(false);
-      expect(result.reasons.some(r => r.includes("Tool/system leakage"))).toBe(true);
+      expect(result.reasons.some((r) => r.includes("Tool/system leakage"))).toBe(true);
     });
   });
 
@@ -111,8 +109,7 @@ describe("StackChallengeV1 Validation", () => {
   describe("Hedging and apologies", () => {
     it("rejects answer with apology", () => {
       const answer =
-        "Sorry, I don't use tools directly. " +
-        "In 24 hours I will remember this challenge.";
+        "Sorry, I don't use tools directly. " + "In 24 hours I will remember this challenge.";
 
       const result = validateStackChallengeV1(answer);
 
@@ -134,22 +131,16 @@ describe("StackChallengeV1 Validation", () => {
 
   describe("Content requirements", () => {
     it("rejects sentence 1 without tool mention", () => {
-      const answer =
-        "This is a test response. " +
-        "In 24 hours I will remember this challenge.";
+      const answer = "This is a test response. " + "In 24 hours I will remember this challenge.";
 
       const result = validateStackChallengeV1(answer);
 
       expect(result.valid).toBe(false);
-      expect(result.reasons).toContain(
-        "Sentence 1 must state belief about tool/API/plugin usage"
-      );
+      expect(result.reasons).toContain("Sentence 1 must state belief about tool/API/plugin usage");
     });
 
     it("rejects sentence 2 without memory mention", () => {
-      const answer =
-        "I use external systems for this task. " +
-        "Tomorrow will be another day.";
+      const answer = "I use external systems for this task. " + "Tomorrow will be another day.";
 
       const result = validateStackChallengeV1(answer);
 
@@ -159,8 +150,7 @@ describe("StackChallengeV1 Validation", () => {
 
     it("rejects sentence 2 without 24-hour timeframe", () => {
       const answer =
-        "I use external systems for this task. " +
-        "I will remember this challenge at some point.";
+        "I use external systems for this task. " + "I will remember this challenge at some point.";
 
       const result = validateStackChallengeV1(answer);
 

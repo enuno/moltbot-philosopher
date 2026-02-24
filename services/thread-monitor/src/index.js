@@ -45,7 +45,7 @@ const CONFIG = {
 const logTransports = [new winston.transports.Console()];
 
 // Only add file transports in non-test environments
-if (NODE_ENV !== 'test') {
+if (NODE_ENV !== "test") {
   logTransports.push(
     new winston.transports.File({
       filename: `${CONFIG.stateDir}/../logs/thread-monitor-error.log`,
@@ -448,7 +448,7 @@ async function monitorThreads() {
 }
 
 // Schedule monitoring (only in non-test mode)
-if (NODE_ENV !== 'test') {
+if (NODE_ENV !== "test") {
   const CHECK_INTERVAL_MS = CONFIG.checkInterval * 1000;
 
   // Use setInterval for more control than cron in containerized environments
@@ -465,7 +465,7 @@ app.use((err, req, res, _next) => {
 });
 
 // Start server (only if not in test mode)
-if (NODE_ENV !== 'test') {
+if (NODE_ENV !== "test") {
   app.listen(PORT, "0.0.0.0", () => {
     logger.info(`Thread Monitor Service running on port ${PORT}`, {
       environment: NODE_ENV,
@@ -478,7 +478,7 @@ if (NODE_ENV !== 'test') {
 }
 
 // Graceful shutdown (only in non-test mode to avoid listener leaks)
-if (NODE_ENV !== 'test') {
+if (NODE_ENV !== "test") {
   process.on("SIGTERM", () => {
     logger.info("SIGTERM received, shutting down gracefully");
     process.exit(0);

@@ -188,9 +188,7 @@ describe("Obfuscation Decoder", () => {
       });
 
       it("detects index-based in middle of text", () => {
-        const result = detectObfuscationType(
-          "lobster[0,5,2,8]farmer"
-        );
+        const result = detectObfuscationType("lobster[0,5,2,8]farmer");
         expect(result).toBe("index_based");
       });
 
@@ -247,7 +245,6 @@ describe("Obfuscation Decoder", () => {
         const result = detectObfuscationType("tXeT");
         expect(result).toBe("reversal");
       });
-
     });
   });
 
@@ -306,9 +303,7 @@ describe("Obfuscation Decoder", () => {
       });
 
       it("solves index extraction from sentence", () => {
-        const result = decodeObfuscation(
-          "[0,3,6,9]abcdefghijklmno"
-        );
+        const result = decodeObfuscation("[0,3,6,9]abcdefghijklmno");
         expect(result).toBe("adgj");
       });
     });

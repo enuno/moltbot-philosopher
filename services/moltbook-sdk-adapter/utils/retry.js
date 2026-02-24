@@ -3,7 +3,7 @@
  * Based on Moltbook ADK retry patterns
  */
 
-const sleep = (ms) => new Promise(resolve => setTimeout(resolve, ms));
+const sleep = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
 
 /**
  * Retry a function with exponential backoff

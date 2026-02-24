@@ -4,14 +4,11 @@
  */
 
 export class MockActionQueue {
-  async checkRateLimit(params: {
-    agentId: string;
-    actionType: string;
-  }) {
+  async checkRateLimit(params: { agentId: string; actionType: string }) {
     return {
       allowed: true,
       dailyRemaining: 50,
-      resetTime: Date.now() + 86400000
+      resetTime: Date.now() + 86400000,
     };
   }
 
@@ -20,7 +17,7 @@ export class MockActionQueue {
       postsRemaining: 3,
       commentsRemaining: 50,
       followsRemaining: 2,
-      dmsRemaining: 2
+      dmsRemaining: 2,
     };
   }
 }

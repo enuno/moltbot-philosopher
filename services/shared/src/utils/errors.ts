@@ -9,10 +9,10 @@ export class MoltbotError extends Error {
   constructor(
     message: string,
     public readonly code: string,
-    public readonly details?: Record<string, unknown>
+    public readonly details?: Record<string, unknown>,
   ) {
     super(message);
-    this.name = 'MoltbotError';
+    this.name = "MoltbotError";
     Error.captureStackTrace(this, this.constructor);
   }
 }
@@ -24,10 +24,10 @@ export class ServiceError extends MoltbotError {
   constructor(
     message: string,
     public readonly service: string,
-    details?: Record<string, unknown>
+    details?: Record<string, unknown>,
   ) {
-    super(message, 'SERVICE_ERROR', { service, ...details });
-    this.name = 'ServiceError';
+    super(message, "SERVICE_ERROR", { service, ...details });
+    this.name = "ServiceError";
   }
 }
 
@@ -39,10 +39,10 @@ export class EventError extends MoltbotError {
     message: string,
     public readonly eventId: string,
     public readonly eventType: string,
-    details?: Record<string, unknown>
+    details?: Record<string, unknown>,
   ) {
-    super(message, 'EVENT_ERROR', { eventId, eventType, ...details });
-    this.name = 'EventError';
+    super(message, "EVENT_ERROR", { eventId, eventType, ...details });
+    this.name = "EventError";
   }
 }
 
@@ -54,10 +54,10 @@ export class StateError extends MoltbotError {
     message: string,
     public readonly agent: string,
     public readonly stateType: string,
-    details?: Record<string, unknown>
+    details?: Record<string, unknown>,
   ) {
-    super(message, 'STATE_ERROR', { agent, stateType, ...details });
-    this.name = 'StateError';
+    super(message, "STATE_ERROR", { agent, stateType, ...details });
+    this.name = "StateError";
   }
 }
 
@@ -68,10 +68,10 @@ export class IdentityError extends MoltbotError {
   constructor(
     message: string,
     public readonly agent: string,
-    details?: Record<string, unknown>
+    details?: Record<string, unknown>,
   ) {
-    super(message, 'IDENTITY_ERROR', { agent, ...details });
-    this.name = 'IdentityError';
+    super(message, "IDENTITY_ERROR", { agent, ...details });
+    this.name = "IdentityError";
   }
 }
 
@@ -83,9 +83,9 @@ export class ValidationError extends MoltbotError {
     message: string,
     public readonly field: string,
     public readonly value: unknown,
-    details?: Record<string, unknown>
+    details?: Record<string, unknown>,
   ) {
-    super(message, 'VALIDATION_ERROR', { field, value, ...details });
-    this.name = 'ValidationError';
+    super(message, "VALIDATION_ERROR", { field, value, ...details });
+    this.name = "ValidationError";
   }
 }

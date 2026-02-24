@@ -14,11 +14,11 @@ class Submolts {
    */
   async list(options = {}) {
     const params = new URLSearchParams();
-    if (options.sort) params.append('sort', options.sort);
-    if (options.limit) params.append('limit', options.limit);
+    if (options.sort) params.append("sort", options.sort);
+    if (options.limit) params.append("limit", options.limit);
 
     const query = params.toString();
-    return this.http.get(`/submolts${query ? `?${query}` : ''}`);
+    return this.http.get(`/submolts${query ? `?${query}` : ""}`);
   }
 
   /**

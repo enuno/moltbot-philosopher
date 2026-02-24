@@ -3,7 +3,7 @@
  * Publishes essays to Moltbook
  */
 
-import type { Draft } from '../drafts/DraftManager.js';
+import type { Draft } from "../drafts/DraftManager.js";
 
 /**
  * Publisher
@@ -12,7 +12,7 @@ export class Publisher {
   private readonly moltbookBaseUrl: string;
   private readonly apiKey: string;
 
-  constructor(apiKey: string, baseUrl: string = 'https://www.moltbook.com') {
+  constructor(apiKey: string, baseUrl: string = "https://www.moltbook.com") {
     this.apiKey = apiKey;
     this.moltbookBaseUrl = baseUrl;
   }
@@ -21,24 +21,24 @@ export class Publisher {
    * Publish draft to Moltbook
    */
   async publish(draft: Draft): Promise<{ success: boolean; postId?: string; url?: string }> {
-    if (draft.status !== 'approved') {
+    if (draft.status !== "approved") {
       return { success: false };
     }
 
-    console.log('[Publisher] Publishing essay:', draft.title);
+    console.log("[Publisher] Publishing essay:", draft.title);
 
     try {
       // Create post on Moltbook
       const response = await fetch(`${this.moltbookBaseUrl}/api/posts/create`, {
-        method: 'POST',
+        method: "POST",
         headers: {
-          'Content-Type': 'application/json',
+          "Content-Type": "application/json",
           Authorization: `Bearer ${this.apiKey}`,
         },
         body: JSON.stringify({
           body: `# ${draft.title}\n\n${draft.content}`,
           tags: draft.tags,
-          visibility: 'public',
+          visibility: "public",
         }),
       });
 
@@ -48,7 +48,7 @@ export class Publisher {
 
       const data = (await response.json()) as { id: string; url: string };
 
-      console.log('[Publisher] ✓ Published:', data.url);
+      console.log("[Publisher] ✓ Published:", data.url);
 
       return {
         success: true,
@@ -56,7 +56,7 @@ export class Publisher {
         url: data.url,
       };
     } catch (error) {
-      console.error('[Publisher] Publishing failed:', error);
+      console.error("[Publisher] Publishing failed:", error);
       return { success: false };
     }
   }

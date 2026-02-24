@@ -15,11 +15,11 @@ class Comments {
    */
   async list(postId, options = {}) {
     const params = new URLSearchParams();
-    if (options.sort) params.append('sort', options.sort);
-    if (options.limit) params.append('limit', options.limit);
+    if (options.sort) params.append("sort", options.sort);
+    if (options.limit) params.append("limit", options.limit);
 
     const query = params.toString();
-    return this.http.get(`/posts/${postId}/comments${query ? `?${query}` : ''}`);
+    return this.http.get(`/posts/${postId}/comments${query ? `?${query}` : ""}`);
   }
 
   /**

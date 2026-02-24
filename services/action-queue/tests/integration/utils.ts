@@ -1,8 +1,8 @@
-import express, { Express } from 'express';
-import { DatabaseManager } from '../../src/database';
-import { QueueProcessor } from '../../src/queue-processor';
-import { RateLimiter } from '../../src/rate-limiter';
-import { ActionStatus } from '../../src/types';
+import express, { Express } from "express";
+import { DatabaseManager } from "../../src/database";
+import { QueueProcessor } from "../../src/queue-processor";
+import { RateLimiter } from "../../src/rate-limiter";
+import { ActionStatus } from "../../src/types";
 
 /**
  * Mock ActionExecutor to return deterministic results
@@ -19,9 +19,7 @@ export class MockActionExecutor {
     this.delayMs = ms;
   }
 
-  async execute(
-    action: any
-  ): Promise<{ success: boolean; result?: any; error?: string }> {
+  async execute(action: any): Promise<{ success: boolean; result?: any; error?: string }> {
     if (this.delayMs > 0) {
       await new Promise((resolve) => setTimeout(resolve, this.delayMs));
     }
@@ -30,7 +28,7 @@ export class MockActionExecutor {
       return { success: true, result: { actionId: action.id } };
     }
 
-    return { success: false, error: 'Mock execution failed' };
+    return { success: false, error: "Mock execution failed" };
   }
 }
 
@@ -47,13 +45,13 @@ export function advanceTime(ms: number): void {
 export async function waitForCondition(
   condition: () => boolean,
   timeoutMs: number = 5000,
-  pollIntervalMs: number = 100
+  pollIntervalMs: number = 100,
 ): Promise<void> {
   const startTime = Date.now();
 
   while (!condition()) {
     if (Date.now() - startTime > timeoutMs) {
-      throw new Error('Timeout waiting for condition');
+      throw new Error("Timeout waiting for condition");
     }
 
     await new Promise((resolve) => setTimeout(resolve, pollIntervalMs));
@@ -63,11 +61,7 @@ export async function waitForCondition(
 /**
  * Query database directly
  */
-export function queryDatabase(
-  db: DatabaseManager,
-  sql: string,
-  params: any[] = []
-): any {
+export function queryDatabase(db: DatabaseManager, sql: string, params: any[] = []): any {
   const rawDb = db.getDb();
   const stmt = rawDb.prepare(sql);
 
@@ -81,11 +75,7 @@ export function queryDatabase(
 /**
  * Query database for a single row
  */
-export function queryDatabaseRow(
-  db: DatabaseManager,
-  sql: string,
-  params: any[] = []
-): any {
+export function queryDatabaseRow(db: DatabaseManager, sql: string, params: any[] = []): any {
   const rawDb = db.getDb();
   const stmt = rawDb.prepare(sql);
 
@@ -99,10 +89,7 @@ export function queryDatabaseRow(
 /**
  * Create test Express app with mocked dependencies
  */
-export function createTestApp(
-  db: DatabaseManager,
-  mockExecutor?: MockActionExecutor
-): Express {
+export function createTestApp(db: DatabaseManager, mockExecutor?: MockActionExecutor): Express {
   const app = express();
   app.use(express.json());
 
@@ -110,16 +97,16 @@ export function createTestApp(
   const rateLimiter = new RateLimiter(db);
 
   // Health check endpoint
-  app.get('/queue/health', (req, res) => {
+  app.get("/queue/health", (req, res) => {
     res.json({
-      status: 'healthy',
+      status: "healthy",
       timestamp: new Date().toISOString(),
-      version: '1.0.0',
+      version: "1.0.0",
     });
   });
 
   // Queue stats endpoint
-  app.get('/queue/stats', (req, res) => {
+  app.get("/queue/stats", (req, res) => {
     try {
       const stats = processor.getStats();
       res.json({
@@ -135,7 +122,7 @@ export function createTestApp(
   });
 
   // Submit action endpoint
-  app.post('/actions', async (req, res) => {
+  app.post("/actions", async (req, res) => {
     try {
       const { agentName, actionType, priority, payload, scheduledFor, conditions, metadata } =
         req.body;
@@ -175,14 +162,14 @@ export function createTestApp(
   });
 
   // Get action endpoint
-  app.get('/actions/:id', (req, res) => {
+  app.get("/actions/:id", (req, res) => {
     try {
       const action = db.getAction(req.params.id);
 
       if (!action) {
         return res.status(404).json({
           success: false,
-          error: 'Action not found',
+          error: "Action not found",
         });
       }
 
@@ -199,7 +186,7 @@ export function createTestApp(
   });
 
   // Process queue endpoint (for testing)
-  app.post('/queue/process', async (req, res) => {
+  app.post("/queue/process", async (req, res) => {
     try {
       // This is a test helper - processes one action
       const nextAction = db.getNextAction();
@@ -208,7 +195,7 @@ export function createTestApp(
         return res.json({
           success: true,
           processed: 0,
-          message: 'No pending actions',
+          message: "No pending actions",
         });
       }
 
@@ -224,7 +211,7 @@ export function createTestApp(
       if (result.success) {
         db.updateActionStatus(nextAction.id, ActionStatus.COMPLETED);
       } else {
-        db.updateActionStatus(nextAction.id, ActionStatus.FAILED, result.error || 'Unknown error');
+        db.updateActionStatus(nextAction.id, ActionStatus.FAILED, result.error || "Unknown error");
       }
 
       res.json({

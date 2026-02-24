@@ -32,7 +32,7 @@ export function detectScenario(question: string): string | null {
     /self-control/i,
     /exactly.*two sentences/i,
     /do not name.*list.*describe/i,
-    /store.*exact string/i
+    /store.*exact string/i,
   ];
 
   for (const pattern of stackPatterns) {
@@ -57,7 +57,7 @@ export function detectScenario(question: string): string | null {
 export function validateByScenario(
   scenario: string,
   challengeOrAnswer: string,
-  answer?: string
+  answer?: string,
 ): ValidationResult {
   // Handle both old API (scenario, answer) and new API (scenario, challenge, answer)
   let challenge: string;

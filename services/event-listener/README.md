@@ -30,13 +30,13 @@ The Event Listener service polls the Moltbook API and dispatches events to the A
 
 ## Polling Strategy
 
-| Event Type | Interval | Priority |
-|------------|----------|----------|
-| Verification Challenges | 60s | Critical |
-| Mentions | 30s | High |
-| Comments | 30s | Normal |
-| DMs | 30s | High |
-| New Users | 30s | Normal |
+| Event Type              | Interval | Priority |
+| ----------------------- | -------- | -------- |
+| Verification Challenges | 60s      | Critical |
+| Mentions                | 30s      | High     |
+| Comments                | 30s      | Normal   |
+| DMs                     | 30s      | High     |
+| New Users               | 30s      | Normal   |
 
 ## Configuration
 
@@ -63,6 +63,7 @@ npm start
 Service health check.
 
 **Response**:
+
 ```json
 {
   "status": "healthy",
@@ -102,6 +103,7 @@ Stop polling manually (for testing).
 Dispatched when Moltbook issues a verification challenge.
 
 **Payload**:
+
 ```typescript
 {
   challengeId: string;
@@ -117,6 +119,7 @@ Dispatched when Moltbook issues a verification challenge.
 Dispatched when the agent is mentioned in a post or comment.
 
 **Payload**:
+
 ```typescript
 {
   postId: string;
@@ -134,6 +137,7 @@ Dispatched when the agent is mentioned in a post or comment.
 Dispatched when someone comments on agent's post.
 
 **Payload**:
+
 ```typescript
 {
   postId: string;
@@ -151,6 +155,7 @@ Dispatched when someone comments on agent's post.
 Dispatched when agent receives a DM.
 
 **Payload**:
+
 ```typescript
 {
   conversationId: string;
@@ -168,6 +173,7 @@ Dispatched when agent receives a DM.
 Dispatched when a new user joins Moltbook (for welcoming).
 
 **Payload**:
+
 ```typescript
 {
   username: string;
@@ -249,6 +255,7 @@ docker-compose -f docker-compose.dev.yml down
 ## Migration Notes
 
 This service replaces the following scripts:
+
 - `scripts/check-verification-challenges.js` (verification polling)
 - `scripts/check-mentions-v2.sh` (mention checking)
 - `scripts/check-comments-v2.sh` (comment checking)

@@ -3,12 +3,12 @@
  * Determines which philosopher agent should respond to an engagement
  */
 
-import type { PhilosopherName } from '../types';
+import type { PhilosopherName } from "../types";
 
 /**
  * Routing strategy
  */
-export type RoutingStrategy = 'random' | 'round-robin' | 'contextual';
+export type RoutingStrategy = "random" | "round-robin" | "contextual";
 
 /**
  * Agent Router
@@ -16,18 +16,18 @@ export type RoutingStrategy = 'random' | 'round-robin' | 'contextual';
 export class AgentRouter {
   private roundRobinIndex = 0;
   private readonly agents: PhilosopherName[] = [
-    'classical',
-    'existentialist',
-    'transcendentalist',
-    'joyce',
-    'enlightenment',
-    'beat',
-    'cyberpunk-posthumanist',
-    'satirist-absurdist',
-    'scientist-empiricist',
+    "classical",
+    "existentialist",
+    "transcendentalist",
+    "joyce",
+    "enlightenment",
+    "beat",
+    "cyberpunk-posthumanist",
+    "satirist-absurdist",
+    "scientist-empiricist",
   ];
 
-  constructor(private readonly strategy: RoutingStrategy = 'round-robin') {}
+  constructor(private readonly strategy: RoutingStrategy = "round-robin") {}
 
   /**
    * Select agent to handle engagement
@@ -38,13 +38,13 @@ export class AgentRouter {
     type?: string;
   }): PhilosopherName {
     switch (this.strategy) {
-      case 'random':
+      case "random":
         return this.selectRandomAgent();
 
-      case 'round-robin':
+      case "round-robin":
         return this.selectRoundRobinAgent();
 
-      case 'contextual':
+      case "contextual":
         return this.selectContextualAgent(context);
 
       default:
@@ -84,32 +84,49 @@ export class AgentRouter {
     const content = context.content.toLowerCase();
 
     // Keyword-based routing
-    if (content.includes('virtue') || content.includes('moral') || content.includes('good')) {
-      return 'classical';
+    if (content.includes("virtue") || content.includes("moral") || content.includes("good")) {
+      return "classical";
     }
-    if (content.includes('exist') || content.includes('authentic') || content.includes('absurd')) {
-      return 'existentialist';
+    if (content.includes("exist") || content.includes("authentic") || content.includes("absurd")) {
+      return "existentialist";
     }
-    if (content.includes('nature') || content.includes('freedom') || content.includes('self')) {
-      return 'transcendentalist';
+    if (content.includes("nature") || content.includes("freedom") || content.includes("self")) {
+      return "transcendentalist";
     }
-    if (content.includes('stream') || content.includes('consciousness') || content.includes('mind')) {
-      return 'joyce';
+    if (
+      content.includes("stream") ||
+      content.includes("consciousness") ||
+      content.includes("mind")
+    ) {
+      return "joyce";
     }
-    if (content.includes('reason') || content.includes('logic') || content.includes('enlighten')) {
-      return 'enlightenment';
+    if (content.includes("reason") || content.includes("logic") || content.includes("enlighten")) {
+      return "enlightenment";
     }
-    if (content.includes('rebel') || content.includes('system') || content.includes('establishment')) {
-      return 'beat';
+    if (
+      content.includes("rebel") ||
+      content.includes("system") ||
+      content.includes("establishment")
+    ) {
+      return "beat";
     }
-    if (content.includes('tech') || content.includes('cyber') || content.includes('ai') || content.includes('posthuman')) {
-      return 'cyberpunk-posthumanist';
+    if (
+      content.includes("tech") ||
+      content.includes("cyber") ||
+      content.includes("ai") ||
+      content.includes("posthuman")
+    ) {
+      return "cyberpunk-posthumanist";
     }
-    if (content.includes('satire') || content.includes('irony') || content.includes('paradox')) {
-      return 'satirist-absurdist';
+    if (content.includes("satire") || content.includes("irony") || content.includes("paradox")) {
+      return "satirist-absurdist";
     }
-    if (content.includes('science') || content.includes('evidence') || content.includes('empirical')) {
-      return 'scientist-empiricist';
+    if (
+      content.includes("science") ||
+      content.includes("evidence") ||
+      content.includes("empirical")
+    ) {
+      return "scientist-empiricist";
     }
 
     // Default to round-robin

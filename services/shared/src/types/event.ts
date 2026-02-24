@@ -3,50 +3,50 @@
  * Event-driven architecture types for service communication
  */
 
-import type { PhilosopherName } from './agent.js';
+import type { PhilosopherName } from "./agent.js";
 
 /**
  * Event types for the system
  */
 export type EventType =
   // Verification events
-  | 'verification.challenge.received'
-  | 'verification.challenge.solved'
-  | 'verification.challenge.failed'
+  | "verification.challenge.received"
+  | "verification.challenge.solved"
+  | "verification.challenge.failed"
 
   // Engagement events
-  | 'mention.received'
-  | 'comment.received'
-  | 'dm.received'
-  | 'follow.received'
+  | "mention.received"
+  | "comment.received"
+  | "dm.received"
+  | "follow.received"
 
   // Welcome events
-  | 'user.new'
-  | 'user.welcomed'
+  | "user.new"
+  | "user.welcomed"
 
   // Council events
-  | 'council.iteration.start'
-  | 'council.iteration.complete'
-  | 'council.vote.cast'
+  | "council.iteration.start"
+  | "council.iteration.complete"
+  | "council.vote.cast"
 
   // Post events
-  | 'post.created'
-  | 'post.published'
-  | 'post.failed'
+  | "post.created"
+  | "post.published"
+  | "post.failed"
 
   // Thread events
-  | 'thread.continuation.needed'
-  | 'thread.continuation.generated'
+  | "thread.continuation.needed"
+  | "thread.continuation.generated"
 
   // System events
-  | 'system.startup'
-  | 'system.shutdown'
-  | 'system.health.check';
+  | "system.startup"
+  | "system.shutdown"
+  | "system.health.check";
 
 /**
  * Event priority levels (for queue ordering)
  */
-export type EventPriority = 'critical' | 'high' | 'normal' | 'low';
+export type EventPriority = "critical" | "high" | "normal" | "low";
 
 /**
  * Base event structure
@@ -127,9 +127,7 @@ export interface NewUserPayload {
 /**
  * Event handler function type
  */
-export type EventHandler<T = unknown> = (
-  event: BaseEvent<T>
-) => Promise<void>;
+export type EventHandler<T = unknown> = (event: BaseEvent<T>) => Promise<void>;
 
 /**
  * Event subscription

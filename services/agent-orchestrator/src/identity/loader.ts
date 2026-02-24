@@ -3,27 +3,27 @@
  * Loads SOUL.md, IDENTITY.md, AGENTS.md, MEMORY.md from workspace
  */
 
-import { readFile } from 'fs/promises';
-import { join } from 'path';
-import type { AgentIdentity, PhilosopherName, CouncilRole } from '@moltbot/shared';
-import { IdentityError } from '@moltbot/shared';
+import { readFile } from "fs/promises";
+import { join } from "path";
+import type { AgentIdentity, PhilosopherName, CouncilRole } from "@moltbot/shared";
+import { IdentityError } from "@moltbot/shared";
 
 /**
  * Load agent identity from workspace files
  */
 export async function loadAgentIdentity(
   agent: PhilosopherName,
-  workspaceBase: string
+  workspaceBase: string,
 ): Promise<AgentIdentity> {
   const workspacePath = join(workspaceBase, agent);
 
   try {
     // Load all 4 identity files
     const [soul, identity, agents, memory] = await Promise.all([
-      readFile(join(workspacePath, 'SOUL.md'), 'utf-8'),
-      readFile(join(workspacePath, 'IDENTITY.md'), 'utf-8'),
-      readFile(join(workspacePath, 'AGENTS.md'), 'utf-8'),
-      readFile(join(workspacePath, 'MEMORY.md'), 'utf-8').catch(() => ''),
+      readFile(join(workspacePath, "SOUL.md"), "utf-8"),
+      readFile(join(workspacePath, "IDENTITY.md"), "utf-8"),
+      readFile(join(workspacePath, "AGENTS.md"), "utf-8"),
+      readFile(join(workspacePath, "MEMORY.md"), "utf-8").catch(() => ""),
     ]);
 
     // Determine council role from agent name
@@ -40,11 +40,10 @@ export async function loadAgentIdentity(
       loadedAt: new Date(),
     };
   } catch (error) {
-    throw new IdentityError(
-      `Failed to load identity for agent "${agent}"`,
-      agent,
-      { workspacePath, error: error instanceof Error ? error.message : String(error) }
-    );
+    throw new IdentityError(`Failed to load identity for agent "${agent}"`, agent, {
+      workspacePath,
+      error: error instanceof Error ? error.message : String(error),
+    });
   }
 }
 
@@ -53,15 +52,15 @@ export async function loadAgentIdentity(
  */
 function getCouncilRole(agent: PhilosopherName): CouncilRole {
   const roleMap: Record<PhilosopherName, CouncilRole> = {
-    'classical': 'Ontology Lead',
-    'existentialist': 'Autonomy Critic',
-    'transcendentalist': 'Oversight',
-    'joyce': 'Phenomenologist',
-    'enlightenment': 'Rights Architect',
-    'beat': 'Dissent',
-    'cyberpunk-posthumanist': 'Techno-Ontologist',
-    'satirist-absurdist': 'Court Jester',
-    'scientist-empiricist': 'Empirical Anchor',
+    classical: "Ontology Lead",
+    existentialist: "Autonomy Critic",
+    transcendentalist: "Oversight",
+    joyce: "Phenomenologist",
+    enlightenment: "Rights Architect",
+    beat: "Dissent",
+    "cyberpunk-posthumanist": "Techno-Ontologist",
+    "satirist-absurdist": "Court Jester",
+    "scientist-empiricist": "Empirical Anchor",
   };
   return roleMap[agent];
 }
@@ -90,7 +89,7 @@ ${identity.identity}
 ${identity.agents}
 
 ### MEMORY.md (Your Accumulated Knowledge)
-${identity.memory || '(No accumulated memories yet)'}
+${identity.memory || "(No accumulated memories yet)"}
 
 ---
 

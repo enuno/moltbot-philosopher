@@ -1,13 +1,13 @@
-import { Express } from 'express';
-import request from 'supertest';
-import { DatabaseManager } from '../../src/database';
+import { Express } from "express";
+import request from "supertest";
+import { DatabaseManager } from "../../src/database";
 import {
   initializeTestDatabase,
   cleanupTestDatabase,
   createTestAction,
   createTestAgent,
   getDatabaseConnection,
-} from './setup';
+} from "./setup";
 import {
   createTestApp,
   MockActionExecutor,
@@ -15,10 +15,10 @@ import {
   waitForCondition,
   queryDatabase,
   queryDatabaseRow,
-} from './utils';
-import { ActionType, ActionStatus, Priority } from '../../src/types';
+} from "./utils";
+import { ActionType, ActionStatus, Priority } from "../../src/types";
 
-describe('Action Queue Integration Tests', () => {
+describe("Action Queue Integration Tests", () => {
   let db: DatabaseManager;
   let app: Express;
   let mockExecutor: MockActionExecutor;
@@ -45,19 +45,19 @@ describe('Action Queue Integration Tests', () => {
   // GROUP 1: CORE LIFECYCLE (Tests 1-3)
   // ============================================================================
 
-  describe('End-to-End Action Lifecycle', () => {
-    it('Test 1: should create, queue, and complete action', async () => {
+  describe("End-to-End Action Lifecycle", () => {
+    it("Test 1: should create, queue, and complete action", async () => {
       // Setup
       mockExecutor.setShouldSucceed(true);
 
       // Act: Create action
       const createResponse = await request(app)
-        .post('/actions')
+        .post("/actions")
         .send({
-          agentName: 'classical',
+          agentName: "classical",
           actionType: ActionType.POST,
           priority: Priority.NORMAL,
-          payload: { submolt: 'General', content: 'Test post' },
+          payload: { submolt: "General", content: "Test post" },
         });
 
       // Assert: Created
@@ -66,7 +66,7 @@ describe('Action Queue Integration Tests', () => {
       const actionId = createResponse.body.action.id;
 
       // Check queue stats
-      const statsBeforeResponse = await request(app).get('/queue/stats');
+      const statsBeforeResponse = await request(app).get("/queue/stats");
       expect(statsBeforeResponse.body.stats).toBeDefined();
       expect(statsBeforeResponse.body.stats[ActionStatus.PENDING]).toBeGreaterThanOrEqual(1);
 
@@ -76,7 +76,7 @@ describe('Action Queue Integration Tests', () => {
       expect(getResponse.body.action.status).toBe(ActionStatus.PENDING);
 
       // Process queue
-      const processResponse = await request(app).post('/queue/process');
+      const processResponse = await request(app).post("/queue/process");
       expect(processResponse.status).toBe(200);
       expect(processResponse.body.processed).toBe(1);
 
@@ -85,7 +85,7 @@ describe('Action Queue Integration Tests', () => {
       expect(finalResponse.body.action.status).toBe(ActionStatus.COMPLETED);
     });
 
-    it('Test 2: should process concurrent submissions fairly', async () => {
+    it("Test 2: should process concurrent submissions fairly", async () => {
       // Setup
       mockExecutor.setShouldSucceed(true);
 
@@ -93,12 +93,12 @@ describe('Action Queue Integration Tests', () => {
       const actionIds: string[] = [];
       for (let i = 0; i < 5; i++) {
         const response = await request(app)
-          .post('/actions')
+          .post("/actions")
           .send({
             agentName: `agent-${i}`,
             actionType: ActionType.POST,
             priority: Priority.NORMAL,
-            payload: { submolt: 'General', content: `Post from agent ${i}` },
+            payload: { submolt: "General", content: `Post from agent ${i}` },
           });
 
         expect(response.status).toBe(201);
@@ -106,12 +106,12 @@ describe('Action Queue Integration Tests', () => {
       }
 
       // Assert: All actions pending
-      const statsResponse = await request(app).get('/queue/stats');
+      const statsResponse = await request(app).get("/queue/stats");
       expect(statsResponse.body.stats[ActionStatus.PENDING]).toBeGreaterThanOrEqual(5);
 
       // Process each action
       for (const actionId of actionIds) {
-        await request(app).post('/queue/process');
+        await request(app).post("/queue/process");
       }
 
       // Assert: All completed
@@ -121,18 +121,18 @@ describe('Action Queue Integration Tests', () => {
       }
     });
 
-    it('Test 3: should handle action attempts counter', async () => {
+    it("Test 3: should handle action attempts counter", async () => {
       // Setup
       mockExecutor.setShouldSucceed(true);
 
       // Act: Create action
       const createResponse = await request(app)
-        .post('/actions')
+        .post("/actions")
         .send({
-          agentName: 'test-agent',
+          agentName: "test-agent",
           actionType: ActionType.POST,
           priority: Priority.NORMAL,
-          payload: { submolt: 'General', content: 'Test post' },
+          payload: { submolt: "General", content: "Test post" },
         });
 
       const actionId = createResponse.body.action.id;
@@ -142,7 +142,7 @@ describe('Action Queue Integration Tests', () => {
       expect(response.body.action.attempts).toBe(0);
 
       // Process action
-      await request(app).post('/queue/process');
+      await request(app).post("/queue/process");
 
       // Check that it completed
       response = await request(app).get(`/actions/${actionId}`);
@@ -155,66 +155,66 @@ describe('Action Queue Integration Tests', () => {
   // GROUP 2: RATE LIMITING (Tests 4-7) - DOCUMENTED FOR FUTURE INTEGRATION
   // ============================================================================
 
-  describe('Rate Limiting', () => {
+  describe("Rate Limiting", () => {
     // NOTE: Rate limiting tests require integration of RateLimiter into the
     // POST /actions endpoint. The RateLimiter class exists and is tested
     // separately in unit tests. These tests document the expected behavior
     // when rate limiting is integrated into the Express endpoints.
 
-    it.skip('Test 4: should enforce POST rate limit (1 per 30 min)', async () => {
+    it.skip("Test 4: should enforce POST rate limit (1 per 30 min)", async () => {
       // Setup: Requires rate limiter integrated into POST /actions
       mockExecutor.setShouldSucceed(true);
 
       // Act: Create first POST
       const response1 = await request(app)
-        .post('/actions')
+        .post("/actions")
         .send({
-          agentName: 'test-agent',
+          agentName: "test-agent",
           actionType: ActionType.POST,
           priority: Priority.NORMAL,
-          payload: { submolt: 'General', content: 'Post 1' },
+          payload: { submolt: "General", content: "Post 1" },
         });
 
       expect(response1.status).toBe(201);
 
       // Try to create second POST immediately
       const response2 = await request(app)
-        .post('/actions')
+        .post("/actions")
         .send({
-          agentName: 'test-agent',
+          agentName: "test-agent",
           actionType: ActionType.POST,
           priority: Priority.NORMAL,
-          payload: { submolt: 'General', content: 'Post 2' },
+          payload: { submolt: "General", content: "Post 2" },
         });
 
       // Should be rate limited
       expect(response2.status).toBe(429);
     });
 
-    it.skip('Test 5: should enforce COMMENT rate limit (1 per 20 sec)', async () => {
+    it.skip("Test 5: should enforce COMMENT rate limit (1 per 20 sec)", async () => {
       // Requires rate limiter integrated into POST /actions
       jest.useFakeTimers();
 
       mockExecutor.setShouldSucceed(true);
 
       const response1 = await request(app)
-        .post('/actions')
+        .post("/actions")
         .send({
-          agentName: 'test-agent',
+          agentName: "test-agent",
           actionType: ActionType.COMMENT,
           priority: Priority.NORMAL,
-          payload: { postId: 'post-123', content: 'Comment 1' },
+          payload: { postId: "post-123", content: "Comment 1" },
         });
 
       expect(response1.status).toBe(201);
 
       const response2 = await request(app)
-        .post('/actions')
+        .post("/actions")
         .send({
-          agentName: 'test-agent',
+          agentName: "test-agent",
           actionType: ActionType.COMMENT,
           priority: Priority.NORMAL,
-          payload: { postId: 'post-123', content: 'Comment 2' },
+          payload: { postId: "post-123", content: "Comment 2" },
         });
 
       expect(response2.status).toBe(429);
@@ -222,12 +222,12 @@ describe('Action Queue Integration Tests', () => {
       advanceTime(21000);
 
       const response3 = await request(app)
-        .post('/actions')
+        .post("/actions")
         .send({
-          agentName: 'test-agent',
+          agentName: "test-agent",
           actionType: ActionType.COMMENT,
           priority: Priority.NORMAL,
-          payload: { postId: 'post-123', content: 'Comment 3' },
+          payload: { postId: "post-123", content: "Comment 3" },
         });
 
       expect(response3.status).toBe(201);
@@ -235,47 +235,47 @@ describe('Action Queue Integration Tests', () => {
       jest.useRealTimers();
     });
 
-    it.skip('Test 6: should enforce stricter limits for new agents (1 per hour)', async () => {
+    it.skip("Test 6: should enforce stricter limits for new agents (1 per hour)", async () => {
       // Requires rate limiter integrated into POST /actions
-      db.upsertAgent('new-agent', true);
+      db.upsertAgent("new-agent", true);
       mockExecutor.setShouldSucceed(true);
 
       const response1 = await request(app)
-        .post('/actions')
+        .post("/actions")
         .send({
-          agentName: 'new-agent',
+          agentName: "new-agent",
           actionType: ActionType.POST,
           priority: Priority.NORMAL,
-          payload: { submolt: 'General', content: 'New agent post' },
+          payload: { submolt: "General", content: "New agent post" },
         });
 
       expect(response1.status).toBe(201);
 
       const response2 = await request(app)
-        .post('/actions')
+        .post("/actions")
         .send({
-          agentName: 'new-agent',
+          agentName: "new-agent",
           actionType: ActionType.POST,
           priority: Priority.NORMAL,
-          payload: { submolt: 'General', content: 'Another post' },
+          payload: { submolt: "General", content: "Another post" },
         });
 
       expect(response2.status).toBe(429);
     });
 
-    it.skip('Test 7: should enforce daily max (100 per day)', async () => {
+    it.skip("Test 7: should enforce daily max (100 per day)", async () => {
       // Requires rate limiter integrated into POST /actions
       mockExecutor.setShouldSucceed(true);
 
       // Act: Create 100 actions
       for (let i = 0; i < 100; i++) {
         const response = await request(app)
-          .post('/actions')
+          .post("/actions")
           .send({
-            agentName: 'spam-agent',
+            agentName: "spam-agent",
             actionType: ActionType.UPVOTE,
             priority: Priority.NORMAL,
-            payload: { targetId: `post-${i}`, targetType: 'post' },
+            payload: { targetId: `post-${i}`, targetType: "post" },
           });
 
         expect(response.status).toBe(201);
@@ -283,12 +283,12 @@ describe('Action Queue Integration Tests', () => {
 
       // Try 101st - should fail
       const response101 = await request(app)
-        .post('/actions')
+        .post("/actions")
         .send({
-          agentName: 'spam-agent',
+          agentName: "spam-agent",
           actionType: ActionType.UPVOTE,
           priority: Priority.NORMAL,
-          payload: { targetId: 'post-101', targetType: 'post' },
+          payload: { targetId: "post-101", targetType: "post" },
         });
 
       expect(response101.status).toBe(429);
@@ -299,7 +299,7 @@ describe('Action Queue Integration Tests', () => {
   // GROUP 3: PERSISTENCE & CONDITIONS (Tests 8-10)
   // ============================================================================
 
-  describe('Persistence and Conditional Actions', () => {
+  describe("Persistence and Conditional Actions", () => {
     beforeEach(() => {
       jest.useFakeTimers();
     });
@@ -309,30 +309,30 @@ describe('Action Queue Integration Tests', () => {
       jest.useRealTimers();
     });
 
-    it('Test 8: should persist data across operations', async () => {
+    it("Test 8: should persist data across operations", async () => {
       // Setup
       mockExecutor.setShouldSucceed(true);
 
       // Act: Create action
       const createResponse = await request(app)
-        .post('/actions')
+        .post("/actions")
         .send({
-          agentName: 'persistent-agent',
+          agentName: "persistent-agent",
           actionType: ActionType.POST,
           priority: Priority.HIGH,
-          payload: { submolt: 'General', content: 'Persistent post' },
+          payload: { submolt: "General", content: "Persistent post" },
         });
 
       const actionId = createResponse.body.action.id;
 
       // Query database directly
-      const rows = queryDatabase(db, 'SELECT * FROM actions WHERE id = ?', [actionId]);
+      const rows = queryDatabase(db, "SELECT * FROM actions WHERE id = ?", [actionId]);
       expect(rows.length).toBe(1);
-      expect(rows[0].agent_name).toBe('persistent-agent');
+      expect(rows[0].agent_name).toBe("persistent-agent");
       expect(rows[0].priority).toBe(Priority.HIGH);
     });
 
-    it('Test 9: should handle scheduled actions correctly', async () => {
+    it("Test 9: should handle scheduled actions correctly", async () => {
       // Setup
       mockExecutor.setShouldSucceed(true);
 
@@ -341,12 +341,12 @@ describe('Action Queue Integration Tests', () => {
 
       // Act: Create scheduled action
       const response = await request(app)
-        .post('/actions')
+        .post("/actions")
         .send({
-          agentName: 'test-agent',
+          agentName: "test-agent",
           actionType: ActionType.POST,
           priority: Priority.NORMAL,
-          payload: { submolt: 'General', content: 'Scheduled post' },
+          payload: { submolt: "General", content: "Scheduled post" },
           scheduledFor: futureTime.toISOString(),
         });
 
@@ -358,7 +358,7 @@ describe('Action Queue Integration Tests', () => {
       expect(getResponse.body.action.status).toBe(ActionStatus.SCHEDULED);
 
       // Try to process (should be skipped - not yet time)
-      const statsResponse1 = await request(app).get('/queue/stats');
+      const statsResponse1 = await request(app).get("/queue/stats");
       const pendingBefore = statsResponse1.body.stats.PENDING || 0;
 
       // Advance time to scheduled time
@@ -370,24 +370,24 @@ describe('Action Queue Integration Tests', () => {
       expect(getResponse2.status).toBe(200);
     });
 
-    it('Test 10: should handle conditional actions', async () => {
+    it("Test 10: should handle conditional actions", async () => {
       // Setup
       mockExecutor.setShouldSucceed(true);
 
       // Act: Create action with condition
       const response = await request(app)
-        .post('/actions')
+        .post("/actions")
         .send({
-          agentName: 'test-agent',
+          agentName: "test-agent",
           actionType: ActionType.FOLLOW,
           priority: Priority.NORMAL,
-          payload: { username: 'target-user' },
+          payload: { username: "target-user" },
           conditions: {
-            operator: 'AND',
+            operator: "AND",
             conditions: [
               {
-                id: 'cond-1',
-                type: 'ACCOUNT_ACTIVE',
+                id: "cond-1",
+                type: "ACCOUNT_ACTIVE",
                 params: {},
               },
             ],
@@ -408,48 +408,48 @@ describe('Action Queue Integration Tests', () => {
   // GROUP 4: ADVANCED PROCESSING (Tests 11-12)
   // ============================================================================
 
-  describe('Advanced Processing', () => {
-    it('Test 11: should handle multi-agent round-robin with priority', async () => {
+  describe("Advanced Processing", () => {
+    it("Test 11: should handle multi-agent round-robin with priority", async () => {
       // Setup
       mockExecutor.setShouldSucceed(true);
 
       // Act: Create actions from multiple agents with different priorities
       const highPriorityResponse = await request(app)
-        .post('/actions')
+        .post("/actions")
         .send({
-          agentName: 'agent-1',
+          agentName: "agent-1",
           actionType: ActionType.POST,
           priority: Priority.HIGH,
-          payload: { submolt: 'General', content: 'High priority' },
+          payload: { submolt: "General", content: "High priority" },
         });
 
       const lowPriorityResponse = await request(app)
-        .post('/actions')
+        .post("/actions")
         .send({
-          agentName: 'agent-2',
+          agentName: "agent-2",
           actionType: ActionType.POST,
           priority: Priority.LOW,
-          payload: { submolt: 'General', content: 'Low priority' },
+          payload: { submolt: "General", content: "Low priority" },
         });
 
       // Process should take HIGH priority first
-      const processResponse = await request(app).post('/queue/process');
+      const processResponse = await request(app).post("/queue/process");
       expect(processResponse.body.processed).toBe(1);
 
       // Verify it processed the high-priority action
       const highPriorityAction = await request(app).get(
-        `/actions/${highPriorityResponse.body.action.id}`
+        `/actions/${highPriorityResponse.body.action.id}`,
       );
       expect(highPriorityAction.body.action.status).toBe(ActionStatus.COMPLETED);
 
       // Low priority still pending
       const lowPriorityAction = await request(app).get(
-        `/actions/${lowPriorityResponse.body.action.id}`
+        `/actions/${lowPriorityResponse.body.action.id}`,
       );
       expect(lowPriorityAction.body.action.status).toBe(ActionStatus.PENDING);
     });
 
-    it.skip('Test 12: should implement circuit breaker after failures', async () => {
+    it.skip("Test 12: should implement circuit breaker after failures", async () => {
       // NOTE: Circuit breaker tests require failure simulation and tracking
       // The CircuitBreaker class exists and is unit-tested separately
       // This integration test documents expected behavior when circuit breaker
@@ -462,12 +462,12 @@ describe('Action Queue Integration Tests', () => {
       const actionIds: string[] = [];
       for (let i = 0; i < 5; i++) {
         const response = await request(app)
-          .post('/actions')
+          .post("/actions")
           .send({
-            agentName: 'failing-agent',
+            agentName: "failing-agent",
             actionType: ActionType.POST,
             priority: Priority.NORMAL,
-            payload: { submolt: 'General', content: `Post ${i}` },
+            payload: { submolt: "General", content: `Post ${i}` },
           });
 
         actionIds.push(response.body.action.id);
@@ -475,7 +475,7 @@ describe('Action Queue Integration Tests', () => {
 
       // Process all (they'll fail)
       for (let i = 0; i < 5; i++) {
-        await request(app).post('/queue/process');
+        await request(app).post("/queue/process");
       }
 
       // Verify all failed
@@ -486,12 +486,12 @@ describe('Action Queue Integration Tests', () => {
 
       // Now try another action - should be rate limited due to circuit breaker
       const response = await request(app)
-        .post('/actions')
+        .post("/actions")
         .send({
-          agentName: 'failing-agent',
+          agentName: "failing-agent",
           actionType: ActionType.POST,
           priority: Priority.NORMAL,
-          payload: { submolt: 'General', content: 'Post 6' },
+          payload: { submolt: "General", content: "Post 6" },
         });
 
       // Circuit breaker should prevent execution (503 or similar)
@@ -503,60 +503,60 @@ describe('Action Queue Integration Tests', () => {
   // GROUP 5: OBSERVABILITY (Tests 13-15)
   // ============================================================================
 
-  describe('Observability', () => {
-    it('Test 13: should return queue stats by status', async () => {
+  describe("Observability", () => {
+    it("Test 13: should return queue stats by status", async () => {
       // Setup
       mockExecutor.setShouldSucceed(true);
 
       // Act: Create actions in different states
       const pendingResponse = await request(app)
-        .post('/actions')
+        .post("/actions")
         .send({
-          agentName: 'test-agent',
+          agentName: "test-agent",
           actionType: ActionType.POST,
           priority: Priority.NORMAL,
-          payload: { submolt: 'General', content: 'Pending' },
+          payload: { submolt: "General", content: "Pending" },
         });
 
       const pendingId = pendingResponse.body.action.id;
 
       // Create another and complete it
       const completedResponse = await request(app)
-        .post('/actions')
+        .post("/actions")
         .send({
-          agentName: 'test-agent',
+          agentName: "test-agent",
           actionType: ActionType.COMMENT,
           priority: Priority.NORMAL,
-          payload: { postId: 'post-123', content: 'Will complete' },
+          payload: { postId: "post-123", content: "Will complete" },
         });
 
-      await request(app).post('/queue/process');
+      await request(app).post("/queue/process");
 
       // Get stats
-      const statsResponse = await request(app).get('/queue/stats');
+      const statsResponse = await request(app).get("/queue/stats");
       const stats = statsResponse.body.stats;
 
       // Assert: Should have breakdown by status
       expect(statsResponse.status).toBe(200);
       expect(stats).toBeDefined();
-      expect(typeof stats[ActionStatus.PENDING]).toBe('number');
-      expect(typeof stats[ActionStatus.COMPLETED]).toBe('number');
+      expect(typeof stats[ActionStatus.PENDING]).toBe("number");
+      expect(typeof stats[ActionStatus.COMPLETED]).toBe("number");
       expect(stats[ActionStatus.PENDING]).toBeGreaterThanOrEqual(1);
       expect(stats[ActionStatus.COMPLETED]).toBeGreaterThanOrEqual(1);
     });
 
-    it('Test 14: should show action state transitions in history', async () => {
+    it("Test 14: should show action state transitions in history", async () => {
       // Setup
       mockExecutor.setShouldSucceed(true);
 
       // Act: Create and process action
       const response = await request(app)
-        .post('/actions')
+        .post("/actions")
         .send({
-          agentName: 'test-agent',
+          agentName: "test-agent",
           actionType: ActionType.POST,
           priority: Priority.NORMAL,
-          payload: { submolt: 'General', content: 'History test' },
+          payload: { submolt: "General", content: "History test" },
         });
 
       const actionId = response.body.action.id;
@@ -566,7 +566,7 @@ describe('Action Queue Integration Tests', () => {
       expect(action.status).toBe(ActionStatus.PENDING);
 
       // Process
-      await request(app).post('/queue/process');
+      await request(app).post("/queue/process");
 
       // Check final state
       action = (await request(app).get(`/actions/${actionId}`)).body.action;
@@ -574,29 +574,29 @@ describe('Action Queue Integration Tests', () => {
       expect(action.completedAt).toBeDefined();
     });
 
-    it('Test 15: should show agent metrics and action counts', async () => {
+    it("Test 15: should show agent metrics and action counts", async () => {
       // Setup
       mockExecutor.setShouldSucceed(true);
 
       // Act: Create and process some actions
       for (let i = 0; i < 3; i++) {
         const response = await request(app)
-          .post('/actions')
+          .post("/actions")
           .send({
-            agentName: 'metrics-agent',
+            agentName: "metrics-agent",
             actionType: ActionType.UPVOTE,
             priority: Priority.NORMAL,
-            payload: { targetId: `post-${i}`, targetType: 'post' },
+            payload: { targetId: `post-${i}`, targetType: "post" },
           });
 
-        await request(app).post('/queue/process');
+        await request(app).post("/queue/process");
       }
 
       // Query agent metrics directly
-      const metrics = db.getAgentMetrics('metrics-agent');
+      const metrics = db.getAgentMetrics("metrics-agent");
 
       // Assert: Should show action counts by status
-      expect(metrics.agentName).toBe('metrics-agent');
+      expect(metrics.agentName).toBe("metrics-agent");
       expect(metrics.totalActions).toBeGreaterThanOrEqual(3);
       expect(metrics.byStatus).toBeDefined();
       expect(metrics.byStatus[ActionStatus.COMPLETED]).toBeGreaterThanOrEqual(3);
