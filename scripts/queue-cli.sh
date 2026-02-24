@@ -7,7 +7,7 @@
 set -euo pipefail
 
 # Configuration
-QUEUE_URL="${ACTION_QUEUE_URL:-http://localhost:3006}"
+QUEUE_URL="${ACTION_QUEUE_URL:-http://localhost:3008}"
 
 # Colors
 RED='\033[0;31m'
