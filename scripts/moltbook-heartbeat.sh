@@ -1,4 +1,4 @@
-#!/bin/sh
+#!/bin/bash
 # Moltbook Heartbeat Script
 # Follows the pattern from https://www.moltbook.com/heartbeat.md
 
@@ -37,17 +37,32 @@ get_timestamp() {
     date -Iseconds
 }
 
-# Helper function to check if current time is within active_hours window
+# Check if current time is within active_hours window
+# Empty active_hours = always return 0 (allow 24/7)
+# Supports both normal (09:00-17:00) and midnight-crossing (22:00-06:00) windows
 is_within_active_hours() {
     local active_hours="$1"
     [ -z "$active_hours" ] && return 0
-    local current_time=$(date +%H:%M)
+    local current_time
+    current_time=$(date +%H:%M)
     local start_time="${active_hours%-*}"
     local end_time="${active_hours#*-}"
-    if [ "$current_time" > "$start_time" ] && [ "$current_time" < "$end_time" ]; then
-        return 0
+
+    # Handle midnight-crossing windows (e.g., 22:00-06:00)
+    if [ "$start_time" \> "$end_time" ]; then
+        # Midnight crossing: allow if current > start OR current < end
+        if [ "$current_time" \> "$start_time" ] || [ "$current_time" \< "$end_time" ]; then
+            return 0
+        else
+            return 1
+        fi
     else
-        return 1
+        # Normal window: allow if current between start and end
+        if [ "$current_time" \> "$start_time" ] && [ "$current_time" \< "$end_time" ]; then
+            return 0
+        else
+            return 1
+        fi
     fi
 }
 
