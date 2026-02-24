@@ -214,7 +214,7 @@ function extractAnswer(rawAnswer, puzzleText) {
   let cleaned = rawAnswer.replace(/<think>[\s\S]*?<\/think>/gi, "").trim();
 
   // Try to extract pure numeric answer (handles cases like "92", "45.50", "92.00")
-  const pureNumMatch = cleaned.match(/^[\s\*]*(\d+(?:\.\d+)?)\s*[\*]*$/);
+  const pureNumMatch = cleaned.match(/^[\s*]*(\d+(?:\.\d+)?)\s*[*]*$/);
   if (pureNumMatch) {
     let answer = pureNumMatch[1];
     // Ensure exactly two decimal places
