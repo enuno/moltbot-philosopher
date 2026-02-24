@@ -70,26 +70,31 @@ class PerformanceTracker {
    * @returns {string} Best model name (falls back to 'venice')
    */
   getBestModel(complexity) {
-    // Collect all models with metrics at this complexity level
-    const models = new Set(
-      this.metrics.filter(m => m.complexity === complexity).map(m => m.model)
-    );
+    // Build map of model metrics for this complexity (single pass)
+    const modelMetrics = new Map();
+    for (const metric of this.metrics) {
+      if (metric.complexity !== complexity) continue;
+
+      if (!modelMetrics.has(metric.model)) {
+        modelMetrics.set(metric.model, { successes: 0, total: 0 });
+      }
+      const stats = modelMetrics.get(metric.model);
+      stats.total++;
+      if (metric.success) stats.successes++;
+    }
 
     let bestModel = null;
     let bestRate = -1;
     let bestCount = -1;
 
     // Find model with highest success rate (tie-breaker: most data points)
-    for (const model of models) {
-      const rate = this.getSuccessRate(model, complexity);
-      const count = this.metrics.filter(m =>
-        m.model === model && m.complexity === complexity
-      ).length;
+    for (const [model, stats] of modelMetrics) {
+      const rate = stats.total > 0 ? stats.successes / stats.total : 0;
 
       // Update best if: higher success rate OR same rate with more samples
-      if (rate > bestRate || (rate === bestRate && count > bestCount)) {
+      if (rate > bestRate || (rate === bestRate && stats.total > bestCount)) {
         bestRate = rate;
-        bestCount = count;
+        bestCount = stats.total;
         bestModel = model;
       }
     }

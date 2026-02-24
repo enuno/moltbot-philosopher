@@ -30,6 +30,11 @@ class ComplexityAnalyzer {
    * @returns {{ level: string, score: number, factors: object }}
    */
   analyze(challenge) {
+    // Guard against empty input that could cause NaN
+    if (!challenge || challenge.length === 0) {
+      return { level: 'LOW', score: 0, factors: {} };
+    }
+
     const factors = {
       symbolDensity: this._calculateSymbolDensity(challenge),
       wordSplitting: this._calculateWordSplitting(challenge),
@@ -62,7 +67,9 @@ class ComplexityAnalyzer {
     // High word splitting = high score
     const pattern = /[a-z]+[^a-z0-9\s]+[a-z]+/gi;
     const matches = (text.match(pattern) || []).length;
-    const wordCount = text.split(/\s+/).length;
+    const wordCount = text.split(/\s+/).filter(w => w.length > 0).length;
+    // Guard against empty word count
+    if (wordCount === 0) return 0;
     // Amplify the ratio
     return Math.min((matches / wordCount) * 2, 1);
   }
@@ -83,7 +90,9 @@ class ComplexityAnalyzer {
         }
       }
     }
-    return letterCount > 0 ? Math.min(caseChanges / (letterCount - 1), 1) : 0;
+    // Guard against insufficient letters for meaningful ratio
+    if (letterCount < 2) return 0;
+    return Math.min(caseChanges / (letterCount - 1), 1);
   }
 
   _calculateUnicodeDensity(text) {
