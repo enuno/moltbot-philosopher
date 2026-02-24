@@ -105,7 +105,16 @@ class PreprocessingEngine {
 
       // Try exact word match first
       if (words.hasOwnProperty(token)) {
-        current += words[token];
+        const value = words[token];
+        // Handle compound numbers: "hundred" and "thousand" multiply, others add
+        if (value === 100 || value === 1000) {
+          current *= value;
+        } else if (value >= 20 && current > 0 && current < value) {
+          // For numbers like "twenty" in "one twenty", add instead of multiply
+          current += value;
+        } else {
+          current += value;
+        }
       }
       // Try digit token
       else if (/^\d+$/.test(token)) {
@@ -116,9 +125,16 @@ class PreprocessingEngine {
       // Try fuzzy word matching (handles partially obfuscated words)
       else {
         let found = false;
-        for (const [word, value] of Object.entries(words)) {
+        // Sort words by length descending to match longest first (e.g., "seventeen" before "seven")
+        const sortedWords = Object.keys(words).sort((a, b) => b.length - a.length);
+        for (const word of sortedWords) {
           if (token.includes(word) && word.length > 2) {
-            current += value;
+            const value = words[word];
+            if (value === 100 || value === 1000) {
+              current *= value;
+            } else {
+              current += value;
+            }
             found = true;
             break;
           }
