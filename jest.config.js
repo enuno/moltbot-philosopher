@@ -60,8 +60,8 @@ module.exports = {
   // Setup files
   // setupFilesAfterEnv: ['<rootDir>/tests/setup.js'],
 
-  // Test timeout
-  testTimeout: 10000,
+  // Test timeout (increased for circuit breaker 30-second tests)
+  testTimeout: 35000,
 
   // Verbose output
   verbose: true,
