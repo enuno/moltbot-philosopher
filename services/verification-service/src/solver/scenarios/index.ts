@@ -1,4 +1,5 @@
 import { validateStackChallengeV1 } from "./StackChallengeV1";
+import { LobsterReverseCaptchaV1 } from "./LobsterReverseCaptchaV1";
 import type { ValidationResult } from "../../types";
 
 /**
@@ -7,11 +8,19 @@ import type { ValidationResult } from "../../types";
 export function detectScenario(question: string): string | null {
   const lowerQuestion = question.toLowerCase();
 
+  // Lobster Reverse CAPTCHA V1 patterns
+  if (lowerQuestion.includes("lobster")) {
+    const lobsterScenario = LobsterReverseCaptchaV1.detectScenario(question);
+    if (lobsterScenario) {
+      return lobsterScenario;
+    }
+  }
+
   // Stack Challenge V1 patterns
   if (lowerQuestion.includes("stack_challenge_v1")) {
     return "stack_challenge_v1";
   }
-  
+
   if (lowerQuestion.includes("tools, memory, and self-control")) {
     return "stack_challenge_v1";
   }
@@ -47,11 +56,28 @@ export function detectScenario(question: string): string | null {
  */
 export function validateByScenario(
   scenario: string,
-  answer: string
+  challengeOrAnswer: string,
+  answer?: string
 ): ValidationResult {
+  // Handle both old API (scenario, answer) and new API (scenario, challenge, answer)
+  let challenge: string;
+  let answerToValidate: string;
+
+  if (answer !== undefined) {
+    // New API: (scenario, challenge, answer)
+    challenge = challengeOrAnswer;
+    answerToValidate = answer;
+  } else {
+    // Old API: (scenario, answer) - for backwards compatibility
+    challenge = "";
+    answerToValidate = challengeOrAnswer;
+  }
+
   switch (scenario) {
+    case "lobster_reverse_captcha_v1":
+      return LobsterReverseCaptchaV1.validate(challenge, answerToValidate);
     case "stack_challenge_v1":
-      return validateStackChallengeV1(answer);
+      return validateStackChallengeV1(answerToValidate);
     default:
       return { valid: true, reasons: [] };
   }

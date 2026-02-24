@@ -139,7 +139,7 @@ export class VerificationSolverEnhanced extends EventEmitter {
 
         // Validate against scenario
         const validation = scenario
-          ? validateByScenario(scenario, answer)
+          ? validateByScenario(scenario, challenge.question, answer)
           : { valid: true, reasons: [] };
 
         if (!validation.valid) {

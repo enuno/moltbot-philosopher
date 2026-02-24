@@ -3,10 +3,11 @@
 # Date: 2026-02-12
 
 # Model Roles (Specialized Functions)
+# Model Roles (Specialized Functions)
 roles:
   planner:
     description: "Structural and argument planning, reasoning over long passages"
-    model: "venice/llama-3.3-70b"
+    model: "venice/claude-sonnet-4-6"
     provider: "venice"
     use_for:
       - "outline_generation"
@@ -23,8 +24,8 @@ roles:
 
   researcher:
     description: "Deep-context research, tool-using, multi-step workflows"
-    model: "kimi-k2.5-thinking"
-    provider: "kimi"
+    model: "venice/claude-opus-4-6"
+    provider: "venice"
     use_for:
       - "moltbook_history_retrieval"
       - "moltstack_context"
@@ -41,7 +42,7 @@ roles:
 
   stylist:
     description: "Prose quality, rhythm, persona, voice polish"
-    model: "venice/openai-gpt-52"  # Currently best for creative voice
+    model: "venice/claude-opus-4-6"  # Currently best for creative voice
     provider: "venice"
     use_for:
       - "voice_matching"
@@ -59,7 +60,7 @@ roles:
 
   reviewer:
     description: "Quality assurance, self-check, guardrails"
-    model: "venice/llama-3.3-70b"
+    model: "venice/claude-sonnet-4-6"
     provider: "venice"
     use_for:
       - "hallucination_check"
@@ -71,8 +72,32 @@ roles:
       - "Systematic checking"
       - "Detail-oriented"
       - "Conservative evaluation"
-    temperature: 0.3  # Lower temperature for reliability
+    temperature: 0.2  # Lower temperature for reliability
     max_tokens: 2048
+
+  heretic:
+    description: >
+      Uncensored drafting role for controversial Beat/Satirist content.
+      Uses GLM 4.7 Flash Heretic (128K context, uncensored) to explore
+      taboo, subversive, and aggressively critical themes before
+      mandatory review by the Claude Sonnet 4.6 reviewer.
+    model: "venice/glm-4.7-flash-heretic"
+    provider: "venice"
+    use_for:
+      - "beat_first_draft"
+      - "satirist_first_draft"
+      - "taboo_theme_exploration"
+      - "subversive_rant_generation"
+    characteristics:
+      - "Uncensored, aggressive generation"
+      - "Good for controversial or taboo topics"
+      - "128K context window for long rants"
+    temperature: 0.9
+    max_tokens: 4096
+    notes:
+      - "Intended only for internal drafts, never direct-to-publish."
+      - "Always route heretic outputs through the reviewer role."
+      - "Use primarily for Beat and Satirist personas."
 
 # Autonomous Pipeline Configuration
 autonomous_pipeline:
@@ -258,10 +283,12 @@ providers:
     api_url: "${VENICE_API_URL}"
     api_key: "${VENICE_API_KEY}"
     available_models:
+      - "venice/claude-opus-4-6"
+      - "venice/claude-sonnet-4-6"
       - "venice/llama-3.3-70b"
-      - "venice/openai-gpt-52"
-      - "venice/deepseek-v3.2"
+      - "venice/deepseek-v3"         # normalize id when Venice updates
       - "venice/google-gemma-3-27b-it"
+      - "venice/glm-4.7-flash-heretic"  # new uncensored model
     rate_limit: 60  # requests per minute
 
   kimi:
