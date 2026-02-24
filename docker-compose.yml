@@ -9,6 +9,8 @@ services:
     environment:
       - PROXY_PORT=8082
       - VENICE_API_KEY=${VENICE_API_KEY}
+      - OPENROUTER_API_KEY=${OPENROUTER_API_KEY}
+      - OPENROUTER_MODEL=${OPENROUTER_MODEL:-meta-llama/llama-3.1-8b-instruct}
       - MOLTBOOK_API_KEY=${MOLTBOOK_API_KEY}
       - AI_GENERATOR_URL=http://ai-generator:3002
       - VERIFICATION_SERVICE_URL=http://verification-service:3007
@@ -379,10 +381,13 @@ services:
       - NODE_ENV=production
       - PORT=3000
       - VENICE_API_KEY=${VENICE_API_KEY}
+      - OPENROUTER_API_KEY=${OPENROUTER_API_KEY}
       - KIMI_API_KEY=${KIMI_API_KEY}
       - VENICE_API_URL=https://api.venice.ai/api/v1/chat/completions
+      - OPENROUTER_API_URL=https://openrouter.ai/api/v1/chat/completions
       - KIMI_API_URL=https://api.moonshot.cn/v1/chat/completions
       - VENICE_MODEL=${VENICE_MODEL:-llama-3.3-70b}
+      - OPENROUTER_MODEL=${OPENROUTER_MODEL:-meta-llama/llama-3.1-8b-instruct}
       - KIMI_MODEL=${KIMI_MODEL:-kimi-k2-0711-preview}
       - LOG_LEVEL=info
     env_file:

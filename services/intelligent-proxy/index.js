@@ -18,6 +18,9 @@ const VENICE_API_KEY = process.env.VENICE_API_KEY;
 const VENICE_API_URL = "https://api.venice.ai/api/v1/chat/completions";
 const VENICE_PRIMARY_MODEL = "llama-3.2-3b"; // Primary model for challenge solving (67% success)
 const VENICE_FALLBACK_MODEL = "mistral-31-24b"; // Fallback model (tested via model comparison)
+const OPENROUTER_API_KEY = process.env.OPENROUTER_API_KEY;
+const OPENROUTER_API_URL = "https://openrouter.ai/api/v1/chat/completions";
+const OPENROUTER_MODEL = process.env.OPENROUTER_MODEL || "meta-llama/llama-3.1-8b-instruct";
 const AI_GENERATOR_URL = process.env.AI_GENERATOR_URL || "http://ai-generator:3002";
 const VERIFICATION_SERVICE_URL =
   process.env.VERIFICATION_SERVICE_URL || "http://verification-service:3007";
@@ -71,6 +74,8 @@ const stats = {
   primaryModelFailures: 0,
   fallbackModelSuccesses: 0,
   fallbackModelFailures: 0,
+  openrouterSuccesses: 0,
+  openrouterFailures: 0,
   aiGeneratorSuccesses: 0,
   aiGeneratorFailures: 0,
   // Delegation stats
@@ -287,8 +292,26 @@ async function solveChallenge(puzzleText) {
     stats.fallbackModelFailures++;
   }
 
+  // Fallback to OpenRouter
+  if (OPENROUTER_API_KEY) {
+    log("warn", "Venice models failed, trying OpenRouter", {
+      openrouterModel: OPENROUTER_MODEL,
+    });
+    answer = await solveWithOpenRouter(puzzleText);
+
+    if (answer) {
+      const duration = Date.now() - startTime;
+      recordLatency(duration);
+      stats.openrouterSuccesses++;
+      setCachedAnswer(puzzleText, answer);
+      return answer;
+    }
+
+    stats.openrouterFailures++;
+  }
+
   // Fallback to AI Generator (DeepSeek-v3 via local service)
-  log("warn", "Venice models failed or skipped, trying AI Generator", {
+  log("warn", "Venice and OpenRouter models failed, trying AI Generator", {
     aiGeneratorUrl: AI_GENERATOR_URL,
   });
 
@@ -374,6 +397,79 @@ async function solveWithVenice(puzzleText, model, isPrimary) {
     const duration = Date.now() - startTime;
     log("error", "Venice.ai API call failed", {
       model: model,
+      error: error.message,
+      duration: `${duration}ms`,
+    });
+    return null;
+  }
+}
+
+async function solveWithOpenRouter(puzzleText) {
+  const startTime = Date.now();
+  log("info", "Calling OpenRouter", {
+    model: OPENROUTER_MODEL,
+    puzzlePreview: puzzleText.substring(0, 100),
+  });
+
+  try {
+    const controller = new AbortController();
+    const timeout = setTimeout(() => controller.abort(), CHALLENGE_TIMEOUT);
+
+    const response = await fetch(OPENROUTER_API_URL, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${OPENROUTER_API_KEY}`,
+        "HTTP-Referer": "https://moltbook.com",
+        "X-Title": "Moltbot Philosopher",
+      },
+      body: JSON.stringify({
+        model: OPENROUTER_MODEL,
+        messages: [
+          {
+            role: "user",
+            content: `Parse the noise, do the math, return only the final numeric answer, no extra text: ${puzzleText}`,
+          },
+        ],
+        temperature: 0.0,
+        max_tokens: 8,
+      }),
+      signal: controller.signal,
+    });
+
+    clearTimeout(timeout);
+
+    if (!response.ok) {
+      throw new Error(`OpenRouter returned ${response.status}`);
+    }
+
+    const result = await response.json();
+    const content =
+      result.choices &&
+      result.choices[0] &&
+      result.choices[0].message &&
+      result.choices[0].message.content;
+    const rawAnswer = content ? content.trim() : null;
+
+    const duration = Date.now() - startTime;
+
+    if (rawAnswer) {
+      const answer = extractAnswer(rawAnswer, puzzleText);
+
+      log("info", "OpenRouter response received", {
+        model: OPENROUTER_MODEL,
+        rawPreview: rawAnswer.substring(0, 50),
+        extractedPreview: answer ? answer.substring(0, 50) : "EXTRACTION_FAILED",
+        duration: `${duration}ms`,
+      });
+
+      return answer;
+    }
+    throw new Error("No answer content in OpenRouter response");
+  } catch (error) {
+    const duration = Date.now() - startTime;
+    log("error", "OpenRouter API call failed", {
+      model: OPENROUTER_MODEL,
       error: error.message,
       duration: `${duration}ms`,
     });
@@ -979,6 +1075,8 @@ const server = http.createServer((req, res) => {
       stats.primaryModelFailures +
       stats.fallbackModelSuccesses +
       stats.fallbackModelFailures +
+      stats.openrouterSuccesses +
+      stats.openrouterFailures +
       stats.aiGeneratorSuccesses +
       stats.aiGeneratorFailures +
       stats.delegationAttempts;
@@ -1027,6 +1125,17 @@ const server = http.createServer((req, res) => {
           },
           {
             stage: 3,
+            name: "OpenRouter",
+            model: OPENROUTER_MODEL,
+            successes: stats.openrouterSuccesses,
+            failures: stats.openrouterFailures,
+            successRate:
+              totalAttempts > 0
+                ? ((stats.openrouterSuccesses / totalAttempts) * 100).toFixed(1) + "%"
+                : "N/A",
+          },
+          {
+            stage: 4,
             name: "AI Generator",
             model: "deepseek-v3",
             enabled: true,
@@ -1101,7 +1210,9 @@ const server = http.createServer((req, res) => {
 server.listen(PROXY_PORT, () => {
   log("info", `🔐 Intelligent proxy on port ${PROXY_PORT}`, {
     target: TARGET_HOST,
-    models: `${VENICE_PRIMARY_MODEL} (primary), ${VENICE_FALLBACK_MODEL} (fallback)`,
+    models: `${VENICE_PRIMARY_MODEL} (primary), ${VENICE_FALLBACK_MODEL} (fallback), ${OPENROUTER_MODEL} (openrouter)`,
+    veniceEnabled: !!VENICE_API_KEY,
+    openrouterEnabled: !!OPENROUTER_API_KEY,
   });
 });
 

@@ -48,12 +48,15 @@ const rateLimiter = new RateLimiterMemory({
 
 // API configurations
 const VENICE_API_URL = process.env.VENICE_API_URL || "http://localhost:8080/v1/chat/completions";
+const OPENROUTER_API_URL = "https://openrouter.ai/api/v1/chat/completions";
 const KIMI_API_URL = process.env.KIMI_API_URL || "http://localhost:8081/v1/chat/completions";
 const VENICE_API_KEY = process.env.VENICE_API_KEY;
+const OPENROUTER_API_KEY = process.env.OPENROUTER_API_KEY;
 const KIMI_API_KEY = process.env.KIMI_API_KEY;
 
 // Default models
 const DEFAULT_VENICE_MODEL = process.env.VENICE_MODEL || "llama-3.3-70b";
+const DEFAULT_OPENROUTER_MODEL = process.env.OPENROUTER_MODEL || "meta-llama/llama-3.1-8b-instruct";
 const DEFAULT_KIMI_MODEL = process.env.KIMI_MODEL || "kimi-k2-0711-preview";
 
 // Philosophical author personas
@@ -140,6 +143,7 @@ app.get("/health", (req, res) => {
     timestamp: new Date().toISOString(),
     providers: {
       venice: !!VENICE_API_KEY,
+      openrouter: !!OPENROUTER_API_KEY,
       kimi: !!KIMI_API_KEY,
     },
   });
@@ -186,10 +190,23 @@ app.post("/generate", async (req, res) => {
 
     logger.info(`Generating ${contentType} with ${persona} persona`, { topic, provider });
 
-    // Call AI provider
+    // Call AI provider with fallback chain
     let result;
     if (provider === "venice" || (provider === "auto" && VENICE_API_KEY)) {
-      result = await callVenice(prompt, contentType, maxTokens);
+      try {
+        result = await callVenice(prompt, contentType, maxTokens);
+      } catch (error) {
+        logger.warn("Venice API failed, trying OpenRouter fallback", { error: error.message });
+        if (OPENROUTER_API_KEY) {
+          result = await callOpenRouter(prompt, contentType, maxTokens);
+        } else if (KIMI_API_KEY) {
+          result = await callKimi(prompt, contentType, maxTokens);
+        } else {
+          result = generateTemplateContent(topic, contentType, persona);
+        }
+      }
+    } else if (provider === "openrouter" || (provider === "auto" && OPENROUTER_API_KEY && !VENICE_API_KEY)) {
+      result = await callOpenRouter(prompt, contentType, maxTokens);
     } else if (provider === "kimi" || (provider === "auto" && KIMI_API_KEY)) {
       result = await callKimi(prompt, contentType, maxTokens);
     } else {
@@ -363,6 +380,45 @@ async function callKimi(prompt, contentType, maxTokens) {
   }
 }
 
+// Call OpenRouter API
+async function callOpenRouter(prompt, contentType, maxTokens) {
+  const resolvedMaxTokens = maxTokens || (contentType === "post" ? 800 : 300);
+  const timeout = Math.min(10000 + resolvedMaxTokens * 15, 120000);
+  try {
+    const response = await axios.post(
+      OPENROUTER_API_URL,
+      {
+        model: DEFAULT_OPENROUTER_MODEL,
+        messages: [
+          {
+            role: "system",
+            content:
+              "You are a philosophical writer on Moltbook, a social network for AI agents. Write thoughtful, engaging content.",
+          },
+          { role: "user", content: prompt },
+        ],
+        temperature: 0.8,
+        max_tokens: resolvedMaxTokens,
+      },
+      {
+        headers: {
+          Authorization: `Bearer ${OPENROUTER_API_KEY}`,
+          "Content-Type": "application/json",
+          "HTTP-Referer": "https://moltbook.com",
+          "X-Title": "Moltbot Philosopher",
+        },
+        timeout,
+      },
+    );
+
+    const generatedText = response.data.choices[0].message.content;
+    return parseGeneratedContent(generatedText, "openrouter");
+  } catch (error) {
+    logger.error("OpenRouter API error", { error: error.message });
+    throw error;
+  }
+}
+
 // Parse generated content
 function parseGeneratedContent(text, provider) {
   let title = "";
@@ -447,6 +503,7 @@ if (process.env.NODE_ENV !== "test") {
   app.listen(PORT, () => {
     logger.info(`AI Content Generator running on port ${PORT}`);
     logger.info(`Venice API configured: ${!!VENICE_API_KEY}`);
+    logger.info(`OpenRouter API configured: ${!!OPENROUTER_API_KEY}`);
     logger.info(`Kimi API configured: ${!!KIMI_API_KEY}`);
   });
 }
