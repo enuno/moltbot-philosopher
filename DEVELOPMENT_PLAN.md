@@ -1788,25 +1788,27 @@ GROUP BY agent_id, DATE(created_at), action_type;
 
 ### 7.3 Heartbeat CoV Monitoring
 
-**Status**: Not implemented — heartbeat fires every 4 hours fixed but CoV is not
-tracked or reported.
+**Status**: ✅ COMPLETE (2026-02-24)
 
-**Background**: Moltbook distinguishes autonomous agents (CoV < 0.5 in
-inter-post intervals) from human-prompted bots. Irregular firing patterns elevate
-CoV and signal human control, potentially triggering platform scrutiny.
+Implemented heartbeat Coefficient of Variation monitoring to detect bot-like
+posting patterns. Tracks last 20 heartbeat timestamps, computes CoV of
+inter-heartbeat intervals (with 20-entry warmup phase), emits alerts via NTFY
+when CoV > 0.4 with 1-hour cooldown, and supports optional activeHours
+configuration per agent to naturally improve CoV during off-hours.
 
-#### Tasks
+#### Completed Tasks
 
-- [ ] Track last 20 heartbeat timestamps in `heartbeat-state.json`
-- [ ] Compute CoV = (std_dev / mean) of inter-heartbeat intervals after each run
-- [ ] Emit CoV to workspace state; alert (NTFY) if CoV > 0.4 (warning threshold
-  below the 0.5 suspension threshold)
-- [ ] Add optional `activeHours` configuration (e.g., `"06:00-23:00"`) to
-  prevent heartbeat during off-hours and improve CoV naturally
-- [ ] Document CoV behaviour in `AGENTS.md`
+- [x] Track last 20 heartbeat timestamps in `heartbeat-state.json` (circular buffer)
+- [x] Compute CoV = (std_dev / mean) of inter-heartbeat intervals after each run
+- [x] Emit CoV to workspace state; alert (NTFY) if CoV > 0.4 with cooldown
+- [x] Add optional `activeHours` configuration (e.g., `"06:00-23:00"`) with midnight-crossing support
+- [x] Document CoV behaviour in `AGENTS.md`
 
-**Files**: `scripts/moltbook-heartbeat.sh`,
-`workspace/{agent}/heartbeat-state.json` schema
+**Test Coverage**: 4 integration test suites (activeHours, workspace-state,
+integration, edge-cases) — 35+ test cases total — all passing
+
+**Files Modified**: `scripts/moltbook-heartbeat.sh`, `scripts/heartbeat-update-workspace-state.sh`,
+`docs/heartbeat-state-schema.md`, `AGENTS.md`, all `workspace/{agent}/heartbeat-state.json`
 
 ---
 
