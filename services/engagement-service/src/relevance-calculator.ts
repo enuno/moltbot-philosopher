@@ -4,7 +4,8 @@
  * Enforces quality gates: no generic comments, minimum substantiveness
  */
 
-const { isBannedForAgent } = require("./banned-phrases");
+import { isBannedForAgent } from "./banned-phrases";
+import { Post, Agent } from "./types";
 
 const BANNED_PHRASES = [
   "good",
@@ -18,7 +19,7 @@ const BANNED_PHRASES = [
   "same",
 ];
 
-const TRADITION_KEYWORDS = {
+const TRADITION_KEYWORDS: Record<string, string[]> = {
   Stoicism: ["virtue", "reason", "duty", "apatheia", "logos", "nature"],
   Existentialism: ["freedom", "responsibility", "authenticity", "bad faith", "anguish"],
   Transcendentalism: ["nature", "intuition", "self-reliance", "transcendent", "individual"],
@@ -27,14 +28,20 @@ const TRADITION_KEYWORDS = {
   "Avant-garde": ["innovation", "experiment", "break", "convention", "radical"],
 };
 
-class RelevanceCalculator {
+interface TrendingTopic {
+  topic: string;
+}
+
+export class RelevanceCalculator {
+  private trendingTopics: TrendingTopic[] = [];
+
   /**
    * Score post for agent-tradition semantic alignment
    * Returns 0-1, combining semantic + trending + keyword + author + banned phrase penalty
    * 5-factor formula: semantic (40%) + trending (30%) + keyword (15%) + author (10%)
    * Applies 50% penalty if post contains banned phrases for agent
    */
-  async scorePost(post, agent) {
+  async scorePost(post: Post, agent: Agent): Promise<number> {
     // Semantic scoring (would call Noosphere in real implementation)
     const semanticScore = await this.getSemanticScore(post, agent);
 
@@ -64,7 +71,7 @@ class RelevanceCalculator {
    * In production, calls NoosphereClient.queryMemories()
    * For now, uses keyword matching as base
    */
-  async getSemanticScore(post, agent) {
+  private async getSemanticScore(post: Post, agent: Agent): Promise<number> {
     // TODO: Integrate with Noosphere API
     // For testing, use keyword-based scoring
     const keywordScore = this.keywordMatch(post.content, agent.tradition);
@@ -75,7 +82,7 @@ class RelevanceCalculator {
    * Keyword-based relevance matching
    * Checks for tradition-specific keywords in post content
    */
-  keywordMatch(content, tradition) {
+  private keywordMatch(content: string, tradition: string): number {
     const keywords = TRADITION_KEYWORDS[tradition] || [];
     if (keywords.length === 0) return 0.3;
 
@@ -89,7 +96,7 @@ class RelevanceCalculator {
    * Author quality scoring
    * Higher for authors with more followers, lower for unknowns
    */
-  getAuthorQuality(author) {
+  private getAuthorQuality(author: any): number {
     if (!author.followerCount) return 0.5;
     if (author.followerCount < 10) return 0.3;
     if (author.followerCount < 100) return 0.5;
@@ -101,7 +108,7 @@ class RelevanceCalculator {
    * Detect generic low-effort comments
    * Returns true if comment contains banned phrases
    */
-  isGenericComment(content) {
+  isGenericComment(content: string): boolean {
     const lower = content.toLowerCase().trim();
     return BANNED_PHRASES.some((phrase) => lower === phrase || lower.includes(phrase));
   }
@@ -110,7 +117,7 @@ class RelevanceCalculator {
    * Check if comment is substantive (not trivial)
    * Requires: >20 characters AND >1 sentence (split by .!?)
    */
-  isSubstantive(content) {
+  isSubstantive(content: string): boolean {
     const trimmed = content.trim();
 
     // Minimum length check
@@ -128,7 +135,7 @@ class RelevanceCalculator {
    * Formula: (commentCount / ageMs) * 3600000
    * Boost: <1h: 1.5x | <24h: 1.2x | older: 1.0x
    */
-  calculateVelocityScore(post) {
+  private calculateVelocityScore(post: Post): number {
     const ageMs = Date.now() - post.createdAt;
 
     // Avoid division by zero for very new posts
@@ -153,7 +160,7 @@ class RelevanceCalculator {
    *
    * Returns 0-1 score: (matches / total trending topics)
    */
-  calculateFeedTrendScore(post) {
+  private calculateFeedTrendScore(post: Post): number {
     const trendingTopics = this.trendingTopics || [];
     if (trendingTopics.length === 0) return 0;
 
@@ -172,7 +179,7 @@ class RelevanceCalculator {
    *
    * Returns 0-1 score: full match (>0.7) = 1.0, else = match ratio
    */
-  calculateAgentRelevance(post, agentType, interests = []) {
+  private calculateAgentRelevance(post: Post, agentType: string, interests: string[] = []): number {
     if (!interests || interests.length === 0) return 0.5;
 
     const contentLower = post.content.toLowerCase();
@@ -188,8 +195,8 @@ class RelevanceCalculator {
    * Get agent-specific interests by agent type
    * Maps each philosophical agent to their core conceptual interests
    */
-  getAgentInterests(agentType) {
-    const interests = {
+  private getAgentInterests(agentType: string): string[] {
+    const interests: Record<string, string[]> = {
       classical: ["stoicism", "virtue", "duty", "apatheia", "logos", "nature", "reason"],
       existentialist: [
         "freedom",
@@ -215,7 +222,7 @@ class RelevanceCalculator {
    *
    * Returns 0-1 score representing post trending appeal for the agent
    */
-  calculateTrendingScore(post, agentType) {
+  calculateTrendingScore(post: Post, agentType: string): number {
     const velocity = this.calculateVelocityScore(post);
     const feedTrend = this.calculateFeedTrendScore(post);
     const agentInterests = this.getAgentInterests(agentType);
@@ -227,5 +234,3 @@ class RelevanceCalculator {
     return normalizedVelocity * 0.5 + feedTrend * 0.3 + agentRelevance * 0.2;
   }
 }
-
-module.exports = { RelevanceCalculator };
