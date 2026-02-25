@@ -200,3 +200,80 @@ export class StateManager {
     return new Date().toISOString().split("T")[0];
   }
 }
+
+/**
+ * Record author engagement metrics for a specific thread (P2.2)
+ * Stores per-thread author data with engagement calculations
+ */
+export function recordAuthorEngagementInThread(
+  state: EngagementState,
+  threadId: string,
+  authorId: string,
+  commentCount: number,
+  repliesReceived: number,
+  authorName?: string,
+): void {
+  // Initialize thread author metrics map if not present
+  if (!state.threadAuthorMetrics) {
+    state.threadAuthorMetrics = new Map();
+  }
+
+  // Initialize thread-specific author map if not present
+  let threadMap = state.threadAuthorMetrics.get(threadId);
+  if (!threadMap) {
+    threadMap = new Map();
+    state.threadAuthorMetrics.set(threadId, threadMap);
+  }
+
+  // Store author engagement metrics for this thread
+  threadMap.set(authorId, {
+    authorId,
+    authorName: authorName || authorId,
+    commentsByAuthor: commentCount,
+    repliesReceivedByAuthor: repliesReceived,
+    replyEngagementRate: repliesReceived / Math.max(commentCount, 1),
+  });
+}
+
+/**
+ * Prune stale thread metrics older than maxAgeDays
+ * Implements 30-day rolling window for engagement tracking (P2.2)
+ * Returns count of threads pruned
+ */
+export function pruneStaleThreadMetrics(
+  state: EngagementState,
+  maxAgeDays: number = 30,
+): number {
+  if (!state.threadQualityCache) {
+    return 0;
+  }
+
+  const cutoff = Date.now() - maxAgeDays * 24 * 3600000;
+  let prunedCount = 0;
+
+  // Iterate through all cached threads
+  const threadIds = Array.from(state.threadQualityCache.keys());
+
+  for (const threadId of threadIds) {
+    const threadMetrics = state.threadQualityCache.get(threadId);
+
+    // Check if thread is older than cutoff
+    if (threadMetrics && threadMetrics.depth.lastActivityAt) {
+      const lastActivityTime = new Date(threadMetrics.depth.lastActivityAt).getTime();
+
+      if (lastActivityTime < cutoff) {
+        // Remove stale thread
+        state.threadQualityCache.delete(threadId);
+
+        // Also remove from threadAuthorMetrics if present
+        if (state.threadAuthorMetrics) {
+          state.threadAuthorMetrics.delete(threadId);
+        }
+
+        prunedCount++;
+      }
+    }
+  }
+
+  return prunedCount;
+}

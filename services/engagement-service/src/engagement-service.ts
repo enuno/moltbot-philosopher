@@ -163,12 +163,61 @@ app.get("/stats", async (req: Request, res: Response) => {
       const stateManager = new StateManager(agent.statePath);
       const state = await stateManager.loadState();
 
+      // Calculate P2.2 quality metrics
+      let averageQualityScore = 0;
+      let controversialThreadCount = 0;
+      let totalSentimentControversial = 0;
+      let controversialThreadsWithSentiment = 0;
+      const topThreads = [];
+
+      if (state.threadQualityCache && state.threadQualityCache.size > 0) {
+        let totalQuality = 0;
+        const sortedThreads = Array.from(state.threadQualityCache.values())
+          .sort((a, b) => b.qualityScore - a.qualityScore)
+          .slice(0, 5); // Top 5 threads
+
+        for (const thread of state.threadQualityCache.values()) {
+          totalQuality += thread.qualityScore;
+          if (thread.breakdown.sentimentScore > 0) {
+            controversialThreadCount++;
+            if (thread.breakdown.sentimentScore) {
+              totalSentimentControversial += thread.breakdown.sentimentScore;
+              controversialThreadsWithSentiment++;
+            }
+          }
+        }
+
+        averageQualityScore = state.threadQualityCache.size > 0
+          ? totalQuality / state.threadQualityCache.size
+          : 0;
+
+        for (const thread of sortedThreads) {
+          topThreads.push({
+            threadId: thread.threadId,
+            qualityScore: thread.qualityScore,
+            depth: thread.breakdown.depthScore,
+            authorEngagement: thread.breakdown.authorEngagementScore,
+            sentiment: thread.breakdown.sentimentScore,
+          });
+        }
+      }
+
+      const avgSentimentControversial = controversialThreadsWithSentiment > 0
+        ? totalSentimentControversial / controversialThreadsWithSentiment
+        : 0;
+
       stats[agent.id] = {
         dailyStats: state.dailyStats,
         followedAccounts: state.followedAccounts.length,
         queuedOpportunities: state.engagementQueue.length,
         lastEngagementCheck: new Date(state.lastEngagementCheck).toISOString(),
         lastPostTime: state.lastPostTime > 0 ? new Date(state.lastPostTime).toISOString() : null,
+        quality: {
+          averageQualityScore: Number(averageQualityScore.toFixed(3)),
+          controversialThreadCount,
+          avgSentimentOnControversial: Number(avgSentimentControversial.toFixed(3)),
+          topThreads,
+        },
       };
     }
 
