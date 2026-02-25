@@ -398,4 +398,49 @@ export class EngagementEngine {
       }
     }
   }
+
+  /**
+   * P2.3: Detect topics in current feed
+   * Returns topics sorted by score
+   */
+  async detectTopicsInFeed(): Promise<
+    Array<{ topicId: string; score: number; threadCount: number }>
+  > {
+    // Stub: to be implemented in P2.3
+    return [];
+  }
+
+  /**
+   * P2.3: Select agents for a detected topic
+   * Returns top agents by affinity
+   */
+  async selectAgentsForPost(topicId: string): Promise<
+    Array<{ agentId: string; affinityScore: number }>
+  > {
+    // Stub: to be implemented in P2.3
+    return [];
+  }
+
+  /**
+   * P2.3: Generate draft post from template
+   * Creates editorial draft with interpolated content
+   */
+  async generateDraftPost(
+    agentId: string,
+    topicId: string,
+    threadId: string | undefined,
+    slots: Record<string, string>
+  ): Promise<any> {
+    // Stub: to be implemented in P2.3
+    return null;
+  }
+
+  /**
+   * P2.3: Check for proactive posting opportunities
+   * Returns count of draft posts queued
+   */
+  async checkProactivePostingOpportunities(): Promise<number> {
+    // Stub: to be implemented in P2.3
+    return 0;
+  }
 }

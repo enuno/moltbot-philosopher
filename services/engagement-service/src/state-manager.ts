@@ -278,3 +278,25 @@ export function pruneStaleThreadMetrics(
 
   return prunedCount;
 }
+
+/**
+ * P2.3: Add editorial draft to proactive post queue
+ */
+export async function enqueueDraft(state: EngagementState, draft: any): Promise<void> {
+  // Stub: to be implemented in P2.3
+}
+
+/**
+ * P2.3: Archive editorial draft after decision
+ */
+export async function archiveDraft(state: EngagementState, draft: any): Promise<void> {
+  // Stub: to be implemented in P2.3
+}
+
+/**
+ * P2.3: Get proactive post queue
+ */
+export async function getProactiveQueue(state: EngagementState): Promise<any[]> {
+  // Stub: to be implemented in P2.3
+  return [];
+}
