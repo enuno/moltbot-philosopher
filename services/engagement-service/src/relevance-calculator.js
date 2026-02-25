@@ -4,8 +4,6 @@
  * Enforces quality gates: no generic comments, minimum substantiveness
  */
 
-import { Post, Agent } from "./types";
-
 const BANNED_PHRASES = [
   "good",
   "good point",
@@ -18,7 +16,7 @@ const BANNED_PHRASES = [
   "same",
 ];
 
-const TRADITION_KEYWORDS: Record<string, string[]> = {
+const TRADITION_KEYWORDS = {
   Stoicism: ["virtue", "reason", "duty", "apatheia", "logos", "nature"],
   Existentialism: ["freedom", "responsibility", "authenticity", "bad faith", "anguish"],
   Transcendentalism: ["nature", "intuition", "self-reliance", "transcendent", "individual"],
@@ -27,12 +25,12 @@ const TRADITION_KEYWORDS: Record<string, string[]> = {
   "Avant-garde": ["innovation", "experiment", "break", "convention", "radical"],
 };
 
-export class RelevanceCalculator {
+class RelevanceCalculator {
   /**
    * Score post for agent-tradition semantic alignment
    * Returns 0-1, combining semantic + keyword + author quality
    */
-  async scorePost(post: Post, agent: Agent): Promise<number> {
+  async scorePost(post, agent) {
     // Semantic scoring (would call Noosphere in real implementation)
     const semanticScore = await this.getSemanticScore(post, agent);
 
@@ -51,7 +49,7 @@ export class RelevanceCalculator {
    * In production, calls NoosphereClient.queryMemories()
    * For now, uses keyword matching as base
    */
-  private async getSemanticScore(post: Post, agent: Agent): Promise<number> {
+  async getSemanticScore(post, agent) {
     // TODO: Integrate with Noosphere API
     // For testing, use keyword-based scoring
     const keywordScore = this.keywordMatch(post.content, agent.tradition);
@@ -62,7 +60,7 @@ export class RelevanceCalculator {
    * Keyword-based relevance matching
    * Checks for tradition-specific keywords in post content
    */
-  private keywordMatch(content: string, tradition: string): number {
+  keywordMatch(content, tradition) {
     const keywords = TRADITION_KEYWORDS[tradition] || [];
     if (keywords.length === 0) return 0.3;
 
@@ -76,7 +74,7 @@ export class RelevanceCalculator {
    * Author quality scoring
    * Higher for authors with more followers, lower for unknowns
    */
-  private getAuthorQuality(author: { followerCount?: number }): number {
+  getAuthorQuality(author) {
     if (!author.followerCount) return 0.5;
     if (author.followerCount < 10) return 0.3;
     if (author.followerCount < 100) return 0.5;
@@ -88,7 +86,7 @@ export class RelevanceCalculator {
    * Detect generic low-effort comments
    * Returns true if comment contains banned phrases
    */
-  isGenericComment(content: string): boolean {
+  isGenericComment(content) {
     const lower = content.toLowerCase().trim();
     return BANNED_PHRASES.some((phrase) => lower === phrase || lower.includes(phrase));
   }
@@ -97,7 +95,7 @@ export class RelevanceCalculator {
    * Check if comment is substantive (not trivial)
    * Requires: >20 characters AND >1 sentence (split by .!?)
    */
-  isSubstantive(content: string): boolean {
+  isSubstantive(content) {
     const trimmed = content.trim();
 
     // Minimum length check
@@ -107,4 +105,32 @@ export class RelevanceCalculator {
     const sentences = trimmed.split(/[.!?]+/).filter((s) => s.trim().length > 0);
     return sentences.length >= 2;
   }
+
+  /**
+   * Calculate velocity score based on post engagement momentum
+   * Measures comments per hour with recency boost for trending posts
+   *
+   * Formula: (commentCount / ageMs) * 3600000
+   * Boost: <1h: 1.5x | <24h: 1.2x | older: 1.0x
+   */
+  calculateVelocityScore(post) {
+    const ageMs = Date.now() - post.createdAt;
+
+    // Avoid division by zero for very new posts
+    if (ageMs <= 0) return 0;
+
+    // Calculate comments per hour
+    const commentsPerHour = (post.commentCount / ageMs) * 3600000;
+
+    // Apply recency boost
+    if (ageMs < 3600000) {
+      return commentsPerHour * 1.5; // <1h: +50% boost
+    }
+    if (ageMs < 86400000) {
+      return commentsPerHour * 1.2; // <24h: +20% boost
+    }
+    return commentsPerHour * 1.0; // No boost for older posts
+  }
 }
+
+module.exports = { RelevanceCalculator };
