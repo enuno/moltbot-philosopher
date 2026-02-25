@@ -4,6 +4,8 @@
  * Enforces quality gates: no generic comments, minimum substantiveness
  */
 
+const { isBannedForAgent } = require("./banned-phrases");
+
 const BANNED_PHRASES = [
   "good",
   "good point",
@@ -28,11 +30,16 @@ const TRADITION_KEYWORDS = {
 class RelevanceCalculator {
   /**
    * Score post for agent-tradition semantic alignment
-   * Returns 0-1, combining semantic + keyword + author quality
+   * Returns 0-1, combining semantic + trending + keyword + author + banned phrase penalty
+   * 5-factor formula: semantic (40%) + trending (30%) + keyword (15%) + author (10%)
+   * Applies 50% penalty if post contains banned phrases for agent
    */
   async scorePost(post, agent) {
     // Semantic scoring (would call Noosphere in real implementation)
     const semanticScore = await this.getSemanticScore(post, agent);
+
+    // Trending score combines velocity + feed trends + agent relevance
+    const trendingScore = this.calculateTrendingScore(post, agent.type);
 
     // Keyword matching fallback
     const keywordScore = this.keywordMatch(post.content, agent.tradition);
@@ -40,8 +47,16 @@ class RelevanceCalculator {
     // Author quality (placeholder - would be enhanced with state tracking)
     const authorScore = this.getAuthorQuality(post.author);
 
-    // Weighted average: 60% semantic, 25% keyword, 15% author
-    return semanticScore * 0.6 + keywordScore * 0.25 + authorScore * 0.15;
+    // 5-factor weighted formula: 40% semantic + 30% trending + 15% keyword + 10% author
+    let score = semanticScore * 0.4 + trendingScore * 0.3 + keywordScore * 0.15 + authorScore * 0.1;
+
+    // Apply 50% penalty for banned phrases for this agent
+    if (isBannedForAgent(post.content, agent.type)) {
+      score *= 0.5;
+    }
+
+    // Cap score at 1.0
+    return Math.min(score, 1.0);
   }
 
   /**
@@ -192,6 +207,24 @@ class RelevanceCalculator {
       scientist: ["empiricism", "cosmos", "testability", "evidence"],
     };
     return interests[agentType] || [];
+  }
+
+  /**
+   * Calculate combined trending score based on velocity, feed trends, and agent relevance
+   * Combines: velocity (50%) + feed trend (30%) + agent relevance (20%)
+   *
+   * Returns 0-1 score representing post trending appeal for the agent
+   */
+  calculateTrendingScore(post, agentType) {
+    const velocity = this.calculateVelocityScore(post);
+    const feedTrend = this.calculateFeedTrendScore(post);
+    const agentInterests = this.getAgentInterests(agentType);
+    const agentRelevance = this.calculateAgentRelevance(post, agentType, agentInterests);
+
+    // Normalize velocity to 0-1 range (cap at 10 comments/hour = score 1.0)
+    const normalizedVelocity = Math.min(velocity / 10, 1.0);
+
+    return normalizedVelocity * 0.5 + feedTrend * 0.3 + agentRelevance * 0.2;
   }
 }
 
