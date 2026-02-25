@@ -46,7 +46,8 @@ export class RelevanceCalculator {
     const semanticScore = await this.getSemanticScore(post, agent);
 
     // Trending score combines velocity + feed trends + agent relevance
-    const trendingScore = this.calculateTrendingScore(post, agent.type);
+    const agentType = agent.type || (agent.id as any); // Fallback to id if type not set
+    const trendingScore = this.calculateTrendingScore(post, agentType);
 
     // Keyword matching fallback
     const keywordScore = this.keywordMatch(post.content, agent.tradition);
@@ -58,7 +59,7 @@ export class RelevanceCalculator {
     let score = semanticScore * 0.4 + trendingScore * 0.3 + keywordScore * 0.15 + authorScore * 0.1;
 
     // Apply 50% penalty for banned phrases for this agent
-    if (isBannedForAgent(post.content, agent.type)) {
+    if (isBannedForAgent(post.content, agentType)) {
       score *= 0.5;
     }
 

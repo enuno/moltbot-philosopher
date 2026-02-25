@@ -72,7 +72,13 @@ export class EngagementEngine {
 
             // Compute quality metrics (in production: would include fetched comments)
             // For now: use empty comment array (comments not fetched in feed monitoring)
-            const comments = []; // Mock: no comments in feed monitoring context
+            const comments: Array<{
+              id: string;
+              author: string;
+              timestamp: number;
+              content: string;
+              parentId?: string | null;
+            }> = []; // Mock: no comments in feed monitoring context
             const threadQuality = await computeThreadQuality(
               post,
               comments,
@@ -84,10 +90,10 @@ export class EngagementEngine {
               recordAuthorEngagementInThread(
                 state,
                 post.id,
-                author.authorId,
+                author.userId,
                 author.commentsByAuthor,
                 author.repliesReceivedByAuthor,
-                author.authorName
+                author.userName
               );
             }
 
@@ -368,7 +374,7 @@ export class EngagementEngine {
         const prunedCount = pruneStaleThreadMetrics(state);
 
         // Update timestamp
-        state.lastMaintenanceAt = new Date(now).toISOString();
+        state.lastMaintenanceAt = now;
 
         // Persist state
         await stateManager.saveState(state);

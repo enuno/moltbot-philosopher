@@ -258,10 +258,11 @@ export function pruneStaleThreadMetrics(
     const threadMetrics = state.threadQualityCache.get(threadId);
 
     // Check if thread is older than cutoff
-    if (threadMetrics && threadMetrics.depth.lastActivityAt) {
-      const lastActivityTime = new Date(threadMetrics.depth.lastActivityAt).getTime();
+    if (threadMetrics) {
+      // Use timestamp from threadMetrics (in milliseconds)
+      const threadAge = Date.now() - threadMetrics.timestamp;
 
-      if (lastActivityTime < cutoff) {
+      if (threadAge > maxAgeDays * 24 * 3600000) {
         // Remove stale thread
         state.threadQualityCache.delete(threadId);
 

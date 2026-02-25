@@ -139,6 +139,51 @@ export interface RateLimitState {
 }
 
 /**
+ * Thread quality metrics (P2.2)
+ */
+export interface ThreadQualityMetrics {
+  id: string;
+  timestamp: number;
+  qualityScore: number;
+  breakdown: {
+    depthScore: number;
+    sentimentScore: number;
+    controversyScore: number;
+    authorQualityScore: number;
+  };
+  topAuthors: Array<{
+    userId: string;
+    userName?: string;
+    replyEngagementRate: number;
+    commentsByAuthor: number;
+    repliesReceivedByAuthor: number;
+  }>;
+}
+
+/**
+ * Author engagement metrics per thread (P2.2)
+ */
+export interface AuthorEngagementMetrics {
+  authorId: string;
+  authorName?: string;
+  commentsByAuthor: number;
+  repliesReceivedByAuthor: number;
+  replyEngagementRate: number;
+}
+
+/**
+ * Global author quality metrics (P2.2)
+ */
+export interface AuthorMetrics {
+  authorId: string;
+  authorName?: string;
+  totalComments: number;
+  totalRepliesReceived: number;
+  averageQualityScore: number;
+  threadIds: string[];
+}
+
+/**
  * Complete engagement state for a single agent
  * Persisted to workspace/{agent}/engagement-state.json
  */
@@ -172,6 +217,18 @@ export interface EngagementState {
 
   // Cache for Noosphere relevance scores (TTL 1 hour)
   relevanceCache: Record<string, { score: number; expiresAt: number }>;
+
+  // P2.2: Quality metrics cache (30-day rolling window)
+  threadQualityCache?: Map<string, ThreadQualityMetrics>;
+
+  // P2.2: Per-thread author engagement metrics (nested: threadId -> authorId -> metrics)
+  threadAuthorMetrics?: Map<string, Map<string, AuthorEngagementMetrics>>;
+
+  // P2.2: Global author quality metrics
+  authorMetrics?: Map<string, AuthorMetrics>;
+
+  // P2.2: Last maintenance timestamp for pruning
+  lastMaintenanceAt?: number;
 }
 
 /**
@@ -179,6 +236,7 @@ export interface EngagementState {
  */
 export interface Agent {
   id: string; // e.g., "classical", "existentialist"
+  type?: PhilosopherName; // Agent type from PhilosopherName (used in P2.1 scoring)
   name: string;
   tradition: string; // e.g., "Stoicism", "Existentialism"
   statePath: string; // workspace/{id}/engagement-state.json

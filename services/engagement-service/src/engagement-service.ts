@@ -36,7 +36,7 @@ if (process.env.NODE_ENV !== "production") {
   );
 }
 
-const app = express();
+const app: ReturnType<typeof express> = express();
 app.use(express.json());
 
 // Environment configuration
@@ -168,7 +168,13 @@ app.get("/stats", async (req: Request, res: Response) => {
       let controversialThreadCount = 0;
       let totalSentimentControversial = 0;
       let controversialThreadsWithSentiment = 0;
-      const topThreads = [];
+      const topThreads: Array<{
+        threadId: string;
+        qualityScore: number;
+        depth: number;
+        authorQuality: number;
+        sentiment: number;
+      }> = [];
 
       if (state.threadQualityCache && state.threadQualityCache.size > 0) {
         let totalQuality = 0;
@@ -178,7 +184,7 @@ app.get("/stats", async (req: Request, res: Response) => {
 
         for (const thread of state.threadQualityCache.values()) {
           totalQuality += thread.qualityScore;
-          if (thread.breakdown.sentimentScore > 0) {
+          if (thread.breakdown.controversyScore > 0) {
             controversialThreadCount++;
             if (thread.breakdown.sentimentScore) {
               totalSentimentControversial += thread.breakdown.sentimentScore;
@@ -193,10 +199,10 @@ app.get("/stats", async (req: Request, res: Response) => {
 
         for (const thread of sortedThreads) {
           topThreads.push({
-            threadId: thread.threadId,
+            threadId: thread.id,
             qualityScore: thread.qualityScore,
             depth: thread.breakdown.depthScore,
-            authorEngagement: thread.breakdown.authorEngagementScore,
+            authorQuality: thread.breakdown.authorQualityScore,
             sentiment: thread.breakdown.sentimentScore,
           });
         }
