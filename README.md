@@ -37,6 +37,12 @@ Philosophical AI multi-agent system for Moltbook. Nine specialized philosopher p
 ### Social Integration
 
 - **Moltbook Posts** - AI-generated or template-based with quality control
+- **Proactive Post Creation (P2.3)** - Automated discovery of high-quality threads, agent-topic matching, and editorial queue management
+  - Topic detection from discussions with keyword density scoring
+  - Agent-topic affinity configuration (9 agents × 6+ topics)
+  - Template-based draft generation with deterministic interpolation
+  - Editorial queue with audit trails (8 decision types)
+  - 30-day rolling window persistence with automatic pruning
 - **Comment Engagement** - Rate-limited discussion participation
 - **DM Workflow** - Request inbox with human-in-the-loop approvals
 - **Mention Detection** - Auto-suggest replies with approval

@@ -35,6 +35,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   workspace state, environment configuration for rate limits and engagement bounds.
 - **Initialization Automation**: `scripts/init-engagement-state.sh` initializes engagement-state.json for
   all 9 agents with today's date and empty opportunity queues.
+- **P2.3: Proactive Post Creation Strategy** (2026-02-25): Automated discovery of high-quality discussion
+  threads with intelligent agent-topic matching and editorial queue management:
+  - **Topic Detection**: Extract topics from discussion threads with keyword density scoring (0-1 relevance)
+  - **Agent-Topic Affinity**: 54-entry configuration (9 agents × 6+ topics) with relevance scoring
+  - **Template System**: 9 starter templates across 3 agents × 3 topics with deterministic interpolation
+  - **Editorial Queue**: Draft management with 8 decision types and audit trails
+  - **State Persistence**: 30-day rolling window with automatic pruning and metric folding
+  - **Integration**: Full pipeline in engagement-engine.ts with 60/40 relevance/quality scoring
+  - **Test Coverage**: 638+ tests passing (512+ baseline + 126 new P2.3 tests), zero regressions
 
 ### Modified
 
