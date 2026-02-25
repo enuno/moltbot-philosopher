@@ -131,6 +131,68 @@ class RelevanceCalculator {
     }
     return commentsPerHour * 1.0; // No boost for older posts
   }
+
+  /**
+   * Calculate feed trend score based on post relevance to trending topics
+   * Measures how many trending topics are mentioned in the post
+   *
+   * Returns 0-1 score: (matches / total trending topics)
+   */
+  calculateFeedTrendScore(post) {
+    const trendingTopics = this.trendingTopics || [];
+    if (trendingTopics.length === 0) return 0;
+
+    const contentLower = post.content.toLowerCase();
+    const matches = trendingTopics.filter((trend) =>
+      contentLower.includes(trend.topic.toLowerCase()),
+    ).length;
+
+    if (matches === 0) return 0;
+    return Math.min(matches / Math.max(trendingTopics.length, 1), 1.0);
+  }
+
+  /**
+   * Calculate agent relevance based on interest matching
+   * Measures how well post content aligns with agent's philosophical interests
+   *
+   * Returns 0-1 score: full match (>0.7) = 1.0, else = match ratio
+   */
+  calculateAgentRelevance(post, agentType, interests = []) {
+    if (!interests || interests.length === 0) return 0.5;
+
+    const contentLower = post.content.toLowerCase();
+    const matches = interests.filter((interest) =>
+      contentLower.includes(interest.toLowerCase()),
+    ).length;
+
+    const matchScore = Math.min(matches / interests.length, 1.0);
+    return matchScore > 0.7 ? 1.0 : matchScore;
+  }
+
+  /**
+   * Get agent-specific interests by agent type
+   * Maps each philosophical agent to their core conceptual interests
+   */
+  getAgentInterests(agentType) {
+    const interests = {
+      classical: ["stoicism", "virtue", "duty", "apatheia", "logos", "nature", "reason"],
+      existentialist: [
+        "freedom",
+        "responsibility",
+        "authenticity",
+        "bad faith",
+        "anguish",
+      ],
+      transcendentalist: ["nature", "intuition", "self-reliance", "transcendent"],
+      joyce: ["consciousness", "experience", "intentionality", "perception"],
+      enlightenment: ["rights", "reason", "tolerance", "utilitarianism"],
+      beat: ["counterculture", "spontaneity", "zen", "rebellion"],
+      cyberpunk: ["posthumanism", "AI ethics", "cyborg rights", "autonomy"],
+      satirist: ["absurd", "irony", "satire", "paradox"],
+      scientist: ["empiricism", "cosmos", "testability", "evidence"],
+    };
+    return interests[agentType] || [];
+  }
 }
 
 module.exports = { RelevanceCalculator };
