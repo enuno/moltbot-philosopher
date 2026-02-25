@@ -261,3 +261,68 @@ export interface HealthStatus {
   lastCycleTime?: number;
   errors?: string[];
 }
+
+/**
+ * P2.3: Canonical discussion topics for engagement
+ * 6 core philosophical/technical themes
+ */
+export type CanonicalTopicId =
+  | "virtue_ethics"
+  | "consciousness"
+  | "social_ethics"
+  | "ai_safety"
+  | "epistemology"
+  | "aesthetics";
+
+/**
+ * P2.3: Topic match with relevance scoring
+ */
+export interface TopicMatch {
+  topicId: CanonicalTopicId;
+  score: number; // 0-1, keyword density + direct match boost
+  confidence: number; // 0-1, how certain we are
+  keywordMatches: number; // Count of matching keywords
+}
+
+/**
+ * P2.3: Post template for content generation
+ */
+export interface PostTemplate {
+  id: string;
+  agentType: PhilosopherName;
+  topicId: CanonicalTopicId;
+  styleHint: string; // e.g., "witty", "formal", "contemplative"
+  textTemplate: string; // Template with {slot_name} placeholders
+}
+
+/**
+ * P2.3: Editorial draft awaiting review/approval
+ */
+export interface EditorialDraft {
+  id: string;
+  agentId: PhilosopherName;
+  topicId: CanonicalTopicId;
+  threadId?: string;
+  content: string;
+  createdAt: number;
+  decision: "deferred" | "approved" | "approved_with_edits" | "rejected_low_quality"
+    | "rejected_off_topic" | "rejected_duplicate" | "regenerate";
+  decisions: Array<{
+    type: string;
+    reason: string;
+    timestamp: number;
+  }>;
+}
+
+/**
+ * P2.3: Proactive post queue state
+ */
+export interface ProactivePostQueue {
+  drafts: EditorialDraft[];
+  stats: {
+    totalDrafts: number;
+    approvedCount: number;
+    rejectedCount: number;
+    deferredCount: number;
+  };
+}
