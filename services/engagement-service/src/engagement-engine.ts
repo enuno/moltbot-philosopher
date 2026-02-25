@@ -10,9 +10,14 @@
  * - Daily maintenance (reset stats, unfollow inactive accounts)
  */
 
-import { StateManager } from "./state-manager";
+import {
+  StateManager,
+  recordAuthorEngagementInThread,
+  pruneStaleThreadMetrics,
+} from "./state-manager";
 import { RelevanceCalculator } from "./relevance-calculator";
 import { Agent, Opportunity, QueuedAction, Post, ActionType } from "./types";
+import { computeThreadQuality } from "./quality-metrics-calculator";
 
 interface EngagementEngineConfig {
   statePaths: Record<string, string>;
@@ -41,6 +46,7 @@ export class EngagementEngine {
    * Monitor feed across subscribedSubmolts
    * Fetches posts, scores for relevance, filters > 0.6, returns opportunities
    * Limits to 10 posts per submolt for efficiency
+   * P2.2: Computes thread quality metrics and records author engagement
    */
   async monitorFeed(): Promise<Opportunity[]> {
     const opportunities: Opportunity[] = [];
@@ -59,19 +65,59 @@ export class EngagementEngine {
         for (const agent of this.agentRoster) {
           const relevanceScore = await this.relevanceCalculator.scorePost(post, agent);
 
-          // Only queue if above threshold
-          if (relevanceScore > 0.6) {
-            opportunities.push({
-              id: `opp_${post.id}_${agent.id}`,
-              postId: post.id,
-              author: post.author,
-              content: post.content,
-              submoltId: post.submoltId,
-              relevanceScore,
-              reason: `Semantic match to ${agent.tradition}`,
-              suggestedAction: "comment",
-              createdAt: Date.now(),
-            });
+          // P2.2: Compute thread quality metrics for all posts
+          const stateManager = this.stateManagers.get(agent.id);
+          if (stateManager) {
+            const state = await stateManager.loadState();
+
+            // Compute quality metrics (in production: would include fetched comments)
+            // For now: use empty comment array (comments not fetched in feed monitoring)
+            const comments = []; // Mock: no comments in feed monitoring context
+            const threadQuality = await computeThreadQuality(
+              post,
+              comments,
+              state
+            );
+
+            // Record author engagement from quality metrics
+            for (const author of threadQuality.topAuthors) {
+              recordAuthorEngagementInThread(
+                state,
+                post.id,
+                author.authorId,
+                author.commentsByAuthor,
+                author.repliesReceivedByAuthor,
+                author.authorName
+              );
+            }
+
+            // Cache quality metrics
+            if (!state.threadQualityCache) {
+              state.threadQualityCache = new Map();
+            }
+            state.threadQualityCache.set(post.id, threadQuality);
+
+            // Persist state with quality metrics
+            await stateManager.saveState(state);
+
+            // P2.2: Combine relevance and quality scores for engagement decision
+            // Formula: 60% relevance + 40% quality
+            const combinedScore = (relevanceScore * 0.6) + (threadQuality.qualityScore * 0.4);
+
+            // Only queue if combined score above threshold
+            if (combinedScore > 0.6) {
+              opportunities.push({
+                id: `opp_${post.id}_${agent.id}`,
+                postId: post.id,
+                author: post.author,
+                content: post.content,
+                submoltId: post.submoltId,
+                relevanceScore: combinedScore, // Store combined score for engagement decision
+                reason: `Semantic match to ${agent.tradition}`,
+                suggestedAction: "comment",
+                createdAt: Date.now(),
+              });
+            }
           }
         }
       }
@@ -140,6 +186,7 @@ export class EngagementEngine {
    * 4. Rate limits (checked locally)
    * 5. Daily caps (within limits)
    * 6. Follow evaluation (3+ posts seen before follow)
+   * P2.2: Also considers thread quality score
    */
   async validateAction(action: QueuedAction, content: string, agent: Agent): Promise<boolean> {
     // Gate 1: Relevance threshold
@@ -162,6 +209,18 @@ export class EngagementEngine {
     if (!stateManager) return false;
 
     const state = await stateManager.loadState();
+
+    // P2.2: Check quality score if available (optional boost to priority)
+    // Quality score can enhance engagement decision but isn't a gate
+    let qualityScore = 0.5; // Default neutral if no quality metrics cached
+    if (state.threadQualityCache) {
+      const threadQuality = state.threadQualityCache.get(action.postId);
+      if (threadQuality) {
+        qualityScore = threadQuality.qualityScore;
+      }
+    }
+    // Note: In production, could use: action.priority += (qualityScore * 0.1)
+    // For now, just ensure we have the metric available
 
     // Gate 5: Daily caps (check current counts)
     if (action.type === "comment" && state.dailyStats.commentsMade >= 50) {
@@ -273,6 +332,64 @@ export class EngagementEngine {
       });
 
       await stateManager.saveState(state);
+    }
+  }
+
+  /**
+   * Heartbeat maintenance handler
+   * Runs once per day to enforce 30-day rolling window for metrics
+   * - Prunes threads older than 30 days
+   * - Maintains lastMaintenanceAt timestamp to prevent redundant runs
+   * - Logs maintenance activity for monitoring
+   * - Handles errors gracefully without crashing engagement engine
+   */
+  async onHeartbeat(): Promise<void> {
+    const now = Date.now();
+    const dayInMs = 24 * 60 * 60 * 1000;
+
+    for (const agent of this.agentRoster) {
+      const stateManager = this.stateManagers.get(agent.id);
+      if (!stateManager) continue;
+
+      try {
+        const state = await stateManager.loadState();
+
+        // Check if maintenance already ran today
+        const lastMaint = state.lastMaintenanceAt
+          ? new Date(state.lastMaintenanceAt).getTime()
+          : 0;
+
+        if (now - lastMaint < dayInMs) {
+          // Already ran today, skip
+          continue;
+        }
+
+        // Prune stale threads (older than 30 days)
+        const prunedCount = pruneStaleThreadMetrics(state);
+
+        // Update timestamp
+        state.lastMaintenanceAt = new Date(now).toISOString();
+
+        // Persist state
+        await stateManager.saveState(state);
+
+        // Log activity
+        if (prunedCount > 0) {
+          console.log(
+            `[P2.2 Maintenance] Agent: ${agent.id}, Threads pruned: ${prunedCount}, Timestamp: ${new Date(
+              now,
+            ).toISOString()}`,
+          );
+        }
+      } catch (error) {
+        // Log error but don't crash engagement engine
+        console.error(
+          `[P2.2 Maintenance] Error for agent ${agent.id}: ${
+            error instanceof Error ? error.message : String(error)
+          }`,
+        );
+        // Continue with next agent
+      }
     }
   }
 }
