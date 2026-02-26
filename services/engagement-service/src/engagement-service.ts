@@ -229,7 +229,6 @@ function scheduleFiveMinuteCycle() {
       const duration = Date.now() - startTime;
       // Update last cycle time for stats endpoint
       app.locals.lastCycleTime = Date.now();
-      updateLastCycleTime();
       logger.info("5-minute engagement cycle completed", { duration });
     } catch (error) {
       logger.error("5-minute cycle failed", { error });
