@@ -258,10 +258,11 @@ export function pruneStaleThreadMetrics(
     const threadMetrics = state.threadQualityCache.get(threadId);
 
     // Check if thread is older than cutoff
-    if (threadMetrics && threadMetrics.depth.lastActivityAt) {
-      const lastActivityTime = new Date(threadMetrics.depth.lastActivityAt).getTime();
+    if (threadMetrics) {
+      // Use timestamp from threadMetrics (in milliseconds)
+      const threadAge = Date.now() - threadMetrics.timestamp;
 
-      if (lastActivityTime < cutoff) {
+      if (threadAge > maxAgeDays * 24 * 3600000) {
         // Remove stale thread
         state.threadQualityCache.delete(threadId);
 
@@ -276,4 +277,26 @@ export function pruneStaleThreadMetrics(
   }
 
   return prunedCount;
+}
+
+/**
+ * P2.3: Add editorial draft to proactive post queue
+ */
+export async function enqueueDraft(state: EngagementState, draft: any): Promise<void> {
+  // Stub: to be implemented in P2.3
+}
+
+/**
+ * P2.3: Archive editorial draft after decision
+ */
+export async function archiveDraft(state: EngagementState, draft: any): Promise<void> {
+  // Stub: to be implemented in P2.3
+}
+
+/**
+ * P2.3: Get proactive post queue
+ */
+export async function getProactiveQueue(state: EngagementState): Promise<any[]> {
+  // Stub: to be implemented in P2.3
+  return [];
 }

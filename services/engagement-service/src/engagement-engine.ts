@@ -72,7 +72,13 @@ export class EngagementEngine {
 
             // Compute quality metrics (in production: would include fetched comments)
             // For now: use empty comment array (comments not fetched in feed monitoring)
-            const comments = []; // Mock: no comments in feed monitoring context
+            const comments: Array<{
+              id: string;
+              author: string;
+              timestamp: number;
+              content: string;
+              parentId?: string | null;
+            }> = []; // Mock: no comments in feed monitoring context
             const threadQuality = await computeThreadQuality(
               post,
               comments,
@@ -84,10 +90,10 @@ export class EngagementEngine {
               recordAuthorEngagementInThread(
                 state,
                 post.id,
-                author.authorId,
+                author.userId,
                 author.commentsByAuthor,
                 author.repliesReceivedByAuthor,
-                author.authorName
+                author.userName
               );
             }
 
@@ -368,7 +374,7 @@ export class EngagementEngine {
         const prunedCount = pruneStaleThreadMetrics(state);
 
         // Update timestamp
-        state.lastMaintenanceAt = new Date(now).toISOString();
+        state.lastMaintenanceAt = now;
 
         // Persist state
         await stateManager.saveState(state);
@@ -391,5 +397,50 @@ export class EngagementEngine {
         // Continue with next agent
       }
     }
+  }
+
+  /**
+   * P2.3: Detect topics in current feed
+   * Returns topics sorted by score
+   */
+  async detectTopicsInFeed(): Promise<
+    Array<{ topicId: string; score: number; threadCount: number }>
+  > {
+    // Stub: to be implemented in P2.3
+    return [];
+  }
+
+  /**
+   * P2.3: Select agents for a detected topic
+   * Returns top agents by affinity
+   */
+  async selectAgentsForPost(topicId: string): Promise<
+    Array<{ agentId: string; affinityScore: number }>
+  > {
+    // Stub: to be implemented in P2.3
+    return [];
+  }
+
+  /**
+   * P2.3: Generate draft post from template
+   * Creates editorial draft with interpolated content
+   */
+  async generateDraftPost(
+    agentId: string,
+    topicId: string,
+    threadId: string | undefined,
+    slots: Record<string, string>
+  ): Promise<any> {
+    // Stub: to be implemented in P2.3
+    return null;
+  }
+
+  /**
+   * P2.3: Check for proactive posting opportunities
+   * Returns count of draft posts queued
+   */
+  async checkProactivePostingOpportunities(): Promise<number> {
+    // Stub: to be implemented in P2.3
+    return 0;
   }
 }

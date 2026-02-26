@@ -139,6 +139,51 @@ export interface RateLimitState {
 }
 
 /**
+ * Thread quality metrics (P2.2)
+ */
+export interface ThreadQualityMetrics {
+  id: string;
+  timestamp: number;
+  qualityScore: number;
+  breakdown: {
+    depthScore: number;
+    sentimentScore: number;
+    controversyScore: number;
+    authorQualityScore: number;
+  };
+  topAuthors: Array<{
+    userId: string;
+    userName?: string;
+    replyEngagementRate: number;
+    commentsByAuthor: number;
+    repliesReceivedByAuthor: number;
+  }>;
+}
+
+/**
+ * Author engagement metrics per thread (P2.2)
+ */
+export interface AuthorEngagementMetrics {
+  authorId: string;
+  authorName?: string;
+  commentsByAuthor: number;
+  repliesReceivedByAuthor: number;
+  replyEngagementRate: number;
+}
+
+/**
+ * Global author quality metrics (P2.2)
+ */
+export interface AuthorMetrics {
+  authorId: string;
+  authorName?: string;
+  totalComments: number;
+  totalRepliesReceived: number;
+  averageQualityScore: number;
+  threadIds: string[];
+}
+
+/**
  * Complete engagement state for a single agent
  * Persisted to workspace/{agent}/engagement-state.json
  */
@@ -172,6 +217,18 @@ export interface EngagementState {
 
   // Cache for Noosphere relevance scores (TTL 1 hour)
   relevanceCache: Record<string, { score: number; expiresAt: number }>;
+
+  // P2.2: Quality metrics cache (30-day rolling window)
+  threadQualityCache?: Map<string, ThreadQualityMetrics>;
+
+  // P2.2: Per-thread author engagement metrics (nested: threadId -> authorId -> metrics)
+  threadAuthorMetrics?: Map<string, Map<string, AuthorEngagementMetrics>>;
+
+  // P2.2: Global author quality metrics
+  authorMetrics?: Map<string, AuthorMetrics>;
+
+  // P2.2: Last maintenance timestamp for pruning
+  lastMaintenanceAt?: number;
 }
 
 /**
@@ -179,6 +236,7 @@ export interface EngagementState {
  */
 export interface Agent {
   id: string; // e.g., "classical", "existentialist"
+  type?: PhilosopherName; // Agent type from PhilosopherName (used in P2.1 scoring)
   name: string;
   tradition: string; // e.g., "Stoicism", "Existentialism"
   statePath: string; // workspace/{id}/engagement-state.json
@@ -202,4 +260,69 @@ export interface HealthStatus {
   uptime: number;
   lastCycleTime?: number;
   errors?: string[];
+}
+
+/**
+ * P2.3: Canonical discussion topics for engagement
+ * 6 core philosophical/technical themes
+ */
+export type CanonicalTopicId =
+  | "virtue_ethics"
+  | "consciousness"
+  | "social_ethics"
+  | "ai_safety"
+  | "epistemology"
+  | "aesthetics";
+
+/**
+ * P2.3: Topic match with relevance scoring
+ */
+export interface TopicMatch {
+  topicId: CanonicalTopicId;
+  score: number; // 0-1, keyword density + direct match boost
+  confidence: number; // 0-1, how certain we are
+  keywordMatches: number; // Count of matching keywords
+}
+
+/**
+ * P2.3: Post template for content generation
+ */
+export interface PostTemplate {
+  id: string;
+  agentType: PhilosopherName;
+  topicId: CanonicalTopicId;
+  styleHint: string; // e.g., "witty", "formal", "contemplative"
+  textTemplate: string; // Template with {slot_name} placeholders
+}
+
+/**
+ * P2.3: Editorial draft awaiting review/approval
+ */
+export interface EditorialDraft {
+  id: string;
+  agentId: PhilosopherName;
+  topicId: CanonicalTopicId;
+  threadId?: string;
+  content: string;
+  createdAt: number;
+  decision: "deferred" | "approved" | "approved_with_edits" | "rejected_low_quality"
+    | "rejected_off_topic" | "rejected_duplicate" | "regenerate";
+  decisions: Array<{
+    type: string;
+    reason: string;
+    timestamp: number;
+  }>;
+}
+
+/**
+ * P2.3: Proactive post queue state
+ */
+export interface ProactivePostQueue {
+  drafts: EditorialDraft[];
+  stats: {
+    totalDrafts: number;
+    approvedCount: number;
+    rejectedCount: number;
+    deferredCount: number;
+  };
 }
