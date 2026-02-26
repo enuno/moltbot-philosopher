@@ -44,6 +44,23 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - **State Persistence**: 30-day rolling window with automatic pruning and metric folding
   - **Integration**: Full pipeline in engagement-engine.ts with 60/40 relevance/quality scoring
   - **Test Coverage**: 638+ tests passing (512+ baseline + 126 new P2.3 tests), zero regressions
+- **P2.4: Comprehensive Engagement Statistics & Metrics Endpoint** (2026-02-26): Production-grade
+  /stats endpoint providing real-time visibility into 9-agent engagement performance across P2.1→P2.3:
+  - **Summary Metrics**: Aggregated engagement across all agents (total posts, comments, follows, quality scores)
+  - **Trend Analysis**: 7-day trend windows with topic mentions, thread quality analysis, posting velocity changes
+  - **Per-Agent Metrics**: Individual agent performance tracking (daily/weekly activity, quality scores, engagement velocity)
+  - **Quality Metrics Section**: Sentiment trends, controversial thread detection, high/low quality categorization
+  - **Rolling Metrics**: 7-day and 30-day aggregates with automatic calculation from daily rollups
+  - **Stats Builder Module** (stats-builder.ts): 5 core functions with comprehensive error handling:
+    - buildSummary(): Aggregates dailyStats and rollingMetrics across all agents
+    - buildTrends(): Analyzes 7-day topic engagement and thread quality trends
+    - buildAgentsSection(): Per-agent metrics including posts, comments, quality, velocity
+    - buildQualitySection(): Quality aggregation with sentiment and controversy analysis
+    - calculateRollingMetrics(): Computes 7/30-day rolling metrics from daily rollups
+  - **Robust Error Handling**: All builders include try-catch blocks, bounds validation (0-100), safe Map iteration, graceful degradation
+  - **Type Safety**: Extended EngagementState with DailyRollup and RollingMetrics (P2.4), proper TypeScript type annotations
+  - **Test Coverage**: 16 new E2E tests validating full P2.1→P2.3→/stats pipeline with edge cases
+  - **Service Integration**: Updated engagement-service.ts to expose /stats endpoint and track cycle freshness for health monitoring
 
 ### Modified
 
