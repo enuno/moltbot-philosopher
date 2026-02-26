@@ -101,7 +101,12 @@ export class QueueProcessor {
       await this.checkCircuitBreaker(action.agentName);
 
       // Execute the action
-      await this.executor.execute(action);
+      const result = await this.executor.execute(action);
+
+      // Check if execution was successful
+      if (!result.success) {
+        throw new Error(`Action execution failed: ${result.error}`);
+      }
 
       // Update rate limits on success
       await this.rateLimiter.updateLastExecution(action.agentName, action.actionType);
