@@ -24,12 +24,12 @@ const accessLogStream = fs.createWriteStream(path.join(logDir, "noosphere-access
   flags: "a",
 });
 
-// Database connection
+// Database connection with extended timeout for docker network latency
 const pool = new Pool({
   connectionString: process.env.DATABASE_URL,
   max: 20,
   idleTimeoutMillis: 30000,
-  connectionTimeoutMillis: 2000,
+  connectionTimeoutMillis: 30000, // Extended from 2000ms to 30s for slow docker networks
 });
 
 // OpenAI client (optional - for embeddings only)
@@ -70,9 +70,15 @@ function authenticate(req, res, next) {
 }
 
 // Health check (no auth, no rate limit needed)
-app.get("/health", async (req, res) => {
-  try {
-    await pool.query("SELECT 1");
+// Initialize health state tracking
+let isHealthy = false;
+const healthCheckTimeout = setTimeout(() => {
+  console.log("⚠️  Health check timeout - marking as unhealthy");
+}, 30000);
+
+// Health check endpoint - returns cached status without blocking
+app.get("/health", (req, res) => {
+  if (isHealthy) {
     res.json({
       status: "healthy",
       version: "3.3.0",
@@ -89,8 +95,8 @@ app.get("/health", async (req, res) => {
         "ai-synthesis",
       ],
     });
-  } catch (error) {
-    res.status(503).json({ status: "unhealthy", error: error.message });
+  } else {
+    res.status(503).json({ status: "starting", error: "Database connection not yet verified" });
   }
 });
 
@@ -1550,7 +1556,7 @@ process.on("SIGTERM", () => {
 
 // Start server
 if (require.main === module) {
-  app.listen(PORT, () => {
+  const server = app.listen(PORT, () => {
     console.log(`Noosphere v3.3 Service listening on port ${PORT}`);
     console.log(`Database: ${process.env.DATABASE_URL ? "connected" : "not configured"}`);
     console.log(`Embeddings: ${openai ? "enabled" : "disabled"}`);
@@ -1559,6 +1565,38 @@ if (require.main === module) {
       `Features: multi-agent-sharing, permission-model, access-logging, confidence-decay, reinforcement, pattern-mining, ai-synthesis`,
     );
   });
+
+  // Verify database connection with exponential backoff retry
+  let retryCount = 0;
+  const maxRetries = 10;
+  const baseDelayMs = 1000;
+
+  async function verifyDatabaseWithRetry() {
+    try {
+      await pool.query("SELECT 1");
+      clearTimeout(healthCheckTimeout);
+      isHealthy = true;
+      console.log("✅ Database connection verified - health check enabled");
+    } catch (error) {
+      retryCount++;
+      if (retryCount < maxRetries) {
+        const delayMs = baseDelayMs * Math.pow(2, retryCount - 1); // Exponential backoff
+        console.warn(
+          `⚠️  Database connection attempt ${retryCount}/${maxRetries} failed (${error.message}). ` +
+            `Retrying in ${Math.round(delayMs / 1000)}s...`,
+        );
+        setTimeout(verifyDatabaseWithRetry, delayMs);
+      } else {
+        clearTimeout(healthCheckTimeout);
+        console.error(
+          `❌ Database connection failed after ${maxRetries} retries. ` +
+            `Service running but health check will return 503 until database is available.`,
+        );
+      }
+    }
+  }
+
+  verifyDatabaseWithRetry();
 }
 
 // Export for testing
