@@ -32,7 +32,7 @@ let serviceState: ServiceState = {
 /**
  * Create stats router
  */
-export function createStatsRouter() {
+export function createStatsRouter(): Router {
   const router = Router();
 
   /**

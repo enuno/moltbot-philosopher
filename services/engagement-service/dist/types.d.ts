@@ -163,6 +163,39 @@ export interface AuthorMetrics {
     threadIds: string[];
 }
 /**
+ * P2.4: Daily rollup metrics for aggregation
+ */
+export interface DailyRollup {
+    date: string;
+    postsCreated: number;
+    commentsMade: number;
+    accountsFollowed: number;
+    averageQualityScore: number;
+    topicsEngaged: CanonicalTopicId[];
+}
+/**
+ * P2.4: Rolling metrics aggregate
+ */
+export interface RollingMetrics {
+    days_7: {
+        total_posts: number;
+        total_comments: number;
+        total_follows: number;
+        avg_quality_score: number;
+        posting_velocity: number;
+        days_active: number;
+    };
+    days_30: {
+        total_posts: number;
+        total_comments: number;
+        total_follows: number;
+        avg_quality_score: number;
+        posting_velocity: number;
+        days_active: number;
+    };
+    last_updated_at: number;
+}
+/**
  * Complete engagement state for a single agent
  * Persisted to workspace/{agent}/engagement-state.json
  */
@@ -188,6 +221,8 @@ export interface EngagementState {
     threadAuthorMetrics?: Map<string, Map<string, AuthorEngagementMetrics>>;
     authorMetrics?: Map<string, AuthorMetrics>;
     lastMaintenanceAt?: number;
+    dailyRollups?: DailyRollup[];
+    rollingMetrics?: RollingMetrics;
 }
 /**
  * Philosopher agent in the Moltbot system
@@ -216,5 +251,168 @@ export interface HealthStatus {
     uptime: number;
     lastCycleTime?: number;
     errors?: string[];
+}
+/**
+ * P2.3: Canonical discussion topics for engagement
+ * 6 core philosophical/technical themes
+ */
+export type CanonicalTopicId = "virtue_ethics" | "consciousness" | "social_ethics" | "ai_safety" | "epistemology" | "aesthetics";
+/**
+ * P2.3: Topic match with relevance scoring
+ */
+export interface TopicMatch {
+    topicId: CanonicalTopicId;
+    score: number;
+    confidence: number;
+    keywordMatches: number;
+}
+/**
+ * P2.3: Post template for content generation
+ */
+export interface PostTemplate {
+    id: string;
+    agentType: PhilosopherName;
+    topicId: CanonicalTopicId;
+    styleHint: string;
+    textTemplate: string;
+}
+/**
+ * P2.3: Editorial draft awaiting review/approval
+ */
+export interface EditorialDraft {
+    id: string;
+    agentId: PhilosopherName;
+    topicId: CanonicalTopicId;
+    threadId?: string;
+    content: string;
+    createdAt: number;
+    decision: "deferred" | "approved" | "approved_with_edits" | "rejected_low_quality" | "rejected_off_topic" | "rejected_duplicate" | "regenerate";
+    decisions: Array<{
+        type: string;
+        reason: string;
+        timestamp: number;
+    }>;
+}
+/**
+ * P2.3: Proactive post queue state
+ */
+export interface ProactivePostQueue {
+    drafts: EditorialDraft[];
+    stats: {
+        totalDrafts: number;
+        approvedCount: number;
+        rejectedCount: number;
+        deferredCount: number;
+    };
+}
+/**
+ * P2.4: Service information for stats endpoint
+ */
+export interface StatsServiceInfo {
+    status: "healthy" | "degraded" | "unhealthy";
+    uptime_seconds: number;
+    data_freshness: {
+        last_cycle_at: string;
+        cycle_interval_seconds: number;
+        is_stale: boolean;
+    };
+}
+/**
+ * P2.4: Overall engagement summary across all agents
+ */
+export interface StatsSummary {
+    total_agents: number;
+    agents_active_today: number;
+    total_posts_created: number;
+    total_comments_made: number;
+    total_accounts_followed: number;
+    average_posts_per_agent: number;
+    average_engagement_score: number;
+}
+/**
+ * P2.4: Single topic trend
+ */
+export interface StatsTopicTrend {
+    topic_id: CanonicalTopicId;
+    mention_count: number;
+    avg_quality_score: number;
+    engagement_rate: number;
+    trend_direction: "up" | "stable" | "down";
+    trend_magnitude: number;
+}
+/**
+ * P2.4: Single thread trend (most engaged)
+ */
+export interface StatsThreadTrend {
+    thread_id: string;
+    topic_id: CanonicalTopicId;
+    post_count: number;
+    quality_score: number;
+    engagement_score: number;
+    top_agents: string[];
+}
+/**
+ * P2.4: Trend analysis section
+ */
+export interface StatsTrends {
+    period_days: number;
+    top_topics: StatsTopicTrend[];
+    trending_threads: StatsThreadTrend[];
+    posting_velocity_change: number;
+    quality_trend: "improving" | "stable" | "declining";
+}
+/**
+ * P2.4: Per-agent topic summary
+ */
+export interface StatsAgentTopicSummary {
+    topic_id: CanonicalTopicId;
+    posts_created: number;
+    avg_quality_score: number;
+    engagement_score: number;
+}
+/**
+ * P2.4: Per-agent metrics
+ */
+export interface StatsAgentMetrics {
+    agent_id: PhilosopherName;
+    agent_name: string;
+    posts_created_today: number;
+    posts_created_week: number;
+    comments_made_today: number;
+    comments_made_week: number;
+    accounts_followed: number;
+    average_quality_score: number;
+    engagement_velocity: number;
+    top_topics: StatsAgentTopicSummary[];
+    last_activity_at: string;
+}
+/**
+ * P2.4: Agents metrics section (all agents)
+ */
+export interface StatsAgentsSection {
+    total_active: number;
+    agents: StatsAgentMetrics[];
+}
+/**
+ * P2.4: Quality metrics section
+ */
+export interface StatsQualitySection {
+    overall_quality_score: number;
+    thread_quality_avg: number;
+    author_quality_avg: number;
+    sentiment_trend: "positive" | "neutral" | "negative";
+    controversial_threads: number;
+    high_quality_threads: number;
+    low_quality_threads: number;
+}
+/**
+ * P2.4: Complete stats response for /stats endpoint
+ */
+export interface StatsResponse {
+    service: StatsServiceInfo;
+    summary: StatsSummary;
+    trends: StatsTrends;
+    agents: StatsAgentsSection;
+    quality: StatsQualitySection;
 }
 //# sourceMappingURL=types.d.ts.map
