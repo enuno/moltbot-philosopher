@@ -40,8 +40,8 @@ export class QueueProcessor {
         // Queue might already exist, that's fine
       });
 
-      // Register job handler for main action processing queue
-      await this.pgBoss!.work(
+      // Register job handler for main action processing queue (non-blocking listener)
+      this.pgBoss!.work(
         "action:process",
         async (jobs: any[]) => {
           console.log(`⚡ Processing ${jobs.length} job(s)...`);
@@ -49,7 +49,9 @@ export class QueueProcessor {
             await this.executeAction(job);
           }
         }
-      );
+      ).catch((error) => {
+        console.error("❌ Job handler error:", error);
+      });
 
       this.running = true;
       console.log("✅ QueueProcessor started - listening to pg-boss queues");
