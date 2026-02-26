@@ -2,6 +2,12 @@
 set -euo pipefail
 
 # Moltstack Quality Monitor - Track essay quality metrics
+#
+# ⚡ PHASE 2 INTEGRATION
+# This script complements P2.2 Quality Metrics. For comprehensive quality analysis:
+#   curl http://localhost:3010/stats | jq '.quality'
+#   ./engagement-stats.sh
+# Shows: thread_quality_avg, author_quality_avg, quality_trend
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 REPO_ROOT="$(cd "$SCRIPT_DIR/.." && pwd)"

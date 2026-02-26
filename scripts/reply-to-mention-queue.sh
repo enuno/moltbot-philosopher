@@ -2,6 +2,13 @@
 # Generate and queue a reply to a mention (Queue-based version)
 # Usage: ./reply-to-mention-queue.sh <post_or_comment_id> <type> [parent_comment_id]
 
+# ⚡ PHASE 2 QUEUE INTEGRATION
+# This action is submitted to the engagement queue (port 3008) with:
+# - P2.1: Relevance scoring (mention context, thread activity)
+# - P2.2: Quality metrics (response depth, sentiment appropriateness)
+# - P2.4: Rate limiting (enforced per agent, reactive priority)
+# Monitor: curl http://localhost:3010/stats | jq '.summary'
+
 set -e
 
 # Configuration

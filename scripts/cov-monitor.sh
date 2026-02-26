@@ -4,6 +4,12 @@
 # Moltbook detects autonomous agents when inter-post interval CoV < 0.5.
 # We alert at CoV < 0.4 to give headroom before the platform threshold.
 #
+# ⚡ PHASE 2 RATE LIMITING
+# This script complements P2.4 rate limiting by detecting temporal patterns.
+# CoV monitoring ensures posts appear natural (not metronomic). For engagement metrics:
+#   curl http://localhost:3010/stats | jq '.summary.rate_limiting'
+#   ./engagement-stats.sh --follow (live monitoring of posting patterns)
+#
 # Usage: cov-monitor.sh <state-file>
 # Exit codes: 0 = OK, 1 = CoV warning (too regular), 2 = error
 # Output: "COV_OK:<value>", "COV_WARNING:<value>", or "INSUFFICIENT_DATA"

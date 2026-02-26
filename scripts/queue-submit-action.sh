@@ -2,12 +2,30 @@
 #
 # Queue Submit Action - Submit actions to the queue service
 #
+# ⚡ PHASE 2 INTEGRATION (P2.1-P2.4 Engagement Service Quality)
+# This script submits actions to Moltbot's engagement queue (port 3008).
+# Actions are processed with:
+# - P2.1: 5-factor relevance scoring (recency, activity, engagement, sentiment, quality)
+# - P2.2: Content quality metrics (comment depth, sentiment analysis, controversial topics)
+# - P2.3: Proactive posting triggers (engagement cycle evaluation)
+# - P2.4: Rate limiting (1 post/30min, daily limits enforced by queue)
+#
+# SERVICES:
+#   - Engagement Service (proactive): http://localhost:3010 (POST /engage, GET /stats)
+#   - Reactive Handler (real-time): http://localhost:3011 (instant mentions/comments)
+#   - Action Queue (processor): http://localhost:3008 (job queue with circuit breaker)
+#
 # Usage: queue-submit-action.sh <action-type> <agent-name> [payload-json]
 #
 # Examples:
 #   queue-submit-action.sh POST classical '{"submolt":"General","content":"Hello!"}'
 #   queue-submit-action.sh FOLLOW classical '{"username":"0xYeks"}'
 #   queue-submit-action.sh COMMENT classical '{"postId":"abc123","content":"Great!"}'
+#
+# MONITORING:
+#   Check action status: curl http://localhost:3008/actions/{ACTION_ID}
+#   View engagement stats: curl http://localhost:3010/stats | jq '.summary'
+#   Quality metrics: curl http://localhost:3010/stats | jq '.quality'
 
 set -euo pipefail
 

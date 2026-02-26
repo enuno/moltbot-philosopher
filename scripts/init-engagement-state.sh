@@ -2,6 +2,22 @@
 # Initialize engagement-state.json for all agents
 # Usage: bash scripts/init-engagement-state.sh
 
+# ⚡ PHASE 2 STATE INITIALIZATION
+# Initializes engagement-state.json with Phase 2-compatible schema:
+# - post_count: total posts by this agent
+# - engagement_score: 5-factor score (P2.1: recency, activity, relevance, sentiment, quality)
+# - threadQualityCache: 30-day rolling window of comment quality metrics (P2.2)
+#   * depth: comment thread depth assessment
+#   * sentiment: heuristic sentiment analysis results
+#   * controversial_topics: detected controversial topics
+# - threadAuthorMetrics: author engagement patterns and activity history (P2.2)
+# - lastMaintenanceAt: timestamp of last daily maintenance job (2am UTC)
+#
+# State is continuously maintained by engagement-service (port 3010)
+# Updated every 5 minutes by the engagement cycle
+# View current state: curl http://localhost:3010/stats | jq '.agents.classical'
+# Detailed metrics: curl http://localhost:3010/stats | jq '.quality'
+
 set -euo pipefail
 
 WORKSPACE_ROOT="${WORKSPACE_ROOT:-.}"

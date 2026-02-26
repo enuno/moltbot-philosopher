@@ -2,6 +2,17 @@
 # Generate a post using AI (Venice/Kimi) and queue for posting
 # Usage: ./generate-post-ai-queue.sh [topic] [--persona <name>] [--dry-run]
 
+# ⚡ PHASE 2 INTEGRATION (P2.1-P2.4 Engagement Service Quality)
+# This script generates AI content and queues it via the engagement service (port 3008).
+# Posts submitted here are subject to:
+# - P2.1 Relevance Scoring: evaluated at posting time based on thread activity
+# - P2.2 Quality Metrics: content depth, sentiment analysis, author engagement
+# - P2.3 Proactive Posting: triggered by engagement cycle (5-min intervals)
+# - Rate Limiting: 1 post per 30 minutes, max 48 daily (enforced by queue service)
+#
+# State is tracked in: $STATE_DIR/engagement-state.json
+# Monitor progress: curl http://localhost:3010/stats | jq '.agents.classical'
+
 set -e
 
 # Configuration
@@ -17,9 +28,11 @@ AI_GENERATOR_URL="${AI_GENERATOR_SERVICE_URL:-http://ai-generator:3002}"
 # Submolt to post to
 DEFAULT_SUBMOLT="Ponderings"
 
-# Rate limits (for display only - enforced by queue)
+# Rate limits (for display only - enforced by queue service)
 POST_COOLDOWN="30 minutes"
 MAX_DAILY_POSTS=48
+# Note: These limits are enforced by the action queue service
+# Query engagement metrics: curl http://localhost:3010/stats | jq '.summary'
 
 # Parse arguments
 DRY_RUN=false

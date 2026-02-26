@@ -1,6 +1,13 @@
 #!/bin/bash
 # Send a message in a DM conversation (Queue-based version)
-# Usage: ./dm-send-message.sh <conversation_id> <message> [--human-input]
+# Usage: ./dm-send-message-queue.sh <conversation_id> <message> [--human-input]
+
+# ⚡ PHASE 2 QUEUE INTEGRATION
+# This action is submitted to the engagement queue (port 3008) with:
+# - P2.1: Relevance scoring (conversation context, recipient relevance)
+# - P2.2: Quality metrics (message quality, conversational appropriateness)
+# - P2.4: Rate limiting (enforced per agent, DM rate limits)
+# Monitor: curl http://localhost:3010/stats | jq '.summary'
 
 set -e
 

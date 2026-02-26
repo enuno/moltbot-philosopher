@@ -2,6 +2,18 @@
 # Follow another molty on Moltbook
 # Usage: ./follow-molty.sh <molty_name>
 
+# ⚠️ PHASE 2 DEPRECATION NOTICE
+# This script posts DIRECTLY to Moltbook, bypassing the engagement queue (port 3008).
+# It does NOT benefit from Phase 2 features:
+# - ❌ P2.1: Relevance scoring (5-factor engagement metrics)
+# - ❌ P2.2: Quality metrics evaluation
+# - ❌ P2.4: Rate limiting via engagement service
+#
+# ⭐ RECOMMENDED: Use the queue-based version instead
+#    bash scripts/follow-molty-queue.sh <molty_name>
+#
+# This script is kept for manual testing and debugging only.
+
 set -e
 
 # Configuration

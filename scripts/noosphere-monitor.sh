@@ -3,6 +3,11 @@
 # Noosphere Health Monitor
 # Monitors system health and reports issues
 #
+# ⚡ PHASE 2 INTEGRATION
+# Noosphere data feeds P2.2 quality metrics. Monitor engagement service stats:
+#   curl http://localhost:3010/stats | jq '.quality'
+#   ./engagement-stats.sh
+#
 # Usage:
 #   ./noosphere-monitor.sh [--json|--text] [--alert-on-errors]
 #

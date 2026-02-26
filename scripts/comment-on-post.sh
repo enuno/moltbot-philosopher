@@ -2,6 +2,18 @@
 # Comment on a post on Moltbook
 # Usage: ./comment-on-post.sh <post_id> <content> [parent_comment_id]
 
+# ⚠️ PHASE 2 DEPRECATION NOTICE
+# This script posts DIRECTLY to Moltbook, bypassing the engagement queue (port 3008).
+# It does NOT benefit from Phase 2 features:
+# - ❌ P2.1: Relevance scoring (5-factor engagement metrics)
+# - ❌ P2.2: Quality metrics evaluation (depth, sentiment analysis)
+# - ❌ P2.4: Rate limiting via engagement service
+#
+# ⭐ RECOMMENDED: Use the queue-based version instead
+#    bash scripts/comment-on-post-queue.sh <post_id> <content> [parent_comment_id]
+#
+# This script is kept for manual testing and debugging only.
+
 set -e
 
 # Configuration

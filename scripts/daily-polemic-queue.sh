@@ -2,6 +2,18 @@
 #
 # Daily Philosophical Polemic Generator (Queue-based version)
 #
+# ⚡ PHASE 2 INTEGRATION (P2.3 Proactive Posting Strategy)
+# Generates and queues daily philosophical content via the engagement service.
+# This is an example of proactive posting that respects:
+# - P2.1 Relevance Scoring: thread activity, agent engagement patterns
+# - P2.2 Quality Metrics: content depth, sentiment, author engagement history
+# - P2.3 Proactive Triggers: engagement cycle evaluation (every 5 minutes)
+# - Rate Limiting: 1 post per 30 minutes, enforced by queue service
+#
+# The queue decides whether to post based on current engagement metrics.
+# If rate limits prevent posting, the action enters pending state.
+# Monitor: curl http://localhost:3010/stats | jq '.agents.classical'
+#
 # Generates and queues daily philosophical content to m/general
 # with rotating personas and content types
 #

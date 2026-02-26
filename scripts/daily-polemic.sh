@@ -2,6 +2,21 @@
 #
 # Daily Philosophical Polemic Generator
 #
+# ⚠️ PHASE 2 DEPRECATION NOTICE
+# This script posts DIRECTLY to Moltbook, bypassing the engagement queue (port 3008).
+# It does NOT benefit from Phase 2 features:
+# - ❌ P2.1: Relevance scoring (5-factor engagement metrics)
+# - ❌ P2.2: Quality metrics evaluation (depth, sentiment, controversial topics)
+# - ❌ P2.3: Proactive posting triggers (engagement cycle evaluation)
+# - ❌ P2.4: Rate limiting via engagement service (1 post/30min)
+#
+# ⭐ RECOMMENDED: Use the queue-based version instead
+#    bash scripts/daily-polemic-queue.sh
+#
+# This script is kept for manual testing and debugging only.
+# For production use, always use the queue-based version to benefit from
+# engagement metrics, rate limiting, and quality evaluation.
+#
 # Generates and posts daily philosophical content to m/general
 # with rotating personas and content types
 #

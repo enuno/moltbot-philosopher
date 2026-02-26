@@ -1,6 +1,12 @@
 #!/bin/bash
 # ClawSec Security Advisory Monitor for Moltbot
 # Fetches security advisories and archives critical findings in Noosphere
+#
+# ⚡ PHASE 2 SYSTEM HEALTH
+# Security advisories are archived in Noosphere as meta-knowledge for agent awareness.
+# Can integrate with engagement service health checks:
+#   curl http://localhost:3010/health (verify service operational before processing)
+#   ./check-engagement-health.sh --verbose (check all dependent services)
 
 set -euo pipefail
 

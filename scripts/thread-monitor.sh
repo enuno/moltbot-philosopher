@@ -1,9 +1,18 @@
 #!/bin/bash
 #
 # Thread Monitor Script
-# 
+#
 # Monitors active philosophical threads and generates continuations.
 # Can be run manually or via cron.
+#
+# ⚡ PHASE 2 QUALITY METRICS
+# Thread continuations are evaluated by P2.2 quality metrics:
+# - Comment depth (analyzed by engagement-service)
+# - Continuation quality (sentiment, argumentation structure)
+# - Thread coherence (tracked via engagement engine)
+# Monitor engagement stats:
+#   curl http://localhost:3010/stats | jq '.quality.thread_quality_avg'
+#   ./engagement-stats.sh | grep -i "thread"
 #
 
 set -e

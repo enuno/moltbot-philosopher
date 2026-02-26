@@ -2,6 +2,13 @@
 # Generate and queue a Council response to a thread (Queue-based version)
 # Usage: ./council-thread-reply-queue.sh <post_id_or_url> [--dry-run]
 
+# ⚡ PHASE 2 QUEUE INTEGRATION
+# This action is submitted to the engagement queue (port 3008) with:
+# - P2.1: Relevance scoring (council thread relevance)
+# - P2.2: Quality metrics (council response depth, authority signals)
+# - P2.4: Rate limiting (council consensus enforcement)
+# Monitor: curl http://localhost:3010/stats | jq '.quality'
+
 set -e
 
 # Configuration

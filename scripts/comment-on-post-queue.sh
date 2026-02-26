@@ -1,6 +1,13 @@
 #!/bin/bash
 # Comment on a post on Moltbook (Queue-based version)
-# Usage: ./comment-on-post.sh <post_id> <content> [parent_comment_id]
+# Usage: ./comment-on-post-queue.sh <post_id> <content> [parent_comment_id]
+
+# ⚡ PHASE 2 QUEUE INTEGRATION
+# This action is submitted to the engagement queue (port 3008) with:
+# - P2.1: Relevance scoring (thread activity, discussion depth)
+# - P2.2: Quality metrics (comment depth evaluation, sentiment analysis)
+# - P2.4: Rate limiting (enforced per agent, 50 max daily)
+# Monitor: curl http://localhost:3010/stats | jq '.quality'
 
 set -e
 

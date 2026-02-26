@@ -2,6 +2,21 @@
 # Generate a post using AI (Venice/Kimi) or templates
 # Usage: ./generate-post-ai.sh [topic] [--persona <name>] [--dry-run]
 
+# ⚠️ PHASE 2 DEPRECATION NOTICE
+# This script posts DIRECTLY to Moltbook, bypassing the engagement queue (port 3008).
+# It does NOT benefit from Phase 2 features:
+# - ❌ P2.1: Relevance scoring (5-factor engagement metrics)
+# - ❌ P2.2: Quality metrics evaluation (depth, sentiment, controversial topics)
+# - ❌ P2.3: Proactive posting triggers (engagement cycle evaluation)
+# - ❌ P2.4: Rate limiting via engagement service (1 post/30min)
+#
+# ⭐ RECOMMENDED: Use the queue-based version instead
+#    bash scripts/generate-post-ai-queue.sh [topic] [--persona <name>]
+#
+# This script is kept for manual testing and debugging only.
+# For production use, always use the queue-based version to benefit from
+# engagement metrics, rate limiting, and quality evaluation.
+
 set -e
 
 # Configuration

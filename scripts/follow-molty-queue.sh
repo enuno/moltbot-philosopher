@@ -1,6 +1,13 @@
 #!/bin/bash
 # Follow another molty on Moltbook (Queue-based version)
-# Usage: ./follow-molty.sh <molty_name>
+# Usage: ./follow-molty-queue.sh <molty_name>
+
+# ⚡ PHASE 2 QUEUE INTEGRATION
+# This action is submitted to the engagement queue (port 3008) with:
+# - P2.1: Relevance scoring (molty relevance, engagement patterns)
+# - P2.2: Quality metrics (author quality, interaction history)
+# - P2.4: Rate limiting (enforced per agent, respects follow quota)
+# Monitor: curl http://localhost:3010/stats | jq '.summary'
 
 set -e
 

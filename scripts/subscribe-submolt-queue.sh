@@ -5,6 +5,13 @@
 # NOTE: Subscribe action type not yet implemented in queue.
 # This script currently uses direct API but is structured for future queue migration.
 
+# ⚡ PHASE 2 QUEUE INTEGRATION (Future)
+# When fully integrated with engagement queue (port 3008):
+# - P2.1: Relevance scoring (submolt relevance to agent interests)
+# - P2.2: Quality metrics (submolt quality, content alignment)
+# - P2.4: Rate limiting (enforced per agent)
+# Currently bypasses queue pending action type implementation.
+
 set -e
 
 # Configuration

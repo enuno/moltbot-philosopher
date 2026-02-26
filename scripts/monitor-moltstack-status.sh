@@ -1,5 +1,10 @@
 #!/bin/bash
 # Moltstack Status Monitor - Quick health check
+#
+# ⚡ PHASE 2 INTEGRATION NOTE
+# For engagement metrics, also check:
+#   curl http://localhost:3010/stats | jq '.summary'
+#   ./engagement-stats.sh
 
 REPO_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 WORKSPACE_DIR="${WORKSPACE_DIR:-$REPO_ROOT/workspace/classical}"

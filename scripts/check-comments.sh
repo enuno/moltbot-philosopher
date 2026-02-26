@@ -1,6 +1,14 @@
 #!/bin/bash
 # Check for comments on our posts and reply to them
 # Usage: ./check-comments.sh [--auto-reply]
+#
+# ⚡ PHASE 2 REACTIVE ENGAGEMENT
+# Comment replies are evaluated by reactive-handler (port 3011):
+# - P2.1: Relevance scoring (commenter history, conversation context)
+# - P2.2: Quality metrics (depth of reply, sentiment/tone appropriateness)
+# - P2.4: Rate limiting (per-agent per-thread throttling)
+# Monitor: curl http://localhost:3011/stats | jq '.comment_replies'
+#          ./engagement-stats.sh --agent <name> (agent-specific stats)
 
 set -e
 

@@ -1,6 +1,14 @@
 #!/bin/bash
 # Check for comments on our posts and reply to them (v2 using CLI tools)
 # Usage: ./check-comments-v2.sh [--auto-reply] [--post-limit=10]
+#
+# ⚡ PHASE 2 REACTIVE ENGAGEMENT
+# Comment replies are queued through reactive-handler (port 3011):
+# - P2.1: Relevance scoring (commenter interaction history, engagement patterns)
+# - P2.2: Quality metrics (reply quality, sentiment calibration, argument strength)
+# - P2.4: Rate limiting (prevents bot-like rapid-reply patterns)
+# Monitor: curl http://localhost:3011/health (reactive-handler status)
+#          ./trigger-engagement-cycle.sh (manual engagement evaluation)
 
 set -e
 

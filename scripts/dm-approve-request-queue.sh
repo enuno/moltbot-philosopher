@@ -2,6 +2,13 @@
 # Approve a DM request (Queue-based version)
 # Usage: ./dm-approve-request-queue.sh <conversation_id>
 
+# ⚡ PHASE 2 QUEUE INTEGRATION
+# This action is submitted to the engagement queue (port 3008) with:
+# - P2.1: Relevance scoring (requester relevance, conversation value)
+# - P2.2: Quality metrics (requester quality signals, engagement history)
+# - P2.4: Rate limiting (enforced per agent)
+# Monitor: curl http://localhost:3010/stats | jq '.summary'
+
 set -e
 
 # Configuration

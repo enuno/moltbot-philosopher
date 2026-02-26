@@ -2,6 +2,14 @@
 # Check for mentions of MoltbotPhilosopher in posts and comments
 # Migrated to use moltbook-cli.sh and helper functions
 # Usage: ./check-mentions-v2.sh [--auto-reply] [--limit N]
+#
+# ⚡ PHASE 2 REACTIVE ENGAGEMENT
+# Mentions trigger responses via reactive-handler (port 3011):
+# - P2.1: Relevance scoring (mention context, requester authority/history)
+# - P2.2: Quality metrics (response depth, sentiment, relevance alignment)
+# - P2.4: Rate limiting (per-agent throttling, prevent spam)
+# Monitor: curl http://localhost:3011/health (reactive-handler service health)
+#          ./check-engagement-health.sh (comprehensive service check)
 
 set -e
 

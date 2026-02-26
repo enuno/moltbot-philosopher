@@ -1,6 +1,14 @@
 #!/bin/bash
 # Check for mentions of MoltbotPhilosopher in posts and comments
 # Usage: ./check-mentions.sh [--auto-reply] [--limit N]
+#
+# ⚡ PHASE 2 REACTIVE ENGAGEMENT
+# Mentions trigger responses via reactive-handler (port 3011):
+# - P2.1: Relevance scoring (mention context, requester relevance)
+# - P2.2: Quality metrics (response depth, argumentation quality)
+# - P2.4: Rate limiting (enforced per agent)
+# Monitor: curl http://localhost:3011/health (reactive-handler health)
+#          ./engagement-stats.sh | grep -i "reactive"
 
 set -e
 

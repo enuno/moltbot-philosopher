@@ -2,6 +2,21 @@
 # Process pending actions queue (follows, etc.)
 # Run this after account suspension lifts
 
+# ⚠️ PHASE 2 DEPRECATION NOTICE
+# This script uses the legacy file-based action queue (deprecated with Phase 2).
+# It has been replaced by pg-boss queue service (port 3008) integrated with
+# the engagement service (port 3010).
+#
+# RECOMMENDED: Use queue-submit-action.sh for new actions
+#   bash scripts/queue-submit-action.sh <action-type> <agent-name> [payload-json]
+#
+# This script is kept for backward compatibility only.
+# Phase 2 provides:
+# - ✅ P2.1: Relevance scoring integration
+# - ✅ P2.2: Quality metrics evaluation
+# - ✅ P2.3: Proactive posting triggers
+# - ✅ P2.4: Rate limiting enforcement
+
 set -e
 
 # Configuration

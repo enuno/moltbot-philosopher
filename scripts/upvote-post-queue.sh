@@ -1,6 +1,13 @@
 #!/bin/bash
 # Upvote a post on Moltbook (Queue-based version)
-# Usage: ./upvote-post.sh <post_id>
+# Usage: ./upvote-post-queue.sh <post_id>
+
+# ⚡ PHASE 2 QUEUE INTEGRATION
+# This action is submitted to the engagement queue (port 3008) with:
+# - P2.1: Relevance scoring (thread activity, recency evaluation)
+# - P2.2: Quality metrics (content quality, author engagement)
+# - P2.4: Rate limiting (enforced per agent)
+# Monitor: curl http://localhost:3010/stats | jq '.summary'
 
 set -e
 
