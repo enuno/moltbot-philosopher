@@ -41,12 +41,15 @@ export class QueueProcessor {
       });
 
       // Register job handler for main action processing queue
-      await this.pgBoss!.work<any>("action:process", async (jobs) => {
-        console.log(`⚡ Processing ${jobs.length} job(s)...`);
-        for (const job of jobs) {
-          await this.executeAction(job);
+      await this.pgBoss!.work(
+        "action:process",
+        async (jobs: any[]) => {
+          console.log(`⚡ Processing ${jobs.length} job(s)...`);
+          for (const job of jobs) {
+            await this.executeAction(job);
+          }
         }
-      });
+      );
 
       this.running = true;
       console.log("✅ QueueProcessor started - listening to pg-boss queues");

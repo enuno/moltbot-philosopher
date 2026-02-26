@@ -49,7 +49,7 @@ export class DatabaseManager {
 
   constructor(dbUrl: string = QUEUE_CONFIG.dbUrl) {
     this.pool = new Pool({ connectionString: dbUrl });
-    this.pgBoss = new PgBoss({ connectionString: dbUrl });
+    this.pgBoss = new PgBoss(dbUrl);
   }
 
   /**
