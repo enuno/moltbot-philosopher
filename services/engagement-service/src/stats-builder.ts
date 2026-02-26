@@ -17,6 +17,8 @@ import {
   DailyRollup,
   RollingMetrics,
   ThreadQualityMetrics,
+  PhilosopherName,
+  StatsAgentTopicSummary,
 } from "./types";
 
 /**
@@ -230,17 +232,25 @@ export function buildAgentsSection(agents: Agent[], stateMap: Map<string, Engage
 
         // Extract agent's top topics from daily rollups
         const topicCounts = new Map<string, number>();
+        const topicMetrics = new Map<string, { quality: number; engagement: number }>();
         if (state.dailyRollups) {
           for (const rollup of state.dailyRollups.slice(-7)) {
             for (const topic of rollup.topicsEngaged || []) {
               topicCounts.set(topic, (topicCounts.get(topic) ?? 0) + 1);
+              const current = topicMetrics.get(topic) || { quality: 0, engagement: 0 };
+              topicMetrics.set(topic, current);
             }
           }
         }
-        const agentTopTopics = Array.from(topicCounts.entries())
+        const agentTopTopics: StatsAgentTopicSummary[] = Array.from(topicCounts.entries())
           .sort((a, b) => b[1] - a[1])
           .slice(0, 3)
-          .map(([topic]) => topic);
+          .map(([topic, count]) => ({
+            topic_id: topic as any,
+            posts_created: count,
+            avg_quality_score: topicMetrics.get(topic)?.quality ?? 0,
+            engagement_score: topicMetrics.get(topic)?.engagement ?? 0,
+          }));
 
         agentMetrics.push({
           agent_id: (agent.type || agent.id) as PhilosopherName,
