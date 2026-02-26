@@ -10,7 +10,8 @@ import cron from "node-cron";
 import path from "path";
 import { EngagementEngine } from "./engagement-engine";
 import { StateManager } from "./state-manager";
-import type { Agent } from "./types";
+import type { Agent, EngagementState } from "./types";
+import { buildSummary, buildTrends, buildAgentsSection, buildQualitySection } from "./stats-builder";
 import winston from "winston";
 
 // Logger configuration
@@ -144,95 +145,54 @@ app.post("/engage", async (req: Request, res: Response) => {
 });
 
 /**
- * Stats endpoint - show engagement statistics per agent
- * GET /stats - returns engagement stats breakdown
- * Returns: { agent_id: { dailyStats, followedAccounts, queuedOpportunities } }
+ * Stats endpoint - P2.4 comprehensive metrics
+ * GET /stats - returns production-grade engagement statistics
  */
 app.get("/stats", async (req: Request, res: Response) => {
-  if (!engine) {
-    return res.status(503).json({
-      success: false,
-      error: "Service not initialized",
-    });
-  }
-
   try {
-    const stats: Record<string, any> = {};
-
+    // Build state map from all agents
+    const stateMap = new Map<string, EngagementState>();
     for (const agent of agentRoster) {
       const stateManager = new StateManager(agent.statePath);
       const state = await stateManager.loadState();
-
-      // Calculate P2.2 quality metrics
-      let averageQualityScore = 0;
-      let controversialThreadCount = 0;
-      let totalSentimentControversial = 0;
-      let controversialThreadsWithSentiment = 0;
-      const topThreads: Array<{
-        threadId: string;
-        qualityScore: number;
-        depth: number;
-        authorQuality: number;
-        sentiment: number;
-      }> = [];
-
-      if (state.threadQualityCache && state.threadQualityCache.size > 0) {
-        let totalQuality = 0;
-        const sortedThreads = Array.from(state.threadQualityCache.values())
-          .sort((a, b) => b.qualityScore - a.qualityScore)
-          .slice(0, 5); // Top 5 threads
-
-        for (const thread of state.threadQualityCache.values()) {
-          totalQuality += thread.qualityScore;
-          if (thread.breakdown.controversyScore > 0) {
-            controversialThreadCount++;
-            if (thread.breakdown.sentimentScore) {
-              totalSentimentControversial += thread.breakdown.sentimentScore;
-              controversialThreadsWithSentiment++;
-            }
-          }
-        }
-
-        averageQualityScore = state.threadQualityCache.size > 0
-          ? totalQuality / state.threadQualityCache.size
-          : 0;
-
-        for (const thread of sortedThreads) {
-          topThreads.push({
-            threadId: thread.id,
-            qualityScore: thread.qualityScore,
-            depth: thread.breakdown.depthScore,
-            authorQuality: thread.breakdown.authorQualityScore,
-            sentiment: thread.breakdown.sentimentScore,
-          });
-        }
-      }
-
-      const avgSentimentControversial = controversialThreadsWithSentiment > 0
-        ? totalSentimentControversial / controversialThreadsWithSentiment
-        : 0;
-
-      stats[agent.id] = {
-        dailyStats: state.dailyStats,
-        followedAccounts: state.followedAccounts.length,
-        queuedOpportunities: state.engagementQueue.length,
-        lastEngagementCheck: new Date(state.lastEngagementCheck).toISOString(),
-        lastPostTime: state.lastPostTime > 0 ? new Date(state.lastPostTime).toISOString() : null,
-        quality: {
-          averageQualityScore: Number(averageQualityScore.toFixed(3)),
-          controversialThreadCount,
-          avgSentimentOnControversial: Number(avgSentimentControversial.toFixed(3)),
-          topThreads,
-        },
-      };
+      stateMap.set(agent.id, state);
     }
 
-    res.json(stats);
+    // Check data freshness
+    const lastCycleTime = app.locals.lastCycleTime || Date.now();
+    const timeSinceLastCycle = Date.now() - lastCycleTime;
+    const isStale = timeSinceLastCycle > 120000; // 2 minutes
+
+    // Build P2.4 stats response
+    const serviceInfo = {
+      status: isStale ? "degraded" : "healthy",
+      uptime_seconds: Math.floor(process.uptime()),
+      data_freshness: {
+        last_cycle_at: new Date(lastCycleTime).toISOString(),
+        cycle_interval_seconds: 60,
+        is_stale: isStale,
+      },
+    };
+
+    const summary = buildSummary(agentRoster, stateMap);
+    const trends = buildTrends(stateMap);
+    const agentsSection = buildAgentsSection(agentRoster, stateMap);
+    const quality = buildQualitySection(stateMap);
+
+    const response = {
+      service: serviceInfo,
+      summary,
+      trends,
+      agents: agentsSection,
+      quality,
+    };
+
+    res.json(response);
   } catch (error) {
-    logger.error("Failed to retrieve stats", { error });
+    logger.error("Failed to build stats", { error });
     res.status(500).json({
-      success: false,
-      error: error instanceof Error ? error.message : "Unknown error",
+      error: "Failed to build stats",
+      message: error instanceof Error ? error.message : "Unknown error",
     });
   }
 });
@@ -267,6 +227,9 @@ function scheduleFiveMinuteCycle() {
       await engine.runEngagementCycle();
 
       const duration = Date.now() - startTime;
+      // Update last cycle time for stats endpoint
+      app.locals.lastCycleTime = Date.now();
+      updateLastCycleTime();
       logger.info("5-minute engagement cycle completed", { duration });
     } catch (error) {
       logger.error("5-minute cycle failed", { error });

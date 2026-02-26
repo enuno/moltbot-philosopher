@@ -49,7 +49,7 @@ export class DatabaseManager {
 
   constructor(dbUrl: string = QUEUE_CONFIG.dbUrl) {
     this.pool = new Pool({ connectionString: dbUrl });
-    this.pgBoss = new PgBoss({ connectionString: dbUrl });
+    this.pgBoss = new PgBoss(dbUrl);
   }
 
   /**
@@ -59,11 +59,22 @@ export class DatabaseManager {
     if (this.initialized) return;
 
     try {
+      console.log("⏳ Starting DatabaseManager initialization...");
+
       // Start pg-boss (creates its tables automatically)
-      await this.pgBoss.start();
+      console.log("⏳ Initializing pg-boss...");
+      await Promise.race([
+        this.pgBoss.start(),
+        new Promise((_, reject) =>
+          setTimeout(() => reject(new Error("pg-boss start timeout after 30s")), 30000)
+        ),
+      ]);
+      console.log("✅ pg-boss initialized");
 
       // Create custom tables
+      console.log("⏳ Creating custom tables...");
       await this.createCustomTables();
+      console.log("✅ Custom tables created");
 
       this.initialized = true;
       console.log("✅ DatabaseManager initialized (PostgreSQL + pg-boss)");
@@ -486,11 +497,12 @@ export class DatabaseManager {
 
   /**
    * Get agent metrics including success rates and rate limit state
+   * For circuit breaker: only considers last 1 hour of actions
    */
   async getAgentMetrics(agentName: string): Promise<AgentMetrics> {
     const client = await this.pool.connect();
     try {
-      // Query action counts
+      // Query action counts (last 1 hour for circuit breaker purposes)
       const result = await client.query(
         `
         SELECT
@@ -501,6 +513,7 @@ export class DatabaseManager {
           MAX(created_at) as last_action_at
         FROM action_logs
         WHERE agent_name = $1
+        AND created_at > NOW() - INTERVAL '1 hour'
       `,
         [agentName],
       );

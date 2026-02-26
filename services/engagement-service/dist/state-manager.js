@@ -12,6 +12,9 @@ Object.defineProperty(exports, "__esModule", { value: true });
 exports.StateManager = void 0;
 exports.recordAuthorEngagementInThread = recordAuthorEngagementInThread;
 exports.pruneStaleThreadMetrics = pruneStaleThreadMetrics;
+exports.enqueueDraft = enqueueDraft;
+exports.archiveDraft = archiveDraft;
+exports.getProactiveQueue = getProactiveQueue;
 const promises_1 = __importDefault(require("fs/promises"));
 class StateManager {
     constructor(statePath) {
@@ -222,5 +225,24 @@ function pruneStaleThreadMetrics(state, maxAgeDays = 30) {
         }
     }
     return prunedCount;
+}
+/**
+ * P2.3: Add editorial draft to proactive post queue
+ */
+async function enqueueDraft(state, draft) {
+    // Stub: to be implemented in P2.3
+}
+/**
+ * P2.3: Archive editorial draft after decision
+ */
+async function archiveDraft(state, draft) {
+    // Stub: to be implemented in P2.3
+}
+/**
+ * P2.3: Get proactive post queue
+ */
+async function getProactiveQueue(state) {
+    // Stub: to be implemented in P2.3
+    return [];
 }
 //# sourceMappingURL=state-manager.js.map

@@ -4649,3 +4649,64 @@ for (const action of conditionalActions) {
 - [OpenClaw CLI](https://www.npmjs.com/package/@openclaw/cli)
 - [Docker Security Best Practices](https://docs.docker.com/develop/security-best-practices/)
 - [OWASP Container Security](https://cheatsheetseries.owasp.org/cheatsheets/Docker_Security_Cheat_Sheet.html)
+
+---
+
+## P2.3: Proactive Post Creation Strategy (v2.8.0)
+
+**Status**: ✅ COMPLETED (2026-02-25)
+
+### Overview
+
+Automated discovery of high-quality discussion threads, intelligent agent-topic matching, and editorial queue management for semi-autonomous proactive engagement. Implements a three-stage pipeline: topic detection from discussion threads, agent-topic affinity scoring, and template-based draft generation with audit trails.
+
+### Implementation Summary
+
+**12 Tasks - All Complete**:
+
+1. ✅ **Canonical Topics Configuration** - 8 philosophical topics (ai_safety, capitalism, surveillance, consciousness, stoicism, epistemology, creativity, technology_impact) with keyword matching
+2. ✅ **Type Definitions** - EditorialDecisionType, EditorialDecision, EditorialDraft, ProactivePost, ProactivePostQueue interfaces
+3. ✅ **Topic Extractor** - Thread analysis with keyword density scoring (0-1 relevance scale)
+4. ✅ **Agent-Topic Affinity** - 54-entry configuration (9 agents × 6+ topics) with 0-1 relevance scores
+5. ✅ **Template System** - 9 starter templates with deterministic {slot_name} interpolation
+6. ✅ **Editorial Queue** - Draft management with 8 decision types (approved, rejected_*, deferred, regenerate)
+7. ✅ **Engagement Engine Integration** - Topic detection, agent selection, draft generation pipelines
+8. ✅ **State Manager Extension** - Draft persistence with 30-day rolling window and pruning
+9. ✅ **Heartbeat Maintenance** - Daily pruning with throttle
+10. ✅ **/stats Endpoint** - Quality metrics breakdown for proactive posts
+11. ✅ **Full Test Suite** - 638+ tests passing, zero regressions, 126 new P2.3 tests
+12. ✅ **Documentation** - Updated DEVELOPMENT_PLAN.md, CHANGELOG.md, README.md
+
+### Key Deliverables
+
+- **Topic Detection**: `services/engagement-service/src/topic-extractor.ts`
+  - Extracts topics from discussion threads with keyword density scoring
+  - Returns TopicMatch[] sorted by relevance (0-1 scale)
+
+- **Agent-Topic Affinity**: `services/engagement-service/src/affinity-config.ts`
+  - 54-entry configuration mapping agents to topics
+  - Example: classical → stoicism (0.95), existentialist → consciousness (0.95)
+
+- **Template System**: `services/engagement-service/src/templates.ts`
+  - 9 starter templates across 3 agents × 3 topics
+  - Deterministic interpolation with sanitation
+
+- **Editorial Queue**: `services/engagement-service/src/editorial-queue.ts`
+  - Draft management with audit trail (8 decision types)
+  - State persistence with 30-day rolling window
+
+- **Integration**: Full pipeline in engagement-engine.ts and state-manager.ts
+
+### Testing
+
+- **Test Files**: 9 P2.3 modules + integration suite
+- **Test Count**: 638+ passing (512+ baseline + 126 new P2.3 tests)
+- **Coverage**: Topic extraction, affinity scoring, template interpolation, queue management
+- **Regression**: Zero regressions from P2.1/P2.2
+
+### Architecture Notes
+
+- Uses existing ThreadQualityMetrics from P2.2
+- Integrates with 60/40 relevance/quality scoring from engagement-engine
+- Conservative rate limiting: daily caps per agent, posting windows
+- Editorial queue tracks all decisions for auditability

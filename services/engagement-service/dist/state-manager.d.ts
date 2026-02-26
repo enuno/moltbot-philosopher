@@ -62,4 +62,16 @@ export declare function recordAuthorEngagementInThread(state: EngagementState, t
  * Returns count of threads pruned
  */
 export declare function pruneStaleThreadMetrics(state: EngagementState, maxAgeDays?: number): number;
+/**
+ * P2.3: Add editorial draft to proactive post queue
+ */
+export declare function enqueueDraft(state: EngagementState, draft: any): Promise<void>;
+/**
+ * P2.3: Archive editorial draft after decision
+ */
+export declare function archiveDraft(state: EngagementState, draft: any): Promise<void>;
+/**
+ * P2.3: Get proactive post queue
+ */
+export declare function getProactiveQueue(state: EngagementState): Promise<any[]>;
 //# sourceMappingURL=state-manager.d.ts.map

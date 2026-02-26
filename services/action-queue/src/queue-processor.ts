@@ -40,12 +40,17 @@ export class QueueProcessor {
         // Queue might already exist, that's fine
       });
 
-      // Register job handler for main action processing queue
-      await this.pgBoss!.work<any>("action:process", async (jobs) => {
-        console.log(`⚡ Processing ${jobs.length} job(s)...`);
-        for (const job of jobs) {
-          await this.executeAction(job);
+      // Register job handler for main action processing queue (non-blocking listener)
+      this.pgBoss!.work(
+        "action:process",
+        async (jobs: any[]) => {
+          console.log(`⚡ Processing ${jobs.length} job(s)...`);
+          for (const job of jobs) {
+            await this.executeAction(job);
+          }
         }
+      ).catch((error) => {
+        console.error("❌ Job handler error:", error);
       });
 
       this.running = true;
@@ -98,7 +103,12 @@ export class QueueProcessor {
       await this.checkCircuitBreaker(action.agentName);
 
       // Execute the action
-      await this.executor.execute(action);
+      const result = await this.executor.execute(action);
+
+      // Check if execution was successful
+      if (!result.success) {
+        throw new Error(`Action execution failed: ${result.error}`);
+      }
 
       // Update rate limits on success
       await this.rateLimiter.updateLastExecution(action.agentName, action.actionType);

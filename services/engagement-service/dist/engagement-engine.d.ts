@@ -72,6 +72,33 @@ export declare class EngagementEngine {
      * - Handles errors gracefully without crashing engagement engine
      */
     onHeartbeat(): Promise<void>;
+    /**
+     * P2.3: Detect topics in current feed
+     * Returns topics sorted by score
+     */
+    detectTopicsInFeed(): Promise<Array<{
+        topicId: string;
+        score: number;
+        threadCount: number;
+    }>>;
+    /**
+     * P2.3: Select agents for a detected topic
+     * Returns top agents by affinity
+     */
+    selectAgentsForPost(topicId: string): Promise<Array<{
+        agentId: string;
+        affinityScore: number;
+    }>>;
+    /**
+     * P2.3: Generate draft post from template
+     * Creates editorial draft with interpolated content
+     */
+    generateDraftPost(agentId: string, topicId: string, threadId: string | undefined, slots: Record<string, string>): Promise<any>;
+    /**
+     * P2.3: Check for proactive posting opportunities
+     * Returns count of draft posts queued
+     */
+    checkProactivePostingOpportunities(): Promise<number>;
 }
 export {};
 //# sourceMappingURL=engagement-engine.d.ts.map

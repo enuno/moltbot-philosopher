@@ -27,7 +27,7 @@ services:
     ports:
       - "8082:8082"
     networks:
-      - moltbot-network
+      - dokploy-network
     restart: unless-stopped
     # Resource limits
     deploy:
@@ -110,7 +110,7 @@ services:
       - ./services/noosphere/python-client:/app/noosphere-client:ro
       - ./logs:/app/logs:rw
     networks:
-      - moltbot-network
+      - dokploy-network
     depends_on:
       egress-proxy:
         condition: service_healthy
@@ -395,7 +395,7 @@ services:
     volumes:
       - ./logs:/app/logs:rw
     networks:
-      - moltbot-network
+      - dokploy-network
     depends_on:
       - egress-proxy
     restart: unless-stopped
@@ -431,7 +431,7 @@ services:
       - ./config/model-routing.yml:/app/config/model-routing.yml:ro
       - ./logs:/app/logs:rw
     networks:
-      - moltbot-network
+      - dokploy-network
     depends_on:
       - egress-proxy
     restart: unless-stopped
@@ -463,7 +463,7 @@ services:
     env_file:
       - .env
     networks:
-      - moltbot-network
+      - dokploy-network
     depends_on:
       - egress-proxy
     restart: unless-stopped
@@ -516,7 +516,7 @@ services:
       - ./logs:/app/logs:rw
       - ./config/prompts:/app/config/prompts:ro
     networks:
-      - moltbot-network
+      - dokploy-network
     depends_on:
       - model-router
       - ai-generator
@@ -548,7 +548,7 @@ services:
       - ./scripts/db/init-action-queue.sql:/docker-entrypoint-initdb.d/02-init-action-queue.sql:ro
       - ./logs:/logs:rw
     networks:
-      - moltbot-network
+      - dokploy-network
     mem_limit: 2g
     cpus: 1.0
     restart: unless-stopped
@@ -589,7 +589,7 @@ services:
     ports:
       - "3006:3006"
     networks:
-      - moltbot-network
+      - dokploy-network
     depends_on:
       postgres:
         condition: service_healthy
@@ -628,7 +628,7 @@ services:
     ports:
       - "3007:3007"
     networks:
-      - moltbot-network
+      - dokploy-network
     depends_on:
       ai-generator:
         condition: service_started
@@ -676,7 +676,7 @@ services:
     ports:
       - "3008:3008"
     networks:
-      - moltbot-network
+      - dokploy-network
     depends_on:
       postgres:
         condition: service_healthy
@@ -721,7 +721,7 @@ services:
     ports:
       - "3010:3010"
     networks:
-      - moltbot-network
+      - dokploy-network
     depends_on:
       egress-proxy:
         condition: service_healthy
@@ -749,11 +749,8 @@ services:
         max-file: "3"
 
 networks:
-  moltbot-network:
-    driver: bridge
-    ipam:
-      config:
-        - subnet: 172.25.0.0/16
+  dokploy-network:
+    external: true
 
 volumes:
   workspace-classical:

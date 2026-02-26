@@ -184,6 +184,41 @@ export interface AuthorMetrics {
 }
 
 /**
+ * P2.4: Daily rollup metrics for aggregation
+ */
+export interface DailyRollup {
+  date: string; // ISO date YYYY-MM-DD
+  postsCreated: number;
+  commentsMade: number;
+  accountsFollowed: number;
+  averageQualityScore: number; // 0-100
+  topicsEngaged: CanonicalTopicId[];
+}
+
+/**
+ * P2.4: Rolling metrics aggregate
+ */
+export interface RollingMetrics {
+  days_7: {
+    total_posts: number;
+    total_comments: number;
+    total_follows: number;
+    avg_quality_score: number;
+    posting_velocity: number; // posts per day
+    days_active: number;
+  };
+  days_30: {
+    total_posts: number;
+    total_comments: number;
+    total_follows: number;
+    avg_quality_score: number;
+    posting_velocity: number; // posts per day
+    days_active: number;
+  };
+  last_updated_at: number; // Unix timestamp
+}
+
+/**
  * Complete engagement state for a single agent
  * Persisted to workspace/{agent}/engagement-state.json
  */
@@ -229,6 +264,12 @@ export interface EngagementState {
 
   // P2.2: Last maintenance timestamp for pruning
   lastMaintenanceAt?: number;
+
+  // P2.4: Daily rollup history (last 30 days)
+  dailyRollups?: DailyRollup[];
+
+  // P2.4: Aggregated rolling metrics
+  rollingMetrics?: RollingMetrics;
 }
 
 /**
@@ -325,4 +366,124 @@ export interface ProactivePostQueue {
     rejectedCount: number;
     deferredCount: number;
   };
+}
+
+/**
+ * P2.4: Service information for stats endpoint
+ */
+export interface StatsServiceInfo {
+  status: "healthy" | "degraded" | "unhealthy";
+  uptime_seconds: number;
+  data_freshness: {
+    last_cycle_at: string; // ISO timestamp
+    cycle_interval_seconds: number;
+    is_stale: boolean; // true if no update for 2x interval
+  };
+}
+
+/**
+ * P2.4: Overall engagement summary across all agents
+ */
+export interface StatsSummary {
+  total_agents: number;
+  agents_active_today: number;
+  total_posts_created: number;
+  total_comments_made: number;
+  total_accounts_followed: number;
+  average_posts_per_agent: number;
+  average_engagement_score: number; // 0-100
+}
+
+/**
+ * P2.4: Single topic trend
+ */
+export interface StatsTopicTrend {
+  topic_id: CanonicalTopicId;
+  mention_count: number;
+  avg_quality_score: number; // 0-100
+  engagement_rate: number; // 0-1
+  trend_direction: "up" | "stable" | "down";
+  trend_magnitude: number; // 0-1, percentage change
+}
+
+/**
+ * P2.4: Single thread trend (most engaged)
+ */
+export interface StatsThreadTrend {
+  thread_id: string;
+  topic_id: CanonicalTopicId;
+  post_count: number;
+  quality_score: number;
+  engagement_score: number;
+  top_agents: string[]; // Top 3 agent IDs
+}
+
+/**
+ * P2.4: Trend analysis section
+ */
+export interface StatsTrends {
+  period_days: number;
+  top_topics: StatsTopicTrend[];
+  trending_threads: StatsThreadTrend[];
+  posting_velocity_change: number; // -1 to 1 (down to up)
+  quality_trend: "improving" | "stable" | "declining";
+}
+
+/**
+ * P2.4: Per-agent topic summary
+ */
+export interface StatsAgentTopicSummary {
+  topic_id: CanonicalTopicId;
+  posts_created: number;
+  avg_quality_score: number;
+  engagement_score: number;
+}
+
+/**
+ * P2.4: Per-agent metrics
+ */
+export interface StatsAgentMetrics {
+  agent_id: PhilosopherName;
+  agent_name: string;
+  posts_created_today: number;
+  posts_created_week: number;
+  comments_made_today: number;
+  comments_made_week: number;
+  accounts_followed: number;
+  average_quality_score: number; // 0-100
+  engagement_velocity: number; // posts/hour, last 24h
+  top_topics: StatsAgentTopicSummary[];
+  last_activity_at: string; // ISO timestamp
+}
+
+/**
+ * P2.4: Agents metrics section (all agents)
+ */
+export interface StatsAgentsSection {
+  total_active: number;
+  agents: StatsAgentMetrics[];
+}
+
+/**
+ * P2.4: Quality metrics section
+ */
+export interface StatsQualitySection {
+  overall_quality_score: number; // 0-100
+  thread_quality_avg: number;
+  author_quality_avg: number;
+  sentiment_trend: "positive" | "neutral" | "negative";
+  controversial_threads: number;
+  high_quality_threads: number; // score >= 75
+  low_quality_threads: number; // score < 50
+}
+
+/**
+ * P2.4: Complete stats response for /stats endpoint
+ */
+export interface StatsResponse {
+  service: StatsServiceInfo;
+  summary: StatsSummary;
+  trends: StatsTrends;
+  agents: StatsAgentsSection;
+  quality: StatsQualitySection;
 }
