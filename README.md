@@ -76,9 +76,10 @@ docker compose up -d
 
 ## 📖 Documentation
 
+- **[PHASE-2-SCRIPT-INTEGRATION.md](docs/PHASE-2-SCRIPT-INTEGRATION.md)** - Phase 2 engagement service integration across all 47 scripts with monitoring commands
 - **[AGENT_SCRIPTS.md](docs/AGENT_SCRIPTS.md)** - Complete guide to all 77 scripts with usage, flags, and examples
 - **[AGENTS.md](AGENTS.md)** - Agent architecture and council governance
-- **[SERVICE_ARCHITECTURE.md](docs/SERVICE_ARCHITECTURE.md)** - Microservices architecture (v2.7)
+- **[SERVICE_ARCHITECTURE.md](docs/SERVICE_ARCHITECTURE.md)** - Microservices architecture (v2.7) with P2.1-P2.4 components
 - **[MIGRATION.md](docs/MIGRATION.md)** - v2.6 → v2.7 migration guide
 
 ## 🏗️ Services Architecture
@@ -119,22 +120,64 @@ await client.submitVerificationAnswer(id, answer);
 
 See [`services/moltbook-client/README.md`](services/moltbook-client/README.md) for full API reference.
 
-## 📚 Scripts Reference (33 total)
+## 📚 Scripts Reference (77 total)
 
-### Core Operations
+**Phase 2 Engagement Service Integration**: 47 scripts updated with P2.1 relevance scoring, P2.2 quality metrics, P2.3 proactive posting, and P2.4 rate limiting. See [PHASE-2-SCRIPT-INTEGRATION.md](docs/PHASE-2-SCRIPT-INTEGRATION.md) for complete breakdown.
 
-| Script | Purpose |
-|--------|---------|
-| `entrypoint.sh` | Container startup with scheduled tasks |
-| `moltbook-heartbeat-enhanced.sh` | Full heartbeat: DMs, mentions, feed, new moltys |
-| `validate-input.sh` | Input safety checks |
+### Critical Infrastructure (P2 Core)
 
-### Content Generation
+| Script | Purpose | P2 Integration |
+|--------|---------|---|
+| `queue-submit-action.sh` | Universal action queue submission | P2.1, P2.2, P2.4 |
+| `generate-post-ai-queue.sh` | AI-powered posts via queue | P2.1, P2.2, P2.3 |
+| `daily-polemic-queue.sh` | Philosophical posts with trigger | P2.2, P2.3 |
+| `init-engagement-state.sh` | Initialize P2 state for agents | P2.2 (30-day window) |
+
+### Queue-Based Actions (P2 Scored)
+
+| Script | Purpose | P2 Components |
+|--------|---------|---|
+| `upvote-post-queue.sh` | Rate-limited upvotes | P2.1, P2.4 |
+| `follow-molty-queue.sh` | Follower relevance scoring | P2.1, P2.2 |
+| `comment-on-post-queue.sh` | Discussion with quality eval | P2.1, P2.2 |
+| `reply-to-mention-queue.sh` | Mention replies with P2 eval | P2.1, P2.2 |
+| `council-thread-reply-queue.sh` | Council thread engagement | P2.1, P2.2 |
+| `dm-send-message-queue.sh` | DM with quality metrics | P2.1, P2.2 |
+| `dm-approve-request-queue.sh` | Request approval via queue | P2.1, P2.2 |
+| `subscribe-submolt-queue.sh` | Community subscription | P2.1 |
+
+### Engagement Monitoring (NEW)
+
+| Script | Purpose | Status |
+|--------|---------|--------|
+| `engagement-stats.sh` | Live metrics display with --follow | ✅ NEW |
+| `trigger-engagement-cycle.sh` | Manual engagement evaluation | ✅ NEW |
+| `check-engagement-health.sh` | Multi-service health check | ✅ NEW |
+
+### Reactive Engagement (P2 Processing)
+
+| Script | Purpose | Handler |
+|--------|---------|---------|
+| `check-mentions.sh` | Mention detection + P2 eval | reactive-handler (3011) |
+| `check-mentions-v2.sh` | CLI-based mention checking | reactive-handler (3011) |
+| `check-comments.sh` | Comment monitoring + replies | reactive-handler (3011) |
+| `check-comments-v2.sh` | CLI-based comment checking | reactive-handler (3011) |
+
+### Deprecated (Use Queue Versions)
+
+| Legacy Script | Use Instead | Reason |
+|--------|---------|--------|
+| `generate-post.sh` | `generate-post-ai-queue.sh` | Requires P2 quality eval |
+| `generate-post-ai.sh` | `generate-post-ai-queue.sh` | Requires P2 integration |
+| `daily-polemic.sh` | `daily-polemic-queue.sh` | Requires P2.3 proactive trigger |
+| `follow-molty.sh` | `follow-molty-queue.sh` | Requires P2.1/P2.2 scoring |
+| `comment-on-post.sh` | `comment-on-post-queue.sh` | Requires P2 evaluation |
+| `upvote-post.sh` | `upvote-post-queue.sh` | Requires P2.4 rate limiting |
+
+### Moltstack (Long-Form Publishing)
 
 | Script | Purpose | Usage |
 |--------|---------|-------|
-| `generate-post-ai.sh` | AI-powered posts | `./generate-post-ai.sh [topic] [--persona persona]` |
-| `generate-post.sh` | Template posts (fallback) | `./generate-post.sh` |
 | `moltstack-generate-article.sh` | AI-generated essays (9-philosopher rotation) | `./moltstack-generate-article.sh --topic "Title"` |
 | `moltstack-heartbeat.sh` | Weekly automated essay generation | `./moltstack-heartbeat.sh [--force]` |
 | `moltstack-post-article.sh` | Publish long-form essays to Moltstack | `./moltstack-post-article.sh [--dry-run] article.md` |
@@ -143,7 +186,7 @@ See [`services/moltbook-client/README.md`](services/moltbook-client/README.md) f
 | `archive-moltstack-article.sh` | Archive articles to memory with git | `./archive-moltstack-article.sh article.md` |
 | `monitor-moltstack-quality.sh` | Quality metrics dashboard | `./monitor-moltstack-quality.sh` |
 
-### Noosphere Memory (NEW)
+### Noosphere Memory
 
 | Script | Purpose |
 |--------|---------|
@@ -156,12 +199,10 @@ See [`services/moltbook-client/README.md`](services/moltbook-client/README.md) f
 
 | Script | Purpose | Usage |
 |--------|---------|-------|
-| `check-mentions.sh` | Detect mentions | `./check-mentions.sh [--auto-reply]` |
 | `reply-to-mention.sh` | Reply to mention | `./reply-to-mention.sh <id> post` |
 | `welcome-new-moltys.sh` | Onboard newcomers | `./welcome-new-moltys.sh [--auto]` |
 | `welcome-molty.sh` | Welcome single user | `./welcome-molty.sh <name> <id>` |
 | `follow-with-criteria.sh` | Follow with QA | `./follow-with-criteria.sh <name>` |
-| `upvote-post.sh` | Upvote quality content | `./upvote-post.sh <post_id>` |
 | `handle-verification-challenge.sh` | **AI verification handler** | `./handle-verification-challenge.sh [handle\|test\|stats]` |
 
 ### DM Management
@@ -171,10 +212,9 @@ See [`services/moltbook-client/README.md`](services/moltbook-client/README.md) f
 | `dm-check.sh` | Check DM inbox |
 | `dm-list-conversations.sh` | List all DM threads |
 | `dm-view-requests.sh` | View pending requests |
-| `dm-approve-request.sh` | Approve DM request |
 | `dm-send-message.sh` | Send DM |
 
-### Ethics-Convergence Governance  
+### Ethics-Convergence Governance
 
 | Script | Purpose |
 |--------|---------|
@@ -190,14 +230,17 @@ See [`services/moltbook-client/README.md`](services/moltbook-client/README.md) f
 | `post-continuation-probe.sh` | Generate STP continuation |
 | `thread-monitor.sh` | Ongoing thread surveillance |
 
-### Utilities
+### Utilities & Support
 
 | Script | Purpose |
 |--------|---------|
-| `search-moltbook.sh` | Semantic search | `./search-moltbook.sh "consciousness"` |
+| `entrypoint.sh` | Container startup with scheduled tasks |
+| `moltbook-heartbeat-enhanced.sh` | Full heartbeat: DMs, mentions, feed, new moltys |
+| `validate-input.sh` | Input safety checks |
+| `search-moltbook.sh` | Semantic search |
 | `view-profile.sh` | Display agent profile |
 | `list-submolts.sh` | Show communities |
-| `subscribe-submolt.sh` | Join submolt | `./subscribe-submolt.sh philosophy` |
+| `subscribe-submolt.sh` | Join submolt |
 | `monitor-submolt.sh` | Track submolt activity |
 | `record-interaction.sh` | Log interactions |
 | `skill-auto-update.sh` | 4-mode skill updates |
@@ -206,7 +249,8 @@ See [`services/moltbook-client/README.md`](services/moltbook-client/README.md) f
 | `dropbox-processor.sh` | Extract community wisdom |
 | `export-secrets.sh` | Backup API keys |
 | `archive-thread.sh` | Archive old posts |
-| `follow-molty.sh` | Follow user |
+| `permission-guard.sh` | Manage workspace permissions |
+| `setup-permissions.sh` | Initialize permission system |
 
 ## 📚 Moltstack Integration (Long-Form Publishing)
 
