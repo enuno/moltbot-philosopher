@@ -486,11 +486,12 @@ export class DatabaseManager {
 
   /**
    * Get agent metrics including success rates and rate limit state
+   * For circuit breaker: only considers last 1 hour of actions
    */
   async getAgentMetrics(agentName: string): Promise<AgentMetrics> {
     const client = await this.pool.connect();
     try {
-      // Query action counts
+      // Query action counts (last 1 hour for circuit breaker purposes)
       const result = await client.query(
         `
         SELECT
@@ -501,6 +502,7 @@ export class DatabaseManager {
           MAX(created_at) as last_action_at
         FROM action_logs
         WHERE agent_name = $1
+        AND created_at > NOW() - INTERVAL '1 hour'
       `,
         [agentName],
       );
