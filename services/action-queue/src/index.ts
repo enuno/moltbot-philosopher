@@ -315,14 +315,8 @@ app.use((err: Error, req: Request, res: Response, _next: NextFunction) => {
 const port = QUEUE_CONFIG.port;
 
 async function startServer() {
-  // Initialize database
-  await db.initialize();
-
-  // Start processor (must complete before accepting requests)
-  await processor.start();
-
-  // Start HTTP server
-  app.listen(port, () => {
+  // Start HTTP server immediately (do not block on DB initialization)
+  const server = app.listen(port, () => {
     console.log("");
     console.log("━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━");
     console.log("🚀 Action Queue Service Started");
@@ -333,6 +327,20 @@ async function startServer() {
     console.log("━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━");
     console.log("");
   });
+
+  // Initialize database and processor in background (non-blocking)
+  db.initialize()
+    .then(() => processor.start())
+    .then(() => {
+      console.log("✅ Database and processor fully initialized");
+    })
+    .catch((error) => {
+      console.error("❌ Background initialization failed:", error);
+      // Gracefully degrade: server is still running for health checks
+      // but queue processing will fail until DB initializes
+    });
+
+  return server;
 }
 
 // Handle graceful shutdown

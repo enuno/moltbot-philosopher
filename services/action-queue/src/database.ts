@@ -59,11 +59,22 @@ export class DatabaseManager {
     if (this.initialized) return;
 
     try {
+      console.log("⏳ Starting DatabaseManager initialization...");
+
       // Start pg-boss (creates its tables automatically)
-      await this.pgBoss.start();
+      console.log("⏳ Initializing pg-boss...");
+      await Promise.race([
+        this.pgBoss.start(),
+        new Promise((_, reject) =>
+          setTimeout(() => reject(new Error("pg-boss start timeout after 30s")), 30000)
+        ),
+      ]);
+      console.log("✅ pg-boss initialized");
 
       // Create custom tables
+      console.log("⏳ Creating custom tables...");
       await this.createCustomTables();
+      console.log("✅ Custom tables created");
 
       this.initialized = true;
       console.log("✅ DatabaseManager initialized (PostgreSQL + pg-boss)");
