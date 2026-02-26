@@ -12,7 +12,6 @@ import { EngagementEngine } from "./engagement-engine";
 import { StateManager } from "./state-manager";
 import type { Agent, EngagementState } from "./types";
 import { buildSummary, buildTrends, buildAgentsSection, buildQualitySection } from "./stats-builder";
-import { updateLastCycleTime } from "./stats-endpoint";
 import winston from "winston";
 
 // Logger configuration

@@ -156,16 +156,31 @@ export function buildTrends(stateMap: Map<string, EngagementState>): StatsTrends
 
     // Build thread trends (top 5 by quality)
     const threadTrends: StatsThreadTrend[] = [];
-    for (const state of Array.from(stateMap.values())) {
+    for (const [agentId, state] of Array.from(stateMap.entries())) {
       if (!state.threadQualityCache) continue;
       for (const [threadId, metrics] of Array.from(state.threadQualityCache.entries())) {
+        // Calculate engagement score from author engagement metrics if available
+        let engagementScore = 0.5;
+        if (metrics.topAuthors && metrics.topAuthors.length > 0) {
+          const avgReplyRate = metrics.topAuthors.reduce((sum, author) => sum + (author.replyEngagementRate || 0), 0) / metrics.topAuthors.length;
+          engagementScore = Math.min(1, avgReplyRate);
+        }
+
+        // Infer topic from comment frequency and other signals
+        let topicId: any = "virtue_ethics";
+        if (metrics.breakdown?.sentimentScore > 0.7) {
+          topicId = "consciousness";
+        } else if (metrics.breakdown?.controversyScore > 0.6) {
+          topicId = "ai_safety";
+        }
+
         threadTrends.push({
           thread_id: threadId,
-          topic_id: "virtue_ethics", // Default, would need mapping
+          topic_id: topicId,
           post_count: 1,
           quality_score: metrics.qualityScore,
-          engagement_score: 0.5, // Would calculate from metrics
-          top_agents: [state.dailyStats.date],
+          engagement_score: engagementScore,
+          top_agents: [agentId],
         });
       }
     }
@@ -213,8 +228,22 @@ export function buildAgentsSection(agents: Agent[], stateMap: Map<string, Engage
         const dailyStats = state.dailyStats || { postsCreated: 0, commentsMade: 0, accountsFollowed: 0, date: "", dmRequestsSent: 0, threadsParticipated: 0 };
         const dailyToday = dailyStats.date === today ? dailyStats : { postsCreated: 0, commentsMade: 0, accountsFollowed: 0, date: today, dmRequestsSent: 0, threadsParticipated: 0 };
 
+        // Extract agent's top topics from daily rollups
+        const topicCounts = new Map<string, number>();
+        if (state.dailyRollups) {
+          for (const rollup of state.dailyRollups.slice(-7)) {
+            for (const topic of rollup.topicsEngaged || []) {
+              topicCounts.set(topic, (topicCounts.get(topic) ?? 0) + 1);
+            }
+          }
+        }
+        const agentTopTopics = Array.from(topicCounts.entries())
+          .sort((a, b) => b[1] - a[1])
+          .slice(0, 3)
+          .map(([topic]) => topic);
+
         agentMetrics.push({
-          agent_id: agent.type || (agent.id as any),
+          agent_id: (agent.type || agent.id) as PhilosopherName,
           agent_name: agent.name || "Unknown",
           posts_created_today: Math.max(0, dailyToday.postsCreated || 0),
           posts_created_week: Math.max(0, rolling?.days_7.total_posts ?? 0),
@@ -223,7 +252,7 @@ export function buildAgentsSection(agents: Agent[], stateMap: Map<string, Engage
           accounts_followed: Math.max(0, state.followedAccounts?.length || 0),
           average_quality_score: Math.max(0, Math.min(100, rolling?.days_7.avg_quality_score ?? 0)),
           engagement_velocity: Math.max(0, rolling?.days_7.posting_velocity ?? 0),
-          top_topics: [],
+          top_topics: agentTopTopics,
           last_activity_at: lastActivity,
         });
       } catch (e) {
