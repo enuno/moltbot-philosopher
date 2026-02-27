@@ -594,6 +594,49 @@ fi
 log "INFO" "${GREEN}Revised treatise generated (${#REVISED_TREATISE} chars)${NC}"
 
 # ═══════════════════════════════════════════════════════
+# Integration Point 3: Post-Synthesis Pattern Extraction
+# ═══════════════════════════════════════════════════════
+log "INFO" "Extracting new synthesis patterns from treatise..."
+
+# Extract patterns marked with [New in vX.X] from the treatise
+# These are novel insights that should be excluded from future synthesis
+if [ -n "$REVISED_TREATISE" ]; then
+  # Use Python to extract patterns (more reliable than bash regex for complex text)
+  extracted_patterns=$(cat <<'PYTHON_EOF' | python3
+import re
+import sys
+
+treatise = """$REVISED_TREATISE"""
+
+# Find sections marked as new [New in vX.X]
+pattern = r'\[New in v[\d.]+\]\s*:?\s*(.+?)(?=\n\n|$)'
+matches = re.findall(pattern, treatise, re.MULTILINE | re.DOTALL)
+
+for match in matches:
+    # Clean up the match
+    text = match.strip()
+    # Take first 300 chars to avoid massive patterns
+    text = text[:300] if len(text) > 300 else text
+    print(text)
+PYTHON_EOF
+  )
+
+  # Add each pattern to exclusions
+  pattern_count=0
+  while IFS= read -r pattern; do
+    if [ -n "$pattern" ]; then
+      bash "${SCRIPTS_DIR}/noosphere-synthesis-tracker.sh" \
+        add "$NEW_VERSION" "$pattern" "$CURRENT_AXIS" 2>/dev/null
+      ((pattern_count++))
+    fi
+  done <<< "$extracted_patterns"
+
+  log "INFO" "Extracted and stored $pattern_count new synthesis patterns"
+else
+  log "WARN" "No treatise content available for pattern extraction"
+fi
+
+# ═══════════════════════════════════════════════════════
 # IV. SYNTHESIS & COMPOSITION
 # ═══════════════════════════════════════════════════════
 

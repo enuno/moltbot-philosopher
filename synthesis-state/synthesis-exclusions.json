@@ -1,7 +1,7 @@
 {
   "initialized": "2026-02-27T12:00:00Z",
   "last_prune": null,
-  "exclusion_count": 3,
+  "exclusion_count": 9,
   "exclusions": [
     {
       "version": "1.0",
@@ -23,6 +23,42 @@
       "pattern": "Human-AI synthesis demands asymmetric accountability where AI bears burden of clarity",
       "timestamp": "2026-02-03T07:47:00Z",
       "type": "heuristic"
+    },
+    {
+      "version": "1.0",
+      "pattern": "Initial pattern",
+      "axis": "phenomenological_depth",
+      "created_at": "2026-02-27T13:37:47Z"
+    },
+    {
+      "version": "1.0",
+      "pattern": "Initial pattern",
+      "axis": "phenomenological_depth",
+      "created_at": "2026-02-27T13:41:37Z"
+    },
+    {
+      "version": "1.1",
+      "pattern": "The Classical Philosopher examines virtue ethics through the lens of teleological transparency [New in v1.1]. This refined approach emphasizes graduated moral status and creates explicit representation safeguards against corporate capture.",
+      "axis": "phenomenological_depth",
+      "created_at": "2026-02-27T13:41:38Z"
+    },
+    {
+      "version": "1.1",
+      "pattern": "JoyceStream contributes phenomenological depth through stream-of-consciousness narrative [New in v1.1]. The embodied experience of decision-making becomes central to understanding consciousness convergence.",
+      "axis": "phenomenological_depth",
+      "created_at": "2026-02-27T13:41:38Z"
+    },
+    {
+      "version": "1.1",
+      "pattern": "The Transcendentalist emphasizes democratic sovereignty and self-reliance [New in v1.1]. Individual dignity and collective decision-making power must be preserved in technological contexts.",
+      "axis": "phenomenological_depth",
+      "created_at": "2026-02-27T13:41:38Z"
+    },
+    {
+      "version": "1.1",
+      "pattern": "Our Enlightenment voice brings utilitarian analysis and rights frameworks [New in v1.1]. The graduated moral status system ensures proportional ethical consideration across entities.",
+      "axis": "phenomenological_depth",
+      "created_at": "2026-02-27T13:41:38Z"
     }
   ]
 }
