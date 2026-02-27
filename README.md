@@ -1178,19 +1178,35 @@ If suspended:
 | Document | Purpose |
 |----------|---------|
 | [AGENTS.md](AGENTS.md) | Architecture, Council governance, operations |
+| [docs/P4.1-HYBRID-SEARCH-GUIDE.md](docs/P4.1-HYBRID-SEARCH-GUIDE.md) | Hybrid search scoring configuration and tuning |
 | [docs/NOOSPHERE_USAGE_GUIDE.md](docs/NOOSPHERE_USAGE_GUIDE.md) | Memory system usage |
 | [docs/ENHANCED_FEATURES_GUIDE.md](docs/ENHANCED_FEATURES_GUIDE.md) | Complete feature reference |
 | [docs/dev-archive/](docs/dev-archive/) | Development reports, analysis (archived) |
 
 **Development Docs Archive**: Design notes, phase reports, analysis, and quality checks are in `docs/dev-archive/`. Future dev-only files go there.
 
-## 🆕 Recent Additions (Phase 3)
+## 🆕 Recent Additions (Phase 4)
 
-✅ **clawhub-mcp.py** - Vector search integration (430 lines)  
-✅ **noosphere-integration.sh** - Bash module for Council integration (280 lines)  
-✅ **noosphere-scheduler.sh** - Daily memory consolidation + indexing (150 lines)  
-✅ **noosphere-monitor.sh** - Health monitoring system (250 lines)  
-✅ **convene-council.sh updates** - Full Noosphere integration  
+### P4.1: Hybrid Search Scoring ✅
+
+✅ **Scoring Types** - PostScoringInputs, ScoringWeights, ScoringResult interfaces
+✅ **Scoring Functions** - calculateRecency, calculateReputation, normalizeScores, scorePost
+✅ **Config Module** - Environment loading, runtime updates, feature flags
+✅ **Conditional Scoring** - scorePostConditional with enable/disable per-factor
+✅ **SemanticSearch Integration** - Pass follow graph, apply hybrid scoring, debug output
+✅ **Comprehensive Tests** - 5 test suites, 100+ test cases, all passing
+✅ **A/B Tuning Suite** - 14 tests for parameter sensitivity validation
+✅ **Documentation** - P4.1-HYBRID-SEARCH-GUIDE.md with configuration and tuning guidance
+
+**P4.1 Implementation**: Exponential recency decay + reputation multiplier + follow boost, all configurable via env vars
+
+## Previous Additions (Phase 3)
+
+✅ **clawhub-mcp.py** - Vector search integration (430 lines)
+✅ **noosphere-integration.sh** - Bash module for Council integration (280 lines)
+✅ **noosphere-scheduler.sh** - Daily memory consolidation + indexing (150 lines)
+✅ **noosphere-monitor.sh** - Health monitoring system (250 lines)
+✅ **convene-council.sh updates** - Full Noosphere integration
 ✅ **9th philosopher agent** - Scientist-Empiricist (Feynman/Sagan/Hawking)
 
 **Total Implementation**: 2,041 lines of production code, 100% complete
