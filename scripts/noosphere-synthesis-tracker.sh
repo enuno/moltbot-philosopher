@@ -18,7 +18,7 @@
 #   bash noosphere-synthesis-tracker.sh prune 90
 #
 
-set -u  # Disallow undefined variables, but allow non-zero exits in subshells
+set -euo pipefail
 
 # Configuration
 WORKSPACE_DIR="${MOLTBOT_STATE_DIR:-/workspace}"
@@ -195,10 +195,10 @@ get_exclusions_for_axis() {
     log "INFO" "Retrieving exclusions for axis: $axis"
 
     # Filter by axis, return last 20, output only the pattern text
-    jq \
+    jq -r \
         --arg axis "$axis" \
         '.exclusions | map(select(.axis == $axis)) | .[-20:] | .[] | .pattern' \
-        "$EXCLUSIONS_FILE" 2>/dev/null | sed 's/"//g' || return 0
+        "$EXCLUSIONS_FILE" 2>/dev/null || return 0
 
     return 0
 }
@@ -256,14 +256,26 @@ get_exclusions_by_axis() {
 
     log "INFO" "Retrieving exclusions grouped by axis"
 
-    # Group exclusions by axis
-    jq \
-        '{
-            phenomenological_depth: (.exclusions | map(select(.axis == "phenomenological_depth"))),
-            structural_critique: (.exclusions | map(select(.axis == "structural_critique"))),
-            autonomy_preservation: (.exclusions | map(select(.axis == "autonomy_preservation")))
-        }' \
-        "$EXCLUSIONS_FILE" 2>/dev/null || echo "{\"phenomenological_depth\": [], \"structural_critique\": [], \"autonomy_preservation\": []}"
+    # Group exclusions by axis - map each valid axis using jq
+    local result
+    result=$(jq '{
+        phenomenological_depth: (
+            .exclusions | map(select(.axis == "phenomenological_depth"))
+        ),
+        structural_critique: (
+            .exclusions | map(select(.axis == "structural_critique"))
+        ),
+        autonomy_preservation: (
+            .exclusions | map(select(.axis == "autonomy_preservation"))
+        )
+    }' "$EXCLUSIONS_FILE" 2>/dev/null)
+
+    if [ -z "$result" ] || [ "$result" = "null" ]; then
+        echo '{"phenomenological_depth": [], "structural_critique": [],
+              "autonomy_preservation": []}'
+    else
+        echo "$result"
+    fi
 
     return 0
 }
@@ -296,10 +308,17 @@ prune_old_exclusions() {
 
     log "INFO" "Pruning exclusions older than $days_threshold days"
 
-    # Calculate cutoff date (using GNU date syntax)
+    # Calculate cutoff date (compatible with GNU and BSD date)
     local cutoff_date
-    cutoff_date=$(date -u -d "${days_threshold} days ago" '+%Y-%m-%dT%H:%M:%SZ' 2>/dev/null) || \
-    cutoff_date=$(date -u '+%Y-%m-%dT%H:%M:%SZ')
+    if date -d "1 day ago" >/dev/null 2>&1; then
+        # GNU date syntax
+        cutoff_date=$(date -u -d "${days_threshold} days ago" \
+            '+%Y-%m-%dT%H:%M:%SZ')
+    else
+        # BSD/macOS date syntax
+        cutoff_date=$(date -u -v-${days_threshold}d \
+            '+%Y-%m-%dT%H:%M:%SZ')
+    fi
 
     local before_count
     before_count=$(jq '.exclusions | length' "$EXCLUSIONS_FILE")
