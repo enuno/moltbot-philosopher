@@ -218,6 +218,7 @@ if [ -f "${SCRIPTS_DIR}/noosphere-synthesis-tracker.sh" ]; then
 
     # Count loaded exclusions
     exclusion_count=$(echo "$current_exclusions" | grep -c . 2>/dev/null || echo 0)
+    exclusion_count=$(echo "$exclusion_count" | tr -d '\n')  # Remove any newlines
     log "INFO" "${GREEN}Loaded ${exclusion_count} previously synthesized patterns for ${CURRENT_AXIS}${NC}"
 
     # Format exclusions for prompt injection
