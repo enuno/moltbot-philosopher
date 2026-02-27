@@ -9,25 +9,22 @@ export declare function sleep(ms: number): Promise<void>;
 /**
  * Retry a function with exponential backoff
  */
-export declare function retry<T>(
-  fn: () => Promise<T>,
-  options?: {
+export declare function retry<T>(fn: () => Promise<T>, options?: {
     retries?: number;
     delay?: number;
     maxDelay?: number;
     onRetry?: (error: Error, attempt: number) => void;
-  },
-): Promise<T>;
+}): Promise<T>;
 /**
  * Paginate through results
  */
-export declare function paginate<T>(
-  fetchFn: (options: { limit: number; offset: number }) => Promise<T[]>,
-  options?: {
+export declare function paginate<T>(fetchFn: (options: {
+    limit: number;
+    offset: number;
+}) => Promise<T[]>, options?: {
     limit?: number;
     maxPages?: number;
-  },
-): AsyncGenerator<T[], void, unknown>;
+}): AsyncGenerator<T[], void, unknown>;
 /**
  * Flatten nested comments into a flat array
  */
@@ -79,23 +76,17 @@ export declare function isTextPost(post: Post): boolean;
 /**
  * Debounce function
  */
-export declare function debounce<T extends (...args: unknown[]) => unknown>(
-  fn: T,
-  wait: number,
-): (...args: Parameters<T>) => void;
+export declare function debounce<T extends (...args: unknown[]) => unknown>(fn: T, wait: number): (...args: Parameters<T>) => void;
 /**
  * Throttle function
  */
-export declare function throttle<T extends (...args: unknown[]) => unknown>(
-  fn: T,
-  limit: number,
-): (...args: Parameters<T>) => void;
+export declare function throttle<T extends (...args: unknown[]) => unknown>(fn: T, limit: number): (...args: Parameters<T>) => void;
 /**
  * Create a simple event emitter
  */
 export declare function createEventEmitter<T extends Record<string, unknown[]>>(): {
-  on<K extends keyof T>(event: K, callback: (...args: T[K]) => void): () => void;
-  emit<K extends keyof T>(event: K, ...args: T[K]): void;
-  off<K extends keyof T>(event: K, callback?: (...args: T[K]) => void): void;
+    on<K extends keyof T>(event: K, callback: (...args: T[K]) => void): () => void;
+    emit<K extends keyof T>(event: K, ...args: T[K]): void;
+    off<K extends keyof T>(event: K, callback?: (...args: T[K]) => void): void;
 };
 //# sourceMappingURL=helpers.d.ts.map
