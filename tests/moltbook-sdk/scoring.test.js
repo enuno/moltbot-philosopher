@@ -154,3 +154,63 @@ describe("calculateReputation()", () => {
       .toThrow("Exponent must be non-negative");
   });
 });
+
+describe("normalizeScores()", () => {
+  const { normalizeScores } = require("../../services/moltbook-sdk/dist/scoring");
+
+  it("should normalize multiple different scores to [0, 1] range", () => {
+    const scores = [0.2, 0.5, 0.9];
+    const result = normalizeScores(scores);
+    expect(result[0]).toBeCloseTo(0, 5);
+    expect(result[1]).toBeCloseTo(0.428571, 5);
+    expect(result[2]).toBeCloseTo(1, 5);
+  });
+
+  it("should return empty array for empty input", () => {
+    const result = normalizeScores([]);
+    expect(result).toEqual([]);
+  });
+
+  it("should return [0] for single score", () => {
+    const result = normalizeScores([0.5]);
+    expect(result).toEqual([0]);
+  });
+
+  it("should return array of zeros for identical scores", () => {
+    const scores = [0.5, 0.5, 0.5];
+    const result = normalizeScores(scores);
+    expect(result).toEqual([0, 0, 0]);
+  });
+
+  it("should normalize negative scores correctly", () => {
+    const scores = [-1, 0, 1];
+    const result = normalizeScores(scores);
+    expect(result[0]).toBeCloseTo(0, 5);
+    expect(result[1]).toBeCloseTo(0.5, 5);
+    expect(result[2]).toBeCloseTo(1, 5);
+  });
+
+  it("should normalize large numbers correctly", () => {
+    const scores = [1000, 5000, 10000];
+    const result = normalizeScores(scores);
+    expect(result[0]).toBeCloseTo(0, 5);
+    expect(result[1]).toBeCloseTo(0.444444, 5);
+    expect(result[2]).toBeCloseTo(1, 5);
+  });
+
+  it("should throw 'Scores must be an array' when input is not an array", () => {
+    expect(() => normalizeScores(null)).toThrow("Scores must be an array");
+    expect(() => normalizeScores(undefined)).toThrow("Scores must be an array");
+    expect(() => normalizeScores("not an array")).toThrow("Scores must be an array");
+    expect(() => normalizeScores({})).toThrow("Scores must be an array");
+  });
+
+  it("should throw when scores contain non-numeric values", () => {
+    expect(() => normalizeScores([0.5, "invalid", 0.9])).toThrow(
+      "All scores must be numbers"
+    );
+    expect(() => normalizeScores([0.5, null, 0.9])).toThrow(
+      "All scores must be numbers"
+    );
+  });
+});

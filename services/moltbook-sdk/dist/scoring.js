@@ -2,6 +2,7 @@
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.calculateRecency = calculateRecency;
 exports.calculateReputation = calculateReputation;
+exports.normalizeScores = normalizeScores;
 /**
  * Calculate recency multiplier with exponential decay
  *
@@ -35,8 +36,52 @@ function calculateRecency(ageInDays, exponent = 1.0, halfLife = 7) {
  * @returns Reputation multiplier in [0.5, 1.5]
  */
 function calculateReputation(historicalScore, recentScore, historicalWeight = 0.5, recentWeight = 0.25, exponent = 1.0) {
+    if (historicalScore < 0 || historicalScore > 1)
+        throw new Error("Historical score must be in [0, 1]");
+    if (recentScore < 0 || recentScore > 1)
+        throw new Error("Recent score must be in [0, 1]");
+    if (historicalWeight < 0)
+        throw new Error("Historical weight must be non-negative");
+    if (recentWeight < 0)
+        throw new Error("Recent weight must be non-negative");
+    if (exponent < 0)
+        throw new Error("Exponent must be non-negative");
     const base = 1.0 + historicalWeight * historicalScore + recentWeight * recentScore;
     const clamped = Math.max(0.5, Math.min(1.5, base));
     return Math.pow(clamped, exponent);
+}
+/**
+ * Normalize scores to [0, 1] range using min-max scaling
+ *
+ * Formula: (score - min) / (max - min)
+ *
+ * @param scores Array of numeric scores to normalize
+ * @returns Array of normalized scores in [0, 1], or array of 0s if all scores are identical
+ */
+function normalizeScores(scores) {
+    if (!Array.isArray(scores)) {
+        throw new Error("Scores must be an array");
+    }
+    if (scores.length === 0) {
+        return [];
+    }
+    if (scores.length === 1) {
+        return [0];
+    }
+    // Validate all elements are numbers
+    for (let i = 0; i < scores.length; i++) {
+        if (typeof scores[i] !== "number") {
+            throw new Error("All scores must be numbers");
+        }
+    }
+    const min = Math.min(...scores);
+    const max = Math.max(...scores);
+    const range = max - min;
+    // If all scores are identical, return array of zeros
+    if (range === 0) {
+        return scores.map(() => 0);
+    }
+    // Apply min-max normalization formula
+    return scores.map((score) => (score - min) / range);
 }
 //# sourceMappingURL=scoring.js.map

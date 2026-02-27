@@ -22,4 +22,13 @@ export declare function calculateRecency(ageInDays: number, exponent?: number, h
  * @returns Reputation multiplier in [0.5, 1.5]
  */
 export declare function calculateReputation(historicalScore: number, recentScore: number, historicalWeight?: number, recentWeight?: number, exponent?: number): number;
+/**
+ * Normalize scores to [0, 1] range using min-max scaling
+ *
+ * Formula: (score - min) / (max - min)
+ *
+ * @param scores Array of numeric scores to normalize
+ * @returns Array of normalized scores in [0, 1], or array of 0s if all scores are identical
+ */
+export declare function normalizeScores(scores: number[]): number[];
 //# sourceMappingURL=scoring.d.ts.map

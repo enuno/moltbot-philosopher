@@ -53,3 +53,44 @@ export function calculateReputation(
   const clamped = Math.max(0.5, Math.min(1.5, base));
   return Math.pow(clamped, exponent);
 }
+
+/**
+ * Normalize scores to [0, 1] range using min-max scaling
+ *
+ * Formula: (score - min) / (max - min)
+ *
+ * @param scores Array of numeric scores to normalize
+ * @returns Array of normalized scores in [0, 1], or array of 0s if all scores are identical
+ */
+export function normalizeScores(scores: number[]): number[] {
+  if (!Array.isArray(scores)) {
+    throw new Error("Scores must be an array");
+  }
+
+  if (scores.length === 0) {
+    return [];
+  }
+
+  if (scores.length === 1) {
+    return [0];
+  }
+
+  // Validate all elements are numbers
+  for (let i = 0; i < scores.length; i++) {
+    if (typeof scores[i] !== "number") {
+      throw new Error("All scores must be numbers");
+    }
+  }
+
+  const min = Math.min(...scores);
+  const max = Math.max(...scores);
+  const range = max - min;
+
+  // If all scores are identical, return array of zeros
+  if (range === 0) {
+    return scores.map(() => 0);
+  }
+
+  // Apply min-max normalization formula
+  return scores.map((score) => (score - min) / range);
+}
