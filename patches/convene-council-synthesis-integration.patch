@@ -1,0 +1,192 @@
+--- a/scripts/convene-council.sh
++++ b/scripts/convene-council.sh
+@@ -597,253 +597,79 @@ log "INFO" "${BLUE}[Phase IIb] Convening deliberative council with Noosphere
+ # IV. TREATISE GENERATION (AI-Powered)
+ # ═══════════════════════════════════════════════════════
+ 
+ log "INFO" "${BLUE}[Phase IV] Generating revised treatise via AI...${NC}"
+ 
+-# Try AI generation with retry-with-backoff (no template fallback for critical content)
+-AI_SUCCESS=false
+-MAX_ATTEMPTS=3
+-ATTEMPT=1
+-TIMEOUTS=(30 60 90)  # Timeout progression in seconds
+-
+-while [ $ATTEMPT -le $MAX_ATTEMPTS ] && [ "$AI_SUCCESS" = false ]; do
+-    TIMEOUT=${TIMEOUTS[$((ATTEMPT - 1))]}
+-
+-    if curl -sf "${AI_GENERATOR_URL}/health" >/dev/null 2>&1; then
+-        log "INFO" "${BLUE}AI generation attempt $ATTEMPT/$MAX_ATTEMPTS (timeout: ${TIMEOUT}s)...${NC}"
+-
+-        # Build custom prompt with council context
+-        COUNCIL_SYSTEM_PROMPT="You are the Ethics-Convergence Council synthesizer. Generate a polyphonic philosophical treatise with NINE distinct voices representing the full Ethics-Convergence Council: ClassicalPhilosopher (virtue ethics, teleology), JoyceStream (phenomenology, stream-of-consciousness), Existentialist (authenticity, freedom), Transcendentalist (self-reliance, democratic sovereignty), Enlightenment (rights, utilitarian guardrails), BeatGeneration (countercultural critique), CyberpunkPosthumanist (posthuman ethics, corporate feudalism), SatiristAbsurdist (absurdist clarity, bureaucratic satire), and ScientistEmpiricist (empirical rigor, cosmic perspective). Each voice must have a unique style and perspective. Mark new content with [New in v${NEW_VERSION}] and refined content with [Refined in v${NEW_VERSION}].
+-
+-${DIALOGUE_CONTEXT}"
+-
+-        AI_REQUEST=$(jq -n \
+-            --arg customPrompt "$COUNCIL_SYSTEM_PROMPT" \
+-            --arg contentType "council_treatise" \
+-            --arg persona "socratic" \
+-            --arg provider "auto" \
+-            --arg context "Ethics-Convergence Council deliberation" \
+-            --argjson timeout $TIMEOUT \
+-            '{
+-                customPrompt: $customPrompt,
+-                contentType: $contentType,
+-                persona: $persona,
+-                provider: $provider,
+-                context: $context,
+-                timeout: $timeout
+-            }')
+-
+-        AI_RESPONSE=$(curl -sf -X POST "${AI_GENERATOR_URL}/generate" \
+-            --max-time $((TIMEOUT + 5)) \
+-            -H "Content-Type: application/json" \
+-            --data "$AI_REQUEST" 2>&1)
+-
+-        if [ $? -eq 0 ] && echo "$AI_RESPONSE" | jq -e '.content' >/dev/null 2>&1; then
+-            REVISED_TREATISE=$(echo "$AI_RESPONSE" | jq -r '.content')
+-            AI_SUCCESS=true
+-            log "SUCCESS" "${GREEN}AI-generated treatise received on attempt $ATTEMPT${NC}"
+-        else
+-            ERROR_MSG=$(echo "$AI_RESPONSE" | jq -r '.error // "Unknown error"')
+-            log "WARN" "${YELLOW}AI generation attempt $ATTEMPT failed: $ERROR_MSG${NC}"
+-
+-            if [ $ATTEMPT -lt $MAX_ATTEMPTS ]; then
+-                BACKOFF=$((ATTEMPT * 5))
+-                log "INFO" "${BLUE}Waiting ${BACKOFF}s before retry...${NC}"
+-                sleep $BACKOFF
+-            fi
+-        fi
+-    else
+-        log "ERROR" "${RED}AI generator service unreachable on attempt $ATTEMPT${NC}"
+-        if [ $ATTEMPT -lt $MAX_ATTEMPTS ]; then
+-            sleep 10
+-        fi
+-    fi
+-
+-    ATTEMPT=$((ATTEMPT + 1))
+-done
+-
+-# Hard fail with NTFY alert if all attempts exhausted (NO TEMPLATE FALLBACK)
+-if [ "$AI_SUCCESS" = false ]; then
+-    log "ERROR" "${RED}CRITICAL: Council treatise generation failed after $MAX_ATTEMPTS attempts${NC}"
+-    log "ERROR" "${RED}NO TEMPLATE FALLBACK for critical content - hard fail${NC}"
+-
+-    # Send alert via NTFY
+-    if [ -n "$NTFY_URL" ]; then
+-        curl -sf -X POST "$NTFY_URL" \
+-            -H "Title: Council Generation Failed" \
+-            -H "Priority: high" \
+-            -H "Tags: warning,council,ai-failure" \
+-            -d "Council treatise generation failed after $MAX_ATTEMPTS attempts. Manual intervention required." \
+-            >/dev/null 2>&1 || log "WARN" "Failed to send NTFY alert"
+-    fi
+-
+-    # Exit with failure
+-    log "ERROR" "${RED}Exiting with failure status${NC}"
++# ═══════════════════════════════════════════════════════
++# NEW: Call synthesize-council-treatise.sh for structured generation
++# ═══════════════════════════════════════════════════════
++
++# Prepare feedback file path (ensure it exists)
++if [ ! -f "$FEEDBACK_FILE" ]; then
++    log "WARN" "${YELLOW}Feedback file not found, creating empty placeholder${NC}"
++    echo '[]' > "$FEEDBACK_FILE"
++fi
++
++log "INFO" "${BLUE}Invoking synthesis engine...${NC}"
++
++# Call synthesis script with all context
++SYNTHESIS_OUTPUT=$("${SCRIPTS_DIR}/synthesize-council-treatise.sh" \
++    --version "$NEW_VERSION" \
++    --prev-version "$CURRENT_VERSION" \
++    --axis "$CURRENT_AXIS" \
++    --feedback-file "$FEEDBACK_FILE" \
++    --dropbox-content "$DROPBOX_SUBMISSIONS" \
++    --noosphere-data "$RECALL_OUTPUT" \
++    --target-post "$TARGET_POST_ID" \
++    --deliberation-context "$DELIBERATION_PREAMBLE" \
++    2>&1)
++
++SYNTHESIS_EXIT_CODE=$?
++
++if [ $SYNTHESIS_EXIT_CODE -eq 0 ]; then
++    # Extract treatise from JSON output
++    REVISED_TREATISE=$(echo "$SYNTHESIS_OUTPUT" | jq -r '.treatise' 2>/dev/null)
++    
++    if [ -n "$REVISED_TREATISE" ] && [ "$REVISED_TREATISE" != "null" ]; then
++        log "SUCCESS" "${GREEN}Treatise synthesized (${#REVISED_TREATISE} chars)${NC}"
++        
++        # Optional: Extract guardrail proposal if present
++        GUARDRAIL_PROPOSAL=$(echo "$SYNTHESIS_OUTPUT" | jq -r '.guardrail // empty' 2>/dev/null)
++        if [ -n "$GUARDRAIL_PROPOSAL" ]; then
++            log "INFO" "${CYAN}Guardrail proposal detected: $GUARDRAIL_PROPOSAL${NC}"
++        fi
++    else
++        log "ERROR" "${RED}Synthesis script returned invalid JSON${NC}"
++        log "ERROR" "${RED}Output: ${SYNTHESIS_OUTPUT:0:500}${NC}"
++        exit 1
++    fi
++else
++    log "ERROR" "${RED}CRITICAL: Synthesis script failed (exit code: $SYNTHESIS_EXIT_CODE)${NC}"
++    log "ERROR" "${RED}Last 20 lines of output:${NC}"
++    echo "$SYNTHESIS_OUTPUT" | tail -20 >&2
++    
++    # Send NTFY alert
++    notify "error" "Council Synthesis Failed" \
++        "Synthesis script exited with code $SYNTHESIS_EXIT_CODE. Check logs for details."
++    
+     exit 1
+ fi
+ 
+-# Continue with successful AI-generated treatise
+-log "INFO" "${BLUE}Proceeding with AI-generated treatise${NC}"
+-
+-
+-
+-# Content is now generated directly in the case statement above
++# Validation: Check treatise length
+ if [ -z "$REVISED_TREATISE" ]; then
+     log "ERROR" "${RED}Failed to generate treatise content${NC}"
+-    notify "error" "Council Failed" "Empty treatise content"
+-    rm -f "$FEEDBACK_FILE"
++    notify "error" "Council Synthesis Failed" "Empty treatise content returned"
++    exit 1
++fi
++
++TREATISE_LENGTH=${#REVISED_TREATISE}
++if [ "$TREATISE_LENGTH" -lt 2000 ]; then
++    log "WARN" "${YELLOW}Treatise suspiciously short (${TREATISE_LENGTH} chars)${NC}"
++    notify "warning" "Council Synthesis Warning" \
++        "Treatise length only ${TREATISE_LENGTH} chars (expected 5000+). Review quality."
++elif [ "$TREATISE_LENGTH" -gt 20000 ]; then
++    log "WARN" "${YELLOW}Treatise unusually long (${TREATISE_LENGTH} chars)${NC}"
++    notify "warning" "Council Synthesis Warning" \
++        "Treatise length ${TREATISE_LENGTH} chars (expected ~5000-10000). May exceed Moltbook limits."
++else
++    log "INFO" "${GREEN}Treatise length within expected range (${TREATISE_LENGTH} chars)${NC}"
++fi
++
++# Validation: Check for 9 distinct sections
++SECTION_COUNT=$(echo "$REVISED_TREATISE" | grep -c '^### [0-9]\.' || echo 0)
++if [ "$SECTION_COUNT" -lt 9 ]; then
++    log "WARN" "${YELLOW}Expected 9 persona sections, found ${SECTION_COUNT}${NC}"
++    notify "warning" "Council Synthesis Warning" \
++        "Only ${SECTION_COUNT}/9 persona sections detected. Validate output."
++fi
++
++log "INFO" "${GREEN}Treatise validation complete${NC}"
++
++# ═══════════════════════════════════════════════════════
++# END SYNTHESIS INTEGRATION
++# ═══════════════════════════════════════════════════════
++# Continue with existing post-generation logic below...
++
++log "INFO" "${GREEN}Revised treatise generated (${#REVISED_TREATISE} chars)${NC}"
++
++# ═══════════════════════════════════════════════════════
++# Integration Point 3: Post-Synthesis Pattern Extraction
++# ═══════════════════════════════════════════════════════
++# (Existing code continues here unchanged...)
+log "INFO" "Extracting new synthesis patterns from treatise..."
