@@ -1,4 +1,14 @@
 /**
+ * Scoring module for hybrid search ranking
+ *
+ * Implements P4.1 hybrid search scoring with:
+ * - Semantic similarity scoring
+ * - Recency decay with exponential falloff
+ * - Author reputation multipliers
+ * - Follow-author boost
+ */
+import { PostScoringInputs, ScoringWeights, ScoringResult } from "./types";
+/**
  * Calculate recency multiplier with exponential decay
  *
  * Formula: (0.5 ^ (age / half_life)) ^ exponent
@@ -45,5 +55,7 @@ export declare function normalizeScores(scores: number[]): number[];
  * @param weights Optional ScoringWeights (uses defaults if omitted)
  * @returns ScoringResult with finalScore and optional debug info
  */
-export declare function scorePost(input: any, weights?: any): any;
+export declare function scorePost(input: PostScoringInputs, weights?: ScoringWeights & {
+    debug?: boolean;
+}): ScoringResult;
 //# sourceMappingURL=scoring.d.ts.map

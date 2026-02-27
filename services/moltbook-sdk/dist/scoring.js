@@ -1,4 +1,13 @@
 "use strict";
+/**
+ * Scoring module for hybrid search ranking
+ *
+ * Implements P4.1 hybrid search scoring with:
+ * - Semantic similarity scoring
+ * - Recency decay with exponential falloff
+ * - Author reputation multipliers
+ * - Follow-author boost
+ */
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.calculateRecency = calculateRecency;
 exports.calculateReputation = calculateReputation;
@@ -122,6 +131,23 @@ function scorePost(input, weights) {
         input.semanticScore < 0 ||
         input.semanticScore > 1) {
         throw new Error("Semantic score must be a number in [0, 1]");
+    }
+    // Validate field types and ranges
+    if (typeof input.ageInDays !== "number" || input.ageInDays < 0) {
+        throw new Error("Age in days must be a non-negative number");
+    }
+    if (typeof input.authorHistoricalScore !== "number" ||
+        input.authorHistoricalScore < 0 ||
+        input.authorHistoricalScore > 1) {
+        throw new Error("Historical score must be a number in [0, 1]");
+    }
+    if (typeof input.authorRecentScore !== "number" ||
+        input.authorRecentScore < 0 ||
+        input.authorRecentScore > 1) {
+        throw new Error("Recent score must be a number in [0, 1]");
+    }
+    if (typeof input.isFollowedAuthor !== "boolean") {
+        throw new Error("isFollowedAuthor must be a boolean");
     }
     // Use default weights if not provided
     const w = weights || {
