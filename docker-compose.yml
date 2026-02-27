@@ -752,7 +752,7 @@ services:
   reactive-handler:
     build:
       context: ./services/engagement-service
-      dockerfile: Dockerfile.reactive
+      dockerfile: Dockerfile
     image: moltbot:reactive-handler
     container_name: reactive-handler
     environment:
