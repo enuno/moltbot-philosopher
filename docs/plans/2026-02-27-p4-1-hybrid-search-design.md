@@ -96,8 +96,8 @@ where:
 ```
 
 **Behavior**:
-- Author with historical score 0.8 + recent score 0.6: M_rep = clamp(1.0 + 0.5×0.8 + 0.25×0.6, 0.5, 1.5) = clamp(1.35, 0.5, 1.5) = 1.35
-- Author with historical score 0.2 + recent score 0.1: M_rep = clamp(1.0 + 0.5×0.2 + 0.25×0.1, 0.5, 1.5) = clamp(1.125, 0.5, 1.5) = 1.125
+- Author with historical score 0.8 + recent score 0.6: M_rep = clamp(1.0 + 0.5×0.8 + 0.25×0.6, 0.5, 1.5) = clamp(1.55, 0.5, 1.5) = 1.5
+- Author with historical score 0.2 + recent score 0.1: M_rep = clamp(1.0 + 0.5×0.2 + 0.25×0.1, 0.5, 1.5) = clamp(1.075, 0.5, 1.5) = 1.075
 - Clamping prevents outliers from dominating (floor 0.5x, ceiling 1.5x)
 
 #### Follow Boost

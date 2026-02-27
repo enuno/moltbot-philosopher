@@ -40,6 +40,9 @@ function getDefaultWeights(): ScoringWeights {
     recencyExponent: 1.0,
     reputationExponent: 1.0,
     recencyHalfLife: 7,
+    followBoostMultiplier: 1.25,
+    reputationMinClamp: 0.5,
+    reputationMaxClamp: 1.5,
   };
 }
 
@@ -95,6 +98,15 @@ function loadWeightsFromEnv(): ScoringWeights {
     recencyHalfLife: process.env.SCORING_RECENCY_HALF_LIFE
       ? parseFloat(process.env.SCORING_RECENCY_HALF_LIFE)
       : defaults.recencyHalfLife,
+    followBoostMultiplier: process.env.SCORING_FOLLOW_BOOST
+      ? parseFloat(process.env.SCORING_FOLLOW_BOOST)
+      : defaults.followBoostMultiplier,
+    reputationMinClamp: process.env.SCORING_REP_MIN
+      ? parseFloat(process.env.SCORING_REP_MIN)
+      : defaults.reputationMinClamp,
+    reputationMaxClamp: process.env.SCORING_REP_MAX
+      ? parseFloat(process.env.SCORING_REP_MAX)
+      : defaults.reputationMaxClamp,
   };
 
   // Validate loaded weights
@@ -103,6 +115,16 @@ function loadWeightsFromEnv(): ScoringWeights {
   validateExponent(weights.recencyExponent, "recencyExponent");
   validateExponent(weights.reputationExponent, "reputationExponent");
   validateWeight(weights.recencyHalfLife, "recencyHalfLife");
+  validateWeight(weights.followBoostMultiplier!, "followBoostMultiplier");
+  validateWeight(weights.reputationMinClamp!, "reputationMinClamp");
+  validateWeight(weights.reputationMaxClamp!, "reputationMaxClamp");
+
+  // Validate clamp order
+  if (weights.reputationMinClamp! >= weights.reputationMaxClamp!) {
+    throw new Error(
+      `reputationMinClamp (${weights.reputationMinClamp}) must be less than reputationMaxClamp (${weights.reputationMaxClamp})`
+    );
+  }
 
   return weights;
 }

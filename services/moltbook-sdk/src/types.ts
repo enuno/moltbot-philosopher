@@ -222,6 +222,9 @@ export interface ScoringWeights {
   recencyExponent: number; // default 1.0
   reputationExponent: number; // default 1.0
   recencyHalfLife: number; // default 7 (days)
+  followBoostMultiplier?: number; // default 1.25 (multiplier for followed authors)
+  reputationMinClamp?: number; // default 0.5 (lower clamp bound for reputation)
+  reputationMaxClamp?: number; // default 1.5 (upper clamp bound for reputation)
   debug?: boolean; // optional debug output in result
 }
 

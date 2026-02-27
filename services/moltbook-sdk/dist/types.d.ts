@@ -201,6 +201,9 @@ export interface ScoringWeights {
     recencyExponent: number;
     reputationExponent: number;
     recencyHalfLife: number;
+    followBoostMultiplier?: number;
+    reputationMinClamp?: number;
+    reputationMaxClamp?: number;
     debug?: boolean;
 }
 /**

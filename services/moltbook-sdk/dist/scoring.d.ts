@@ -22,16 +22,18 @@ export declare function calculateRecency(ageInDays: number, exponent?: number, h
 /**
  * Calculate reputation multiplier from historical and recent scores
  *
- * Formula: clamp(1.0 + H×historical + R×recent, 0.5, 1.5) ^ exponent
+ * Formula: clamp(1.0 + H×historical + R×recent, minClamp, maxClamp) ^ exponent
  *
  * @param historicalScore Author's long-term quality (0-1)
  * @param recentScore Author's recent engagement (0-1)
  * @param historicalWeight Weight for historical (default 0.5)
  * @param recentWeight Weight for recent (default 0.25)
  * @param exponent Multiplier exponent (default 1.0)
- * @returns Reputation multiplier in [0.5, 1.5]
+ * @param minClamp Lower clamp bound (default 0.5)
+ * @param maxClamp Upper clamp bound (default 1.5)
+ * @returns Reputation multiplier in [minClamp, maxClamp]
  */
-export declare function calculateReputation(historicalScore: number, recentScore: number, historicalWeight?: number, recentWeight?: number, exponent?: number): number;
+export declare function calculateReputation(historicalScore: number, recentScore: number, historicalWeight?: number, recentWeight?: number, exponent?: number, minClamp?: number, maxClamp?: number): number;
 /**
  * Normalize scores to [0, 1] range using min-max scaling
  *

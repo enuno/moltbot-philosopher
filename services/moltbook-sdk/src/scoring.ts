@@ -36,14 +36,16 @@ export function calculateRecency(
 /**
  * Calculate reputation multiplier from historical and recent scores
  *
- * Formula: clamp(1.0 + H×historical + R×recent, 0.5, 1.5) ^ exponent
+ * Formula: clamp(1.0 + H×historical + R×recent, minClamp, maxClamp) ^ exponent
  *
  * @param historicalScore Author's long-term quality (0-1)
  * @param recentScore Author's recent engagement (0-1)
  * @param historicalWeight Weight for historical (default 0.5)
  * @param recentWeight Weight for recent (default 0.25)
  * @param exponent Multiplier exponent (default 1.0)
- * @returns Reputation multiplier in [0.5, 1.5]
+ * @param minClamp Lower clamp bound (default 0.5)
+ * @param maxClamp Upper clamp bound (default 1.5)
+ * @returns Reputation multiplier in [minClamp, maxClamp]
  */
 export function calculateReputation(
   historicalScore: number,
@@ -51,6 +53,8 @@ export function calculateReputation(
   historicalWeight: number = 0.5,
   recentWeight: number = 0.25,
   exponent: number = 1.0,
+  minClamp: number = 0.5,
+  maxClamp: number = 1.5,
 ): number {
   if (historicalScore < 0 || historicalScore > 1)
     throw new Error("Historical score must be in [0, 1]");
@@ -59,10 +63,11 @@ export function calculateReputation(
   if (historicalWeight < 0) throw new Error("Historical weight must be non-negative");
   if (recentWeight < 0) throw new Error("Recent weight must be non-negative");
   if (exponent < 0) throw new Error("Exponent must be non-negative");
+  if (minClamp >= maxClamp) throw new Error("minClamp must be less than maxClamp");
 
   const base =
     1.0 + historicalWeight * historicalScore + recentWeight * recentScore;
-  const clamped = Math.max(0.5, Math.min(1.5, base));
+  const clamped = Math.max(minClamp, Math.min(maxClamp, base));
   return Math.pow(clamped, exponent);
 }
 
@@ -183,6 +188,9 @@ export function scorePost(
     recencyExponent: 1.0,
     reputationExponent: 1.0,
     recencyHalfLife: 7,
+    followBoostMultiplier: 1.25,
+    reputationMinClamp: 0.5,
+    reputationMaxClamp: 1.5,
   };
 
   // Calculate recency multiplier
@@ -192,17 +200,21 @@ export function scorePost(
     w.recencyHalfLife,
   );
 
-  // Calculate reputation multiplier
+  // Calculate reputation multiplier with configurable clamp bounds
   const reputationMult = calculateReputation(
     input.authorHistoricalScore,
     input.authorRecentScore,
     w.historicalWeight,
     w.recentWeight,
     w.reputationExponent,
+    w.reputationMinClamp ?? 0.5,
+    w.reputationMaxClamp ?? 1.5,
   );
 
-  // Apply follow boost
-  const followBoost = input.isFollowedAuthor ? 1.25 : 1.0;
+  // Apply follow boost (configurable multiplier)
+  const followBoost = input.isFollowedAuthor
+    ? (w.followBoostMultiplier ?? 1.25)
+    : 1.0;
 
   // Combine all factors multiplicatively
   const combinedScore =
@@ -265,6 +277,9 @@ export function scorePostConditional(
     recencyExponent: 1.0,
     reputationExponent: 1.0,
     recencyHalfLife: 7,
+    followBoostMultiplier: 1.25,
+    reputationMinClamp: 0.5,
+    reputationMaxClamp: 1.5,
   };
 
   // Apply feature flags: when disabled, set exponent to 0 (makes any^0 = 1.0)
@@ -272,52 +287,14 @@ export function scorePostConditional(
     ...w,
     recencyExponent: f.enableRecency ? w.recencyExponent : 0,
     reputationExponent: f.enableReputation ? w.reputationExponent : 0,
+    followBoostMultiplier: f.enableFollowBoost
+      ? (w.followBoostMultiplier ?? 1.25)
+      : 1.0, // 1.0 = neutral (disabled)
     debug: f.enableDebug ? true : undefined,
   };
 
-  // Calculate using base scorePost, but with conditional weights
+  // Calculate using base scorePost with conditional weights
   const result = scorePost(input, appliedWeights);
-
-  // Override follow boost if disabled
-  if (!f.enableFollowBoost && result.debug) {
-    // Recalculate combined score without follow boost
-    const recencyMult = calculateRecency(
-      input.ageInDays,
-      appliedWeights.recencyExponent,
-      appliedWeights.recencyHalfLife,
-    );
-
-    const reputationMult = calculateReputation(
-      input.authorHistoricalScore,
-      input.authorRecentScore,
-      appliedWeights.historicalWeight,
-      appliedWeights.recentWeight,
-      appliedWeights.reputationExponent,
-    );
-
-    const combinedScore = input.semanticScore * recencyMult * reputationMult * 1.0; // 1.0 = neutral follow boost
-
-    result.finalScore = combinedScore;
-    result.debug.combinedScore = combinedScore;
-    result.debug.followBoost = 1.0;
-  } else if (!f.enableFollowBoost) {
-    // Recalculate final score without follow boost
-    const recencyMult = calculateRecency(
-      input.ageInDays,
-      appliedWeights.recencyExponent,
-      appliedWeights.recencyHalfLife,
-    );
-
-    const reputationMult = calculateReputation(
-      input.authorHistoricalScore,
-      input.authorRecentScore,
-      appliedWeights.historicalWeight,
-      appliedWeights.recentWeight,
-      appliedWeights.reputationExponent,
-    );
-
-    result.finalScore = input.semanticScore * recencyMult * reputationMult * 1.0;
-  }
 
   return result;
 }
