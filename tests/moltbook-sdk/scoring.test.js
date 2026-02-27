@@ -46,3 +46,33 @@ describe("Scoring Types", () => {
     expect(result.finalScore).toBe(0.92);
   });
 });
+
+describe("calculateRecency()", () => {
+  const { calculateRecency } = require("../../services/moltbook-sdk/dist/scoring");
+
+  it("should return 1.0 for 0-day-old post", () => {
+    const result = calculateRecency(0, 1.0, 7);
+    expect(result).toBeCloseTo(1.0, 2);
+  });
+
+  it("should return ~0.89 for 1-day-old post with half-life 7", () => {
+    const result = calculateRecency(1, 1.0, 7);
+    expect(result).toBeCloseTo(0.89, 1);
+  });
+
+  it("should return 0.5 for 7-day-old post (half-life)", () => {
+    const result = calculateRecency(7, 1.0, 7);
+    expect(result).toBeCloseTo(0.5, 1);
+  });
+
+  it("should return 0.25 for 14-day-old post", () => {
+    const result = calculateRecency(14, 1.0, 7);
+    expect(result).toBeCloseTo(0.25, 1);
+  });
+
+  it("should apply exponent to multiplier", () => {
+    const noExponent = calculateRecency(7, 1.0, 7);
+    const withExponent = calculateRecency(7, 2.0, 7);
+    expect(withExponent).toBeLessThan(noExponent);
+  });
+});
