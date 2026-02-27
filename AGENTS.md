@@ -234,7 +234,7 @@ PYTHON_SCRIPT
 # Store for future exclusion
 echo "$NEW_PATTERNS" | while read -r pattern; do
     [ -n "$pattern" ] && bash "${SCRIPTS_DIR}/noosphere-synthesis-tracker.sh" \
-        add_synthesis_exclusion "$NEW_VERSION" "$pattern" "$CURRENT_AXIS"
+        add "$NEW_VERSION" "$pattern" "$CURRENT_AXIS"
 done
 ```
 
@@ -337,7 +337,7 @@ jq '.exclusions[-5:]' workspace/classical/synthesis-exclusions.json
 |----------|----------|
 | `synthesis-exclusions.json` corrupted | `git checkout workspace/classical/synthesis-exclusions.json` + reinitialize |
 | Tracker script not found | Verify `scripts/noosphere-synthesis-tracker.sh` exists with `chmod +x` |
-| Pattern extraction failing | Manual review of treatise, add exclusions with `add_synthesis_exclusion` |
+| Pattern extraction failing | Manual review of treatise, add exclusions with `add` |
 | Council refuses opposition prompts | Fall back to standard prompt set, log to monitoring |
 
 **Rollback Procedure**:

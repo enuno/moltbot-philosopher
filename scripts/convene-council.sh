@@ -308,13 +308,8 @@ if [ "$DRY_RUN" == "--dry-run" ]; then
     # Show current evolution axis
     log "INFO" "Evolution Axis: ${CURRENT_AXIS}"
 
-    # Show loaded exclusions count
-    # The synthesis state is at PROJECT_ROOT/synthesis-state/synthesis-exclusions.json
-    # WORKSPACE_DIR defaults to /workspace, but in standalone mode it's the moltbot root
-    PROJECT_ROOT=$(cd "$(dirname "${SCRIPTS_DIR}")" && pwd)
-    SYNTHESIS_STATE="${PROJECT_ROOT}/synthesis-state/synthesis-exclusions.json"
-    if [ -f "$SYNTHESIS_STATE" ]; then
-        exclusion_count=$(jq -r '.exclusion_count // 0' "$SYNTHESIS_STATE" 2>/dev/null || echo 0)
+    # Show loaded exclusions count (uses exclusion_count from Integration Point 1)
+    if [ "${exclusion_count:-0}" -gt 0 ]; then
         log "INFO" "Previously synthesized patterns loaded: ${exclusion_count}"
     else
         log "INFO" "No synthesis history available for this axis"
@@ -728,7 +723,7 @@ log "INFO" "Extracting new synthesis patterns from treatise..."
 # These are novel insights that should be excluded from future synthesis
 if [ -n "$REVISED_TREATISE" ]; then
   # Use Python to extract patterns (more reliable than bash regex for complex text)
-  extracted_patterns=$(cat <<'PYTHON_EOF' | python3
+  extracted_patterns=$(cat <<PYTHON_EOF | python3
 import re
 import sys
 

@@ -97,7 +97,7 @@ get_exclusions_for_axis() {
         .exclusions[] |
         select(.axis == $a) |
         .pattern
-    ' "$EXCLUSIONS_FILE" 2>/dev/null | head -20
+    ' "$EXCLUSIONS_FILE" 2>/dev/null | tail -20
 
     return 0
 }

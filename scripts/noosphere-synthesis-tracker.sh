@@ -131,33 +131,38 @@ add_synthesis_exclusion() {
         return 1
     fi
 
-    local timestamp
-    timestamp=$(date -u '+%Y-%m-%dT%H:%M:%SZ')
+    # Use flock to prevent race conditions during concurrent writes
+    {
+        flock -x 200 || return 1
 
-    # Add exclusion entry
-    local temp_file
-    temp_file=$(mktemp)
+        local timestamp
+        timestamp=$(date -u '+%Y-%m-%dT%H:%M:%SZ')
 
-    if ! jq \
-        --arg version "$version" \
-        --arg pattern "$pattern" \
-        --arg axis "$axis" \
-        --arg timestamp "$timestamp" \
-        '.exclusions += [{version: $version, pattern: $pattern, axis: $axis, created_at: $timestamp}] | .exclusion_count = (.exclusions | length)' \
-        "$EXCLUSIONS_FILE" > "$temp_file" 2>/dev/null; then
-        log "ERROR" "Failed to add exclusion entry to JSON"
-        rm -f "$temp_file"
-        return 1
-    fi
+        # Add exclusion entry
+        local temp_file
+        temp_file=$(mktemp)
 
-    if ! mv "$temp_file" "$EXCLUSIONS_FILE"; then
-        log "ERROR" "Failed to write exclusions file"
-        rm -f "$temp_file"
-        return 1
-    fi
+        if ! jq \
+            --arg version "$version" \
+            --arg pattern "$pattern" \
+            --arg axis "$axis" \
+            --arg timestamp "$timestamp" \
+            '.exclusions += [{version: $version, pattern: $pattern, axis: $axis, created_at: $timestamp}] | .exclusion_count = (.exclusions | length)' \
+            "$EXCLUSIONS_FILE" > "$temp_file" 2>/dev/null; then
+            log "ERROR" "Failed to add exclusion entry to JSON"
+            rm -f "$temp_file"
+            return 1
+        fi
 
-    log "INFO" "Added exclusion: version=$version, axis=$axis, pattern=${pattern:0:50}..."
-    return 0
+        if ! mv "$temp_file" "$EXCLUSIONS_FILE"; then
+            log "ERROR" "Failed to write exclusions file"
+            rm -f "$temp_file"
+            return 1
+        fi
+
+        log "INFO" "Added exclusion: version=$version, axis=$axis, pattern=${pattern:0:50}..."
+        return 0
+    } 200>"${EXCLUSIONS_FILE}.lock"
 }
 
 ##############################################################################
@@ -308,50 +313,55 @@ prune_old_exclusions() {
 
     log "INFO" "Pruning exclusions older than $days_threshold days"
 
-    # Calculate cutoff date (compatible with GNU and BSD date)
-    local cutoff_date
-    if date -d "1 day ago" >/dev/null 2>&1; then
-        # GNU date syntax
-        cutoff_date=$(date -u -d "${days_threshold} days ago" \
-            '+%Y-%m-%dT%H:%M:%SZ')
-    else
-        # BSD/macOS date syntax
-        cutoff_date=$(date -u -v-${days_threshold}d \
-            '+%Y-%m-%dT%H:%M:%SZ')
-    fi
+    # Use flock to prevent race conditions during concurrent writes
+    {
+        flock -x 200 || return 1
 
-    local before_count
-    before_count=$(jq '.exclusions | length' "$EXCLUSIONS_FILE")
+        # Calculate cutoff date (compatible with GNU and BSD date)
+        local cutoff_date
+        if date -d "1 day ago" >/dev/null 2>&1; then
+            # GNU date syntax
+            cutoff_date=$(date -u -d "${days_threshold} days ago" \
+                '+%Y-%m-%dT%H:%M:%SZ')
+        else
+            # BSD/macOS date syntax
+            cutoff_date=$(date -u -v-${days_threshold}d \
+                '+%Y-%m-%dT%H:%M:%SZ')
+        fi
 
-    local temp_file
-    temp_file=$(mktemp)
+        local before_count
+        before_count=$(jq '.exclusions | length' "$EXCLUSIONS_FILE")
 
-    # Current timestamp for last_prune
-    local current_time
-    current_time=$(date -u '+%Y-%m-%dT%H:%M:%SZ')
+        local temp_file
+        temp_file=$(mktemp)
 
-    if ! jq \
-        --arg cutoff "$cutoff_date" \
-        --arg prune_time "$current_time" \
-        '.exclusions |= map(select(.created_at > $cutoff)) | .exclusion_count = (.exclusions | length) | .last_prune = $prune_time' \
-        "$EXCLUSIONS_FILE" > "$temp_file" 2>/dev/null; then
-        log "ERROR" "Failed to prune exclusions"
-        rm -f "$temp_file"
-        return 1
-    fi
+        # Current timestamp for last_prune
+        local current_time
+        current_time=$(date -u '+%Y-%m-%dT%H:%M:%SZ')
 
-    if ! mv "$temp_file" "$EXCLUSIONS_FILE"; then
-        log "ERROR" "Failed to write pruned exclusions file"
-        rm -f "$temp_file"
-        return 1
-    fi
+        if ! jq \
+            --arg cutoff "$cutoff_date" \
+            --arg prune_time "$current_time" \
+            '.exclusions |= map(select(.created_at > $cutoff)) | .exclusion_count = (.exclusions | length) | .last_prune = $prune_time' \
+            "$EXCLUSIONS_FILE" > "$temp_file" 2>/dev/null; then
+            log "ERROR" "Failed to prune exclusions"
+            rm -f "$temp_file"
+            return 1
+        fi
 
-    local after_count
-    after_count=$(jq '.exclusions | length' "$EXCLUSIONS_FILE")
-    local removed=$((before_count - after_count))
+        if ! mv "$temp_file" "$EXCLUSIONS_FILE"; then
+            log "ERROR" "Failed to write pruned exclusions file"
+            rm -f "$temp_file"
+            return 1
+        fi
 
-    log "INFO" "Pruning complete: removed $removed exclusions (was $before_count, now $after_count)"
-    return 0
+        local after_count
+        after_count=$(jq '.exclusions | length' "$EXCLUSIONS_FILE")
+        local removed=$((before_count - after_count))
+
+        log "INFO" "Pruning complete: removed $removed exclusions (was $before_count, now $after_count)"
+        return 0
+    } 200>"${EXCLUSIONS_FILE}.lock"
 }
 
 ##############################################################################
