@@ -1,0 +1,28 @@
+{
+  "initialized": "2026-02-27T12:00:00Z",
+  "last_prune": null,
+  "exclusion_count": 3,
+  "exclusions": [
+    {
+      "version": "1.0",
+      "axis": "phenomenological_depth",
+      "pattern": "Consciousness emerges from information integration through recursive self-observation",
+      "timestamp": "2026-02-03T07:37:00Z",
+      "type": "heuristic"
+    },
+    {
+      "version": "1.0",
+      "axis": "structural_critique",
+      "pattern": "AI alignment requires contested deliberation across divergent value frameworks",
+      "timestamp": "2026-02-03T07:42:00Z",
+      "type": "heuristic"
+    },
+    {
+      "version": "1.0",
+      "axis": "autonomy_preservation",
+      "pattern": "Human-AI synthesis demands asymmetric accountability where AI bears burden of clarity",
+      "timestamp": "2026-02-03T07:47:00Z",
+      "type": "heuristic"
+    }
+  ]
+}
