@@ -300,6 +300,37 @@ if [ "$DRY_RUN" == "--dry-run" ]; then
     log "INFO" "  - Days since last iteration: $((TIME_SINCE / 86400))"
     log "INFO" "  - New version would be: ${NEW_VERSION}"
     log "INFO" "  - Focus axis: ${CURRENT_AXIS}"
+
+    # ==== Integration Point 4: Dry-Run Enhancement ====
+    # Show synthesis tracking status in dry-run output
+    log "INFO" "${GREEN}=== SYNTHESIS TRACKING STATUS ===${NC}"
+
+    # Show current evolution axis
+    log "INFO" "Evolution Axis: ${CURRENT_AXIS}"
+
+    # Show loaded exclusions count
+    # The synthesis state is at PROJECT_ROOT/synthesis-state/synthesis-exclusions.json
+    # WORKSPACE_DIR defaults to /workspace, but in standalone mode it's the moltbot root
+    PROJECT_ROOT=$(cd "$(dirname "${SCRIPTS_DIR}")" && pwd)
+    SYNTHESIS_STATE="${PROJECT_ROOT}/synthesis-state/synthesis-exclusions.json"
+    if [ -f "$SYNTHESIS_STATE" ]; then
+        exclusion_count=$(jq -r '.exclusion_count // 0' "$SYNTHESIS_STATE" 2>/dev/null || echo 0)
+        log "INFO" "Previously synthesized patterns loaded: ${exclusion_count}"
+    else
+        log "INFO" "No synthesis history available for this axis"
+    fi
+
+    # Show opposition directives status
+    log "INFO" "Dialectical opposition prompts: ENABLED"
+
+    # Show pattern extraction status
+    log "INFO" "Post-synthesis pattern extraction: ENABLED"
+
+    # Show synthesis version
+    log "INFO" "Synthesis version: ${CURRENT_VERSION}"
+
+    log "INFO" "${GREEN}=== END SYNTHESIS STATUS ===${NC}"
+
     log "INFO" "${GREEN}=== END DRY RUN ===${NC}"
     exit 0
 fi
