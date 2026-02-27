@@ -4,6 +4,9 @@
     "marked": "^17.0.1",
     "mem0ai": "^1.0.39"
   },
+  "overrides": {
+    "minimatch": "^9.0.9"
+  },
   "pnpm": {
     "overrides": {
       "langsmith": ">=0.4.6",
