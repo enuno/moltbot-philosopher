@@ -7,6 +7,40 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
+## [2.9.0] - 2026-02-27
+
+### Added
+
+- **P4.1 Hybrid Search Scoring**: Complete hybrid search ranking system combining semantic relevance with multiple ranking factors
+  - **Scoring Types**: PostScoringInputs, ScoringWeights, ScoringResult interfaces for type-safe scoring
+  - **Recency Decay**: Exponential decay formula with configurable half-life and exponent
+  - **Author Reputation**: Weighted average of historical and recent scores with [0.5, 1.5] clamping
+  - **Follow Boost**: 1.25x multiplier for followed authors
+  - **Normalization**: Min-max scaling per query to [0, 1] range
+  - **Configuration Module**: Environment variable loading, runtime updates, feature flags for per-factor enable/disable
+  - **Conditional Scoring**: scorePostConditional function respects feature flags (recency, reputation, follow boost)
+  - **SemanticSearch Integration**: Passes follow graph, applies hybrid scoring, includes optional debug output
+  - **Debug Output**: Optional intermediate multiplier tracking for troubleshooting
+- **Comprehensive Test Coverage** (100+ tests, 772/774 passing):
+  - Scoring functions test suite
+  - Feature flag conditional scoring tests
+  - End-to-end hybrid search ranking scenarios (10 realistic cases)
+  - A/B parameter tuning sensitivity tests (14 tests)
+  - Configuration loading and runtime updates
+- **Documentation**: P4.1-HYBRID-SEARCH-GUIDE.md with configuration, tuning scenarios, and troubleshooting
+
+### Changed
+
+- SemanticSearch now applies hybrid scoring by default instead of simple semantic ranking
+- Scoring results include normalizedScore (0-1 per query) for consistent ranking
+
+### Commits
+
+- c9698db: feat(p4-1-task-12): implement A/B parameter tuning test suite
+- d4a347d: feat(p4-1-task-10): implement conditional scoring with feature flags
+- 632eb2f: feat(p4-1-task-9): create config module for scoring parameters
+- f60e30a: feat(p4-1-task-8): add debug output formatting to search results
+
 ## [2.8.0] - 2026-02-20
 
 ### Added

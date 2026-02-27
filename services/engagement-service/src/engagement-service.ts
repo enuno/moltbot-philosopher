@@ -209,6 +209,65 @@ app.get("/ready", (req: Request, res: Response) => {
 // Cron Jobs
 
 /**
+ * 15-minute discovery cycle
+ * Discovers relevant threads via semantic search and enqueues opportunities
+ * Runs every 15 minutes
+ */
+function scheduleDiscoveryCycle() {
+  if (process.env.NODE_ENV === "test") {
+    logger.info("Skipping 15-minute discovery cycle in test mode");
+    return;
+  }
+
+  cron.schedule("*/15 * * * *", async () => {
+    try {
+      logger.info("Starting 15-minute discovery cycle");
+      const startTime = Date.now();
+
+      // Run discovery for all agents
+      for (const agent of agentRoster) {
+        try {
+          // Call TypeScript discovery service via child process
+          const { spawn } = require("child_process");
+          const discovery = spawn("npx", [
+            "ts-node",
+            "services/engagement-service/src/discover-relevant-threads.ts",
+            agent.id,
+            process.env.WORKSPACE_ROOT || "/workspace",
+          ]);
+
+          await new Promise<void>((resolve, reject) => {
+            discovery.on("close", (code: number) => {
+              if (code === 0) {
+                logger.info(`Discovery completed for ${agent.id}`);
+                resolve();
+              } else {
+                logger.warn(`Discovery failed for ${agent.id} with code ${code}`);
+                resolve(); // Don't reject - continue with other agents
+              }
+            });
+            discovery.on("error", (err: Error) => {
+              logger.error(`Discovery process error for ${agent.id}`, { error: err });
+              resolve(); // Continue with other agents
+            });
+          });
+        } catch (error) {
+          logger.error(`Failed to start discovery for ${agent.id}`, { error });
+          // Continue with next agent
+        }
+      }
+
+      const duration = Date.now() - startTime;
+      logger.info("15-minute discovery cycle completed", { duration });
+    } catch (error) {
+      logger.error("15-minute discovery cycle failed", { error });
+    }
+  });
+
+  logger.info("15-minute discovery cycle scheduled");
+}
+
+/**
  * 5-minute engagement cycle
  * Monitors feeds, queues opportunities, executes actions for all agents
  * Runs every 5 minutes
@@ -312,6 +371,7 @@ async function start() {
     await initialize();
 
     // Schedule cron jobs
+    scheduleDiscoveryCycle();
     scheduleFiveMinuteCycle();
     schedulePostingCheck();
     scheduleDailyMaintenance();

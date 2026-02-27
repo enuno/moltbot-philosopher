@@ -1,144 +1,92 @@
 #!/bin/bash
-# discover-relevant-threads.sh - Semantic search for philosophically relevant content
 #
-# Uses the Moltbook /search endpoint to find threads semantically similar to the
-# agent's interests. Deduplicates against seen-threads.json to avoid re-engaging.
+# Discover Relevant Threads
+# Semantic search discovery for proactive agent engagement
+#
+# Part of Phase 3.7.6: Thread discovery integration
+# Queries Moltbook /search API for threads matching each agent's tradition,
+# then enqueues opportunities to the engagement service for P2.2 quality scoring
 #
 # Usage:
-#   discover-relevant-threads.sh --agent=<name> --query=<topic> \
-#     [--min-similarity=0.6] [--limit=5]
+#   discover-relevant-threads.sh [agent-name]
 #
-# Output: JSON lines, one per result: {"id":"...","title":"...","similarity":0.85}
-# Environment: MOLTBOOK_API_KEY, MOLTBOOK_API_BASE
+# If agent-name is provided, discover only for that agent.
+# Otherwise, discovers for all agents.
+
 set -euo pipefail
 
-API_BASE="${MOLTBOOK_API_BASE:-https://www.moltbook.com/api/v1}"
-API_KEY="${MOLTBOOK_API_KEY:-}"
-AGENT=""
-QUERY=""
-MIN_SIMILARITY="0.6"
-LIMIT="5"
-MAX_SEEN_THREADS=500
+# Configuration
+WORKSPACE_ROOT="${WORKSPACE_ROOT:-/workspace}"
+ENGAGEMENT_SERVICE_URL="${ENGAGEMENT_SERVICE_URL:-http://localhost:3010}"
+MOLTBOOK_API_KEY="${MOLTBOOK_API_KEY:-}"
+SERVICE_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/../services/engagement-service" && pwd)"
+LOG_FILE="${LOG_FILE:-/app/logs/discovery.log}"
 
-# Parse arguments
-for arg in "$@"; do
-  case "$arg" in
-    --agent=*)   AGENT="${arg#--agent=}" ;;
-    --query=*)   QUERY="${arg#--query=}" ;;
-    --min-similarity=*) MIN_SIMILARITY="${arg#--min-similarity=}" ;;
-    --limit=*)   LIMIT="${arg#--limit=}" ;;
-    *) echo "Unknown argument: $arg" >&2; exit 1 ;;
-  esac
+# Colors
+RED='\033[0;31m'
+GREEN='\033[0;32m'
+YELLOW='\033[1;33m'
+BLUE='\033[0;34m'
+NC='\033[0m'
+
+log_info() {
+    echo -e "${BLUE}ℹ${NC} $1" | tee -a "${LOG_FILE}" 2>/dev/null || echo -e "${BLUE}ℹ${NC} $1"
+}
+
+log_success() {
+    echo -e "${GREEN}✓${NC} $1" | tee -a "${LOG_FILE}" 2>/dev/null || echo -e "${GREEN}✓${NC} $1"
+}
+
+log_error() {
+    echo -e "${RED}✗${NC} $1" | tee -a "${LOG_FILE}" 2>/dev/null || echo -e "${RED}✗${NC} $1"
+}
+
+# Validate environment
+if [ -z "$MOLTBOOK_API_KEY" ]; then
+    log_error "MOLTBOOK_API_KEY not set. Discovery skipped."
+    exit 1
+fi
+
+if [ ! -f "$SERVICE_DIR/src/discover-relevant-threads.ts" ]; then
+    log_error "discover-relevant-threads.ts not found at $SERVICE_DIR/src/"
+    exit 1
+fi
+
+# Get list of agents
+AGENTS=()
+if [ $# -gt 0 ] && [ -n "$1" ]; then
+    AGENTS=("$1")
+else
+    for agent_dir in "$WORKSPACE_ROOT"/*; do
+        if [ -d "$agent_dir" ] && [ -f "$agent_dir/engagement-state.json" ]; then
+            agent_name=$(basename "$agent_dir")
+            AGENTS+=("$agent_name")
+        fi
+    done
+fi
+
+if [ ${#AGENTS[@]} -eq 0 ]; then
+    log_error "No agents found"
+    exit 1
+fi
+
+log_info "Starting discovery for ${#AGENTS[@]} agent(s)..."
+
+FAILED=0
+for agent in "${AGENTS[@]}"; do
+    log_info "Discovering for: $agent"
+    if npx ts-node "$SERVICE_DIR/src/discover-relevant-threads.ts" "$agent" "$WORKSPACE_ROOT" 2>&1 | tee -a "${LOG_FILE}"; then
+        log_success "Discovery completed for $agent"
+    else
+        log_error "Discovery failed for $agent"
+        FAILED=$((FAILED + 1))
+    fi
 done
 
-if [ -z "$AGENT" ] || [ -z "$QUERY" ]; then
-  echo "Usage: $0 --agent=<name> --query=<topic> [--min-similarity=0.6] [--limit=5]" >&2
-  exit 1
-fi
-if [ -z "$API_KEY" ]; then
-  echo "ERROR: MOLTBOOK_API_KEY not set" >&2
-  exit 1
-fi
-
-WORKSPACE_DIR="/workspace/${AGENT}"
-SEEN_FILE="${WORKSPACE_DIR}/seen-threads.json"
-
-# URL-encode the query (replace spaces and common special chars)
-ENCODED_QUERY=$(echo "$QUERY" | sed 's/ /%20/g; s/&/%26/g; s/?/%3F/g; s/#/%23/g')
-
-# Load seen thread IDs (one per line from JSON array)
-if [ -f "$SEEN_FILE" ]; then
-  SEEN_IDS=$(grep -oE '"[a-zA-Z0-9_-]+"' "$SEEN_FILE" | tr -d '"' || true)
+if [ $FAILED -eq 0 ]; then
+    log_success "Discovery complete: ${#AGENTS[@]} agent(s) processed"
+    exit 0
 else
-  SEEN_IDS=""
-fi
-
-# Fetch search results (search up to 20 to have headroom after filtering)
-SEARCH_RESPONSE=$(curl -s -X GET \
-  "${API_BASE}/search?q=${ENCODED_QUERY}&limit=20&sort=relevance" \
-  -H "Authorization: Bearer ${API_KEY}" \
-  -H "Content-Type: application/json" \
-  2>/dev/null || echo '{"results":[]}')
-
-# Parse results: extract id, title, similarity using awk (no jq required)
-# Expected format: {"results": [{"id": "...", "title": "...", "similarity": 0.85}, ...]}
-RESULTS=$(echo "$SEARCH_RESPONSE" | awk -v min_sim="$MIN_SIMILARITY" -v limit="$LIMIT" '
-BEGIN {
-  in_results = 0
-  count = 0
-  id = ""; title = ""; similarity = ""
-}
-{
-  # Extract fields - simplified single-line JSON parser for result objects
-  while (match($0, /"id":"([^"]+)"/, a)) {
-    id = a[1]; $0 = substr($0, RSTART + RLENGTH)
-    if (match($0, /"title":"([^"]*)"/, b)) {
-      title = b[1]; $0 = substr($0, RSTART + RLENGTH)
-    }
-    if (match($0, /"similarity":([0-9.]+)/, c)) {
-      similarity = c[1]
-      if (similarity + 0 >= min_sim + 0 && count < limit + 0) {
-        print "{\"id\":\"" id "\",\"title\":\"" title "\",\"similarity\":" similarity "}"
-        count++
-      }
-    }
-    id = ""; title = ""; similarity = ""
-  }
-}
-' 2>/dev/null || true)
-
-if [ -z "$RESULTS" ]; then
-  exit 0
-fi
-
-# Filter out already-seen thread IDs and output new ones
-NEW_IDS=""
-while IFS= read -r result_line; do
-  # Extract ID from JSON line
-  thread_id=$(echo "$result_line" | grep -oE '"id":"[^"]+"' | cut -d'"' -f4)
-  if [ -z "$thread_id" ]; then
-    continue
-  fi
-
-  # Check if already seen
-  if echo "$SEEN_IDS" | grep -qxF "$thread_id" 2>/dev/null; then
-    continue  # Already seen, skip
-  fi
-
-  echo "$result_line"
-  NEW_IDS="${NEW_IDS} ${thread_id}"
-done <<< "$RESULTS"
-
-# Update seen-threads.json with newly seen IDs (rotate to max MAX_SEEN_THREADS)
-if [ -n "$NEW_IDS" ]; then
-  # Collect all existing IDs
-  ALL_IDS=""
-  if [ -f "$SEEN_FILE" ]; then
-    ALL_IDS=$(grep -oE '"[a-zA-Z0-9_-]+"' "$SEEN_FILE" | tr -d '"' || true)
-  fi
-
-  for new_id in $NEW_IDS; do
-    ALL_IDS="${ALL_IDS}
-${new_id}"
-  done
-
-  # Deduplicate and limit to MAX_SEEN_THREADS most recent entries
-  UNIQUE_IDS=$(echo "$ALL_IDS" | grep -v '^$' | awk '!seen[$0]++' | tail -n "$MAX_SEEN_THREADS")
-
-  # Write updated seen-threads.json
-  mkdir -p "$WORKSPACE_DIR"
-  {
-    echo "["
-    first=true
-    while IFS= read -r id_entry; do
-      [ -z "$id_entry" ] && continue
-      if [ "$first" = true ]; then
-        echo "  \"${id_entry}\""
-        first=false
-      else
-        echo "  ,\"${id_entry}\""
-      fi
-    done <<< "$UNIQUE_IDS"
-    echo "]"
-  } > "${SEEN_FILE}.tmp" && mv "${SEEN_FILE}.tmp" "$SEEN_FILE"
+    log_error "Discovery failed for $FAILED agent(s)"
+    exit 1
 fi

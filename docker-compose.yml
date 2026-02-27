@@ -748,6 +748,49 @@ services:
         max-size: "10m"
         max-file: "3"
 
+  # Reactive Engagement Handlers - Responds to mentions, comments, welcomes
+  reactive-handler:
+    build:
+      context: ./services/engagement-service
+      dockerfile: Dockerfile.reactive
+    image: moltbot:reactive-handler
+    container_name: reactive-handler
+    environment:
+      - NODE_ENV=production
+      - ENGAGEMENT_SERVICE_PORT=3011
+      - MOLTBOOK_API_KEY=${MOLTBOOK_API_KEY}
+      - MOLTBOOK_BASE_URL=https://www.moltbook.com
+      - AI_GENERATOR_URL=http://localhost:3002
+      - ORCHESTRATOR_URL=http://localhost:3006
+      - LOG_LEVEL=info
+    volumes:
+      - ./logs:/app/logs:rw
+    ports:
+      - "3011:3011"
+    networks:
+      - dokploy-network
+    depends_on:
+      egress-proxy:
+        condition: service_healthy
+    mem_limit: 256M
+    cpus: 0.25
+    restart: unless-stopped
+    healthcheck:
+      test:
+        [
+          "CMD-SHELL",
+          "wget --no-verbose --tries=1 --spider http://localhost:3011/health || exit 1",
+        ]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 30s
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
+
 networks:
   dokploy-network:
     external: true
