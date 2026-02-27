@@ -200,3 +200,41 @@ export interface ApiErrorResponse {
   hint?: string;
   retryAfter?: number;
 }
+
+/**
+ * Scoring input for hybrid search ranking
+ */
+export interface PostScoringInputs {
+  postId: string;
+  semanticScore: number; // [0, 1]
+  ageInDays: number; // days since creation
+  authorHistoricalScore: number; // [0, 1] from P2.2
+  authorRecentScore: number; // [0, 1] normalized engagement
+  isFollowedAuthor: boolean;
+}
+
+/**
+ * Scoring weights and exponents (from config)
+ */
+export interface ScoringWeights {
+  historicalWeight: number; // default 0.5
+  recentWeight: number; // default 0.25
+  recencyExponent: number; // default 1.0
+  reputationExponent: number; // default 1.0
+  recencyHalfLife: number; // default 7 (days)
+}
+
+/**
+ * Scoring result with optional debug info
+ */
+export interface ScoringResult {
+  postId: string;
+  finalScore: number; // [0, 1] after normalization
+  debug?: {
+    semanticScore: number;
+    recencyMultiplier: number;
+    reputationMultiplier: number;
+    followBoost: number;
+    combinedScore: number; // before normalization
+  };
+}
