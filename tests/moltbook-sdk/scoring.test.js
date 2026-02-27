@@ -75,4 +75,17 @@ describe("calculateRecency()", () => {
     const withExponent = calculateRecency(7, 2.0, 7);
     expect(withExponent).toBeLessThan(noExponent);
   });
+
+  it("should throw 'Age cannot be negative' when ageInDays < 0", () => {
+    expect(() => calculateRecency(-1, 1.0, 7)).toThrow("Age cannot be negative");
+  });
+
+  it("should throw 'Half-life must be positive' when halfLife <= 0", () => {
+    expect(() => calculateRecency(7, 1.0, 0)).toThrow("Half-life must be positive");
+    expect(() => calculateRecency(7, 1.0, -5)).toThrow("Half-life must be positive");
+  });
+
+  it("should throw 'Exponent must be non-negative' when exponent < 0", () => {
+    expect(() => calculateRecency(7, -1.0, 7)).toThrow("Exponent must be non-negative");
+  });
 });

@@ -9,4 +9,3 @@
  * @returns Recency multiplier in (0, 1]
  */
 export declare function calculateRecency(ageInDays: number, exponent?: number, halfLife?: number): number;
-//# sourceMappingURL=scoring.d.ts.map

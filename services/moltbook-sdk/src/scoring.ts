@@ -15,6 +15,7 @@ export function calculateRecency(
 ): number {
   if (ageInDays < 0) throw new Error("Age cannot be negative");
   if (halfLife <= 0) throw new Error("Half-life must be positive");
+  if (exponent < 0) throw new Error("Exponent must be non-negative");
 
   const decayRate = Math.pow(0.5, ageInDays / halfLife);
   return Math.pow(decayRate, exponent);
