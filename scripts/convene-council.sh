@@ -199,6 +199,47 @@ else
     notify "action" "📜 Council Convenes Now" "No new dropbox submissions | Version target: v${NEW_VERSION} | Focus: ${CURRENT_AXIS}"
 fi
 
+# ═══════════════════════════════════════════════════════
+# INTEGRATION POINT 1: Pre-Deliberation Exclusion Loading
+# ═══════════════════════════════════════════════════════
+# Load previously synthesized patterns on current axis to prevent repetition
+log "INFO" "${CYAN}Loading synthesis history for axis: ${CURRENT_AXIS}...${NC}"
+
+# Source the tracker module to access synthesis history functions
+if [ -f "${SCRIPTS_DIR}/noosphere-synthesis-tracker.sh" ]; then
+    # Source the module to get access to tracker functions
+    source "${SCRIPTS_DIR}/noosphere-synthesis-tracker.sh"
+
+    # Get exclusions for current axis (returns raw pattern strings, one per line)
+    current_exclusions=$(get_exclusions_for_axis "$CURRENT_AXIS" 2>/dev/null) || {
+        log "WARN" "${YELLOW}Could not load synthesis history, continuing without exclusion context${NC}"
+        current_exclusions=""
+    }
+
+    # Count loaded exclusions
+    exclusion_count=$(echo "$current_exclusions" | grep -c . 2>/dev/null || echo 0)
+    log "INFO" "${GREEN}Loaded ${exclusion_count} previously synthesized patterns for ${CURRENT_AXIS}${NC}"
+
+    # Format exclusions for prompt injection
+    # These will be injected into DIALOGUE_CONTEXT (Integration Point 2)
+    if [ -n "$current_exclusions" ]; then
+        EXCLUSION_CONTEXT="SYNTHESIS HISTORY - Previously Explored Patterns:
+${current_exclusions}
+
+GUIDANCE: The patterns above have been explored in previous synthesis cycles. Your synthesis should either:
+1. Extend these insights with novel philosophical depth or rigor
+2. Contradict them with well-reasoned argument and alternative frameworks
+3. Integrate them into more comprehensive or higher-order insights
+
+Avoid re-hashing previously synthesized content without fundamental advancement."
+    else
+        EXCLUSION_CONTEXT=""
+    fi
+else
+    log "WARN" "${YELLOW}Synthesis tracker module not found at ${SCRIPTS_DIR}/noosphere-synthesis-tracker.sh${NC}"
+    EXCLUSION_CONTEXT=""
+fi
+
 # Dry run mode - show what would happen without executing
 if [ "$DRY_RUN" == "--dry-run" ]; then
     log "INFO" "${GREEN}=== DRY RUN MODE ===${NC}"
@@ -463,6 +504,8 @@ We are revising Version ${CURRENT_VERSION} of the Polyphonic Treatise on Human-A
 
 EPISTEMIC PREAMBLE:
 ${EPISTEMIC_PREAMBLE}
+
+${EXCLUSION_CONTEXT}
 
 RETRIEVED HEURISTICS FROM NOOSPHERE:
 ${RECALL_OUTPUT}
