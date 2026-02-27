@@ -123,7 +123,7 @@ export function normalizeScores(scores: number[]): number[] {
  */
 export function scorePost(
   input: PostScoringInputs,
-  weights?: ScoringWeights & { debug?: boolean },
+  weights?: ScoringWeights,
 ): ScoringResult {
   // Validate input has all required fields
   if (!input || typeof input !== "object") {

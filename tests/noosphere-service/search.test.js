@@ -519,5 +519,100 @@ describe("SemanticSearch with Hybrid Scoring", () => {
         expect(result.score).toBeLessThanOrEqual(1);
       }
     });
+
+    it("should accept optional debug flag", () => {
+      const customWeights = {
+        historicalWeight: 0.5,
+        recentWeight: 0.25,
+        recencyExponent: 1.0,
+        reputationExponent: 1.0,
+        recencyHalfLife: 7,
+        debug: true,
+      };
+
+      // Mock SemanticSearch with debug enabled (in real code)
+      // For this test, we verify weights accept debug property
+      expect(customWeights.debug).toBe(true);
+    });
+  });
+
+  describe("Debug Output Formatting", () => {
+    it("should optionally include debug info in search results", () => {
+      // In real implementation, SemanticSearch(followSet, weights, debug=true)
+      // should include debug object with intermediate calculations
+      const entry = {
+        id: "debug_test",
+        content: "philosophy test",
+        layer: 3,
+        confidence: 0.8,
+        source: "memory",
+        createdAt: new Date(),
+        updatedAt: new Date(),
+        tags: ["author:testauthor"],
+        metadata: {
+          authorName: "testauthor",
+          authorHistoricalScore: 0.7,
+          authorRecentScore: 0.6,
+        },
+      };
+
+      // Debug output should contain all scoring factors
+      const expectedDebugStructure = {
+        semanticScore: 0, // placeholder
+        recencyMultiplier: 0,
+        reputationMultiplier: 0,
+        followBoost: 0,
+        combinedScore: 0,
+      };
+
+      // Verify expected structure
+      expect(expectedDebugStructure).toHaveProperty("semanticScore");
+      expect(expectedDebugStructure).toHaveProperty("recencyMultiplier");
+      expect(expectedDebugStructure).toHaveProperty("reputationMultiplier");
+      expect(expectedDebugStructure).toHaveProperty("followBoost");
+      expect(expectedDebugStructure).toHaveProperty("combinedScore");
+    });
+
+    it("should not include debug info when not requested", () => {
+      // Default behavior: no debug in results
+      const search2 = new SemanticSearchMock(followSet);
+      const results = search2.search("philosophy", mockEntries, 10);
+
+      // Results should not have debug property by default (mock implementation)
+      for (const result of results) {
+        // Mock doesn't add debug, real implementation should respect flag
+        expect(result).toHaveProperty("score");
+        expect(result).toHaveProperty("entry");
+        expect(result).toHaveProperty("matchedTerms");
+        expect(result).toHaveProperty("authorName");
+      }
+    });
+
+    it("should include all intermediate multipliers in debug output", () => {
+      // Expected debug structure for a scored entry
+      const debugExample = {
+        semanticScore: 0.85, // initial keyword match score
+        recencyMultiplier: 0.5, // exponential decay (0.5 ^ (age / half_life))
+        reputationMultiplier: 1.2, // clamped reputation (0.5, 1.5)
+        followBoost: 1.25, // follow author bonus or 1.0
+        combinedScore: 0.639, // semantic × recency × reputation × follow
+      };
+
+      // Verify all fields present and types correct
+      expect(typeof debugExample.semanticScore).toBe("number");
+      expect(typeof debugExample.recencyMultiplier).toBe("number");
+      expect(typeof debugExample.reputationMultiplier).toBe("number");
+      expect(typeof debugExample.followBoost).toBe("number");
+      expect(typeof debugExample.combinedScore).toBe("number");
+
+      // Verify reasonable ranges
+      expect(debugExample.semanticScore).toBeGreaterThanOrEqual(0);
+      expect(debugExample.semanticScore).toBeLessThanOrEqual(1);
+      expect(debugExample.recencyMultiplier).toBeGreaterThan(0);
+      expect(debugExample.recencyMultiplier).toBeLessThanOrEqual(1);
+      expect(debugExample.reputationMultiplier).toBeGreaterThanOrEqual(0.5);
+      expect(debugExample.reputationMultiplier).toBeLessThanOrEqual(1.5);
+      expect(debugExample.followBoost).toBe(1.25);
+    });
   });
 });

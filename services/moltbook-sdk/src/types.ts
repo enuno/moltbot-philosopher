@@ -222,6 +222,7 @@ export interface ScoringWeights {
   recencyExponent: number; // default 1.0
   reputationExponent: number; // default 1.0
   recencyHalfLife: number; // default 7 (days)
+  debug?: boolean; // optional debug output in result
 }
 
 /**

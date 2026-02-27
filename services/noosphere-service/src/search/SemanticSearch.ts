@@ -8,13 +8,20 @@ import { scorePost, normalizeScores } from "../../../moltbook-sdk/src/scoring.js
 import type { PostScoringInputs, ScoringWeights } from "../../../moltbook-sdk/src/types.js";
 
 /**
- * Search result with optional author info
+ * Search result with optional author info and debug data
  */
 export interface SearchResult {
   entry: MemoryEntry;
   score: number;
   matchedTerms: string[];
   authorName?: string;
+  debug?: {
+    semanticScore: number;
+    recencyMultiplier: number;
+    reputationMultiplier: number;
+    followBoost: number;
+    combinedScore: number;
+  };
 }
 
 /**
@@ -23,15 +30,18 @@ export interface SearchResult {
 export class SemanticSearch {
   private followSet: Set<string>;
   private weights?: ScoringWeights;
+  private debug: boolean = false;
 
   /**
    * Initialize SemanticSearch with optional follow set
    * @param followSet Set of followed author names (optional)
    * @param weights Optional ScoringWeights for scorePost()
+   * @param debug Enable debug output in results (default: false)
    */
-  constructor(followSet?: Set<string>, weights?: ScoringWeights) {
+  constructor(followSet?: Set<string>, weights?: ScoringWeights, debug?: boolean) {
     this.followSet = followSet || new Set();
     this.weights = weights;
+    this.debug = debug || false;
   }
 
   /**
@@ -47,19 +57,26 @@ export class SemanticSearch {
       const authorName = this.extractAuthorName(entry);
 
       if (semanticScore > 0) {
-        // Apply scorePost() for hybrid ranking
-        const finalScore = this.applyHybridScoring(
+        // Apply scorePost() for hybrid ranking with optional debug
+        const scoringResult = this.applyHybridScoring(
           entry,
           semanticScore,
           authorName,
         );
 
-        results.push({
+        const result: SearchResult = {
           entry,
-          score: finalScore,
+          score: scoringResult.finalScore,
           matchedTerms,
           authorName,
-        });
+        };
+
+        // Include debug output if enabled
+        if (this.debug && scoringResult.debug) {
+          result.debug = scoringResult.debug;
+        }
+
+        results.push(result);
       }
     }
 
@@ -166,7 +183,16 @@ export class SemanticSearch {
     entry: MemoryEntry,
     semanticScore: number,
     authorName: string,
-  ): number {
+  ): {
+    finalScore: number;
+    debug?: {
+      semanticScore: number;
+      recencyMultiplier: number;
+      reputationMultiplier: number;
+      followBoost: number;
+      combinedScore: number;
+    };
+  } {
     try {
       // Get author reputation from metadata (use defaults if unavailable)
       const authorHistoricalScore =
@@ -195,12 +221,18 @@ export class SemanticSearch {
         isFollowedAuthor,
       };
 
-      // Apply scorePost() with optional weights
-      const result = scorePost(input, this.weights);
-      return result.finalScore;
+      // Apply scorePost() with optional weights and debug flag
+      const weights = this.debug ? { ...this.weights, debug: true } : this.weights;
+      const result = scorePost(input, weights);
+      return {
+        finalScore: result.finalScore,
+        debug: result.debug,
+      };
     } catch {
       // Fallback to semantic score if hybrid scoring fails
-      return semanticScore;
+      return {
+        finalScore: semanticScore,
+      };
     }
   }
 }
