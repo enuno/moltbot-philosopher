@@ -214,3 +214,155 @@ describe("normalizeScores()", () => {
     );
   });
 });
+
+describe("scorePost()", () => {
+  const { scorePost } = require("../../services/moltbook-sdk/dist/scoring");
+
+  it("should calculate final score with all factors enabled (followed author)", () => {
+    // Input: semantic 0.85, age 7 days, hist 0.8, recent 0.6, followed=true
+    // Expected: 0.85 × recency(7) × reputation(0.8, 0.6) × 1.25
+    // recency(7, 1.0, 7) = 0.5
+    // reputation(0.8, 0.6, 0.5, 0.25, 1.0) = clamp(1.0 + 0.5*0.8 + 0.25*0.6, 0.5, 1.5)
+    //   = clamp(1.55, 0.5, 1.5) = 1.5
+    // final = 0.85 × 0.5 × 1.5 × 1.25 ≈ 0.796875
+    const input = {
+      postId: "post-123",
+      semanticScore: 0.85,
+      ageInDays: 7,
+      authorHistoricalScore: 0.8,
+      authorRecentScore: 0.6,
+      isFollowedAuthor: true,
+    };
+    const weights = {
+      historicalWeight: 0.5,
+      recentWeight: 0.25,
+      recencyExponent: 1.0,
+      reputationExponent: 1.0,
+      recencyHalfLife: 7,
+    };
+    const result = scorePost(input, weights);
+    expect(result.postId).toBe("post-123");
+    expect(result.finalScore).toBeCloseTo(0.796875, 2);
+  });
+
+  it("should not apply follow boost when isFollowedAuthor is false", () => {
+    // Same input as above but followed=false
+    // Expected: 0.85 × 0.5 × 1.5 × 1.0 ≈ 0.6375
+    const input = {
+      postId: "post-456",
+      semanticScore: 0.85,
+      ageInDays: 7,
+      authorHistoricalScore: 0.8,
+      authorRecentScore: 0.6,
+      isFollowedAuthor: false,
+    };
+    const weights = {
+      historicalWeight: 0.5,
+      recentWeight: 0.25,
+      recencyExponent: 1.0,
+      reputationExponent: 1.0,
+      recencyHalfLife: 7,
+    };
+    const result = scorePost(input, weights);
+    expect(result.postId).toBe("post-456");
+    expect(result.finalScore).toBeCloseTo(0.6375, 2);
+  });
+
+  it("should return 0 when semantic score is 0", () => {
+    const input = {
+      postId: "post-zero",
+      semanticScore: 0,
+      ageInDays: 7,
+      authorHistoricalScore: 0.8,
+      authorRecentScore: 0.6,
+      isFollowedAuthor: true,
+    };
+    const weights = {
+      historicalWeight: 0.5,
+      recentWeight: 0.25,
+      recencyExponent: 1.0,
+      reputationExponent: 1.0,
+      recencyHalfLife: 7,
+    };
+    const result = scorePost(input, weights);
+    expect(result.finalScore).toBeCloseTo(0, 5);
+  });
+
+  it("should use default weights when none provided", () => {
+    const input = {
+      postId: "post-defaults",
+      semanticScore: 0.85,
+      ageInDays: 7,
+      authorHistoricalScore: 0.8,
+      authorRecentScore: 0.6,
+      isFollowedAuthor: true,
+    };
+    // No weights object passed - should use defaults
+    const result = scorePost(input);
+    expect(result.postId).toBe("post-defaults");
+    // With default weights (historicalWeight: 0.5, recentWeight: 0.25, etc.)
+    // result should match: 0.85 × 0.5 × 1.5 × 1.25 ≈ 0.796875
+    expect(result.finalScore).toBeCloseTo(0.796875, 2);
+  });
+
+  it("should include debug output with all intermediate values", () => {
+    const input = {
+      postId: "post-debug",
+      semanticScore: 0.85,
+      ageInDays: 7,
+      authorHistoricalScore: 0.8,
+      authorRecentScore: 0.6,
+      isFollowedAuthor: true,
+    };
+    const weights = {
+      historicalWeight: 0.5,
+      recentWeight: 0.25,
+      recencyExponent: 1.0,
+      reputationExponent: 1.0,
+      recencyHalfLife: 7,
+      debug: true,
+    };
+    const result = scorePost(input, weights);
+    expect(result.debug).toBeDefined();
+    expect(result.debug.semanticScore).toBeCloseTo(0.85, 2);
+    expect(result.debug.recencyMultiplier).toBeCloseTo(0.5, 2);
+    expect(result.debug.reputationMultiplier).toBeCloseTo(1.5, 2);
+    expect(result.debug.followBoost).toBeCloseTo(1.25, 2);
+    expect(result.debug.combinedScore).toBeCloseTo(0.796875, 2);
+  });
+
+  it("should throw error when input is missing required fields", () => {
+    const incompleteInput = {
+      postId: "post-incomplete",
+      semanticScore: 0.85,
+      // Missing ageInDays, authorHistoricalScore, etc.
+    };
+    const weights = {
+      historicalWeight: 0.5,
+      recentWeight: 0.25,
+      recencyExponent: 1.0,
+      reputationExponent: 1.0,
+      recencyHalfLife: 7,
+    };
+    expect(() => scorePost(incompleteInput, weights)).toThrow();
+  });
+
+  it("should throw error when semantic score is out of range", () => {
+    const input = {
+      postId: "post-invalid",
+      semanticScore: 1.5, // Out of [0, 1] range
+      ageInDays: 7,
+      authorHistoricalScore: 0.8,
+      authorRecentScore: 0.6,
+      isFollowedAuthor: false,
+    };
+    const weights = {
+      historicalWeight: 0.5,
+      recentWeight: 0.25,
+      recencyExponent: 1.0,
+      reputationExponent: 1.0,
+      recencyHalfLife: 7,
+    };
+    expect(() => scorePost(input, weights)).toThrow();
+  });
+});

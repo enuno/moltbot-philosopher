@@ -31,4 +31,19 @@ export declare function calculateReputation(historicalScore: number, recentScore
  * @returns Array of normalized scores in [0, 1], or array of 0s if all scores are identical
  */
 export declare function normalizeScores(scores: number[]): number[];
+/**
+ * Main orchestrator function combining all scoring factors multiplicatively
+ *
+ * Formula: final_score = semantic × M_recency × M_reputation × F
+ *
+ * where:
+ *   M_recency = (0.5 ^ (age / half_life)) ^ exponent
+ *   M_reputation = clamp(1.0 + H×hist + R×recent, 0.5, 1.5) ^ exponent
+ *   F = 1.25 (if followed) or 1.0 (else)
+ *
+ * @param input PostScoringInputs with all required fields
+ * @param weights Optional ScoringWeights (uses defaults if omitted)
+ * @returns ScoringResult with finalScore and optional debug info
+ */
+export declare function scorePost(input: any, weights?: any): any;
 //# sourceMappingURL=scoring.d.ts.map

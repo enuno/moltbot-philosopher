@@ -94,3 +94,98 @@ export function normalizeScores(scores: number[]): number[] {
   // Apply min-max normalization formula
   return scores.map((score) => (score - min) / range);
 }
+
+/**
+ * Main orchestrator function combining all scoring factors multiplicatively
+ *
+ * Formula: final_score = semantic × M_recency × M_reputation × F
+ *
+ * where:
+ *   M_recency = (0.5 ^ (age / half_life)) ^ exponent
+ *   M_reputation = clamp(1.0 + H×hist + R×recent, 0.5, 1.5) ^ exponent
+ *   F = 1.25 (if followed) or 1.0 (else)
+ *
+ * @param input PostScoringInputs with all required fields
+ * @param weights Optional ScoringWeights (uses defaults if omitted)
+ * @returns ScoringResult with finalScore and optional debug info
+ */
+export function scorePost(input: any, weights?: any): any {
+  // Validate input has all required fields
+  if (!input || typeof input !== "object") {
+    throw new Error("Input must be an object");
+  }
+
+  const requiredFields = [
+    "postId",
+    "semanticScore",
+    "ageInDays",
+    "authorHistoricalScore",
+    "authorRecentScore",
+    "isFollowedAuthor",
+  ];
+
+  for (const field of requiredFields) {
+    if (!(field in input)) {
+      throw new Error(`Missing required field: ${field}`);
+    }
+  }
+
+  // Validate semantic score is in [0, 1]
+  if (
+    typeof input.semanticScore !== "number" ||
+    input.semanticScore < 0 ||
+    input.semanticScore > 1
+  ) {
+    throw new Error("Semantic score must be a number in [0, 1]");
+  }
+
+  // Use default weights if not provided
+  const w = weights || {
+    historicalWeight: 0.5,
+    recentWeight: 0.25,
+    recencyExponent: 1.0,
+    reputationExponent: 1.0,
+    recencyHalfLife: 7,
+  };
+
+  // Calculate recency multiplier
+  const recencyMult = calculateRecency(
+    input.ageInDays,
+    w.recencyExponent,
+    w.recencyHalfLife,
+  );
+
+  // Calculate reputation multiplier
+  const reputationMult = calculateReputation(
+    input.authorHistoricalScore,
+    input.authorRecentScore,
+    w.historicalWeight,
+    w.recentWeight,
+    w.reputationExponent,
+  );
+
+  // Apply follow boost
+  const followBoost = input.isFollowedAuthor ? 1.25 : 1.0;
+
+  // Combine all factors multiplicatively
+  const combinedScore =
+    input.semanticScore * recencyMult * reputationMult * followBoost;
+
+  const result: any = {
+    postId: input.postId,
+    finalScore: combinedScore,
+  };
+
+  // Add debug info if requested
+  if (w.debug) {
+    result.debug = {
+      semanticScore: input.semanticScore,
+      recencyMultiplier: recencyMult,
+      reputationMultiplier: reputationMult,
+      followBoost,
+      combinedScore,
+    };
+  }
+
+  return result;
+}
