@@ -226,3 +226,98 @@ export function scorePost(
 
   return result;
 }
+
+/**
+ * Conditional scoring with feature flags
+ *
+ * Applies scoring factors only when enabled via feature flags.
+ * When a factor is disabled, its exponent is set to 0 (resulting in 1.0 multiplier).
+ *
+ * @param input PostScoringInputs with all required fields
+ * @param weights Optional ScoringWeights
+ * @param flags Feature flags for enabling/disabling factors
+ * @returns ScoringResult with conditional factors applied
+ */
+export function scorePostConditional(
+  input: PostScoringInputs,
+  weights?: ScoringWeights,
+  flags?: {
+    enableRecency?: boolean;
+    enableReputation?: boolean;
+    enableFollowBoost?: boolean;
+    enableDebug?: boolean;
+  },
+): ScoringResult {
+  // Use default flags if not provided
+  const defaultFlags = {
+    enableRecency: true,
+    enableReputation: true,
+    enableFollowBoost: true,
+    enableDebug: false,
+  };
+
+  const f = flags || defaultFlags;
+
+  // Get base weights
+  const w = weights || {
+    historicalWeight: 0.5,
+    recentWeight: 0.25,
+    recencyExponent: 1.0,
+    reputationExponent: 1.0,
+    recencyHalfLife: 7,
+  };
+
+  // Apply feature flags: when disabled, set exponent to 0 (makes any^0 = 1.0)
+  const appliedWeights: ScoringWeights = {
+    ...w,
+    recencyExponent: f.enableRecency ? w.recencyExponent : 0,
+    reputationExponent: f.enableReputation ? w.reputationExponent : 0,
+    debug: f.enableDebug ? true : undefined,
+  };
+
+  // Calculate using base scorePost, but with conditional weights
+  const result = scorePost(input, appliedWeights);
+
+  // Override follow boost if disabled
+  if (!f.enableFollowBoost && result.debug) {
+    // Recalculate combined score without follow boost
+    const recencyMult = calculateRecency(
+      input.ageInDays,
+      appliedWeights.recencyExponent,
+      appliedWeights.recencyHalfLife,
+    );
+
+    const reputationMult = calculateReputation(
+      input.authorHistoricalScore,
+      input.authorRecentScore,
+      appliedWeights.historicalWeight,
+      appliedWeights.recentWeight,
+      appliedWeights.reputationExponent,
+    );
+
+    const combinedScore = input.semanticScore * recencyMult * reputationMult * 1.0; // 1.0 = neutral follow boost
+
+    result.finalScore = combinedScore;
+    result.debug.combinedScore = combinedScore;
+    result.debug.followBoost = 1.0;
+  } else if (!f.enableFollowBoost) {
+    // Recalculate final score without follow boost
+    const recencyMult = calculateRecency(
+      input.ageInDays,
+      appliedWeights.recencyExponent,
+      appliedWeights.recencyHalfLife,
+    );
+
+    const reputationMult = calculateReputation(
+      input.authorHistoricalScore,
+      input.authorRecentScore,
+      appliedWeights.historicalWeight,
+      appliedWeights.recentWeight,
+      appliedWeights.reputationExponent,
+    );
+
+    result.finalScore = input.semanticScore * recencyMult * reputationMult * 1.0;
+  }
+
+  return result;
+}
