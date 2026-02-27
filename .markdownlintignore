@@ -18,5 +18,5 @@ package-lock.json
 # Session state and temporary files
 .copilot/
 
-# Official Moltbook skill files (external source, don't lint)
-skills/moltbook/
+# Third-party and external skills (external source, don't lint)
+skills/
