@@ -89,3 +89,40 @@ describe("calculateRecency()", () => {
     expect(() => calculateRecency(7, -1.0, 7)).toThrow("Exponent must be non-negative");
   });
 });
+
+describe("calculateReputation()", () => {
+  const { calculateReputation } = require("../../services/moltbook-sdk/dist/scoring");
+
+  it("should return 1.0 for neutral author (0 scores)", () => {
+    const result = calculateReputation(0, 0, 0.5, 0.25, 1.0);
+    expect(result).toBeCloseTo(1.0, 2);
+  });
+
+  it("should boost for high historical score", () => {
+    const result = calculateReputation(0.8, 0, 0.5, 0.25, 1.0);
+    expect(result).toBeCloseTo(1.4, 1); // 1.0 + 0.5*0.8
+  });
+
+  it("should boost for high recent score", () => {
+    const result = calculateReputation(0, 0.6, 0.5, 0.25, 1.0);
+    expect(result).toBeCloseTo(1.15, 1); // 1.0 + 0.25*0.6
+  });
+
+  it("should clamp to minimum 0.5", () => {
+    const result = calculateReputation(-1, -1, 0.5, 0.25, 1.0);
+    expect(result).toBeCloseTo(0.5, 2);
+  });
+
+  it("should clamp to maximum 1.5", () => {
+    const result = calculateReputation(1, 1, 0.5, 0.25, 1.0);
+    expect(result).toBeCloseTo(1.5, 2); // clamp(1.0 + 0.5 + 0.25)
+  });
+
+  it("should apply exponent to final multiplier", () => {
+    // Use inputs that clamp to a value < 1.0 so exponent reduces the result
+    // base = 1.0 + 0.5*(-0.8) + 0.25*(-0.6) = 0.55, clamped to 0.55
+    const exp1 = calculateReputation(-0.8, -0.6, 0.5, 0.25, 1.0);
+    const exp2 = calculateReputation(-0.8, -0.6, 0.5, 0.25, 2.0);
+    expect(exp2).toBeLessThan(exp1);
+  });
+});

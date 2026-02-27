@@ -20,3 +20,28 @@ export function calculateRecency(
   const decayRate = Math.pow(0.5, ageInDays / halfLife);
   return Math.pow(decayRate, exponent);
 }
+
+/**
+ * Calculate reputation multiplier from historical and recent scores
+ *
+ * Formula: clamp(1.0 + H×historical + R×recent, 0.5, 1.5) ^ exponent
+ *
+ * @param historicalScore Author's long-term quality (0-1)
+ * @param recentScore Author's recent engagement (0-1)
+ * @param historicalWeight Weight for historical (default 0.5)
+ * @param recentWeight Weight for recent (default 0.25)
+ * @param exponent Multiplier exponent (default 1.0)
+ * @returns Reputation multiplier in [0.5, 1.5]
+ */
+export function calculateReputation(
+  historicalScore: number,
+  recentScore: number,
+  historicalWeight: number = 0.5,
+  recentWeight: number = 0.25,
+  exponent: number = 1.0,
+): number {
+  const base =
+    1.0 + historicalWeight * historicalScore + recentWeight * recentScore;
+  const clamped = Math.max(0.5, Math.min(1.5, base));
+  return Math.pow(clamped, exponent);
+}
