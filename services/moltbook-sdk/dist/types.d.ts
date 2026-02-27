@@ -201,6 +201,7 @@ export interface ScoringWeights {
     recencyExponent: number;
     reputationExponent: number;
     recencyHalfLife: number;
+    debug?: boolean;
 }
 /**
  * Scoring result with optional debug info

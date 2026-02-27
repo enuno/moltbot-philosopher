@@ -55,7 +55,22 @@ export declare function normalizeScores(scores: number[]): number[];
  * @param weights Optional ScoringWeights (uses defaults if omitted)
  * @returns ScoringResult with finalScore and optional debug info
  */
-export declare function scorePost(input: PostScoringInputs, weights?: ScoringWeights & {
-    debug?: boolean;
+export declare function scorePost(input: PostScoringInputs, weights?: ScoringWeights): ScoringResult;
+/**
+ * Conditional scoring with feature flags
+ *
+ * Applies scoring factors only when enabled via feature flags.
+ * When a factor is disabled, its exponent is set to 0 (resulting in 1.0 multiplier).
+ *
+ * @param input PostScoringInputs with all required fields
+ * @param weights Optional ScoringWeights
+ * @param flags Feature flags for enabling/disabling factors
+ * @returns ScoringResult with conditional factors applied
+ */
+export declare function scorePostConditional(input: PostScoringInputs, weights?: ScoringWeights, flags?: {
+    enableRecency?: boolean;
+    enableReputation?: boolean;
+    enableFollowBoost?: boolean;
+    enableDebug?: boolean;
 }): ScoringResult;
 //# sourceMappingURL=scoring.d.ts.map
