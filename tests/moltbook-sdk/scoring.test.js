@@ -108,21 +108,49 @@ describe("calculateReputation()", () => {
     expect(result).toBeCloseTo(1.15, 1); // 1.0 + 0.25*0.6
   });
 
-  it("should clamp to minimum 0.5", () => {
-    const result = calculateReputation(-1, -1, 0.5, 0.25, 1.0);
-    expect(result).toBeCloseTo(0.5, 2);
+  it("should return minimum value with zero scores and weights", () => {
+    // With valid inputs (scores [0,1], weights >= 0), minimum base = 1.0
+    // This is the minimum achievable value, which is above the 0.5 clamp floor
+    const result = calculateReputation(0, 0, 0, 0, 1.0);
+    expect(result).toBeCloseTo(1.0, 2);
   });
 
   it("should clamp to maximum 1.5", () => {
+    // base = 1.0 + 0.5*1 + 0.25*1 = 1.75, clamped to 1.5
     const result = calculateReputation(1, 1, 0.5, 0.25, 1.0);
-    expect(result).toBeCloseTo(1.5, 2); // clamp(1.0 + 0.5 + 0.25)
+    expect(result).toBeCloseTo(1.5, 2);
   });
 
   it("should apply exponent to final multiplier", () => {
-    // Use inputs that clamp to a value < 1.0 so exponent reduces the result
-    // base = 1.0 + 0.5*(-0.8) + 0.25*(-0.6) = 0.55, clamped to 0.55
-    const exp1 = calculateReputation(-0.8, -0.6, 0.5, 0.25, 1.0);
-    const exp2 = calculateReputation(-0.8, -0.6, 0.5, 0.25, 2.0);
-    expect(exp2).toBeLessThan(exp1);
+    // When base = 1.0 (neutral case), exponent doesn't change it
+    // When base > 1.0 and exponent > 1.0, it increases the result
+    // When base < 1.0 and exponent > 1.0, it decreases the result (mathematically)
+    // Since min valid base is 1.0 with weights >= 0, test exponent amplification
+    const noExp = calculateReputation(0.8, 0.6, 0.5, 0.25, 1.0);
+    const withExp = calculateReputation(0.8, 0.6, 0.5, 0.25, 2.0);
+    expect(withExp).toBeGreaterThan(noExp);
+  });
+
+  it("should throw 'Historical score must be in [0, 1]' when out of range", () => {
+    expect(() => calculateReputation(2.5, 0.5, 0.5, 0.25, 1.0))
+      .toThrow("Historical score must be in [0, 1]");
+    expect(() => calculateReputation(-0.5, 0.5, 0.5, 0.25, 1.0))
+      .toThrow("Historical score must be in [0, 1]");
+  });
+
+  it("should throw 'Recent score must be in [0, 1]' when out of range", () => {
+    expect(() => calculateReputation(0.5, 2.0, 0.5, 0.25, 1.0))
+      .toThrow("Recent score must be in [0, 1]");
+    expect(() => calculateReputation(0.5, -0.1, 0.5, 0.25, 1.0))
+      .toThrow("Recent score must be in [0, 1]");
+  });
+
+  it("should throw on invalid weights or exponent", () => {
+    expect(() => calculateReputation(0.5, 0.5, -0.1, 0.25, 1.0))
+      .toThrow("Historical weight must be non-negative");
+    expect(() => calculateReputation(0.5, 0.5, 0.5, -0.1, 1.0))
+      .toThrow("Recent weight must be non-negative");
+    expect(() => calculateReputation(0.5, 0.5, 0.5, 0.25, -1.0))
+      .toThrow("Exponent must be non-negative");
   });
 });

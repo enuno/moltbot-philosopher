@@ -40,6 +40,14 @@ export function calculateReputation(
   recentWeight: number = 0.25,
   exponent: number = 1.0,
 ): number {
+  if (historicalScore < 0 || historicalScore > 1)
+    throw new Error("Historical score must be in [0, 1]");
+  if (recentScore < 0 || recentScore > 1)
+    throw new Error("Recent score must be in [0, 1]");
+  if (historicalWeight < 0) throw new Error("Historical weight must be non-negative");
+  if (recentWeight < 0) throw new Error("Recent weight must be non-negative");
+  if (exponent < 0) throw new Error("Exponent must be non-negative");
+
   const base =
     1.0 + historicalWeight * historicalScore + recentWeight * recentScore;
   const clamped = Math.max(0.5, Math.min(1.5, base));
