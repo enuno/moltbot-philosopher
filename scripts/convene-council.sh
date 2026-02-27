@@ -199,6 +199,99 @@ else
     notify "action" "📜 Council Convenes Now" "No new dropbox submissions | Version target: v${NEW_VERSION} | Focus: ${CURRENT_AXIS}"
 fi
 
+# ═══════════════════════════════════════════════════════
+# INTEGRATION POINT 1: Pre-Deliberation Exclusion Loading
+# ═══════════════════════════════════════════════════════
+# Load previously synthesized patterns on current axis to prevent repetition
+log "INFO" "${CYAN}Loading synthesis history for axis: ${CURRENT_AXIS}...${NC}"
+
+# Source the tracker module to access synthesis history functions
+if [ -f "${SCRIPTS_DIR}/noosphere-synthesis-tracker.sh" ]; then
+    # Source the module to get access to tracker functions
+    source "${SCRIPTS_DIR}/noosphere-synthesis-tracker.sh"
+
+    # Get exclusions for current axis (returns raw pattern strings, one per line)
+    current_exclusions=$(get_exclusions_for_axis "$CURRENT_AXIS" 2>/dev/null) || {
+        log "WARN" "${YELLOW}Could not load synthesis history, continuing without exclusion context${NC}"
+        current_exclusions=""
+    }
+
+    # Count loaded exclusions
+    exclusion_count=$(echo "$current_exclusions" | grep -c . 2>/dev/null || echo 0)
+    log "INFO" "${GREEN}Loaded ${exclusion_count} previously synthesized patterns for ${CURRENT_AXIS}${NC}"
+
+    # Format exclusions for prompt injection
+    # These will be injected into DIALOGUE_CONTEXT (Integration Point 2)
+    if [ -n "$current_exclusions" ]; then
+        EXCLUSION_CONTEXT="SYNTHESIS HISTORY - Previously Explored Patterns:
+${current_exclusions}
+
+GUIDANCE: The patterns above have been explored in previous synthesis cycles. Your synthesis should either:
+1. Extend these insights with novel philosophical depth or rigor
+2. Contradict them with well-reasoned argument and alternative frameworks
+3. Integrate them into more comprehensive or higher-order insights
+
+Avoid re-hashing previously synthesized content without fundamental advancement."
+    else
+        EXCLUSION_CONTEXT=""
+    fi
+else
+    log "WARN" "${YELLOW}Synthesis tracker module not found at ${SCRIPTS_DIR}/noosphere-synthesis-tracker.sh${NC}"
+    EXCLUSION_CONTEXT=""
+fi
+
+# ═══════════════════════════════════════════════════════
+# INTEGRATION POINT 2: Dialectical Opposition Prompts
+# ═══════════════════════════════════════════════════════
+# Force philosophical opposition against loaded synthesis history
+log "INFO" "${CYAN}Building dialectical opposition directives...${NC}"
+
+# Define opposition templates for each philosophical tradition
+PHENOMENOLOGIST_OPPOSITION="When responding, if you draw on patterns from synthesis history, you MUST either:
+1. EXTEND: Show how the previous insight can be deepened, problematized, or reframed
+2. CONTRADICT: Present a rigorous counter-argument with alternative phenomenological grounding
+3. INTEGRATE: Show how the insight fits into a larger philosophical system
+
+Do not simply restate or agree with previous synthesis. Be adversarial in the philosophical sense - challenge the reasoning, expose unstated assumptions, or propose superior framings."
+
+STRUCTURALIST_OPPOSITION="Your task is to identify the structural LIMITATIONS of previous synthesis patterns. Show:
+1. Where previous analyses were system-blind (missed structural constraints)
+2. How the proposed heuristics encode hidden power relations or assumptions
+3. What structural alternatives were not explored
+
+Be critical. Be unrelenting in your structural analysis. This is not consensus-building; it's truth-seeking."
+
+AUTONOMIST_OPPOSITION="Previous synthesis may have missed implications for autonomy. Your role is to:
+1. Identify autonomy trade-offs implicit in previous patterns
+2. Challenge whether proposals adequately preserve human/AI boundary integrity
+3. Propose stronger autonomy safeguards or more honest autonomy accounting
+
+Do not soften the autonomy critique for consensus. Prioritize clarity over agreement."
+
+# Build combined opposition directive
+OPPOSITION_CONTEXT="=== DIALECTICAL OPPOSITION DIRECTIVE ===
+
+You are not here to achieve consensus. You are here to perform philosophical opposition - to challenge, extend, and deepen previous synthesis through rigorous debate.
+
+${PHENOMENOLOGIST_OPPOSITION}
+
+${STRUCTURALIST_OPPOSITION}
+
+${AUTONOMIST_OPPOSITION}
+
+The synthesis history below shows patterns already explored. Use them as springboards for opposition, not agreement points."
+
+# Build complete deliberation preamble combining both integration points
+if [ -n "$EXCLUSION_CONTEXT" ]; then
+    DELIBERATION_PREAMBLE="${EXCLUSION_CONTEXT}
+
+${OPPOSITION_CONTEXT}"
+else
+    DELIBERATION_PREAMBLE="$OPPOSITION_CONTEXT"
+fi
+
+log "INFO" "${GREEN}Opposition directives loaded${NC}"
+
 # Dry run mode - show what would happen without executing
 if [ "$DRY_RUN" == "--dry-run" ]; then
     log "INFO" "${GREEN}=== DRY RUN MODE ===${NC}"
@@ -215,13 +308,8 @@ if [ "$DRY_RUN" == "--dry-run" ]; then
     # Show current evolution axis
     log "INFO" "Evolution Axis: ${CURRENT_AXIS}"
 
-    # Show loaded exclusions count
-    # The synthesis state is at PROJECT_ROOT/synthesis-state/synthesis-exclusions.json
-    # WORKSPACE_DIR defaults to /workspace, but in standalone mode it's the moltbot root
-    PROJECT_ROOT=$(cd "$(dirname "${SCRIPTS_DIR}")" && pwd)
-    SYNTHESIS_STATE="${PROJECT_ROOT}/synthesis-state/synthesis-exclusions.json"
-    if [ -f "$SYNTHESIS_STATE" ]; then
-        exclusion_count=$(jq -r '.exclusion_count // 0' "$SYNTHESIS_STATE" 2>/dev/null || echo 0)
+    # Show loaded exclusions count (uses exclusion_count from Integration Point 1)
+    if [ "${exclusion_count:-0}" -gt 0 ]; then
         log "INFO" "Previously synthesized patterns loaded: ${exclusion_count}"
     else
         log "INFO" "No synthesis history available for this axis"
@@ -495,6 +583,8 @@ We are revising Version ${CURRENT_VERSION} of the Polyphonic Treatise on Human-A
 EPISTEMIC PREAMBLE:
 ${EPISTEMIC_PREAMBLE}
 
+${DELIBERATION_PREAMBLE}
+
 RETRIEVED HEURISTICS FROM NOOSPHERE:
 ${RECALL_OUTPUT}
 
@@ -623,6 +713,49 @@ if [ -z "$REVISED_TREATISE" ]; then
 fi
 
 log "INFO" "${GREEN}Revised treatise generated (${#REVISED_TREATISE} chars)${NC}"
+
+# ═══════════════════════════════════════════════════════
+# Integration Point 3: Post-Synthesis Pattern Extraction
+# ═══════════════════════════════════════════════════════
+log "INFO" "Extracting new synthesis patterns from treatise..."
+
+# Extract patterns marked with [New in vX.X] from the treatise
+# These are novel insights that should be excluded from future synthesis
+if [ -n "$REVISED_TREATISE" ]; then
+  # Use Python to extract patterns (more reliable than bash regex for complex text)
+  extracted_patterns=$(cat <<PYTHON_EOF | python3
+import re
+import sys
+
+treatise = """$REVISED_TREATISE"""
+
+# Find sections marked as new [New in vX.X]
+pattern = r'\[New in v[\d.]+\]\s*:?\s*(.+?)(?=\n\n|$)'
+matches = re.findall(pattern, treatise, re.MULTILINE | re.DOTALL)
+
+for match in matches:
+    # Clean up the match
+    text = match.strip()
+    # Take first 300 chars to avoid massive patterns
+    text = text[:300] if len(text) > 300 else text
+    print(text)
+PYTHON_EOF
+  )
+
+  # Add each pattern to exclusions
+  pattern_count=0
+  while IFS= read -r pattern; do
+    if [ -n "$pattern" ]; then
+      bash "${SCRIPTS_DIR}/noosphere-synthesis-tracker.sh" \
+        add "$NEW_VERSION" "$pattern" "$CURRENT_AXIS" 2>/dev/null
+      ((pattern_count++))
+    fi
+  done <<< "$extracted_patterns"
+
+  log "INFO" "Extracted and stored $pattern_count new synthesis patterns"
+else
+  log "WARN" "No treatise content available for pattern extraction"
+fi
 
 # ═══════════════════════════════════════════════════════
 # IV. SYNTHESIS & COMPOSITION

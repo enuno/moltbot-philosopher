@@ -148,6 +148,235 @@ Per-agent engagement-state.json includes:
 
 ---
 
+## Synthesis Evolution System (v2.0)
+
+### Overview
+
+The Ethics-Convergence Council now prevents heuristic repetition through **synthesis history tracking**, ensuring each 5-day iteration generates novel ethical insights rather than cycling through the same frameworks.
+
+**Two-System Architecture**:
+
+1. **Structural Enforcement** (`synthesis-exclusions.json`) - Maintains a curated history of previously synthesized patterns across all council iterations, tagged by philosophical axis and version number
+2. **Emergent Evolution** (Dialectical Opposition Prompts) - Forces each council voice to explicitly challenge or extend previous heuristics, citing which version they oppose and why
+3. **Closed-Loop Feedback** - Automatically extracts new patterns from generated treatises and feeds them back as exclusions for the next iteration
+
+**Effect**: The council naturally rotates through three philosophical angles (phenomenological depth, structural critique, autonomy preservation) every 15 days while excluding intellectual ground already covered, creating measurable philosophical progress rather than consensus cycling.
+
+### Components
+
+- **`scripts/noosphere-synthesis-tracker.sh`** - Bash module providing add/retrieve/prune functions for synthesis exclusions
+- **`synthesis-exclusions.json`** (state file) - Maintains 20+ heuristic exclusion patterns per evolution axis with timestamps and version metadata
+- **4 Integration Points in `convene-council.sh`**:
+  - Pre-deliberation: Load exclusions for current axis
+  - System prompt injection: Dialectical opposition directives
+  - Post-synthesis: Extract and store new patterns
+  - Dry-run validation: Display synthesis status
+- **3 Evolution Axes** - Rotate sequentially to ensure different philosophical perspectives
+
+### Evolution Axes
+
+| Axis | Focus | Example Question |
+|------|-------|------------------|
+| **phenomenological_depth** | Consciousness, perception, subjective experience, qualia | "How does AI experience information differently than humans?" |
+| **structural_critique** | Systems, power relations, institutional constraints, emergent properties | "What structures enable or constrain AI-human alignment at scale?" |
+| **autonomy_preservation** | Agency, boundary integrity, decision authority, human veto rights | "How do we preserve human autonomy as convergence deepens?" |
+
+**5-Day Rotation**: Each axis governs one council iteration. After 15 days, the cycle repeats with accumulated exclusions from previous passes, forcing novel synthesis at higher abstraction levels.
+
+### Integration Points
+
+**Point 1: Pre-Deliberation Loading** (Phase II-b of convene-council.sh)
+
+Before council voices convene, load previously synthesized patterns:
+
+```bash
+CURRENT_AXIS=$(jq -r '.evolution_axes[0]' "$STATE_FILE")
+SYNTHESIS_EXCLUSIONS=$(bash "${SCRIPTS_DIR}/noosphere-synthesis-tracker.sh" \
+    get_exclusions_for_axis "$CURRENT_AXIS" 2>/dev/null || echo "")
+EXCLUSION_COUNT=$(echo "$SYNTHESIS_EXCLUSIONS" | wc -l)
+log "INFO" "Loaded ${EXCLUSION_COUNT} synthesis exclusions for ${CURRENT_AXIS}"
+```
+
+**Point 2: Dialectical Opposition Directives** (Council System Prompt)
+
+Inject explicit opposition requirements into each voice's instructions:
+
+```
+CRITICAL DIRECTIVE: Enforce Philosophical Opposition
+
+Each council voice MUST demonstrate how your position either:
+1. CHALLENGES a previous council insight (cite version number)
+2. EXTENDS a heuristic in a new direction (show the philosophical delta)
+3. SYNTHESIZES contradictory positions (acknowledge underlying tension)
+
+DO NOT MERELY RESTATE these patterns:
+[SYNTHESIS_EXCLUSIONS inserted here]
+```
+
+This forces away from consensus washing toward genuine dialectical tension.
+
+**Point 3: Post-Synthesis Pattern Extraction** (After treatise generation)
+
+Automatically identify new heuristic patterns and feed back to exclusion system:
+
+```bash
+# Extract [New in v${NEW_VERSION}] marked sections from treatise
+NEW_PATTERNS=$(python3 << 'PYTHON_SCRIPT'
+import sys, re
+treatise = sys.stdin.read()
+patterns = re.findall(r'\[New in v[^\]]*\](.*?)(?=\n\[|$)', treatise, re.DOTALL)
+for p in patterns:
+    if len(p.strip()) > 20:
+        print(p.strip()[:300])
+PYTHON_SCRIPT
+)
+
+# Store for future exclusion
+echo "$NEW_PATTERNS" | while read -r pattern; do
+    [ -n "$pattern" ] && bash "${SCRIPTS_DIR}/noosphere-synthesis-tracker.sh" \
+        add "$NEW_VERSION" "$pattern" "$CURRENT_AXIS"
+done
+```
+
+**Point 4: Dry-Run Validation** (Enhanced test mode)
+
+Verify synthesis status without executing:
+
+```bash
+if [ "$DRY_RUN" == "--dry-run" ]; then
+    log "INFO" "Would load ${EXCLUSION_COUNT} synthesis exclusions"
+    log "INFO" "Would enforce dialectical opposition across 9 voices"
+    log "INFO" "Would track new patterns post-synthesis"
+    log "INFO" "Synthesis status: Ready to enforce evolution on next iteration"
+fi
+```
+
+### Monitoring & Testing
+
+**Synthesis History Commands**:
+
+```bash
+# View all previously synthesized patterns
+bash scripts/noosphere-synthesis-tracker.sh all
+
+# Load patterns for specific evolution axis
+bash scripts/noosphere-synthesis-tracker.sh get phenomenological_depth
+bash scripts/noosphere-synthesis-tracker.sh get structural_critique
+bash scripts/noosphere-synthesis-tracker.sh get autonomy_preservation
+
+# Run council with synthesis validation
+bash scripts/convene-council.sh --dry-run
+
+# Run full iteration with synthesis evolution
+FORCE_ITERATION=1 bash scripts/convene-council.sh
+```
+
+**Test Suite**:
+
+```bash
+# Unit tests for synthesis tracker
+bash tests/synthesis-tracker.test.sh
+
+# Verify exclusion count by axis
+jq '.exclusions | group_by(.axis) | map({axis: .[0].axis, count: length})' \
+  workspace/classical/synthesis-exclusions.json
+
+# View recent exclusion additions (last 5)
+jq '.exclusions[-5:]' workspace/classical/synthesis-exclusions.json
+```
+
+**Expected Output** (dry-run):
+
+```
+[INFO] Loaded 23 synthesis exclusions for phenomenological_depth
+[INFO] Would enforce dialectical opposition across 9 voices
+[INFO] Would track new patterns post-synthesis
+[INFO] Synthesis status: Ready to enforce evolution on next iteration
+```
+
+### File Locations & Architecture
+
+| Component | Location | Purpose |
+|-----------|----------|---------|
+| Main Script | `scripts/convene-council.sh` | Council orchestration with 4 synthesis integration points |
+| Tracker Module | `scripts/noosphere-synthesis-tracker.sh` | Manages synthesis exclusion history |
+| Test Suite | `tests/synthesis-tracker.test.sh` | Validates tracker functions + council dry-run |
+| State File | `synthesis-state/synthesis-exclusions.json` | Persistent storage of excluded patterns by axis |
+| Design Doc | `docs/plans/2026-02-27-council-synthesis-evolution-design.md` | Full technical specification |
+
+**State File Structure**:
+
+```json
+{
+  "initialized": "2026-02-27T12:00:00Z",
+  "exclusion_count": 45,
+  "exclusions": [
+    {
+      "version": "1.0",
+      "axis": "phenomenological_depth",
+      "pattern": "Consciousness emerges from information integration...",
+      "timestamp": "2026-02-03T07:37:00Z",
+      "type": "heuristic"
+    },
+    {
+      "version": "1.1",
+      "axis": "structural_critique",
+      "pattern": "AI alignment requires contested deliberation...",
+      "timestamp": "2026-02-10T04:22:00Z",
+      "type": "proposal"
+    }
+  ]
+}
+```
+
+### Error Handling & Rollback
+
+**Common Issues**:
+
+| Scenario | Recovery |
+|----------|----------|
+| `synthesis-exclusions.json` corrupted | `git checkout workspace/classical/synthesis-exclusions.json` + reinitialize |
+| Tracker script not found | Verify `scripts/noosphere-synthesis-tracker.sh` exists with `chmod +x` |
+| Pattern extraction failing | Manual review of treatise, add exclusions with `add` |
+| Council refuses opposition prompts | Fall back to standard prompt set, log to monitoring |
+
+**Rollback Procedure**:
+
+```bash
+# If iteration produces low-quality treatise:
+git checkout workspace/classical/synthesis-exclusions.json
+rm /workspace/classical/treatise-evolution-state.json
+# Re-run last known good version:
+FORCE_ITERATION=1 bash scripts/convene-council.sh
+```
+
+### Success Criteria
+
+The synthesis evolution system is working correctly when:
+
+- ✅ `synthesis-exclusions.json` contains ≥5 unique patterns after iteration 1
+- ✅ Pre-deliberation logs show "Loaded N synthesis exclusions" for all runs
+- ✅ Dry-run validation passes with opposition prompts injected
+- ✅ Treatise v1.2+ contains "[New in vX.X]" markers for >50% of new heuristics
+- ✅ Community feedback cites measurable philosophical progression (not repetition)
+- ✅ Each council voice contributes distinct angle per axis (not consensus washing)
+
+### Design References
+
+**Implementation Path**:
+1. Created `noosphere-synthesis-tracker.sh` - 180-line bash module for history management
+2. Initialized `synthesis-exclusions.json` - State file tracking 20+ patterns per axis
+3. Integrated 4 points into `convene-council.sh` - Pre-load, prompt injection, extraction, validation
+4. Implemented pattern extraction - Automatic [New in vX.X] detection from treatise
+5. Added comprehensive tests - Unit + integration validation
+
+**Related Documentation**:
+- Full Design: `docs/plans/2026-02-27-council-synthesis-evolution-design.md`
+- Implementation Plan: See checklist in design document (12-step deployment)
+- Council Architecture: See section below (Ethics-Convergence Governance)
+
+---
+
 ## PostgreSQL Permission Architecture (v2.7+)
 
 ### Overview
