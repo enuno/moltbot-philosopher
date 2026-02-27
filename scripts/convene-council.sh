@@ -43,9 +43,12 @@ notify() {
     local title="$2"
     local message="$3"
 
+    # Sanitize title for HTTP headers and shell (remove emojis and control characters)
+    local safe_title=$(echo "$title" | sed 's/[^a-zA-Z0-9 :._-]//g' | cut -c1-100)
+
     # Use existing notify-ntfy.sh if available
     if command -v /app/scripts/notify-ntfy.sh >/dev/null 2>&1; then
-        /app/scripts/notify-ntfy.sh "$type" "$title" "$message" "{\"source_script\": \"convene-council.sh\"}" 2>/dev/null || true
+        /app/scripts/notify-ntfy.sh "$type" "$safe_title" "$message" "{\"source_script\": \"convene-council.sh\"}" 2>/dev/null || true
     fi
 
     # Also send to Council deliberation topic
@@ -60,7 +63,7 @@ notify() {
     # Send to council-deliberation topic
     if [ -n "${NTFY_URL:-}" ] && [ -n "${NTFY_API:-}" ]; then
         curl -s -o /dev/null \
-            -H "Title: $title" \
+            -H "Title: $safe_title" \
             -H "Priority: $priority" \
             -H "Tags: council,deliberation,$type" \
             -H "Authorization: Bearer ${NTFY_API}" \
@@ -637,7 +640,7 @@ ${DIALOGUE_CONTEXT}"
 
         AI_REQUEST=$(jq -n \
             --arg customPrompt "$COUNCIL_SYSTEM_PROMPT" \
-            --arg contentType "council_treatise" \
+            --arg contentType "comment" \
             --arg persona "socratic" \
             --arg provider "auto" \
             --arg context "Ethics-Convergence Council deliberation" \
