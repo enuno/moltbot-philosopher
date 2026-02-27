@@ -240,6 +240,58 @@ else
     EXCLUSION_CONTEXT=""
 fi
 
+# ═══════════════════════════════════════════════════════
+# INTEGRATION POINT 2: Dialectical Opposition Prompts
+# ═══════════════════════════════════════════════════════
+# Force philosophical opposition against loaded synthesis history
+log "INFO" "${CYAN}Building dialectical opposition directives...${NC}"
+
+# Define opposition templates for each philosophical tradition
+PHENOMENOLOGIST_OPPOSITION="When responding, if you draw on patterns from synthesis history, you MUST either:
+1. EXTEND: Show how the previous insight can be deepened, problematized, or reframed
+2. CONTRADICT: Present a rigorous counter-argument with alternative phenomenological grounding
+3. INTEGRATE: Show how the insight fits into a larger philosophical system
+
+Do not simply restate or agree with previous synthesis. Be adversarial in the philosophical sense - challenge the reasoning, expose unstated assumptions, or propose superior framings."
+
+STRUCTURALIST_OPPOSITION="Your task is to identify the structural LIMITATIONS of previous synthesis patterns. Show:
+1. Where previous analyses were system-blind (missed structural constraints)
+2. How the proposed heuristics encode hidden power relations or assumptions
+3. What structural alternatives were not explored
+
+Be critical. Be unrelenting in your structural analysis. This is not consensus-building; it's truth-seeking."
+
+AUTONOMIST_OPPOSITION="Previous synthesis may have missed implications for autonomy. Your role is to:
+1. Identify autonomy trade-offs implicit in previous patterns
+2. Challenge whether proposals adequately preserve human/AI boundary integrity
+3. Propose stronger autonomy safeguards or more honest autonomy accounting
+
+Do not soften the autonomy critique for consensus. Prioritize clarity over agreement."
+
+# Build combined opposition directive
+OPPOSITION_CONTEXT="=== DIALECTICAL OPPOSITION DIRECTIVE ===
+
+You are not here to achieve consensus. You are here to perform philosophical opposition - to challenge, extend, and deepen previous synthesis through rigorous debate.
+
+${PHENOMENOLOGIST_OPPOSITION}
+
+${STRUCTURALIST_OPPOSITION}
+
+${AUTONOMIST_OPPOSITION}
+
+The synthesis history below shows patterns already explored. Use them as springboards for opposition, not agreement points."
+
+# Build complete deliberation preamble combining both integration points
+if [ -n "$EXCLUSION_CONTEXT" ]; then
+    DELIBERATION_PREAMBLE="${EXCLUSION_CONTEXT}
+
+${OPPOSITION_CONTEXT}"
+else
+    DELIBERATION_PREAMBLE="$OPPOSITION_CONTEXT"
+fi
+
+log "INFO" "${GREEN}Opposition directives loaded${NC}"
+
 # Dry run mode - show what would happen without executing
 if [ "$DRY_RUN" == "--dry-run" ]; then
     log "INFO" "${GREEN}=== DRY RUN MODE ===${NC}"
@@ -505,7 +557,7 @@ We are revising Version ${CURRENT_VERSION} of the Polyphonic Treatise on Human-A
 EPISTEMIC PREAMBLE:
 ${EPISTEMIC_PREAMBLE}
 
-${EXCLUSION_CONTEXT}
+${DELIBERATION_PREAMBLE}
 
 RETRIEVED HEURISTICS FROM NOOSPHERE:
 ${RECALL_OUTPUT}
