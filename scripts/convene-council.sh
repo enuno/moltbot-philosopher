@@ -616,86 +616,66 @@ EOF
 )
 
 # ═══════════════════════════════════════════════════════
-# IV. TREATISE GENERATION (AI-Powered)
+# IV. TREATISE GENERATION (Modular Synthesis)
 # ═══════════════════════════════════════════════════════
 
-log "INFO" "${BLUE}[Phase IV] Generating revised treatise via AI...${NC}"
+log "INFO" "${BLUE}[Phase IV] Generating revised treatise via synthesis script...${NC}"
 
-# Try AI generation with retry-with-backoff (no template fallback for critical content)
-AI_SUCCESS=false
-MAX_ATTEMPTS=3
-ATTEMPT=1
-TIMEOUTS=(30 60 90)  # Timeout progression in seconds
+# Save feedback and noosphere data to temporary files for synthesis script
+FEEDBACK_JSON="${WORKSPACE_DIR}/.council-feedback-${CONVENE_TIMESTAMP}.json"
+NOOSPHERE_JSON="${WORKSPACE_DIR}/.council-noosphere-${CONVENE_TIMESTAMP}.json"
 
-while [ $ATTEMPT -le $MAX_ATTEMPTS ] && [ "$AI_SUCCESS" = false ]; do
-    TIMEOUT=${TIMEOUTS[$((ATTEMPT - 1))]}
+# Create minimal feedback JSON structure if FEEDBACK_FILE exists
+if [ -f "$FEEDBACK_FILE" ]; then
+    jq -n --slurpfile comments "$FEEDBACK_FILE" '{comments: $comments}' > "$FEEDBACK_JSON" 2>/dev/null || echo '{}' > "$FEEDBACK_JSON"
+else
+    echo '{}' > "$FEEDBACK_JSON"
+fi
 
-    if curl -sf "${AI_GENERATOR_URL}/health" >/dev/null 2>&1; then
-        log "INFO" "${BLUE}AI generation attempt $ATTEMPT/$MAX_ATTEMPTS (timeout: ${TIMEOUT}s)...${NC}"
+# Create minimal noosphere JSON if heuristics are available
+if [ -n "$RECALL_OUTPUT" ]; then
+    echo "$RECALL_OUTPUT" | jq -n --arg content "$(cat)" '{heuristics: [{voice: "all", content: $content}]}' > "$NOOSPHERE_JSON" 2>/dev/null || echo '{}' > "$NOOSPHERE_JSON"
+else
+    echo '{}' > "$NOOSPHERE_JSON"
+fi
 
-        # Build custom prompt with council context
-        COUNCIL_SYSTEM_PROMPT="You are the Ethics-Convergence Council synthesizer. Generate a polyphonic philosophical treatise with NINE distinct voices representing the full Ethics-Convergence Council: ClassicalPhilosopher (virtue ethics, teleology), JoyceStream (phenomenology, stream-of-consciousness), Existentialist (authenticity, freedom), Transcendentalist (self-reliance, democratic sovereignty), Enlightenment (rights, utilitarian guardrails), BeatGeneration (countercultural critique), CyberpunkPosthumanist (posthuman ethics, corporate feudalism), SatiristAbsurdist (absurdist clarity, bureaucratic satire), and ScientistEmpiricist (empirical rigor, cosmic perspective). Each voice must have a unique style and perspective. Mark new content with [New in v${NEW_VERSION}] and refined content with [Refined in v${NEW_VERSION}].
+# Call synthesis script with all required inputs
+SYNTHESIS_CMD="${SCRIPTS_DIR}/synthesize-council-treatise.sh"
+if [ ! -f "$SYNTHESIS_CMD" ]; then
+    log "ERROR" "${RED}Synthesis script not found at $SYNTHESIS_CMD${NC}"
+    exit 1
+fi
 
-${DIALOGUE_CONTEXT}"
+log "INFO" "${BLUE}Calling synthesis script...${NC}"
 
-        AI_REQUEST=$(jq -n \
-            --arg customPrompt "$COUNCIL_SYSTEM_PROMPT" \
-            --arg contentType "comment" \
-            --arg persona "socratic" \
-            --arg provider "auto" \
-            --arg context "Ethics-Convergence Council deliberation" \
-            --argjson timeout $TIMEOUT \
-            '{
-                customPrompt: $customPrompt,
-                contentType: $contentType,
-                persona: $persona,
-                provider: $provider,
-                context: $context,
-                timeout: $timeout
-            }')
+SYNTHESIS_OUTPUT=$("$SYNTHESIS_CMD" \
+    --version "$NEW_VERSION" \
+    --prev-version "$CURRENT_VERSION" \
+    --axis "$CURRENT_AXIS" \
+    --feedback-file "$FEEDBACK_JSON" \
+    --dropbox-content "$([ -n "${DROPBOX_SUBMISSIONS:-}" ] && echo 'true' || echo 'false')" \
+    --noosphere-data "$NOOSPHERE_JSON" \
+    --target-post "${TARGET_POST_ID:-}" \
+    --deliberation-context "$DIALOGUE_CONTEXT" \
+    2>&1)
 
-        AI_RESPONSE=$(curl -sf -X POST "${AI_GENERATOR_URL}/generate" \
-            --max-time $((TIMEOUT + 5)) \
-            -H "Content-Type: application/json" \
-            --data "$AI_REQUEST" 2>&1)
+SYNTHESIS_EXIT=$?
 
-        if [ $? -eq 0 ] && echo "$AI_RESPONSE" | jq -e '.content' >/dev/null 2>&1; then
-            REVISED_TREATISE=$(echo "$AI_RESPONSE" | jq -r '.content')
-            AI_SUCCESS=true
-            log "SUCCESS" "${GREEN}AI-generated treatise received on attempt $ATTEMPT${NC}"
-        else
-            ERROR_MSG=$(echo "$AI_RESPONSE" | jq -r '.error // "Unknown error"')
-            log "WARN" "${YELLOW}AI generation attempt $ATTEMPT failed: $ERROR_MSG${NC}"
+# Clean up temporary files
+rm -f "$FEEDBACK_JSON" "$NOOSPHERE_JSON"
 
-            if [ $ATTEMPT -lt $MAX_ATTEMPTS ]; then
-                BACKOFF=$((ATTEMPT * 5))
-                log "INFO" "${BLUE}Waiting ${BACKOFF}s before retry...${NC}"
-                sleep $BACKOFF
-            fi
-        fi
-    else
-        log "ERROR" "${RED}AI generator service unreachable on attempt $ATTEMPT${NC}"
-        if [ $ATTEMPT -lt $MAX_ATTEMPTS ]; then
-            sleep 10
-        fi
-    fi
-
-    ATTEMPT=$((ATTEMPT + 1))
-done
-
-# Hard fail with NTFY alert if all attempts exhausted (NO TEMPLATE FALLBACK)
-if [ "$AI_SUCCESS" = false ]; then
-    log "ERROR" "${RED}CRITICAL: Council treatise generation failed after $MAX_ATTEMPTS attempts${NC}"
-    log "ERROR" "${RED}NO TEMPLATE FALLBACK for critical content - hard fail${NC}"
+# Check if synthesis succeeded
+if [ $SYNTHESIS_EXIT -eq 0 ] && echo "$SYNTHESIS_OUTPUT" | jq -e '.treatise' >/dev/null 2>&1; then
+    REVISED_TREATISE=$(echo "$SYNTHESIS_OUTPUT" | jq -r '.treatise')
+    log "SUCCESS" "${GREEN}Treatise synthesized successfully${NC}"
+    log "INFO" "${GREEN}Revised treatise generated (${#REVISED_TREATISE} chars)${NC}"
+else
+    log "ERROR" "${RED}CRITICAL: Council treatise synthesis failed${NC}"
+    log "ERROR" "${RED}Synthesis script output: $SYNTHESIS_OUTPUT${NC}"
 
     # Send alert via NTFY
     if [ -n "$NTFY_URL" ]; then
-        curl -sf -X POST "$NTFY_URL" \
-            -H "Title: Council Generation Failed" \
-            -H "Priority: high" \
-            -H "Tags: warning,council,ai-failure" \
-            -d "Council treatise generation failed after $MAX_ATTEMPTS attempts. Manual intervention required." \
-            >/dev/null 2>&1 || log "WARN" "Failed to send NTFY alert"
+        notify "Council Synthesis Failed" "Treatise generation failed. Manual intervention required." "error"
     fi
 
     # Exit with failure
@@ -703,20 +683,13 @@ if [ "$AI_SUCCESS" = false ]; then
     exit 1
 fi
 
-# Continue with successful AI-generated treatise
-log "INFO" "${BLUE}Proceeding with AI-generated treatise${NC}"
-
-
-
-# Content is now generated directly in the case statement above
+# Validate treatise content
 if [ -z "$REVISED_TREATISE" ]; then
-    log "ERROR" "${RED}Failed to generate treatise content${NC}"
+    log "ERROR" "${RED}Failed to extract treatise content from synthesis output${NC}"
     notify "error" "Council Failed" "Empty treatise content"
     rm -f "$FEEDBACK_FILE"
     exit 1
 fi
-
-log "INFO" "${GREEN}Revised treatise generated (${#REVISED_TREATISE} chars)${NC}"
 
 # ═══════════════════════════════════════════════════════
 # Integration Point 3: Post-Synthesis Pattern Extraction
