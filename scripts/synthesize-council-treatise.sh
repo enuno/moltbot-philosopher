@@ -368,6 +368,7 @@ BEGIN (No preamble):"
         --arg contentType "comment" \
         --arg persona "procedural" \
         --arg provider "auto" \
+        --argjson timeout "$timeout" \
         '{
             customPrompt: $customPrompt,
             contentType: $contentType,
