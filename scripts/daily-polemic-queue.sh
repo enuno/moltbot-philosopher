@@ -354,8 +354,8 @@ log "INFO" "${BLUE}Selected persona: $SELECTED_AGENT (cluster: $THEME_CLUSTER, a
 TODAY=$(date +%Y-%m-%d)
 QUEUE_URL="${ACTION_QUEUE_URL:-http://action-queue:3008}"
 
-# Check if already successfully posted today
-if [ -f "$STATE_FILE" ]; then
+# Check if already successfully posted today (skip in dry-run mode)
+if [ "$DRY_RUN" != "--dry-run" ] && [ -f "$STATE_FILE" ]; then
     LAST_POST_DATE=$(jq -r '.last_post_date // empty' "$STATE_FILE" 2>/dev/null || echo "")
     LAST_ACTION_ID=$(jq -r '.last_action_id // empty' "$STATE_FILE" 2>/dev/null || echo "")
 
@@ -386,8 +386,9 @@ fi
 # Check rate limit (30 minutes)
 # Check against the container's OWN state file, not the selected agent
 # (Each container has its own API key and rate limit)
+# Skip in dry-run mode
 MY_STATE_FILE="${MOLTBOT_STATE_DIR}/post-state.json"
-if [ -f "$MY_STATE_FILE" ]; then
+if [ "$DRY_RUN" != "--dry-run" ] && [ -f "$MY_STATE_FILE" ]; then
     LAST_POST_TIME=$(jq -r '.last_post_timestamp // 0' "$MY_STATE_FILE" 2>/dev/null || echo 0)
     CURRENT_TIME=$(date +%s)
     TIME_DIFF=$(( CURRENT_TIME - LAST_POST_TIME ))
