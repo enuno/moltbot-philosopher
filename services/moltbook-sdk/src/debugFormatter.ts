@@ -178,3 +178,124 @@ export function formatDebugBreakdown(result: ScoringResult): string {
     `→ Final: ${breakdown.finalScore.toFixed(4)}`
   );
 }
+
+/**
+ * Format a multi-line debug breakdown for CLI display.
+ *
+ * Pretty-printed format with aligned columns, showing scores at each
+ * transformation stage. Suitable for terminal output and detailed logging.
+ *
+ * Example output:
+ * ```
+ * Post: abc123
+ * Semantic (base):     0.7500
+ * After Recency:       0.6900  (-8.0%)
+ * After Reputation:    0.7590  (+10.0%)
+ * After FollowBoost:   0.9488  (+25.0%)
+ * ─────────────────────────────
+ * Final Score:         0.9488
+ * Total Change:        +0.1988 (+26.5%)
+ * ```
+ *
+ * @param result - ScoringResult with debug enabled
+ * @returns Multi-line formatted string for CLI display
+ */
+export function formatDebugBreakdownMultiline(result: ScoringResult): string {
+  const breakdown = calculateBreakdown(result);
+  const lines: string[] = [];
+
+  // Header with post ID
+  lines.push(`Post: ${breakdown.postId}`);
+  lines.push("");
+
+  // Score progression at each stage
+  let currentScore = breakdown.baseScore;
+  lines.push(`Semantic (base):     ${currentScore.toFixed(4)}`);
+
+  // After recency multiplier
+  const afterRecency = currentScore * breakdown.factors.recency.multiplier;
+  const recencyChange = ((afterRecency - currentScore) / breakdown.finalScore) * 100;
+  lines.push(
+    `After Recency:       ${afterRecency.toFixed(4)}  (${recencyChange >= 0 ? "+" : ""}${recencyChange.toFixed(1)}%)`
+  );
+  currentScore = afterRecency;
+
+  // After reputation multiplier
+  const afterReputation = currentScore * breakdown.factors.reputation.multiplier;
+  const reputationChange = ((afterReputation - currentScore) / breakdown.finalScore) * 100;
+  lines.push(
+    `After Reputation:    ${afterReputation.toFixed(4)}  (${reputationChange >= 0 ? "+" : ""}${reputationChange.toFixed(1)}%)`
+  );
+  currentScore = afterReputation;
+
+  // After followBoost multiplier
+  const afterFollowBoost = currentScore * breakdown.factors.followBoost.multiplier;
+  const followChange = ((afterFollowBoost - currentScore) / breakdown.finalScore) * 100;
+  lines.push(
+    `After FollowBoost:   ${afterFollowBoost.toFixed(4)}  (${followChange >= 0 ? "+" : ""}${followChange.toFixed(1)}%)`
+  );
+
+  // Separator
+  lines.push("─────────────────────────────");
+
+  // Final results
+  lines.push(`Final Score:         ${breakdown.finalScore.toFixed(4)}`);
+  lines.push(
+    `Total Change:        ${breakdown.totalChange >= 0 ? "+" : ""}${breakdown.totalChange.toFixed(4)} (${breakdown.totalChangePercent >= 0 ? "+" : ""}${breakdown.totalChangePercent.toFixed(1)}%)`
+  );
+
+  return lines.join("\n");
+}
+
+/**
+ * Format debug breakdown as structured JSON.
+ *
+ * Returns the DebugBreakdown object as a JSON string. Suitable for
+ * API responses, data interchange, and structured logging systems.
+ *
+ * @param result - ScoringResult with debug enabled
+ * @returns JSON string of DebugBreakdown object
+ */
+export function formatDebugBreakdownJSON(result: ScoringResult): string {
+  const breakdown = calculateBreakdown(result);
+  return JSON.stringify(breakdown, null, 2);
+}
+
+/**
+ * Format multiple debug breakdowns in a compact batch format.
+ *
+ * Compares multiple results side-by-side in a compact comma-separated
+ * format. Useful for comparing scoring results across multiple posts.
+ *
+ * Example output:
+ * ```
+ * Post abc | Sem: 0.7500 | Rec: -8.0% | Rep: +10.0% | Fol: +25.0% → 0.9488
+ * Post def | Sem: 0.8200 | Rec: -5.2% | Rep: +8.5% | Fol: +15.0% → 0.9550
+ * Post ghi | Sem: 0.6100 | Rec: -10.1% | Rep: +12.0% | Fol: +20.0% → 0.7256
+ * ```
+ *
+ * @param results - Array of ScoringResult objects with debug enabled
+ * @returns Single string with one result per line, compact format
+ */
+export function formatDebugBreakdownBatch(results: ScoringResult[]): string {
+  return results
+    .map((result) => {
+      const breakdown = calculateBreakdown(result);
+
+      // Format: "Post {id} | Sem: {base} | Rec: {rec_pct}% | Rep: {rep_pct}% | Fol: {fol_pct}% → {final}"
+      const formatShortPercent = (pct: number): string => {
+        const sign = pct >= 0 ? "+" : "";
+        return `${sign}${pct.toFixed(1)}%`;
+      };
+
+      return (
+        `Post ${breakdown.postId} | ` +
+        `Sem: ${breakdown.baseScore.toFixed(4)} | ` +
+        `Rec: ${formatShortPercent(breakdown.factors.recency.contributionPercent)} | ` +
+        `Rep: ${formatShortPercent(breakdown.factors.reputation.contributionPercent)} | ` +
+        `Fol: ${formatShortPercent(breakdown.factors.followBoost.contributionPercent)} | ` +
+        `→ ${breakdown.finalScore.toFixed(4)}`
+      );
+    })
+    .join("\n");
+}
