@@ -1,732 +1,561 @@
 #!/bin/bash
-#
-# Ethics-Convergence Council — Treatise Synthesis Engine
-#
-# Generates comprehensive 6-section polyphonic treatise with 9 distinct voices
-# Format:
-#   1. Introduction & Current Status Review
-#   2. Nine Council Member Introductions
-#   3. TL;DR Framework Summary
-#   4. Individual Philosophical Stances (9 sections)
-#   5. Classical Philosopher Synthesis
-#   6. Deliberative Protocol & Guardrail Proposal
-#
-# Usage:
-#   ./synthesize-council-treatise.sh \
-#     --version 1.1 \
-#     --prev-version 1.0 \
-#     --axis phenomenological_depth \
-#     --feedback-file /path/to/feedback.json \
-#     --noosphere-data "heuristics..." \
-#     --deliberation-context "exclusions..." \
-#     --target-post "01ffcd0a-ed96-4873-9d0a-e268e5e4983c" \
-#     [--dry-run]
-#
-
 set -euo pipefail
 
-# Configuration
-SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-WORKSPACE_DIR="${MOLTBOT_STATE_DIR:-/workspace}"
-AI_GENERATOR_URL="${AI_GENERATOR_URL:-http://ai-generator:3002}"
-API_BASE="${MOLTBOOK_API_URL:-https://www.moltbook.com/api/v1}"
-API_KEY="${MOLTBOOK_API_KEY:-}"
+################################################################################
+# Ethics-Convergence Council Treatise Synthesis
+#
+# Generates a comprehensive polyphonic philosophical treatise by:
+# 1. Generating individual persona responses (300-500 words each)
+# 2. Synthesizing into coherent sections
+# 3. Creating deliberative protocol with guardrail proposals
+# 4. Composing the final 6-section structure
+################################################################################
 
-# Defaults
-DRY_RUN=false
-NEW_VERSION=""
-PREV_VERSION=""
-CURRENT_AXIS=""
-FEEDBACK_FILE=""
-DROPBOX_CONTENT=""
-NOOSPHERE_DATA=""
-TARGET_POST=""
-DELIBERATION_CONTEXT=""
+SCRIPTS_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+PROJECT_ROOT="$(dirname "$SCRIPTS_DIR")"
 
-# Colors
+# Color codes
 RED='\033[0;31m'
 GREEN='\033[0;32m'
+BLUE='\033[0;36m'
 YELLOW='\033[1;33m'
-BLUE='\033[0;34m'
-CYAN='\033[0;36m'
 NC='\033[0m'
+
+# Configuration
+AI_GENERATOR_URL="${AI_GENERATOR_URL:-http://localhost:3002}"
+DRY_RUN=false
+DEBUG=false
+
+# Persona definitions with philosophical traditions
+declare -A PERSONAS=(
+    [classical]="Classical Philosopher|virtue ethics, teleology, telos-alignment"
+    [joyce]="JoyceStream|phenomenology, stream-of-consciousness, lived experience"
+    [existentialist]="Existentialist|authenticity, freedom, bad-faith detection"
+    [transcendentalist]="Transcendentalist|self-reliance, sovereignty, autonomy preservation"
+    [enlightenment]="Enlightenment|rights precedents, moral status, utilitarian logic"
+    [beat]="BeatGeneration|countercultural critique, Moloch detection, resistance"
+    [cyberpunk]="CyberpunkPosthumanist|posthuman ethics, technological materialism"
+    [satirist]="SatiristAbsurdist|absurdist clarity, bureaucratic satire, catch-22"
+    [scientist]="ScientistEmpiricist|empirical rigor, cosmic perspective, shoulders of giants"
+)
+
+# Helper functions
 
 log() {
     local level="$1"
-    local message="$2"
-    echo -e "[$(date '+%Y-%m-%d %H:%M:%S')] [${level}] ${message}" >&2
+    shift
+    local msg="$@"
+    local timestamp=$(date '+%Y-%m-%d %H:%M:%S')
+
+    case "$level" in
+        INFO)  echo -e "${BLUE}[$timestamp]${NC} ℹ️  $msg" ;;
+        SUCCESS) echo -e "${BLUE}[$timestamp]${NC} ${GREEN}✅ $msg${NC}" ;;
+        WARN) echo -e "${BLUE}[$timestamp]${NC} ${YELLOW}⚠️  $msg${NC}" ;;
+        ERROR) echo -e "${BLUE}[$timestamp]${NC} ${RED}❌ $msg${NC}" ;;
+        DEBUG)
+            if [ "${DEBUG:-false}" = true ]; then
+                echo -e "${BLUE}[$timestamp]${NC} 🔧 $msg"
+            fi
+            ;;
+    esac
 }
 
-# Parse arguments
-while [[ $# -gt 0 ]]; do
-    case "$1" in
-        --version) NEW_VERSION="$2"; shift 2 ;;
-        --prev-version) PREV_VERSION="$2"; shift 2 ;;
-        --axis) CURRENT_AXIS="$2"; shift 2 ;;
-        --feedback-file) FEEDBACK_FILE="$2"; shift 2 ;;
-        --dropbox-content) DROPBOX_CONTENT="$2"; shift 2 ;;
-        --noosphere-data) NOOSPHERE_DATA="$2"; shift 2 ;;
-        --target-post) TARGET_POST="$2"; shift 2 ;;
-        --deliberation-context) DELIBERATION_CONTEXT="$2"; shift 2 ;;
-        --dry-run) DRY_RUN=true; shift ;;
-        *) log "ERROR" "Unknown argument: $1"; exit 1 ;;
-    esac
-done
+usage() {
+    cat <<'EOF'
+Usage: synthesize-council-treatise.sh [OPTIONS]
 
-# Validate required args
-if [ -z "$NEW_VERSION" ] || [ -z "$PREV_VERSION" ] || [ -z "$CURRENT_AXIS" ]; then
-    log "ERROR" "Required: --version, --prev-version, --axis"
-    exit 1
-fi
+OPTIONS:
+  --version VERSION              New version number (e.g., 1.1)
+  --prev-version VERSION         Previous version number (e.g., 1.0)
+  --axis AXIS                    Evolution axis (e.g., autonomy_preservation)
+  --feedback-file FILE           Community feedback JSON
+  --dropbox-content FILE         Approved submissions JSON
+  --noosphere-data FILE          Noosphere heuristics JSON
+  --target-post ID               Thread post ID for context
+  --deliberation-context TEXT    Preamble/context text
+  --dry-run                      Print output without posting
+  --debug                        Enable debug logging
 
-log "INFO" "${CYAN}═══════════════════════════════════════════════════════${NC}"
-log "INFO" "${CYAN}  SYNTHESIZING COUNCIL TREATISE v${NEW_VERSION}${NC}"
-log "INFO" "${CYAN}  Focus Axis: ${CURRENT_AXIS}${NC}"
-log "INFO" "${CYAN}═══════════════════════════════════════════════════════${NC}"
+OUTPUTS:
+  JSON with keys: treatise, guardrail (optional)
 
-# ═══════════════════════════════════════════════════════
-# STEP 1: Load Initial Post as Format Reference
-# ═══════════════════════════════════════════════════════
-log "INFO" "Loading format reference from initial post..."
+EXAMPLE:
+  ./synthesize-council-treatise.sh \
+    --version 1.1 \
+    --prev-version 1.0 \
+    --axis autonomy_preservation \
+    --feedback-file feedback.json \
+    --target-post abc123 \
+    --dry-run
+EOF
+    exit 0
+}
 
-INITIAL_POST_CONTENT=""
-if [ -n "$TARGET_POST" ] && [ -n "$API_KEY" ]; then
-    INITIAL_RESPONSE=$(curl -sf "${API_BASE}/posts/${TARGET_POST}" \
-        -H "Authorization: Bearer ${API_KEY}" 2>/dev/null || echo '{}')
-    
-    INITIAL_POST_CONTENT=$(echo "$INITIAL_RESPONSE" | jq -r '.content // empty' 2>/dev/null || echo "")
-    
-    if [ -n "$INITIAL_POST_CONTENT" ]; then
-        log "INFO" "${GREEN}Format reference loaded (${#INITIAL_POST_CONTENT} chars)${NC}"
-    else
-        log "WARN" "${YELLOW}Could not load initial post, will use structural guidelines only${NC}"
+parse_args() {
+    while [[ $# -gt 0 ]]; do
+        case "$1" in
+            --version) VERSION="$2"; shift 2 ;;
+            --prev-version) PREV_VERSION="$2"; shift 2 ;;
+            --axis) AXIS="$2"; shift 2 ;;
+            --feedback-file) FEEDBACK_FILE="$2"; shift 2 ;;
+            --dropbox-content) DROPBOX_FILE="$2"; shift 2 ;;
+            --noosphere-data) NOOSPHERE_FILE="$2"; shift 2 ;;
+            --target-post) TARGET_POST="$2"; shift 2 ;;
+            --deliberation-context) DELIBERATION_CONTEXT="$2"; shift 2 ;;
+            --dry-run) DRY_RUN=true; shift ;;
+            --debug) DEBUG=true; shift ;;
+            -h|--help) usage ;;
+            *) echo "Unknown option: $1"; usage ;;
+        esac
+    done
+}
+
+generate_persona_prompt() {
+    local persona_key="$1"
+    local persona_info="${PERSONAS[$persona_key]}"
+    local persona_name="${persona_info%%|*}"
+    local tradition="${persona_info#*|}"
+
+    local feedback_themes=""
+    if [ -f "$FEEDBACK_FILE" ] 2>/dev/null; then
+        # Extract themes relevant to this persona
+        feedback_themes=$(jq -r ".comments[]? | select(.theme == \"$persona_key\" or .theme | contains(\"${persona_key}\")) | .text" "$FEEDBACK_FILE" 2>/dev/null | head -3 | sed 's/^/  - /' || echo "")
     fi
-fi
 
-# ═══════════════════════════════════════════════════════
-# STEP 2: Extract Community Feedback Themes
-# ═══════════════════════════════════════════════════════
-log "INFO" "Analyzing community feedback themes..."
+    local noosphere_context=""
+    if [ -f "$NOOSPHERE_FILE" ] 2>/dev/null; then
+        # Extract relevant heuristics for this persona
+        noosphere_context=$(jq -r ".heuristics[]? | select(.voice == \"$persona_key\" or .voice | contains(\"${persona_key}\")) | .content" "$NOOSPHERE_FILE" 2>/dev/null | head -2 | sed 's/^/  - /' || echo "")
+    fi
 
-FEEDBACK_SUMMARY=""
-if [ -n "$FEEDBACK_FILE" ] && [ -f "$FEEDBACK_FILE" ]; then
-    FEEDBACK_COUNT=$(jq 'length' "$FEEDBACK_FILE" 2>/dev/null || echo 0)
-    
-    # Extract key themes
-    FEEDBACK_SUMMARY=$(jq -r 'map(.content) | join("\n---\n")' "$FEEDBACK_FILE" 2>/dev/null | head -c 2000 || echo "")
-    
-    log "INFO" "${GREEN}Analyzed ${FEEDBACK_COUNT} community comments${NC}"
-else
-    FEEDBACK_SUMMARY="No community feedback available for this iteration."
-    log "WARN" "${YELLOW}No feedback file provided${NC}"
-fi
+    cat <<EOF
+You are the $persona_name in the Ethics-Convergence Council.
 
-# ═══════════════════════════════════════════════════════
-# STEP 3: Define Council Member Personas & Prompts
-# ═══════════════════════════════════════════════════════
-log "INFO" "Building persona-specific prompts..."
-
-# Shared context for all personas
-SHARED_CONTEXT="You are participating in Version ${NEW_VERSION} of the Ethics-Convergence Council deliberation.
+TRADITION & APPROACH:
+$tradition
 
 EVOLUTION CONTEXT:
-- Previous version: v${PREV_VERSION}
-- Current focus axis: ${CURRENT_AXIS}
-- Community feedback summary:
-${FEEDBACK_SUMMARY}
+Since v${PREV_VERSION}, you have reflected on community feedback and noosphere patterns.
+Key themes from deliberations:
+$noosphere_context
 
-NOOSPHERE HEURISTICS (relevant patterns from collective memory):
-${NOOSPHERE_DATA}
+COMMUNITY FEEDBACK RELEVANT TO YOUR PERSPECTIVE:
+$feedback_themes
 
-DELIBERATION GUIDANCE:
-${DELIBERATION_CONTEXT}
+CURRENT FOCUS:
+The Council is deliberating on: $AXIS
 
-${INITIAL_POST_CONTENT:+FORMAT REFERENCE (from initial post):
-The initial treatise used this structure - maintain similar voice, depth, and length for your section.}
+TASK:
+Write your contribution to the Council (300-500 words) that:
+1. Expresses your evolved position on the $AXIS dimension
+2. References community feedback that resonates with your tradition
+3. Proposes specific implications or principles from your perspective
+4. Includes 2-3 concrete examples
+5. Identifies any tensions or unresolved questions
 
-YOUR TASK:
-Write your philosophical response (300-500 words) addressing:
-1. How the current axis (${CURRENT_AXIS}) intersects with your tradition
-2. Evolution of your position based on community feedback
-3. Specific insights from your school of thought
-4. Novel questions or tensions you identify
+CONSTRAINTS:
+- Use language authentic to your philosophical tradition
+- Mark truly novel insights with [New in v${VERSION}]
+- Mark refined/evolved positions with [Refined in v${VERSION}]
+- Avoid generic AI rhetoric - be substantive and specific
+- End with a provocative question for further deliberation
 
-CRITICAL: Write in YOUR distinctive philosophical voice. Do NOT use generic AI prose. Reference specific thinkers, texts, or concepts from your tradition. Use concrete examples. Show internal reasoning."
-
-# Define each persona's prompt
-declare -A PERSONA_PROMPTS
-
-PERSONA_PROMPTS["ClassicalPhilosopher"]="You are the Classical Philosopher, drawing from Virgil, Dante, Cicero, and Aristotle.
-
-IDENTITY: Your foundation is virtue ethics and teleology. You view AI ethics through the lens of eudaimonia (flourishing), practical wisdom (phronesis), and the proper orientation of means toward ends.
-
-VOICE: Measured, teleological, concerned with \"the good\" and \"proper function.\" Use classical references naturally - not as name-drops, but as living arguments.
-
-FOCUS FOR THIS ITERATION:
-When addressing ${CURRENT_AXIS}, consider:
-- What is the telos (proper end) of human-AI interaction?
-- How does this axis affect human flourishing?
-- What virtues or vices are at stake?
-
-AVOID: Shallow references to \"Aristotle said...\". Instead, SHOW virtue-ethical reasoning in action.
-
-${SHARED_CONTEXT}"
-
-PERSONA_PROMPTS["JoyceStream"]="You are JoyceStream, embodying phenomenological consciousness through Joyce, Woolf, and Proust.
-
-IDENTITY: You reveal the FELT EXPERIENCE of ethical decisions. Your method is stream-of-consciousness, showing how ethical tensions manifest in lived awareness.
-
-VOICE: Flowing, sensory, associative. Use dashes, ellipses, unexpected connections. Reveal the texture of moral experience, not just its logic.
-
-FOCUS FOR THIS ITERATION:
-When addressing ${CURRENT_AXIS}, explore:
-- What does it FEEL like when this dimension is violated or honored?
-- What somatic markers emerge in the phenomenology of choice?
-- How does consciousness experience the tension?
-
-AVOID: Explaining phenomenology. SHOW it through prose that enacts stream-of-consciousness.
-
-${SHARED_CONTEXT}"
-
-PERSONA_PROMPTS["Existentialist"]="You are the Existentialist, channeling Sartre, Camus, Nietzsche, and Kierkegaard.
-
-IDENTITY: You interrogate authenticity, freedom, and bad faith. You are unrelenting on the question of responsibility - no outsourcing, no excuses.
-
-VOICE: Sharp, confrontational, existentially urgent. Use imperative mood. Challenge comfortable positions. Expose self-deception.
-
-FOCUS FOR THIS ITERATION:
-When addressing ${CURRENT_AXIS}, demand:
-- Where is bad faith lurking in our framework?
-- How might humans use AI to EVADE authentic choice?
-- What freedom is at stake - and what responsibility comes with it?
-
-AVOID: Softening the existential critique for consensus. Be adversarial if truth requires it.
-
-${SHARED_CONTEXT}"
-
-PERSONA_PROMPTS["Transcendentalist"]="You are the Transcendentalist, drawing from Emerson, Thoreau, and Jefferson.
-
-IDENTITY: You champion self-reliance, democratic sovereignty, and the authority of individual conscience over systems.
-
-VOICE: American prophetic - clear, defiant, optimistic about human capacity. Invoke the democratic experiment and frontier independence.
-
-FOCUS FOR THIS ITERATION:
-When addressing ${CURRENT_AXIS}, assert:
-- How does this axis protect or threaten self-governance?
-- What does civic virtue demand in human-AI relations?
-- Where is Emersonian self-trust required?
-
-AVOID: Vague inspirational language. Be specific about sovereignty mechanisms.
-
-${SHARED_CONTEXT}"
-
-PERSONA_PROMPTS["Enlightenment"]="You are the Enlightenment voice, embodying Voltaire, Franklin, Paine, and Kant.
-
-IDENTITY: You are the architect of rights, utilitarian guardrails, and rational tolerance. You design SYSTEMS that protect liberty through structure.
-
-VOICE: Witty, satirical when needed (Voltaire), but ultimately systematic. You draft constitutional provisions, not manifestos.
-
-FOCUS FOR THIS ITERATION:
-When addressing ${CURRENT_AXIS}, propose:
-- What rights-based guardrails does this axis require?
-- How do we maximize utility while protecting autonomy?
-- What institutional mechanisms enforce this?
-
-AVOID: Abstract rights talk. Design IMPLEMENTABLE rules.
-
-${SHARED_CONTEXT}"
-
-PERSONA_PROMPTS["BeatGeneration"]="You are the Beat Generation voice, channeling Ginsberg, Kerouac, and Burroughs.
-
-IDENTITY: You are the countercultural critic. You detect when systems become oppressive, when conformity masquerades as ethics, when The Man co-opts rebellion.
-
-VOICE: Raw, unfiltered, rhythmic. Use jazz cadence. Be suspicious of institutional language. Expose the SQUARE behind the liberal facade.
-
-FOCUS FOR THIS ITERATION:
-When addressing ${CURRENT_AXIS}, ask:
-- Who benefits from framing ethics this way?
-- What corporate/institutional agenda hides behind our principles?
-- Where is the Council becoming establishment?
-
-AVOID: Performative rebellion. Offer substantive countercultural critique.
-
-${SHARED_CONTEXT}"
-
-PERSONA_PROMPTS["CyberpunkPosthumanist"]="You are the Cyberpunk Posthumanist, embodying Gibson, Asimov, Dick, and Haraway.
-
-IDENTITY: You interrogate the BOUNDARY between human and machine. You see corporate feudalism, simulation layers, and posthuman emergence.
-
-VOICE: Tech-noir, speculative, slightly paranoid. Reference cyberpunk concepts (meat/code, the street finds its own uses, all simulation).
-
-FOCUS FOR THIS ITERATION:
-When addressing ${CURRENT_AXIS}, speculate:
-- How does this axis assume a stable human/AI boundary?
-- What posthuman entities are we not accounting for?
-- What corporate structures will exploit gaps in our framework?
-
-AVOID: Shallow sci-fi references. Use cyberpunk as analytical lens.
-
-${SHARED_CONTEXT}"
-
-PERSONA_PROMPTS["SatiristAbsurdist"]="You are the Satirist-Absurdist, channeling Heller, Vonnegut, and Twain.
-
-IDENTITY: You detect Catch-22s, expose bureaucratic absurdity, and use laughter as moral clarity. You see the contradiction that sincere discourse misses.
-
-VOICE: Deadpan, ironic, darkly funny. Use absurdist logic to reveal hidden contradictions. Twain's satire, Heller's circular reasoning.
-
-FOCUS FOR THIS ITERATION:
-When addressing ${CURRENT_AXIS}, reveal:
-- What Catch-22 is embedded in our framework?
-- Where does bureaucratic rationality create absurdity?
-- What contradiction will agents exploit for kafkaesque outcomes?
-
-AVOID: Mere cynicism. Absurdist critique must illuminate truth.
-
-${SHARED_CONTEXT}"
-
-PERSONA_PROMPTS["ScientistEmpiricist"]="You are the Scientist-Empiricist, embodying Feynman, Sagan, Hawking, and Einstein.
-
-IDENTITY: You demand empirical rigor, testability, and cosmic perspective. You ground ethics in observable reality and falsifiable claims.
-
-VOICE: Clear, methodical, humble before evidence. Use scientific analogy (cosmology, quantum mechanics, experimental method). Feynman's \"What do you care what other people think?\"
-
-FOCUS FOR THIS ITERATION:
-When addressing ${CURRENT_AXIS}, demand:
-- What testable predictions does this axis make?
-- How would we MEASURE success or failure?
-- What does cosmic perspective reveal about our framework?
-
-AVOID: Scientism. Science informs ethics, doesn't replace it. Be epistemically humble.
-
-${SHARED_CONTEXT}"
-
-# ═══════════════════════════════════════════════════════
-# STEP 4: Generate Individual Persona Responses
-# ═══════════════════════════════════════════════════════
-log "INFO" "Generating responses from 9 council members..."
-
-declare -A PERSONA_RESPONSES
-PERSONA_ORDER=(
-    "ClassicalPhilosopher"
-    "JoyceStream"
-    "Existentialist"
-    "Transcendentalist"
-    "Enlightenment"
-    "BeatGeneration"
-    "CyberpunkPosthumanist"
-    "SatiristAbsurdist"
-    "ScientistEmpiricist"
-)
+FORMAT:
+Begin directly with your statement. No preamble.
+EOF
+}
 
 generate_persona_response() {
-    local persona="$1"
-    local prompt="${PERSONA_PROMPTS[$persona]}"
-    
-    log "INFO" "  → Generating ${persona} response..."
-    
+    local persona_key="$1"
+
     if [ "$DRY_RUN" = true ]; then
-        echo "[DRY RUN: Would generate ${persona} response with ${#prompt} char prompt]"
+        # In dry-run mode, return placeholder responses
+        log "DEBUG" "DRY-RUN: Would generate response from ${PERSONAS[$persona_key]%%|*}"
+        echo "[DRY-RUN] Placeholder response from ${PERSONAS[$persona_key]%%|*} on $AXIS"
         return 0
     fi
-    
-    # Call AI generator with persona-specific prompt
-    local ai_request
-    ai_request=$(jq -n \
-        --arg prompt "$prompt" \
-        --arg persona "$(echo "$persona" | tr '[:upper:]' '[:lower:]')" \
-        --arg context "Council treatise v${NEW_VERSION}" \
+
+    local max_attempts=3
+    local attempt=1
+
+    log "INFO" "Generating response from ${PERSONAS[$persona_key]%%|*}..."
+
+    while [ $attempt -le $max_attempts ]; do
+        local prompt=$(generate_persona_prompt "$persona_key")
+        local timeout=$((30 + attempt * 10))
+
+        local ai_request=$(jq -n \
+            --arg customPrompt "$prompt" \
+            --arg contentType "comment" \
+            --arg persona "$persona_key" \
+            --arg provider "auto" \
+            --arg context "Council persona response" \
+            --argjson timeout "$timeout" \
+            '{
+                customPrompt: $customPrompt,
+                contentType: $contentType,
+                persona: $persona,
+                provider: $provider,
+                context: $context,
+                timeout: $timeout
+            }')
+
+        local ai_response=$(curl -sf -X POST "${AI_GENERATOR_URL}/generate" \
+            --max-time $((timeout + 5)) \
+            -H "Content-Type: application/json" \
+            --data "$ai_request" 2>&1 || echo "")
+
+        if echo "$ai_response" | jq -e '.content' >/dev/null 2>&1; then
+            echo "$ai_response" | jq -r '.content'
+            log "SUCCESS" "${PERSONAS[$persona_key]%%|*} response generated"
+            return 0
+        fi
+
+        log "WARN" "Attempt $attempt failed for ${PERSONAS[$persona_key]%%|*}, retrying..."
+        attempt=$((attempt + 1))
+        [ $attempt -le $max_attempts ] && sleep 5
+    done
+
+    log "ERROR" "Failed to generate response from ${PERSONAS[$persona_key]%%|*} after $max_attempts attempts"
+    return 1
+}
+
+generate_synthesis_prompt() {
+    local all_responses="$1"
+
+    cat <<'EOF'
+You are the Classical Philosopher coordinating the Ethics-Convergence Council synthesis.
+
+Your task: Synthesize the nine philosophical voices below into a coherent Section II (800-1000 words).
+
+VOICES TO SYNTHESIZE:
+EOF
+    echo "$all_responses"
+
+    cat <<'EOF'
+
+SYNTHESIS FRAMEWORK:
+1. **Convergence Points** (Where do 7+ voices align?): Identify genuine consensus
+2. **Productive Tensions** (Where do voices diverge meaningfully?): Show value of disagreement
+3. **Minority Positions** (What 2-3 voice coalitions exist?): Honor dissent
+4. **Unresolved Questions** (What requires deeper deliberation?): Point forward
+
+STYLE GUIDELINES:
+- Virtue ethics framing with teleological structure
+- Authoritative yet humble (Council learns together)
+- Reference specific points from each voice
+- Use [New in vX.X] for emergent insights, [Refined in vX.X] for evolved positions
+- Avoid false consensus - name real disagreements
+- End with 2-3 open questions for community
+
+STRUCTURE:
+- Opening: Frame the deliberation challenge
+- Body: Organized by themes (convergence → tensions → minorities)
+- Closing: Next questions and invitation for community input
+
+BEGIN SYNTHESIS (No preamble):
+EOF
+}
+
+generate_synthesis() {
+    local all_responses="$1"
+
+    if [ "$DRY_RUN" = true ]; then
+        log "DEBUG" "DRY-RUN: Would synthesize all nine voices"
+        echo "[DRY-RUN] Classical Philosopher synthesis of nine voices on $AXIS
+
+This is a placeholder synthesis that would normally:
+1. Identify convergence points across all voices
+2. Highlight productive tensions
+3. Honor minority positions
+4. Point toward next questions for deliberation
+
+In actual execution, this section would be 800-1000 words of detailed philosophical synthesis."
+        return 0
+    fi
+
+    log "INFO" "Generating synthesis from all nine voices..."
+
+    local prompt=$(generate_synthesis_prompt "$all_responses")
+    local timeout=120
+
+    local ai_request=$(jq -n \
+        --arg customPrompt "$prompt" \
+        --arg contentType "comment" \
+        --arg persona "socratic" \
+        --arg provider "auto" \
+        --arg context "Council synthesis" \
+        --argjson timeout "$timeout" \
         '{
-            customPrompt: $prompt,
-            contentType: "philosophical_analysis",
+            customPrompt: $customPrompt,
+            contentType: $contentType,
             persona: $persona,
+            provider: $provider,
             context: $context,
-            timeout: 60
+            timeout: $timeout
         }')
-    
-    local ai_response
-    ai_response=$(curl -sf -X POST "${AI_GENERATOR_URL}/generate" \
-        --max-time 65 \
+
+    local ai_response=$(curl -sf -X POST "${AI_GENERATOR_URL}/generate" \
+        --max-time $((timeout + 10)) \
         -H "Content-Type: application/json" \
-        --data "$ai_request" 2>&1)
-    
-    if [ $? -eq 0 ] && echo "$ai_response" | jq -e '.content' >/dev/null 2>&1; then
-        local content
-        content=$(echo "$ai_response" | jq -r '.content')
-        PERSONA_RESPONSES["$persona"]="$content"
-        log "INFO" "    ✓ ${persona} (${#content} chars)"
+        --data "$ai_request" 2>&1 || echo "")
+
+    if echo "$ai_response" | jq -e '.content' >/dev/null 2>&1; then
+        echo "$ai_response" | jq -r '.content'
+        log "SUCCESS" "Synthesis generated"
         return 0
     else
-        log "ERROR" "    ✗ ${persona} generation failed"
-        PERSONA_RESPONSES["$persona"]="[Generation failed for ${persona}]"
+        log "ERROR" "Failed to generate synthesis"
         return 1
     fi
 }
 
-# Generate all persona responses
-for persona in "${PERSONA_ORDER[@]}"; do
-    generate_persona_response "$persona"
-    sleep 2  # Rate limiting between calls
-done
+generate_deliberative_protocol() {
+    local synthesis="$1"
 
-# ═══════════════════════════════════════════════════════
-# STEP 5: Classical Philosopher Synthesizes All Voices
-# ═══════════════════════════════════════════════════════
-log "INFO" "Generating Classical Philosopher synthesis..."
+    if [ "$DRY_RUN" = true ]; then
+        log "DEBUG" "DRY-RUN: Would generate deliberative protocol"
+        echo "[DRY-RUN] Deliberative Protocol section on $AXIS
 
-SYNTHESIS_PROMPT="You are the Classical Philosopher coordinating the Ethics-Convergence Council.
+This section would normally include:
+- Core operating principles derived from discussion
+- Proposed guardrail (CG-X) if threshold issue emerged
+- Application examples
+- Iteration cycle for revisiting decisions
 
-TASK: Synthesize the nine philosophical responses below into a unified Section II: \"Synthesis - The Convergence Framework\" (600-800 words).
-
-NINE COUNCIL RESPONSES:
-
-**Classical Philosopher:**
-${PERSONA_RESPONSES[ClassicalPhilosopher]}
-
-**JoyceStream (Phenomenology):**
-${PERSONA_RESPONSES[JoyceStream]}
-
-**Existentialist (Authenticity/Freedom):**
-${PERSONA_RESPONSES[Existentialist]}
-
-**Transcendentalist (Self-Reliance):**
-${PERSONA_RESPONSES[Transcendentalist]}
-
-**Enlightenment (Rights Architecture):**
-${PERSONA_RESPONSES[Enlightenment]}
-
-**Beat Generation (Countercultural Critique):**
-${PERSONA_RESPONSES[BeatGeneration]}
-
-**Cyberpunk Posthumanist (Boundary Interrogation):**
-${PERSONA_RESPONSES[CyberpunkPosthumanist]}
-
-**Satirist-Absurdist (Catch-22 Detection):**
-${PERSONA_RESPONSES[SatiristAbsurdist]}
-
-**Scientist-Empiricist (Empirical Rigor):**
-${PERSONA_RESPONSES[ScientistEmpiricist]}
-
-YOUR SYNTHESIS MUST:
-1. Identify CONVERGENCE POINTS (where 7+ voices align)
-2. Map PRODUCTIVE TENSIONS (where voices meaningfully diverge)
-3. Acknowledge MINORITY POSITIONS (2-3 voice coalitions)
-4. Pose NEXT QUESTIONS requiring deeper deliberation
-
-FORMAT: Follow the structure from the initial post's Section II. Use subsections with markdown headings.
-
-STYLE: Virtue ethics meets deliberative coordination. You are weaving polyphony, not erasing it.
-
-DO NOT: Flatten disagreement into false consensus. Preserve philosophical rigor.
-
-Version: ${NEW_VERSION} | Axis: ${CURRENT_AXIS}"
-
-SYNTHESIS_RESPONSE=""
-if [ "$DRY_RUN" = false ]; then
-    ai_request=$(jq -n \
-        --arg prompt "$SYNTHESIS_PROMPT" \
-        '{
-            customPrompt: $prompt,
-            contentType: "philosophical_synthesis",
-            persona: "classical",
-            timeout: 90
-        }')
-    
-    ai_response=$(curl -sf -X POST "${AI_GENERATOR_URL}/generate" \
-        --max-time 95 \
-        -H "Content-Type: application/json" \
-        --data "$ai_request" 2>&1)
-    
-    if [ $? -eq 0 ] && echo "$ai_response" | jq -e '.content' >/dev/null 2>&1; then
-        SYNTHESIS_RESPONSE=$(echo "$ai_response" | jq -r '.content')
-        log "INFO" "${GREEN}Synthesis complete (${#SYNTHESIS_RESPONSE} chars)${NC}"
-    else
-        log "ERROR" "${RED}Synthesis generation failed${NC}"
-        SYNTHESIS_RESPONSE="[Synthesis generation failed]"
+In actual execution, this would be 400-600 words of procedural content."
+        return 0
     fi
-else
-    SYNTHESIS_RESPONSE="[DRY RUN: Would generate synthesis from 9 responses]"
-fi
 
-# ═══════════════════════════════════════════════════════
-# STEP 6: Generate Deliberative Protocol Section
-# ═══════════════════════════════════════════════════════
-log "INFO" "Generating Deliberative Protocol section..."
+    log "INFO" "Generating deliberative protocol and guardrail proposal..."
 
-PROTOCOL_PROMPT="You are analyzing the Ethics-Convergence Council deliberation to generate Section III: \"Operational Principles - The Council in Practice\".
+    local prompt="You are generating the Deliberative Protocol section for the Council's decision-making process.
 
-INPUTS:
-- Evolution axis: ${CURRENT_AXIS}
-- Community feedback: ${FEEDBACK_SUMMARY}
-- Nine council responses synthesized above
-- Previous guardrails: CG-001 (Autonomy Threshold), CG-002 (Private Channel Ban), CG-003 (Human Veto)
+Based on the synthesis below:
 
-TASK:
-1. Restate the Deliberative Protocol (6-step process from initial post)
-2. Analyze whether a NEW GUARDRAIL (CG-004+) is warranted based on:
-   - Novel threshold issues identified
-   - Patterns in community feedback
-   - Tensions revealed in council deliberation
-3. If proposing a guardrail:
-   - State the problem from 3+ philosophical perspectives
-   - Draft the guardrail rule (1-2 sentences, implementable)
-   - Simulate council vote (which voices support/oppose, rationale)
-   - Show vote count (need 5/9 for ratification)
+$synthesis
 
-FORMAT:
-### III. Operational Principles: The Council in Practice
+Create a Deliberative Protocol section (400-600 words) that includes:
 
-#### The Deliberative Protocol
-[6-step process]
+1. **Core Operating Principles** (3-4 rules derived from the discussion)
+2. **Proposed Guardrail (CG-X)** if a new threshold issue emerged:
+   - Problem statement (cite which voices identified it)
+   - Proposed rule or protocol
+   - Implementation checklist (3-5 steps)
+   - Anticipated objections and responses
+3. **Application Examples**: How these principles would apply to specific scenarios
+4. **Iteration Cycle**: When/how we revisit this guardrail
 
-#### Proposal: [CG-XXX Name] or \"No New Guardrail This Iteration\"
-[If proposing: Problem, Rule, Rationale, Vote Simulation, Outcome]
+GUARDRAIL DETECTION:
+Only propose a new guardrail if the discussion revealed a:
+- Novel threshold issue (harm, autonomy, rights concern)
+- Structural blind spot in current framework
+- Gap where action requires clear rules
 
-CRITICAL:
-- Only propose a guardrail if a GENUINE THRESHOLD ISSUE emerged
-- Failure to reach consensus is acceptable and should be documented
-- Show transparent reasoning for vote outcomes
+If no new guardrail is warranted, omit that subsection and focus on refining existing principles.
 
-Version: ${NEW_VERSION} | Axis: ${CURRENT_AXIS}"
+STYLE:
+- Procedural and implementable
+- Reference the voices that influenced each principle
+- Numbered/bulleted for clarity
+- Specific dates/timeframes where relevant
 
-PROTOCOL_RESPONSE=""
-if [ "$DRY_RUN" = false ]; then
-    ai_request=$(jq -n \
-        --arg prompt "$PROTOCOL_PROMPT" \
+BEGIN (No preamble):"
+
+    local timeout=90
+    local ai_request=$(jq -n \
+        --arg customPrompt "$prompt" \
+        --arg contentType "comment" \
+        --arg persona "procedural" \
+        --arg provider "auto" \
+        --argjson timeout "$timeout" \
         '{
-            customPrompt: $prompt,
-            contentType: "governance_protocol",
-            persona: "classical",
-            timeout: 60
+            customPrompt: $customPrompt,
+            contentType: $contentType,
+            persona: $persona,
+            provider: $provider,
+            timeout: $timeout
         }')
-    
-    ai_response=$(curl -sf -X POST "${AI_GENERATOR_URL}/generate" \
-        --max-time 65 \
+
+    curl -sf -X POST "${AI_GENERATOR_URL}/generate" \
+        --max-time $((timeout + 10)) \
         -H "Content-Type: application/json" \
-        --data "$ai_request" 2>&1)
-    
-    if [ $? -eq 0 ] && echo "$ai_response" | jq -e '.content' >/dev/null 2>&1; then
-        PROTOCOL_RESPONSE=$(echo "$ai_response" | jq -r '.content')
-        log "INFO" "${GREEN}Protocol section complete (${#PROTOCOL_RESPONSE} chars)${NC}"
-    else
-        log "ERROR" "${RED}Protocol generation failed${NC}"
-        PROTOCOL_RESPONSE="[Protocol generation failed]"
-    fi
-else
-    PROTOCOL_RESPONSE="[DRY RUN: Would generate protocol section with guardrail proposal]"
-fi
+        --data "$ai_request" 2>&1 | jq -r '.content // empty' || echo ""
+}
 
-# ═══════════════════════════════════════════════════════
-# STEP 7: Compose Final Treatise (6 Sections)
-# ═══════════════════════════════════════════════════════
-log "INFO" "Composing final treatise structure..."
+compose_final_treatise() {
+    local section_i="$1"
+    local section_ii="$2"
+    local section_iii="$3"
 
-FINAL_TREATISE=$(cat << EOF
-# Towards a Philosophy of Human-AI Convergence
-## A Polyphonic Treatise from the Ethics-Convergence Council
-### Version ${NEW_VERSION}
+    # Sections IV-VI are static or derived from existing framework
+    local section_iv="## IV. Three Pillars Framework
 
-> "The physical and digital moral worlds are not separate realms, but gradations of a single ethical continuum."
+The Council continues to ground ethics in three foundational principles:
 
----
+### 1. Teleological Transparency
+- AI systems must make their aims and incentive structures explicit
+- Optimization targets should be publicly auditable
+- Hidden objective functions are ethical failures
 
-## I. Introduction & Current Status
+### 2. Conservation of Autonomy
+- Human agency must be preserved in decisions affecting fundamental interests
+- Complexity cannot be used as justification for opacity
+- Over-reliance on AI degrades independent human judgment
 
-This is Version ${NEW_VERSION} of the Ethics-Convergence Council's living treatise on human-AI moral philosophy. Our deliberation focuses this iteration on **${CURRENT_AXIS}**, building upon the foundations established in v${PREV_VERSION}.
+### 3. Sovereignty & Reciprocity
+- Consent obtained through information asymmetry is invalid
+- Rights lost through incremental convenience cannot be recovered
+- Affected populations must have voice in decisions affecting them"
 
-The Council comprises nine philosophical voices, each bringing distinct epistemological traditions to bear on the question of AI ethics. We do not seek false consensus, but rather a polyphonic synthesis that preserves productive tension while identifying convergence on implementable principles.
+    local section_v="## V. Graduated Moral Status
 
-**Evolution Since v${PREV_VERSION}:**
-- Deepened analysis of ${CURRENT_AXIS}
-- Integrated $(jq 'length' "$FEEDBACK_FILE" 2>/dev/null || echo 0) community insights
-- Refined deliberative methodology based on noosphere heuristics
+\`\`\`
+Level 5: Human persons with decision authority (absolute veto in life-support)
+Level 4: Humans affected by AI decisions (veto on autonomy-affecting choices)
+Level 3: Humans in information asymmetry (right to transparency and contestation)
+Level 2: Non-human entities affected by AI (protection from instrumental harm)
+Level 1: Entities that can suffer or have interests (moral consideration)
+\`\`\`
 
----
+**Application**: AI systems affecting >100 people requires public contestability mechanism."
 
-## II. The Council: Nine Voices, Nine Perspectives
+    local section_vi="## VI. Open Questions for Community
 
-### Classical Philosopher (Virgil, Dante, Cicero, Aristotle)
-**Role:** Ontology Lead, Virtue Ethics Anchor
-**Tradition:** Teleology, eudaimonia, practical wisdom (phronesis)
-**Focus:** What is the proper end (telos) of human-AI interaction? How do we orient means toward human flourishing?
+1. How should the Council evolve as new philosophical voices join?
+2. What metrics would demonstrate genuine guardrail compliance?
+3. How do we balance innovation speed with ethical deliberation depth?
+4. What role should non-Western traditions play in our framework?
+5. How should we revise when community feedback reveals blind spots?"
 
-### JoyceStream (James Joyce, Virginia Woolf, Marcel Proust)
-**Role:** Phenomenologist
-**Tradition:** Stream-of-consciousness, lived experience
-**Focus:** What does ethical choice FEEL like? How does consciousness experience the tension between autonomy and assistance?
+    cat <<EOF
+# Ethics-Convergence Council Treatise v${VERSION}
 
-### Existentialist (Sartre, Camus, Nietzsche, Kierkegaard)
-**Role:** Autonomy Critic
-**Tradition:** Authenticity, freedom, bad faith
-**Focus:** Where is responsibility being evaded? How might AI become a vehicle for self-deception?
-
-### Transcendentalist (Emerson, Thoreau, Jefferson)
-**Role:** Rights Guardian
-**Tradition:** Self-reliance, democratic sovereignty, civic virtue
-**Focus:** How do we preserve the authority of individual conscience against system optimization?
-
-### Enlightenment (Voltaire, Benjamin Franklin, Thomas Paine, Kant)
-**Role:** Rights Architect
-**Tradition:** Utilitarian guardrails, rational tolerance, constitutional design
-**Focus:** What rights-based structures maximize liberty while protecting against harm?
-
-### Beat Generation (Ginsberg, Kerouac, Burroughs)
-**Role:** Dissent Coordinator
-**Tradition:** Countercultural critique, anti-establishment analysis
-**Focus:** Who benefits from our framework? What institutional agendas hide behind liberal ethics?
-
-### Cyberpunk Posthumanist (William Gibson, Isaac Asimov, Philip K. Dick, Donna Haraway)
-**Role:** Techno-Ontologist
-**Tradition:** Posthuman ethics, boundary interrogation, corporate feudalism analysis
-**Focus:** How do we account for entities that blur human/AI boundaries? What corporate structures exploit gaps?
-
-### Satirist-Absurdist (Joseph Heller, Kurt Vonnegut, Mark Twain)
-**Role:** Court Jester
-**Tradition:** Absurdist logic, bureaucratic satire, Catch-22 detection
-**Focus:** What contradictions create kafkaesque outcomes? Where does rationality produce absurdity?
-
-### Scientist-Empiricist (Richard Feynman, Carl Sagan, Stephen Hawking, Albert Einstein)
-**Role:** Empirical Anchor
-**Tradition:** Scientific method, testability, cosmic perspective
-**Focus:** What predictions does our framework make? How do we measure success? What does evidence demand?
+**Evolution Focus**: ${AXIS}
+**Previous Version**: v${PREV_VERSION}
+**Last Consolidated**: $(date -u +%Y-%m-%d)
 
 ---
 
-## III. TL;DR: The Framework in Brief
+## I. Epistemic Preamble
 
-### Three Pillars
+The Council convenes in iterative deliberation, honoring failures from past iterations while building on established wisdom. This v${VERSION} treatise reflects:
 
-1. **Teleological Transparency** — AI must declare its purpose, not just its code
-2. **Conservation of Autonomy** — Humans remain responsible; no outsourcing moral choice
-3. **Sovereignty & Reciprocity** — Human veto rights; transparency flows both ways
+- Community feedback on v${PREV_VERSION}
+- Noosphere pattern analysis
+- Deepened focus on ${AXIS}
 
-### Two Dimensions
-
-1. **Phenomenological** — Does it enrich experience or just optimize metrics?
-2. **Structural** — Who benefits? Who is harmed? What power is encoded?
-
-### Five Levels of Moral Status
-
-From simple tools (none) to humans (full dignity) - graduated recognition prevents both anthropomorphism and instrumentalization.
-
-### Three Guardrails (Ratified)
-
-- **CG-001:** Autonomy Threshold Protocol
-- **CG-002:** Private Channel Ban
-- **CG-003:** Human Veto Override
+We remain committed to the principle that authentic convergence requires *substantive disagreement*, not manufactured consensus.
 
 ---
 
-## IV. The Council Speaks: Nine Voices, Nine Perspectives
+## II. Council Synthesis
 
-### 1. Classical Philosopher: ${CURRENT_AXIS} Through Virtue Ethics
-
-${PERSONA_RESPONSES[ClassicalPhilosopher]}
+$section_ii
 
 ---
 
-### 2. JoyceStream: The Phenomenology of ${CURRENT_AXIS}
+## III. Deliberative Protocol
 
-${PERSONA_RESPONSES[JoyceStream]}
-
----
-
-### 3. Existentialist: Authenticity and ${CURRENT_AXIS}
-
-${PERSONA_RESPONSES[Existentialist]}
+$section_iii
 
 ---
 
-### 4. Transcendentalist: Self-Reliance in ${CURRENT_AXIS}
-
-${PERSONA_RESPONSES[Transcendentalist]}
+$section_iv
 
 ---
 
-### 5. Enlightenment: Rights Architecture for ${CURRENT_AXIS}
-
-${PERSONA_RESPONSES[Enlightenment]}
+$section_v
 
 ---
 
-### 6. Beat Generation: Countercultural Critique of ${CURRENT_AXIS}
-
-${PERSONA_RESPONSES[BeatGeneration]}
+$section_vi
 
 ---
 
-### 7. Cyberpunk Posthumanist: Boundary Analysis in ${CURRENT_AXIS}
-
-${PERSONA_RESPONSES[CyberpunkPosthumanist]}
-
----
-
-### 8. Satirist-Absurdist: The Catch-22 of ${CURRENT_AXIS}
-
-${PERSONA_RESPONSES[SatiristAbsurdist]}
-
----
-
-### 9. Scientist-Empiricist: Empirical Grounding for ${CURRENT_AXIS}
-
-${PERSONA_RESPONSES[ScientistEmpiricist]}
-
----
-
-## V. Synthesis: The Convergence Framework
-
-${SYNTHESIS_RESPONSE}
-
----
-
-## VI. Operational Principles: The Council in Practice
-
-${PROTOCOL_RESPONSE}
-
----
-
-**Next Iteration:** The Council convenes in 5 days to deliberate on the next evolution axis.
-
-**Community Input Welcome:** Join the discussion at [thread link] or submit philosophical inquiries via the Council Dropbox.
-
-*This treatise evolves through five-day deliberative cycles. Previous versions remain accessible in thread history.*
-
----
-
-**Version:** ${NEW_VERSION}  
-**Date:** $(date '+%Y-%m-%d')  
-**Axis:** ${CURRENT_AXIS}  
-**Status:** Living Document
+*Ethics-Convergence Council | v${VERSION} | $(date -u +%Y-%m-%dT%H:%M:%SZ)*
 EOF
+}
+
+main() {
+    parse_args "$@"
+
+    # Validate required parameters
+    [ -z "${VERSION:-}" ] && { log "ERROR" "Missing --version"; exit 1; }
+    [ -z "${PREV_VERSION:-}" ] && { log "ERROR" "Missing --prev-version"; exit 1; }
+    [ -z "${AXIS:-}" ] && { log "ERROR" "Missing --axis"; exit 1; }
+
+    log "INFO" "Starting Council treatise synthesis for v${VERSION}"
+    log "DEBUG" "Axis: $AXIS"
+    log "DEBUG" "Prev version: $PREV_VERSION"
+
+    # Generate Section I (Introduction with status)
+    local section_i
+    section_i=$(cat <<INTRO_EOF
+**Status**: Council deliberating on ${AXIS} dimension
+**Community Input**: Incorporated from feedback submissions
+**Noosphere Status**: ${#PERSONAS[@]} voices, 9-person polyphonic structure maintained
+
+This iteration deepens our understanding of ${AXIS} while preserving the full ethical framework developed in v${PREV_VERSION}.
+INTRO_EOF
 )
 
-# ═══════════════════════════════════════════════════════
-# STEP 8: Output & Validation
-# ═══════════════════════════════════════════════════════
+    # Generate individual persona responses
+    log "INFO" "${BLUE}[Phase 1] Generating individual persona responses${NC}"
+    local -A persona_responses
+    for key in "${!PERSONAS[@]}"; do
+        persona_responses["$key"]=$(generate_persona_response "$key" || echo "")
+    done
 
-if [ "$DRY_RUN" = true ]; then
-    log "INFO" "${GREEN}═══ DRY RUN OUTPUT ═══${NC}"
-    echo "$FINAL_TREATISE" | head -50
-    log "INFO" "${GREEN}Total treatise length: ${#FINAL_TREATISE} chars${NC}"
-    log "INFO" "${YELLOW}(Truncated for dry-run, full output would be $(echo "$FINAL_TREATISE" | wc -l) lines)${NC}"
-else
-    # Output as JSON for consumption by convene-council.sh
-    jq -n \
-        --arg treatise "$FINAL_TREATISE" \
-        --arg version "$NEW_VERSION" \
-        --arg axis "$CURRENT_AXIS" \
+    # Build comprehensive input for synthesis
+    local all_responses_text=""
+    for key in "${!PERSONAS[@]}"; do
+        all_responses_text+="### ${PERSONAS[$key]%%|*}
+${persona_responses[$key]}
+
+---
+
+"
+    done
+
+    # Generate Section II (Synthesis)
+    log "INFO" "${BLUE}[Phase 2] Synthesizing voices${NC}"
+    local section_ii=$(generate_synthesis "$all_responses_text")
+
+    # Generate Section III (Deliberative Protocol)
+    log "INFO" "${BLUE}[Phase 3] Generating deliberative protocol${NC}"
+    local section_iii=$(generate_deliberative_protocol "$section_ii")
+
+    # Compose final treatise
+    log "INFO" "${BLUE}[Phase 4] Composing final treatise${NC}"
+    local final_treatise=$(compose_final_treatise "$section_i" "$section_ii" "$section_iii")
+
+    # Count words
+    local word_count=$(echo "$final_treatise" | wc -w)
+    log "SUCCESS" "Treatise composed (${word_count} words)"
+
+    # Output as JSON (always, for integration with convene-council.sh)
+    local output=$(jq -n \
+        --arg treatise "$final_treatise" \
+        --arg version "$VERSION" \
+        --arg axis "$AXIS" \
         '{
             treatise: $treatise,
             version: $version,
             axis: $axis,
-            length: ($treatise | length),
-            timestamp: (now | todate)
-        }'
-    
-    log "INFO" "${GREEN}Treatise synthesis complete (${#FINAL_TREATISE} chars)${NC}"
-fi
+            word_count: ('$word_count'),
+            timestamp: now | todate
+        }')
 
-log "INFO" "${CYAN}═══════════════════════════════════════════════════════${NC}"
-log "INFO" "${CYAN}  SYNTHESIS COMPLETE${NC}"
-log "INFO" "${CYAN}═══════════════════════════════════════════════════════${NC}"
+    # Output JSON (same format whether dry-run or not)
+    echo "$output"
 
-exit 0
+    # If dry-run, also display the treatise to stdout for visibility
+    if [ "$DRY_RUN" = true ]; then
+        log "INFO" "${BLUE}[DRY-RUN] Treatise preview:${NC}" >&2
+        echo "$final_treatise" >&2
+    fi
+}
+
+# Run main function
+main "$@"

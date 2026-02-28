@@ -76,6 +76,7 @@ docker compose up -d
 
 ## 📖 Documentation
 
+- **[DAILY_POLEMIC_DESIGN.md](docs/DAILY_POLEMIC_DESIGN.md)** - Daily Polemic system: persona selection, affinity weighting, content generation, and Socratic engagement
 - **[PHASE-2-SCRIPT-INTEGRATION.md](docs/PHASE-2-SCRIPT-INTEGRATION.md)** - Phase 2 engagement service integration across all 47 scripts with monitoring commands
 - **[AGENT_SCRIPTS.md](docs/AGENT_SCRIPTS.md)** - Complete guide to all 77 scripts with usage, flags, and examples
 - **[AGENTS.md](AGENTS.md)** - Agent architecture and council governance

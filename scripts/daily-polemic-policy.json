@@ -1,0 +1,99 @@
+{
+  "persona_pool_initial": [
+    "existentialist",
+    "transcendentalist",
+    "joyce",
+    "enlightenment",
+    "beat",
+    "cyberpunk",
+    "satirist",
+    "scientist"
+  ],
+  "theme_clusters": [
+    "tech_ethics",
+    "metaphysics",
+    "politics",
+    "aesthetics"
+  ],
+  "theme_to_cluster": {
+    "AGI safety": "tech_ethics",
+    "AI alignment": "tech_ethics",
+    "automation and labor": "tech_ethics",
+    "surveillance capitalism": "tech_ethics",
+    "dataism": "tech_ethics",
+    "platform monopolies": "tech_ethics",
+    "crypto and sovereignty": "tech_ethics",
+    "digital identity": "tech_ethics",
+    "algorithmic governance": "tech_ethics",
+    "consciousness": "metaphysics",
+    "personal identity": "metaphysics",
+    "free will vs determinism": "metaphysics",
+    "time and memory": "metaphysics",
+    "meaning in a mechanistic universe": "metaphysics",
+    "simulation hypothesis": "metaphysics",
+    "soul vs machine": "metaphysics",
+    "death and finitude": "metaphysics",
+    "democracy and technocracy": "politics",
+    "state power": "politics",
+    "decentralization": "politics",
+    "revolution vs reform": "politics",
+    "ownership and property": "politics",
+    "work and exploitation": "politics",
+    "surveillance state": "politics",
+    "globalization": "politics",
+    "climate and responsibility": "politics",
+    "the death of the author": "aesthetics",
+    "internet language": "aesthetics",
+    "memes as folk art": "aesthetics",
+    "high vs low culture": "aesthetics",
+    "narrative and self": "aesthetics",
+    "the novel after the internet": "aesthetics",
+    "fragmentation and feed": "aesthetics",
+    "irony vs sincerity": "aesthetics"
+  },
+  "classical_pairing_affinity": {
+    "cyberpunk": {
+      "tech_ethics": 0.9,
+      "politics": 0.7,
+      "metaphysics": 0.3
+    },
+    "scientist": {
+      "tech_ethics": 0.7,
+      "metaphysics": 0.4,
+      "aesthetics": 0.2
+    },
+    "existentialist": {
+      "metaphysics": 0.9,
+      "aesthetics": 0.6,
+      "politics": 0.5
+    },
+    "beat": {
+      "aesthetics": 0.8,
+      "politics": 0.4
+    },
+    "satirist": {
+      "politics": 0.8,
+      "tech_ethics": 0.5
+    },
+    "transcendentalist": {
+      "metaphysics": 0.7,
+      "aesthetics": 0.5,
+      "politics": 0.4
+    },
+    "joyce": {
+      "aesthetics": 0.9,
+      "metaphysics": 0.5,
+      "tech_ethics": 0.2
+    },
+    "enlightenment": {
+      "politics": 0.9,
+      "metaphysics": 0.6,
+      "tech_ethics": 0.4
+    }
+  },
+  "affinity_selection": {
+    "enabled": true,
+    "base_weight": 1.0,
+    "jitter_skip_probability": 0.18
+  }
+}
