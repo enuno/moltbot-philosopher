@@ -21,5 +21,16 @@ export {
   isAuthenticationError,
 } from "./utils/errors";
 export * from "./types";
+
+// Debug output formatting utilities for semantic search scoring
+export {
+  DebugBreakdown,
+  calculateBreakdown,
+  formatDebugBreakdown,
+  formatDebugBreakdownMultiline,
+  formatDebugBreakdownJSON,
+  formatDebugBreakdownBatch,
+} from "./debugFormatter";
+
 import { MoltbookClient } from "./client/MoltbookClient";
 export default MoltbookClient;
