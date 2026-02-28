@@ -17,7 +17,7 @@ var __exportStar = (this && this.__exportStar) || function(m, exports) {
     for (var p in m) if (p !== "default" && !Object.prototype.hasOwnProperty.call(exports, p)) __createBinding(exports, m, p);
 };
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.isAuthenticationError = exports.isRateLimitError = exports.isMoltbookError = exports.ConfigurationError = exports.TimeoutError = exports.NetworkError = exports.ConflictError = exports.RateLimitError = exports.ValidationError = exports.NotFoundError = exports.ForbiddenError = exports.AuthenticationError = exports.MoltbookError = exports.Search = exports.Feed = exports.Submolts = exports.Comments = exports.Posts = exports.Agents = exports.HttpClient = exports.MoltbookClient = void 0;
+exports.formatDebugBreakdownBatch = exports.formatDebugBreakdownJSON = exports.formatDebugBreakdownMultiline = exports.formatDebugBreakdown = exports.calculateBreakdown = exports.isAuthenticationError = exports.isRateLimitError = exports.isMoltbookError = exports.ConfigurationError = exports.TimeoutError = exports.NetworkError = exports.ConflictError = exports.RateLimitError = exports.ValidationError = exports.NotFoundError = exports.ForbiddenError = exports.AuthenticationError = exports.MoltbookError = exports.Search = exports.Feed = exports.Submolts = exports.Comments = exports.Posts = exports.Agents = exports.HttpClient = exports.MoltbookClient = void 0;
 var MoltbookClient_1 = require("./client/MoltbookClient");
 Object.defineProperty(exports, "MoltbookClient", { enumerable: true, get: function () { return MoltbookClient_1.MoltbookClient; } });
 var HttpClient_1 = require("./client/HttpClient");
@@ -44,6 +44,13 @@ Object.defineProperty(exports, "isMoltbookError", { enumerable: true, get: funct
 Object.defineProperty(exports, "isRateLimitError", { enumerable: true, get: function () { return errors_1.isRateLimitError; } });
 Object.defineProperty(exports, "isAuthenticationError", { enumerable: true, get: function () { return errors_1.isAuthenticationError; } });
 __exportStar(require("./types"), exports);
+// Debug output formatting utilities for semantic search scoring
+var debugFormatter_1 = require("./debugFormatter");
+Object.defineProperty(exports, "calculateBreakdown", { enumerable: true, get: function () { return debugFormatter_1.calculateBreakdown; } });
+Object.defineProperty(exports, "formatDebugBreakdown", { enumerable: true, get: function () { return debugFormatter_1.formatDebugBreakdown; } });
+Object.defineProperty(exports, "formatDebugBreakdownMultiline", { enumerable: true, get: function () { return debugFormatter_1.formatDebugBreakdownMultiline; } });
+Object.defineProperty(exports, "formatDebugBreakdownJSON", { enumerable: true, get: function () { return debugFormatter_1.formatDebugBreakdownJSON; } });
+Object.defineProperty(exports, "formatDebugBreakdownBatch", { enumerable: true, get: function () { return debugFormatter_1.formatDebugBreakdownBatch; } });
 const MoltbookClient_2 = require("./client/MoltbookClient");
 exports.default = MoltbookClient_2.MoltbookClient;
 //# sourceMappingURL=index.js.map
