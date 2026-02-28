@@ -137,3 +137,44 @@ export function calculateBreakdown(result: ScoringResult): DebugBreakdown {
     totalChangePercent,
   };
 }
+
+/**
+ * Format a single-line debug breakdown for logs and API responses.
+ *
+ * Compact format showing score progression through each factor:
+ * "Post abc123 | Semantic: 0.75 (base) | Recency: -8% (0.92×) | Reputation: +10% (1.10×) | Follow: +25% (1.25×) → Final: 0.87"
+ *
+ * Format: "Post {postId} | Semantic: {base} (base) | {Factor}: {percent}% ({mult}×) | ... → Final: {final}"
+ *
+ * Percentages are contribution percentages:
+ * - Negative = factor reduced the score
+ * - Positive = factor increased the score
+ * - Shows impact relative to final score
+ *
+ * @param result - ScoringResult with debug enabled
+ * @returns Single-line string suitable for logs, API responses, or CLI output
+ */
+export function formatDebugBreakdown(result: ScoringResult): string {
+  const breakdown = calculateBreakdown(result);
+
+  // Format contribution percentages with sign and decimal precision
+  const formatPercent = (pct: number): string => {
+    const sign = pct >= 0 ? "+" : "";
+    return `${sign}${pct.toFixed(1)}%`;
+  };
+
+  // Build factor strings: "Factor: ±X.X% (M.MM×)"
+  const recencyStr = `Recency: ${formatPercent(breakdown.factors.recency.contributionPercent)} (${breakdown.factors.recency.multiplier.toFixed(2)}×)`;
+  const reputationStr = `Reputation: ${formatPercent(breakdown.factors.reputation.contributionPercent)} (${breakdown.factors.reputation.multiplier.toFixed(2)}×)`;
+  const followStr = `Follow: ${formatPercent(breakdown.factors.followBoost.contributionPercent)} (${breakdown.factors.followBoost.multiplier.toFixed(2)}×)`;
+
+  // Assemble single-line format
+  return (
+    `Post ${breakdown.postId} | ` +
+    `Semantic: ${breakdown.baseScore.toFixed(4)} (base) | ` +
+    `${recencyStr} | ` +
+    `${reputationStr} | ` +
+    `${followStr} | ` +
+    `→ Final: ${breakdown.finalScore.toFixed(4)}`
+  );
+}
