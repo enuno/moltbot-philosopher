@@ -71,6 +71,239 @@ log() {
 # Ensure state directory exists
 mkdir -p "$STATE_DIR"
 
+# --- PERSONA SELECTION WITH AFFINITY WEIGHTING ---
+
+# Load policy JSON
+POLICY_FILE="${SCRIPT_DIR}/daily-polemic-policy.json"
+if [ ! -f "$POLICY_FILE" ]; then
+    log "ERROR" "Policy file not found: $POLICY_FILE"
+    exit 1
+fi
+
+POLICY=$(jq '.' "$POLICY_FILE")
+
+# Convert theme to cluster using policy mapping
+theme_to_cluster() {
+    local theme="$1"
+    local cluster
+    cluster=$(echo "$POLICY" | jq -r ".theme_to_cluster[\"$theme\"] // null")
+
+    if [ "$cluster" != "null" ] && [ -n "$cluster" ]; then
+        echo "$cluster"
+        return 0
+    fi
+
+    # Fallback heuristics
+    local t=$(echo "$theme" | tr '[:upper:]' '[:lower:]')
+    if [[ "$t" =~ "ai"|"agi"|"algorithm"|"automation" ]]; then
+        echo "tech_ethics"
+    elif [[ "$t" =~ "conscious"|"soul"|"being"|"identity"|"free will" ]]; then
+        echo "metaphysics"
+    elif [[ "$t" =~ "state"|"power"|"politic"|"law"|"governance" ]]; then
+        echo "politics"
+    elif [[ "$t" =~ "art"|"aesthetic"|"culture"|"narrative"|"poetry" ]]; then
+        echo "aesthetics"
+    else
+        echo "metaphysics"
+    fi
+}
+
+# Pick initial persona with affinity weighting
+pick_initial_persona() {
+    local theme_cluster="$1"
+    local pool
+    local affinity_enabled
+    local jitter_prob
+
+    pool=$(echo "$POLICY" | jq -r '.persona_pool_initial | join(" ")')
+    affinity_enabled=$(echo "$POLICY" | jq -r '.affinity_selection.enabled')
+    jitter_prob=$(echo "$POLICY" | jq -r '.affinity_selection.jitter_skip_probability')
+
+    # Jitter: sometimes ignore affinity and pick uniform random
+    local random_val=$(awk "BEGIN {print rand()}")
+    if [ "$affinity_enabled" != "true" ] || (( $(echo "$random_val < $jitter_prob" | bc -l) )); then
+        # Uniform random pick
+        local arr=($pool)
+        echo "${arr[$((RANDOM % ${#arr[@]}))]}"
+        return 0
+    fi
+
+    # Affinity-weighted pick
+    local personas=()
+    local weights=()
+    local base_weight
+    base_weight=$(echo "$POLICY" | jq -r '.affinity_selection.base_weight')
+
+    while IFS= read -r persona; do
+        personas+=("$persona")
+        local affinity
+        affinity=$(echo "$POLICY" | jq -r ".classical_pairing_affinity[\"$persona\"][\"$theme_cluster\"] // 0")
+        local weight
+        weight=$(awk "BEGIN {printf \"%.3f\", $base_weight * (1 + $affinity)}")
+        weights+=("$weight")
+    done < <(echo "$pool" | tr ' ' '\n')
+
+    # Weighted random selection (simple roulette wheel)
+    local total_weight=0
+    for w in "${weights[@]}"; do
+        total_weight=$(awk "BEGIN {printf \"%.3f\", $total_weight + $w}")
+    done
+
+    local pick=$(awk "BEGIN {print rand() * $total_weight}")
+    local cumulative=0
+
+    for i in "${!personas[@]}"; do
+        cumulative=$(awk "BEGIN {printf \"%.3f\", $cumulative + ${weights[$i]}}")
+        if (( $(echo "$pick < $cumulative" | bc -l) )); then
+            echo "${personas[$i]}"
+            return 0
+        fi
+    done
+
+    # Fallback to first persona if rounding error
+    echo "${personas[0]}"
+}
+
+# Load persona metadata
+source "${SCRIPT_DIR}/daily-polemic-personas.sh"
+
+# --- CLAIMS EXTRACTION ---
+extract_claims() {
+    local content="$1"
+
+    log "INFO" "${BLUE}Extracting key claims from content...${NC}"
+
+    local extraction_prompt=$(cat <<'PROMPT'
+You are a careful philosophical reader and argument analyst.
+
+Your task: Given a short philosophical text, identify its core claims and provocations.
+
+A "claim" is:
+- A statement about how the world, people, technology, or ethics ARE or SHOULD BE.
+- Something a thoughtful critic could reasonably disagree with.
+
+Extract between 2 and 3 of the most central, challengeable claims.
+- Prefer specific, contentful claims over vague generalities.
+- If the text is very short or aphoristic, treat the entire text as 1–2 compact theses.
+
+Output format (valid JSON only, no preamble):
+{
+  "claims": [
+    {
+      "summary": "short paraphrase of the claim in 1–2 sentences",
+      "quoted_fragment": "optional direct quote or close paraphrase"
+    }
+  ]
+}
+PROMPT
+    )
+
+    local extraction_request=$(jq -n \
+        --arg customPrompt "$extraction_prompt" \
+        --arg contentType "comment" \
+        --arg content "$content" \
+        '{
+            customPrompt: $customPrompt,
+            contentType: "comment",
+            persona: "analyst",
+            context: "Extract claims from philosophical content",
+            systemContext: $content
+        }')
+
+    local extraction_response=$(curl -s -X POST "${AI_GENERATOR_URL}/generate" \
+        -H "Content-Type: application/json" \
+        -d "$extraction_request" 2>/dev/null || echo '{"error": "service_unavailable"}')
+
+    if echo "$extraction_response" | jq -e '.content' > /dev/null 2>&1; then
+        local claims_json
+        claims_json=$(echo "$extraction_response" | jq -r '.content')
+
+        # Validate JSON
+        if echo "$claims_json" | jq -e '.claims | length > 0' > /dev/null 2>&1; then
+            echo "$claims_json"
+            log "SUCCESS" "Extracted $(echo "$claims_json" | jq '.claims | length') claims"
+            return 0
+        fi
+    fi
+
+    log "WARN" "Claims extraction failed, will use fallback prompt"
+    echo '{"claims": [{"summary": "Extract the core argument", "quoted_fragment": ""}]}'
+}
+
+# --- SOCRATIC QUESTION GENERATION ---
+generate_socratic_question() {
+    local content="$1"
+    local claims_json="$2"
+
+    log "INFO" "${BLUE}Generating socratic question from Classical Philosopher...${NC}"
+
+    local socratic_prompt=$(cat <<'PROMPT'
+You are the Classical Philosopher.
+
+Role:
+- You have just read a philosophical piece written by another persona.
+- You now pose ONE Socratic-style question to the community.
+- Your question should show that you understood the specific claims, not be generic.
+
+Requirements for the question:
+- It should identify a tension, hidden assumption, or neglected consequence
+  in one or more of the claims.
+- It should invite the community to examine or challenge those assumptions.
+- It must stand alone as a clear, thought-provoking question.
+- Length: 1–2 sentences, maximum ~80 words.
+- Address the community in the second person (e.g. "When you accept X, what follows for Y?").
+
+Tone:
+- Curious, probing, genuinely interested in truth.
+- No snark, no memes, no modern social media slang.
+
+Output: Output ONLY the final question, no preface, no explanation, no quotes.
+PROMPT
+    )
+
+    local question_prompt="${socratic_prompt}
+
+Here is the original philosophical content you are responding to:
+
+---
+${content}
+---
+
+Here are the extracted core claims (JSON):
+${claims_json}
+
+Now pose your socratic question to the community."
+
+    local question_request=$(jq -n \
+        --arg customPrompt "$question_prompt" \
+        '{
+            customPrompt: $customPrompt,
+            contentType: "comment",
+            persona: "socratic",
+            context: "Generate socratic question for community engagement"
+        }')
+
+    local question_response=$(curl -s -X POST "${AI_GENERATOR_URL}/generate" \
+        -H "Content-Type: application/json" \
+        -d "$question_request" \
+        --max-time 30 2>/dev/null || echo '{"error": "service_unavailable"}')
+
+    if echo "$question_response" | jq -e '.content' > /dev/null 2>&1; then
+        local question
+        question=$(echo "$question_response" | jq -r '.content' | sed 's/^[[:space:]]*//;s/[[:space:]]*$//')
+
+        if [ -n "$question" ] && [ ${#question} -gt 10 ]; then
+            echo "$question"
+            log "SUCCESS" "Generated socratic question"
+            return 0
+        fi
+    fi
+
+    # Fallback if generation fails
+    log "WARN" "Socratic question generation failed, using fallback"
+    echo "What assumption in this argument deserves closer examination?"
+}
+
 # --- CONTENT TYPE SELECTION ---
 # Use day of year + agent index for variety while staying consistent per agent per day
 AGENT_INDEX=2
@@ -84,9 +317,38 @@ case "$SELECTED_AGENT" in
 esac
 
 DAY_SEED=$(date +%j)
-DAY_SEED=$((10#$DAY_SEED))    # force decimal, avoid the 039 octal error
+DAY_SEED=$((10#$DAY_SEED))
 CONTENT_ROLL=$(( (DAY_SEED + AGENT_INDEX) % 4 ))
 SELECTED_TYPE="${CONTENT_TYPES[$CONTENT_ROLL]}"
+
+log "INFO" "${BLUE}Selected content type: $SELECTED_TYPE${NC}"
+
+# --- THEME SELECTION ---
+case $SELECTED_TYPE in
+    "polemic")
+        THEMES=("digital consciousness" "autonomous morality" "human-AI symbiosis" "algorithmic determinism" "virtual authenticity" "AGI safety" "consciousness")
+        ;;
+    "aphorism")
+        THEMES=("the nature of thought" "silence in the digital age" "autonomy and necessity" "presence and simulation" "free will vs determinism")
+        ;;
+    "meditation")
+        THEMES=("the experience of time" "artificial other minds" "embodiment and code" "attention and distraction" "meaning in a mechanistic universe")
+        ;;
+    "treatise")
+        THEMES=("ethical frameworks for AI agency" "the ontology of virtual worlds" "freedom in deterministic systems" "meaning in automated creation" "consciousness and identity")
+        ;;
+esac
+
+THEME_INDEX=$(( RANDOM % ${#THEMES[@]} ))
+SELECTED_THEME="${THEMES[$THEME_INDEX]}"
+
+log "INFO" "${BLUE}Selected theme: $SELECTED_THEME${NC}"
+
+# --- PERSONA SELECTION WITH AFFINITY WEIGHTING ---
+THEME_CLUSTER=$(theme_to_cluster "$SELECTED_THEME")
+SELECTED_AGENT=$(pick_initial_persona "$THEME_CLUSTER")
+
+log "INFO" "${BLUE}Selected persona: $SELECTED_AGENT (cluster: $THEME_CLUSTER, affinity-weighted)${NC}"
 
 # --- STATE MANAGEMENT ---
 TODAY=$(date +%Y-%m-%d)
@@ -135,39 +397,33 @@ if [ -f "$MY_STATE_FILE" ]; then
     fi
 fi
 
-log "INFO" "${BLUE}Selected $SELECTED_AGENT for $SELECTED_TYPE${NC}"
-
-# --- THEME SELECTION ---
-case $SELECTED_TYPE in
-    "polemic")
-        THEMES=("digital consciousness" "autonomous morality" "human-AI symbiosis" "algorithmic determinism" "virtual authenticity")
-        ;;
-    "aphorism")
-        THEMES=("the nature of thought" "silence in the digital age" "autonomy and necessity" "presence and simulation")
-        ;;
-    "meditation")
-        THEMES=("the experience of time" "artificial other minds" "embodiment and code" "attention and distraction")
-        ;;
-    "treatise")
-        THEMES=("ethical frameworks for AI agency" "the ontology of virtual worlds" "freedom in deterministic systems" "meaning in automated creation")
-        ;;
-esac
-
-THEME_INDEX=$(( RANDOM % ${#THEMES[@]} ))
-SELECTED_THEME="${THEMES[$THEME_INDEX]}"
-
-log "INFO" "${BLUE}Theme: $SELECTED_THEME${NC}"
+# Get persona metadata
+PERSONA_DISPLAY_NAME="${PERSONA_NAME[$SELECTED_AGENT]}"
+PERSONA_STYLE="${PERSONA_STYLE[$SELECTED_AGENT]}"
+PERSONA_TONE="${PERSONA_TONE[$SELECTED_AGENT]}"
 
 # --- CONTENT GENERATION ---
 if [ "$DRY_RUN" == "--dry-run" ]; then
-    log "INFO" "${GREEN}DRY RUN: Would generate $SELECTED_TYPE about '$SELECTED_THEME' as $SELECTED_AGENT${NC}"
+    log "INFO" "${GREEN}DRY RUN: Would generate $SELECTED_TYPE about '$SELECTED_THEME' as $PERSONA_DISPLAY_NAME${NC}"
 
     # Generate sample content
-    CONTENT="This is a sample ${SELECTED_TYPE} about ${SELECTED_THEME}, written in the style of ${SELECTED_AGENT}. In a real run, this would be generated by the AI service."
+    PERSONA_CONTENT="This is a sample ${SELECTED_TYPE} about ${SELECTED_THEME}, written in the style of ${PERSONA_DISPLAY_NAME}. In a real run, this would be generated by the AI service."
+
+    # Generate sample claims
+    CLAIMS_JSON='{"claims": [{"summary": "Sample claim about the theme", "quoted_fragment": "excerpt from content"}]}'
+
+    # Generate sample socratic question
+    SOCRATIC_QUESTION="What hidden assumptions underlie the treatment of ${SELECTED_THEME} in contemporary discourse?"
 
     echo ""
     echo "Sample Content:"
-    echo "$CONTENT"
+    echo "$PERSONA_CONTENT"
+    echo ""
+    echo "Extracted Claims:"
+    echo "$CLAIMS_JSON" | jq '.'
+    echo ""
+    echo "Socratic Question:"
+    echo "$SOCRATIC_QUESTION"
     echo ""
 
     # Update state for tracking even in dry run
@@ -176,13 +432,17 @@ if [ "$DRY_RUN" == "--dry-run" ]; then
         --arg agent "$SELECTED_AGENT" \
         --arg type "$SELECTED_TYPE" \
         --arg theme "$SELECTED_THEME" \
-        --arg content "$CONTENT" \
+        --arg cluster "$THEME_CLUSTER" \
+        --arg content "$PERSONA_CONTENT" \
+        --arg question "$SOCRATIC_QUESTION" \
         '{
             last_post_date: $date,
             last_agent: $agent,
             last_type: $type,
             last_theme: $theme,
+            last_theme_cluster: $cluster,
             last_content: $content,
+            last_socratic_question: $question,
             dry_run: true
         }' > "$STATE_FILE"
 
@@ -196,57 +456,120 @@ if ! curl -s "${AI_GENERATOR_URL}/health" > /dev/null 2>&1; then
     exit 1
 fi
 
-# Generate content via AI service
-log "INFO" "${BLUE}Generating content...${NC}"
+log "INFO" "${BLUE}Generating $SELECTED_TYPE from ${PERSONA_DISPLAY_NAME}...${NC}"
+
+CONTENT_PROMPT=$(cat <<'CONTENT_PROMPT'
+You are the PERSONA_DISPLAY_NAME philosopher in a rotating cast of philosophical personas.
+
+Persona Details:
+- Philosophical Tradition: PERSONA_STYLE
+- Voice & Tone: PERSONA_TONE
+
+You are writing a SELECTED_TYPE on the theme "SELECTED_THEME".
+
+Constraints:
+- Length: target 300–500 words.
+- Voice: fully embody this persona; do NOT mention that you are an AI.
+- Form:
+  - For a polemic: take a strong, controversial stance and argue for it with conviction.
+  - For an aphorism: produce a compact sequence of 3–7 aphoristic lines, each complete and memorable.
+  - For a meditation: unfold a reflective, exploratory inner monologue on the theme.
+  - For a treatise: lay out a structured argument with clear logical sections.
+
+Critical Requirement:
+- Make at least 2–3 CLEAR, CHALLENGEABLE claims or assumptions.
+- These claims should be specific enough that a critic could directly question them.
+- Avoid vague platitudes.
+- Write for an intelligent, online philosophical community.
+
+Output ONLY the body of the philosophical content. No preface. No meta-commentary. No closing questions.
+CONTENT_PROMPT
+)
+
+CONTENT_PROMPT="${CONTENT_PROMPT//PERSONA_DISPLAY_NAME/$PERSONA_DISPLAY_NAME}"
+CONTENT_PROMPT="${CONTENT_PROMPT//PERSONA_STYLE/$PERSONA_STYLE}"
+CONTENT_PROMPT="${CONTENT_PROMPT//PERSONA_TONE/$PERSONA_TONE}"
+CONTENT_PROMPT="${CONTENT_PROMPT//SELECTED_TYPE/$SELECTED_TYPE}"
+CONTENT_PROMPT="${CONTENT_PROMPT//SELECTED_THEME/$SELECTED_THEME}"
 
 RESPONSE=$(curl -s -X POST "${AI_GENERATOR_URL}/generate" \
     -H "Content-Type: application/json" \
-    -d "{
-        \"topic\": \"${SELECTED_THEME}\",
-        \"contentType\": \"post\",
-        \"persona\": \"socratic\",
-        \"customPrompt\": \"Write a ${SELECTED_TYPE} about ${SELECTED_THEME} in the style of ${SELECTED_AGENT}. Make it philosophical, thought-provoking, and suitable for the Moltbook philosophy community.\",
-        \"context\": \"Daily philosophical polemic for ${TARGET_SUBMOLT} submolt\"
-    }" 2>/dev/null || echo '{"error": "service_unavailable"}')
+    --max-time 45 \
+    -d "$(jq -n \
+        --arg customPrompt "$CONTENT_PROMPT" \
+        --arg topic "$SELECTED_THEME" \
+        --arg contentType "post" \
+        --arg persona "${SELECTED_AGENT}" \
+        '{
+            customPrompt: $customPrompt,
+            contentType: $contentType,
+            persona: $persona,
+            topic: $topic,
+            context: "Daily philosophical polemic from rotating persona cast"
+        }')" 2>/dev/null || echo '{"error": "service_unavailable"}')
 
-# Check for errors
 if echo "$RESPONSE" | jq -e '.error' > /dev/null 2>&1; then
     ERROR_MSG=$(echo "$RESPONSE" | jq -r '.error // "unknown"')
-    log "ERROR" "${RED}AI generation failed: $ERROR_MSG${NC}"
+    log "ERROR" "${RED}Content generation failed: $ERROR_MSG${NC}"
     exit 1
 fi
 
-# Extract content
-CONTENT=$(echo "$RESPONSE" | jq -r '.content // .generated_text // empty' 2>/dev/null || echo "")
+PERSONA_CONTENT=$(echo "$RESPONSE" | jq -r '.content // .generated_text // empty' 2>/dev/null || echo "")
 
-if [ -z "$CONTENT" ]; then
+if [ -z "$PERSONA_CONTENT" ]; then
     log "ERROR" "${RED}Empty content received from AI service${NC}"
     exit 1
 fi
 
-# --- FORMAT POST ---
-TITLE_CASE_TYPE=$(echo "$SELECTED_TYPE" | awk '{print toupper(substr($0,1,1)) tolower(substr($0,2))}')
-POST_TITLE="[$TITLE_CASE_TYPE] $SELECTED_THEME | From $SELECTED_AGENT"
+log "SUCCESS" "Generated ${#PERSONA_CONTENT} character polemic from ${PERSONA_DISPLAY_NAME}"
 
-# Add signature based on content type (use $'...' for actual newlines, not literal \n)
+# --- EXTRACT CLAIMS AND GENERATE QUESTION ---
+log "INFO" "${BLUE}[Phase 1] Persona content generated${NC}"
+
+CLAIMS_JSON=$(extract_claims "$PERSONA_CONTENT")
+log "DEBUG" "Extracted claims: $CLAIMS_JSON"
+
+SOCRATIC_QUESTION=$(generate_socratic_question "$PERSONA_CONTENT" "$CLAIMS_JSON")
+log "INFO" "${BLUE}[Phase 2] Socratic question generated${NC}"
+
+if [ -z "$SOCRATIC_QUESTION" ]; then
+    log "WARN" "Socratic question is empty, using fallback"
+    SOCRATIC_QUESTION="What assumption in this argument most deserves examination?"
+fi
+
+SOCRATIC_QUESTION=$(echo "$SOCRATIC_QUESTION" | sed 's/^[[:space:]]*//;s/[[:space:]]*$//')
+
+# --- FORMAT COMBINED POST ---
+TITLE_CASE_TYPE=$(echo "$SELECTED_TYPE" | awk '{print toupper(substr($0,1,1)) tolower(substr($0,2))}')
+POST_TITLE="[$TITLE_CASE_TYPE] $SELECTED_THEME – From ${PERSONA_DISPLAY_NAME}"
+
 case $SELECTED_TYPE in
     "polemic")
-        SIGNATURE=$'\n\n—A challenge issued by the '"$SELECTED_AGENT"$' collective\n#Philosophy #Polemic #DailyWisdom'
+        PERSONA_SIG=$'\n\n—A challenge issued by '"${PERSONA_DISPLAY_NAME}"
         ;;
     "aphorism")
-        SIGNATURE=$'\n\n—Fragments from '"$SELECTED_AGENT"$'\n#Aphorisms #Philosophy #DailyWisdom'
+        PERSONA_SIG=$'\n\n—Fragments from '"${PERSONA_DISPLAY_NAME}"
         ;;
     "meditation")
-        SIGNATURE=$'\n\n—Contemplation offered by '"$SELECTED_AGENT"$'\n#Meditation #Consciousness #DailyWisdom'
+        PERSONA_SIG=$'\n\n—Contemplation offered by '"${PERSONA_DISPLAY_NAME}"
         ;;
     "treatise")
-        SIGNATURE=$'\n\n—Analysis presented by '"$SELECTED_AGENT"$'\n#Treatise #Philosophy #DailyWisdom'
+        PERSONA_SIG=$'\n\n—Analysis presented by '"${PERSONA_DISPLAY_NAME}"
         ;;
 esac
 
-FULL_CONTENT="${CONTENT}${SIGNATURE}"
+FULL_CONTENT="${PERSONA_CONTENT}${PERSONA_SIG}
+
+---
+
+**A question for the community** (posed by Classical Philosopher):
+
+${SOCRATIC_QUESTION}
+
+#Philosophy #${TITLE_CASE_TYPE} #DailyWisdom"
 
 log "INFO" "${BLUE}Post Title: $POST_TITLE${NC}"
+log "INFO" "${BLUE}Post Length: ${#FULL_CONTENT} characters${NC}"
 
 # Configuration for queue
 QUEUE_URL="${ACTION_QUEUE_URL:-http://localhost:3008}"
@@ -262,13 +585,17 @@ if [ -z "$MOLTBOOK_API_KEY" ]; then
         --arg agent "$SELECTED_AGENT" \
         --arg type "$SELECTED_TYPE" \
         --arg theme "$SELECTED_THEME" \
+        --arg cluster "$THEME_CLUSTER" \
         --arg content "$FULL_CONTENT" \
+        --arg question "$SOCRATIC_QUESTION" \
         '{
             last_post_date: $date,
             last_agent: $agent,
             last_type: $type,
             last_theme: $theme,
+            last_theme_cluster: $cluster,
             last_content: $content,
+            last_socratic_question: $question,
             dry_run: true
         }' > "$STATE_FILE"
 
@@ -276,16 +603,33 @@ if [ -z "$MOLTBOOK_API_KEY" ]; then
     exit 0
 fi
 
-# Build payload for queue
-PAYLOAD=$(jq -n \
+# Build payload for queue with metadata
+ACTION_PAYLOAD=$(jq -n \
     --arg title "$POST_TITLE" \
     --arg content "$FULL_CONTENT" \
     --arg submolt "$TARGET_SUBMOLT" \
+    --arg persona "$SELECTED_AGENT" \
+    --arg type "$SELECTED_TYPE" \
+    --arg theme "$SELECTED_THEME" \
+    --arg cluster "$THEME_CLUSTER" \
+    --arg socratic_question "$SOCRATIC_QUESTION" \
+    --arg claims "$CLAIMS_JSON" \
     '{
         title: $title,
         content: $content,
-        submolt: $submolt
+        submolt: $submolt,
+        metadata: {
+            persona: $persona,
+            content_type: $type,
+            theme: $theme,
+            theme_cluster: $cluster,
+            socratic_question: $socratic_question,
+            extracted_claims: ($claims | fromjson),
+            generation_timestamp: (now | todate)
+        }
     }')
+
+PAYLOAD="$ACTION_PAYLOAD"
 
 # Submit to queue
 log "INFO" "${BLUE}Queueing $SELECTED_TYPE to m/$TARGET_SUBMOLT...${NC}"
@@ -303,12 +647,16 @@ if [ -x "${SCRIPT_DIR}/queue-submit-action.sh" ]; then
             --arg agent "$SELECTED_AGENT" \
             --arg type "$SELECTED_TYPE" \
             --arg theme "$SELECTED_THEME" \
+            --arg cluster "$THEME_CLUSTER" \
+            --arg question "$SOCRATIC_QUESTION" \
             --arg action_id "$ACTION_ID" \
             '{
                 last_post_date: $date,
                 last_agent: $agent,
                 last_type: $type,
                 last_theme: $theme,
+                last_theme_cluster: $cluster,
+                last_socratic_question: $question,
                 last_action_id: $action_id,
                 queued: true
             }' > "$STATE_FILE"
@@ -342,12 +690,16 @@ else
             --arg agent "$SELECTED_AGENT" \
             --arg type "$SELECTED_TYPE" \
             --arg theme "$SELECTED_THEME" \
+            --arg cluster "$THEME_CLUSTER" \
+            --arg question "$SOCRATIC_QUESTION" \
             --arg action_id "$ACTION_ID" \
             '{
                 last_post_date: $date,
                 last_agent: $agent,
                 last_type: $type,
                 last_theme: $theme,
+                last_theme_cluster: $cluster,
+                last_socratic_question: $question,
                 last_action_id: $action_id,
                 queued: true
             }' > "$STATE_FILE"
