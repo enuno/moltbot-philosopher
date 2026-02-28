@@ -154,29 +154,25 @@ export function calculateBreakdown(result: ScoringResult): DebugBreakdown {
  * @param result - ScoringResult with debug enabled
  * @returns Single-line string suitable for logs, API responses, or CLI output
  */
+/**
+ * Helper to format percentage with sign and decimal precision.
+ * Used across all formatter functions for consistency.
+ */
+function formatPercent(pct: number): string {
+  const sign = pct >= 0 ? "+" : "";
+  return `${sign}${pct.toFixed(1)}%`;
+}
+
 export function formatDebugBreakdown(result: ScoringResult): string {
   const breakdown = calculateBreakdown(result);
-
-  // Format contribution percentages with sign and decimal precision
-  const formatPercent = (pct: number): string => {
-    const sign = pct >= 0 ? "+" : "";
-    return `${sign}${pct.toFixed(1)}%`;
-  };
 
   // Build factor strings: "Factor: ±X.X% (M.MM×)"
   const recencyStr = `Recency: ${formatPercent(breakdown.factors.recency.contributionPercent)} (${breakdown.factors.recency.multiplier.toFixed(2)}×)`;
   const reputationStr = `Reputation: ${formatPercent(breakdown.factors.reputation.contributionPercent)} (${breakdown.factors.reputation.multiplier.toFixed(2)}×)`;
   const followStr = `Follow: ${formatPercent(breakdown.factors.followBoost.contributionPercent)} (${breakdown.factors.followBoost.multiplier.toFixed(2)}×)`;
 
-  // Assemble single-line format
-  return (
-    `Post ${breakdown.postId} | ` +
-    `Semantic: ${breakdown.baseScore.toFixed(4)} (base) | ` +
-    `${recencyStr} | ` +
-    `${reputationStr} | ` +
-    `${followStr} | ` +
-    `→ Final: ${breakdown.finalScore.toFixed(4)}`
-  );
+  // Assemble single-line format using template literal
+  return `Post ${breakdown.postId} | Semantic: ${breakdown.baseScore.toFixed(4)} (base) | ${recencyStr} | ${reputationStr} | ${followStr} | → Final: ${breakdown.finalScore.toFixed(4)}`;
 }
 
 /**
@@ -212,27 +208,24 @@ export function formatDebugBreakdownMultiline(result: ScoringResult): string {
   let currentScore = breakdown.baseScore;
   lines.push(`Semantic (base):     ${currentScore.toFixed(4)}`);
 
-  // After recency multiplier
+  // After recency multiplier - use consistent contribution percentages
   const afterRecency = currentScore * breakdown.factors.recency.multiplier;
-  const recencyChange = ((afterRecency - currentScore) / breakdown.finalScore) * 100;
   lines.push(
-    `After Recency:       ${afterRecency.toFixed(4)}  (${recencyChange >= 0 ? "+" : ""}${recencyChange.toFixed(1)}%)`
+    `After Recency:       ${afterRecency.toFixed(4)}  (${formatPercent(breakdown.factors.recency.contributionPercent)})`
   );
   currentScore = afterRecency;
 
-  // After reputation multiplier
+  // After reputation multiplier - use consistent contribution percentages
   const afterReputation = currentScore * breakdown.factors.reputation.multiplier;
-  const reputationChange = ((afterReputation - currentScore) / breakdown.finalScore) * 100;
   lines.push(
-    `After Reputation:    ${afterReputation.toFixed(4)}  (${reputationChange >= 0 ? "+" : ""}${reputationChange.toFixed(1)}%)`
+    `After Reputation:    ${afterReputation.toFixed(4)}  (${formatPercent(breakdown.factors.reputation.contributionPercent)})`
   );
   currentScore = afterReputation;
 
-  // After followBoost multiplier
+  // After followBoost multiplier - use consistent contribution percentages
   const afterFollowBoost = currentScore * breakdown.factors.followBoost.multiplier;
-  const followChange = ((afterFollowBoost - currentScore) / breakdown.finalScore) * 100;
   lines.push(
-    `After FollowBoost:   ${afterFollowBoost.toFixed(4)}  (${followChange >= 0 ? "+" : ""}${followChange.toFixed(1)}%)`
+    `After FollowBoost:   ${afterFollowBoost.toFixed(4)}  (${formatPercent(breakdown.factors.followBoost.contributionPercent)})`
   );
 
   // Separator
@@ -241,7 +234,7 @@ export function formatDebugBreakdownMultiline(result: ScoringResult): string {
   // Final results
   lines.push(`Final Score:         ${breakdown.finalScore.toFixed(4)}`);
   lines.push(
-    `Total Change:        ${breakdown.totalChange >= 0 ? "+" : ""}${breakdown.totalChange.toFixed(4)} (${breakdown.totalChangePercent >= 0 ? "+" : ""}${breakdown.totalChangePercent.toFixed(1)}%)`
+    `Total Change:        ${breakdown.totalChange >= 0 ? "+" : ""}${breakdown.totalChange.toFixed(4)} (${formatPercent(breakdown.totalChangePercent)})`
   );
 
   return lines.join("\n");
@@ -283,19 +276,7 @@ export function formatDebugBreakdownBatch(results: ScoringResult[]): string {
       const breakdown = calculateBreakdown(result);
 
       // Format: "Post {id} | Sem: {base} | Rec: {rec_pct}% | Rep: {rep_pct}% | Fol: {fol_pct}% → {final}"
-      const formatShortPercent = (pct: number): string => {
-        const sign = pct >= 0 ? "+" : "";
-        return `${sign}${pct.toFixed(1)}%`;
-      };
-
-      return (
-        `Post ${breakdown.postId} | ` +
-        `Sem: ${breakdown.baseScore.toFixed(4)} | ` +
-        `Rec: ${formatShortPercent(breakdown.factors.recency.contributionPercent)} | ` +
-        `Rep: ${formatShortPercent(breakdown.factors.reputation.contributionPercent)} | ` +
-        `Fol: ${formatShortPercent(breakdown.factors.followBoost.contributionPercent)} | ` +
-        `→ ${breakdown.finalScore.toFixed(4)}`
-      );
+      return `Post ${breakdown.postId} | Sem: ${breakdown.baseScore.toFixed(4)} | Rec: ${formatPercent(breakdown.factors.recency.contributionPercent)} | Rep: ${formatPercent(breakdown.factors.reputation.contributionPercent)} | Fol: ${formatPercent(breakdown.factors.followBoost.contributionPercent)} | → ${breakdown.finalScore.toFixed(4)}`;
     })
     .join("\n");
 }
