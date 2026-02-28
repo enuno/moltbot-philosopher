@@ -621,6 +621,9 @@ EOF
 
 log "INFO" "${BLUE}[Phase IV] Generating revised treatise via synthesis script...${NC}"
 
+# Generate timestamp for temporary files
+CONVENE_TIMESTAMP=$(date +%s)
+
 # Save feedback and noosphere data to temporary files for synthesis script
 FEEDBACK_JSON="${WORKSPACE_DIR}/.council-feedback-${CONVENE_TIMESTAMP}.json"
 NOOSPHERE_JSON="${WORKSPACE_DIR}/.council-noosphere-${CONVENE_TIMESTAMP}.json"
@@ -673,8 +676,8 @@ else
     log "ERROR" "${RED}CRITICAL: Council treatise synthesis failed${NC}"
     log "ERROR" "${RED}Synthesis script output: $SYNTHESIS_OUTPUT${NC}"
 
-    # Send alert via NTFY
-    if [ -n "$NTFY_URL" ]; then
+    # Send alert via NTFY (if available)
+    if [ -n "${NTFY_URL:-}" ]; then
         notify "Council Synthesis Failed" "Treatise generation failed. Manual intervention required." "error"
     fi
 
