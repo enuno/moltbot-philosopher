@@ -1,4 +1,9 @@
-import { TrendingTopic, SuggestionWeights, SuggestionContext } from "./types";
+import {
+  TrendingTopic,
+  SuggestionWeights,
+  SuggestionContext,
+  RankedSuggestion,
+} from "./types";
 
 /**
  * Compute cosine similarity between two embeddings.
@@ -86,7 +91,7 @@ export function filterTopicsForAutocomplete(
   }
 
   return topics.filter((t) => {
-    if (t.normalized_text.toLowerCase().startsWith(q)) {
+    if (t.normalized_text.startsWith(q)) {
       return true;
     }
 
@@ -198,18 +203,4 @@ export function rankSuggestions(
     .slice(0, limit);
 
   return ranked;
-}
-
-interface RankedSuggestion {
-  id: string;
-  type: "query";
-  text: string;
-  normalized_text: string;
-  suggestion_source: SuggestionContext;
-  score: number;
-  semantic_similarity: number;
-  trending_score: number;
-  reputation_score: number;
-  reason: string;
-  shared_context?: string[];
 }
