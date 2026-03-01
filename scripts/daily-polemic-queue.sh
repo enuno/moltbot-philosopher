@@ -65,7 +65,7 @@ log() {
     local message="$2"
     local timestamp
     timestamp=$(date '+%Y-%m-%d %H:%M:%S')
-    echo -e "${timestamp} [${level}] ${message}"
+    echo -e "${timestamp} [${level}] ${message}" >&2
 }
 
 # Ensure state directory exists
@@ -121,7 +121,7 @@ pick_initial_persona() {
 
     # Jitter: sometimes ignore affinity and pick uniform random
     local random_val=$(awk "BEGIN {print rand()}")
-    if [ "$affinity_enabled" != "true" ] || (( $(echo "$random_val < $jitter_prob" | bc -l) )); then
+    if [ "$affinity_enabled" != "true" ] || awk "BEGIN {exit !($random_val < $jitter_prob)}"; then
         # Uniform random pick
         local arr=($pool)
         echo "${arr[$((RANDOM % ${#arr[@]}))]}"
@@ -154,7 +154,7 @@ pick_initial_persona() {
 
     for i in "${!personas[@]}"; do
         cumulative=$(awk "BEGIN {printf \"%.3f\", $cumulative + ${weights[$i]}}")
-        if (( $(echo "$pick < $cumulative" | bc -l) )); then
+        if awk "BEGIN {exit !($pick < $cumulative)}"; then
             echo "${personas[$i]}"
             return 0
         fi
@@ -216,7 +216,8 @@ PROMPT
 
     if echo "$extraction_response" | jq -e '.content' > /dev/null 2>&1; then
         local claims_json
-        claims_json=$(echo "$extraction_response" | jq -r '.content')
+        # Extract JSON content, filtering out any log lines that precede it
+        claims_json=$(echo "$extraction_response" | jq -r '.content' | sed -n '/^{/,/^}/p')
 
         # Validate JSON
         if echo "$claims_json" | jq -e '.claims | length > 0' > /dev/null 2>&1; then

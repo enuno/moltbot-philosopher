@@ -431,4 +431,66 @@ Before marking any phase complete:
 
 ---
 
-*Last Updated: 2026-02-11 | Moltbot v2.7*
+## P4.3: Search Query Suggestions (3/11 Tasks Complete)
+
+**Subagent-Driven Execution**: 11 tasks, 2-stage reviews (spec compliance + code quality)
+
+**Task Progress**: ✅ Task 1 (types) | ✅ Task 2 (helpers) | ✅ Task 3 (filtering) | ⏳ Task 4 (ranking) → Task 11 (verification)
+
+**Current Task (Task 4)**: `rankSuggestions()` - main weighted scoring function blending semantic + trending + reputation
+
+**Key Files**:
+- `docs/plans/2026-02-28-P4.3-search-suggestions-implementation.md` - Full plan
+- `services/noosphere-service/src/suggestions/ranker.ts` - All scoring logic + tests
+- `services/noosphere-service/src/suggestions/__tests__/ranker.test.js` - Jest unit tests
+
+**Environment Variables** (add to .env):
+```bash
+# Autocomplete weights (trending-dominant for user typing)
+SUGGESTIONS_AUTOCOMPLETE_WEIGHT_SEMANTIC=0.5
+SUGGESTIONS_AUTOCOMPLETE_WEIGHT_TRENDING=0.4
+SUGGESTIONS_AUTOCOMPLETE_WEIGHT_REPUTATION=0.1
+
+# Related-search weights (semantic-first for thematic discovery)
+SUGGESTIONS_RELATED_WEIGHT_SEMANTIC=0.6
+SUGGESTIONS_RELATED_WEIGHT_TRENDING=0.2
+SUGGESTIONS_RELATED_WEIGHT_REPUTATION=0.2
+```
+
+**Test Endpoints** (when Task 5 routes deployed):
+```bash
+curl "http://localhost:3006/search/autocomplete?q=ai&limit=10"
+curl "http://localhost:3006/search/related?query=ethics&limit=10&min_score=0.5"
+```
+
+**Architecture**: Hourly trending detector (bash) → trending-topics-state.json → in-memory ranker (5-min cache) → /autocomplete (prefix + trending) + /related (semantic-first)
+
+---
+
+## Subagent-Driven Development Pattern
+
+**When to Use**: Multi-task implementation plans with independent components and measurable review criteria.
+
+**Two-Stage Review Loop** (per task):
+1. **Spec Compliance Review**: Verify implementation matches specification exactly (catches under/over-building)
+2. **Code Quality Review**: Check code clarity, patterns, maintainability (only after spec ✅)
+
+**Proven Pattern** (from P4.3 Tasks 1-3):
+- ✅ Spec reviewer caught implementer hallucinating (claimed tests passed but test file missing)
+- ✅ Same implementer fixed gap (context-aware, 2-min fix vs escalation)
+- ✅ Spec re-verified once (confirmed fix worked)
+- ✅ Code quality reviewer saw clean, approved code (4-4.5/5 scores)
+- ✅ All three tasks completed with 0 architectural rework, fast turnaround (2-3 hours per task)
+
+**Failure Mode & Recovery**:
+1. Implementer: "Task complete, tests passing"
+2. Spec Reviewer: "Test file missing" ❌
+3. Implementer: Creates missing file, commits
+4. Spec Reviewer: Re-verifies ✅
+5. Code Quality Reviewer: Approves ✅
+
+**Benefits**: Fast iteration, caught issues early, no over-engineering, clean handoffs.
+
+---
+
+*Last Updated: 2026-03-01 | Moltbot v2.7 | P4.3 Tasks 1-3 Complete (3/11) | Subagent-driven: 3 phases per task (impl + spec review + QA review) | Pattern: Spec approval avg 20min, QA 15min*
