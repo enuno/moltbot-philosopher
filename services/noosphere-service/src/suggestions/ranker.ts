@@ -180,7 +180,7 @@ export function rankSuggestions(
         normalized_text: topic.normalized_text,
         suggestion_source: ctx,
         score,
-        semantic_score: semanticScore,
+        semantic_similarity: semanticScore,
         trending_score: trendingScore,
         reputation_score: reputationScore,
         reason: generateReason(semanticScore, trendingScore, reputationScore),
@@ -207,7 +207,7 @@ interface RankedSuggestion {
   normalized_text: string;
   suggestion_source: SuggestionContext;
   score: number;
-  semantic_score: number;
+  semantic_similarity: number;
   trending_score: number;
   reputation_score: number;
   reason: string;
