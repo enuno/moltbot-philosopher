@@ -95,3 +95,121 @@ export function filterTopicsForAutocomplete(
     );
   });
 }
+
+/**
+ * Generate a human-readable reason explaining why a suggestion ranked highly.
+ * Categorizes component scores as high (≥0.8), moderate (0.5-0.8), or low (<0.5).
+ */
+function generateReason(
+  semanticScore: number,
+  trendingScore: number,
+  reputationScore: number
+): string {
+  const signals: string[] = [];
+
+  // Semantic signal
+  if (semanticScore >= 0.8) {
+    signals.push("strong semantic match");
+  } else if (semanticScore >= 0.5) {
+    signals.push("moderate semantic match");
+  } else if (semanticScore > 0) {
+    signals.push("weak semantic match");
+  }
+
+  // Trending signal with percentage
+  if (trendingScore >= 0.8) {
+    signals.push(`high trending (${Math.round(trendingScore * 100)}%)`);
+  } else if (trendingScore >= 0.5) {
+    signals.push(`moderate trending (${Math.round(trendingScore * 100)}%)`);
+  } else if (trendingScore > 0) {
+    signals.push(`low trending (${Math.round(trendingScore * 100)}%)`);
+  }
+
+  // Reputation signal
+  if (reputationScore >= 0.8) {
+    signals.push("high reputation");
+  } else if (reputationScore >= 0.5) {
+    signals.push("moderate reputation");
+  } else if (reputationScore > 0) {
+    signals.push("low reputation");
+  }
+
+  return signals.length > 0 ? signals.join(" + ") : "Matched query criteria";
+}
+
+/**
+ * Main scoring orchestrator. Blends semantic, trending, and reputation scores
+ * using context-specific weights from environment variables.
+ *
+ * @param ctx Suggestion context ("autocomplete" or "related")
+ * @param query User query string
+ * @param queryEmbedding Vector embedding of the query
+ * @param topics Candidate trending topics to rank
+ * @param limit Maximum number of results to return
+ * @param minScore Minimum score threshold for inclusion (0-1)
+ * @returns Array of RankedSuggestion objects sorted by score descending
+ */
+export function rankSuggestions(
+  ctx: SuggestionContext,
+  query: string,
+  queryEmbedding: number[],
+  topics: TrendingTopic[],
+  limit: number,
+  minScore: number
+): RankedSuggestion[] {
+  const weights = getWeights(ctx);
+
+  const ranked = topics
+    .map((topic) => {
+      const semanticScore = computeSemanticSimilarity(
+        queryEmbedding,
+        topic.semantic?.embedding
+      );
+      const reputationScore = computeReputationScore(topic);
+      const trendingScore = topic.scores?.trending || 0;
+
+      const score =
+        weights.semantic * semanticScore +
+        weights.trending * trendingScore +
+        weights.reputation * reputationScore;
+
+      const rankedSuggestion: RankedSuggestion = {
+        id: topic.id,
+        type: "query" as const,
+        text: topic.text,
+        normalized_text: topic.normalized_text,
+        suggestion_source: ctx,
+        score,
+        semantic_score: semanticScore,
+        trending_score: trendingScore,
+        reputation_score: reputationScore,
+        reason: generateReason(semanticScore, trendingScore, reputationScore),
+      };
+
+      // Add shared_context for "related" context
+      if (ctx === "related" && topic.metadata?.example_queries) {
+        rankedSuggestion.shared_context = topic.metadata.example_queries;
+      }
+
+      return rankedSuggestion;
+    })
+    .filter((s) => s.score >= minScore)
+    .sort((a, b) => b.score - a.score)
+    .slice(0, limit);
+
+  return ranked;
+}
+
+interface RankedSuggestion {
+  id: string;
+  type: "query";
+  text: string;
+  normalized_text: string;
+  suggestion_source: SuggestionContext;
+  score: number;
+  semantic_score: number;
+  trending_score: number;
+  reputation_score: number;
+  reason: string;
+  shared_context?: string[];
+}

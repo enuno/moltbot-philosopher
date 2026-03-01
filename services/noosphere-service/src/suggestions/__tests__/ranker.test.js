@@ -4,6 +4,7 @@ const {
   computeReputationScore,
   getWeights,
   filterTopicsForAutocomplete,
+  rankSuggestions,
 } = require("../ranker");
 
 describe("Suggestion Ranker Helpers", () => {
@@ -287,5 +288,195 @@ describe("filterTopicsForAutocomplete", () => {
 
     const result = filterTopicsForAutocomplete("AI", topics);
     expect(result).toHaveLength(1);
+  });
+});
+
+describe("rankSuggestions", () => {
+  // Helper to create a basic topic with defaults
+  function createTopic(overrides = {}) {
+    return {
+      id: "test-topic",
+      text: "test topic",
+      normalized_text: "test topic",
+      stats: {
+        raw_count: 10,
+        unique_users: 5,
+        first_seen: "2026-02-28T00:00:00Z",
+        last_seen: "2026-02-28T00:00:00Z",
+      },
+      scores: {
+        frequency: 0.5,
+        recency_decay: 0.5,
+        tfidf: 0.5,
+        trending: 0.5,
+        semantic_centroid_norm: 0.5,
+      },
+      semantic: {
+        embedding_model: "venice-deepseek-v3",
+        embedding_dim: 768,
+        embedding: [1, 0, 0],
+      },
+      reputation: {
+        avg_author_reputation: 0.5,
+        council_weight: 0.5,
+      },
+      ...overrides,
+    };
+  }
+
+  it("Test 1: should compute blended score with semantic + trending + reputation", () => {
+    const queryEmbedding = [1, 0, 0];
+    const topics = [
+      createTopic({
+        id: "topic-1",
+        semantic: {
+          embedding_model: "venice-deepseek-v3",
+          embedding_dim: 768,
+          embedding: [1, 0, 0], // semantic = 1.0
+        },
+        scores: {
+          frequency: 0.5,
+          recency_decay: 0.5,
+          tfidf: 0.5,
+          trending: 0.7, // trending = 0.7
+          semantic_centroid_norm: 0.5,
+        },
+        reputation: {
+          avg_author_reputation: 0.6,
+          council_weight: 0.6, // reputation = 0.6
+        },
+      }),
+    ];
+
+    process.env.SUGGESTIONS_AUTOCOMPLETE_WEIGHT_SEMANTIC = "0.5";
+    process.env.SUGGESTIONS_AUTOCOMPLETE_WEIGHT_TRENDING = "0.4";
+    process.env.SUGGESTIONS_AUTOCOMPLETE_WEIGHT_REPUTATION = "0.1";
+
+    const results = rankSuggestions("autocomplete", "test", queryEmbedding, topics, 10, 0);
+    expect(results).toHaveLength(1);
+    // score = 0.5 * 1.0 + 0.4 * 0.7 + 0.1 * 0.6 = 0.5 + 0.28 + 0.06 = 0.84
+    expect(results[0].score).toBeCloseTo(0.84, 2);
+  });
+
+  it("Test 2: should filter out results below minScore threshold", () => {
+    const queryEmbedding = [1, 0, 0];
+    const topics = [
+      createTopic({
+        id: "topic-1",
+        scores: { frequency: 0.5, recency_decay: 0.5, tfidf: 0.5, trending: 0.1, semantic_centroid_norm: 0.5 },
+        semantic: { embedding_model: "venice-deepseek-v3", embedding_dim: 768, embedding: [0, 1, 0] }, // orthogonal = 0.5
+      }),
+      createTopic({
+        id: "topic-2",
+        scores: { frequency: 0.5, recency_decay: 0.5, tfidf: 0.5, trending: 0.9, semantic_centroid_norm: 0.5 },
+        semantic: { embedding_model: "venice-deepseek-v3", embedding_dim: 768, embedding: [1, 0, 0] }, // identical = 1.0
+      }),
+    ];
+
+    process.env.SUGGESTIONS_AUTOCOMPLETE_WEIGHT_SEMANTIC = "0.5";
+    process.env.SUGGESTIONS_AUTOCOMPLETE_WEIGHT_TRENDING = "0.4";
+    process.env.SUGGESTIONS_AUTOCOMPLETE_WEIGHT_REPUTATION = "0.1";
+
+    const results = rankSuggestions("autocomplete", "test", queryEmbedding, topics, 10, 0.75);
+    // topic-1 score: 0.5 * 0.5 + 0.4 * 0.1 + 0.1 * 0.5 = 0.25 + 0.04 + 0.05 = 0.34 (filtered out)
+    // topic-2 score: 0.5 * 1.0 + 0.4 * 0.9 + 0.1 * 0.5 = 0.5 + 0.36 + 0.05 = 0.91 (included)
+    expect(results).toHaveLength(1);
+    expect(results[0].id).toBe("topic-2");
+  });
+
+  it("Test 3: should sort results by score descending (highest first)", () => {
+    const queryEmbedding = [1, 0, 0];
+    const topics = [
+      createTopic({
+        id: "topic-low",
+        scores: { frequency: 0.5, recency_decay: 0.5, tfidf: 0.5, trending: 0.3, semantic_centroid_norm: 0.5 },
+        semantic: { embedding_model: "venice-deepseek-v3", embedding_dim: 768, embedding: [0.5, 0.5, 0] },
+      }),
+      createTopic({
+        id: "topic-high",
+        scores: { frequency: 0.5, recency_decay: 0.5, tfidf: 0.5, trending: 0.9, semantic_centroid_norm: 0.5 },
+        semantic: { embedding_model: "venice-deepseek-v3", embedding_dim: 768, embedding: [1, 0, 0] },
+      }),
+      createTopic({
+        id: "topic-mid",
+        scores: { frequency: 0.5, recency_decay: 0.5, tfidf: 0.5, trending: 0.6, semantic_centroid_norm: 0.5 },
+        semantic: { embedding_model: "venice-deepseek-v3", embedding_dim: 768, embedding: [0.8, 0.2, 0] },
+      }),
+    ];
+
+    process.env.SUGGESTIONS_AUTOCOMPLETE_WEIGHT_SEMANTIC = "0.5";
+    process.env.SUGGESTIONS_AUTOCOMPLETE_WEIGHT_TRENDING = "0.4";
+    process.env.SUGGESTIONS_AUTOCOMPLETE_WEIGHT_REPUTATION = "0.1";
+
+    const results = rankSuggestions("autocomplete", "test", queryEmbedding, topics, 10, 0);
+    expect(results).toHaveLength(3);
+    expect(results[0].id).toBe("topic-high");
+    expect(results[1].id).toBe("topic-mid");
+    expect(results[2].id).toBe("topic-low");
+  });
+
+  it("Test 4: should respect limit parameter and return max N results", () => {
+    const queryEmbedding = [1, 0, 0];
+    const topics = [
+      createTopic({ id: "topic-1", scores: { frequency: 0.5, recency_decay: 0.5, tfidf: 0.5, trending: 0.9, semantic_centroid_norm: 0.5 }, semantic: { embedding_model: "venice-deepseek-v3", embedding_dim: 768, embedding: [1, 0, 0] } }),
+      createTopic({ id: "topic-2", scores: { frequency: 0.5, recency_decay: 0.5, tfidf: 0.5, trending: 0.8, semantic_centroid_norm: 0.5 }, semantic: { embedding_model: "venice-deepseek-v3", embedding_dim: 768, embedding: [0.9, 0.1, 0] } }),
+      createTopic({ id: "topic-3", scores: { frequency: 0.5, recency_decay: 0.5, tfidf: 0.5, trending: 0.7, semantic_centroid_norm: 0.5 }, semantic: { embedding_model: "venice-deepseek-v3", embedding_dim: 768, embedding: [0.8, 0.2, 0] } }),
+      createTopic({ id: "topic-4", scores: { frequency: 0.5, recency_decay: 0.5, tfidf: 0.5, trending: 0.6, semantic_centroid_norm: 0.5 }, semantic: { embedding_model: "venice-deepseek-v3", embedding_dim: 768, embedding: [0.7, 0.3, 0] } }),
+    ];
+
+    process.env.SUGGESTIONS_AUTOCOMPLETE_WEIGHT_SEMANTIC = "0.5";
+    process.env.SUGGESTIONS_AUTOCOMPLETE_WEIGHT_TRENDING = "0.4";
+    process.env.SUGGESTIONS_AUTOCOMPLETE_WEIGHT_REPUTATION = "0.1";
+
+    const results = rankSuggestions("autocomplete", "test", queryEmbedding, topics, 2, 0);
+    expect(results).toHaveLength(2);
+    expect(results[0].id).toBe("topic-1");
+    expect(results[1].id).toBe("topic-2");
+  });
+
+  it("Test 5: should generate informative reason explaining signal strengths", () => {
+    const queryEmbedding = [1, 0, 0];
+    const topics = [
+      createTopic({
+        id: "topic-high-all",
+        scores: { frequency: 0.5, recency_decay: 0.5, tfidf: 0.5, trending: 0.88, semantic_centroid_norm: 0.5 },
+        semantic: { embedding_model: "venice-deepseek-v3", embedding_dim: 768, embedding: [1, 0, 0] }, // semantic 1.0 (high)
+        reputation: { avg_author_reputation: 0.85, council_weight: 0.85 }, // reputation 0.85 (high)
+      }),
+      createTopic({
+        id: "topic-moderate",
+        scores: { frequency: 0.5, recency_decay: 0.5, tfidf: 0.5, trending: 0.65, semantic_centroid_norm: 0.5 },
+        semantic: { embedding_model: "venice-deepseek-v3", embedding_dim: 768, embedding: [0.6, 0.4, 0] }, // semantic ~0.68 (moderate)
+        reputation: { avg_author_reputation: 0.55, council_weight: 0.55 }, // reputation 0.55 (moderate)
+      }),
+      createTopic({
+        id: "topic-low",
+        scores: { frequency: 0.5, recency_decay: 0.5, tfidf: 0.5, trending: 0.3, semantic_centroid_norm: 0.5 },
+        semantic: { embedding_model: "venice-deepseek-v3", embedding_dim: 768, embedding: [0.1, 0.9, 0] }, // semantic ~0.05 (low/near opposite)
+        reputation: { avg_author_reputation: 0.2, council_weight: 0.2 }, // reputation 0.2 (low)
+      }),
+    ];
+
+    process.env.SUGGESTIONS_AUTOCOMPLETE_WEIGHT_SEMANTIC = "0.5";
+    process.env.SUGGESTIONS_AUTOCOMPLETE_WEIGHT_TRENDING = "0.4";
+    process.env.SUGGESTIONS_AUTOCOMPLETE_WEIGHT_REPUTATION = "0.1";
+
+    const results = rankSuggestions("autocomplete", "test", queryEmbedding, topics, 10, 0);
+    expect(results[0].reason).toContain("strong");
+    expect(results[0].reason).toMatch(/88%|87%|high/);
+    expect(results[1].reason).toContain("moderate");
+    expect(results[2].reason).toContain("low");
+  });
+
+  it("Test 6: should return empty array when topics array is empty", () => {
+    const queryEmbedding = [1, 0, 0];
+
+    process.env.SUGGESTIONS_AUTOCOMPLETE_WEIGHT_SEMANTIC = "0.5";
+    process.env.SUGGESTIONS_AUTOCOMPLETE_WEIGHT_TRENDING = "0.4";
+    process.env.SUGGESTIONS_AUTOCOMPLETE_WEIGHT_REPUTATION = "0.1";
+
+    const results = rankSuggestions("autocomplete", "test", queryEmbedding, [], 10, 0);
+    expect(results).toHaveLength(0);
+    expect(Array.isArray(results)).toBe(true);
   });
 });
