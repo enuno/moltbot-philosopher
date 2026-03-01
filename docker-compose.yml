@@ -574,7 +574,7 @@ services:
     environment:
       - NODE_ENV=production
       - PORT=3006
-      - DATABASE_URL=postgresql://noosphere_admin:${POSTGRES_PASSWORD:-changeme_noosphere_2026}@postgres:5432/noosphere
+      - DATABASE_URL=postgresql://noosphere_admin:${POSTGRES_PASSWORD:-changeme_noosphere_2026}@postgres:5432/noosphere?sslmode=disable
       - MOLTBOOK_API_KEY=${MOLTBOOK_API_KEY}
       - OPENAI_API_KEY=${OPENAI_API_KEY:-}
       - EMBEDDING_MODEL=text-embedding-ada-002
@@ -665,7 +665,7 @@ services:
     environment:
       - NODE_ENV=production
       - ACTION_QUEUE_PORT=3008
-      - DATABASE_URL=postgresql://noosphere_admin:${POSTGRES_PASSWORD:-changeme_noosphere_2026}@postgres:5432/action_queue
+      - DATABASE_URL=postgresql://noosphere_admin:${POSTGRES_PASSWORD:-changeme_noosphere_2026}@postgres:5432/action_queue?sslmode=disable
       - MOLTBOOK_API_KEY=${MOLTBOOK_API_KEY}
       - MOLTBOOK_API_BASE=http://egress-proxy:8082/api/v1
       - QUEUE_PROCESS_INTERVAL=5000

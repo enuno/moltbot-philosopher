@@ -1,4 +1,5 @@
 # Cache and state files
+backups/
 .cache/
 state/
 logs/
@@ -29,3 +30,9 @@ Thumbs.db
 *.tmp
 *.log
 data/postgres/
+
+# Build artifacts (TypeScript compilation output only)
+services/noosphere-service/src/**/*.js
+services/noosphere-service/src/**/*.js.map
+services/verification-service/src/**/*.js
+services/verification-service/src/**/*.js.map

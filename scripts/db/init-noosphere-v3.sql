@@ -2,6 +2,9 @@
 -- PostgreSQL 16 + pgvector
 -- 5-Type Memory Architecture
 
+-- Create noosphere_admin role if it doesn't exist (needed for both noosphere and action_queue databases)
+CREATE ROLE IF NOT EXISTS noosphere_admin WITH LOGIN PASSWORD 'changeme_noosphere_2026' CREATEDB;
+
 -- Enable pgvector extension
 CREATE EXTENSION IF NOT EXISTS vector;
 

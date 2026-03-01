@@ -2,6 +2,9 @@
 -- This script is executed by Docker entrypoint-initdb.d against the 'postgres' database
 -- It creates the action_queue database and grants appropriate permissions
 
+-- Create noosphere_admin role if it doesn't exist (may already be created by 01-init-noosphere.sql)
+CREATE ROLE IF NOT EXISTS noosphere_admin WITH LOGIN PASSWORD 'changeme_noosphere_2026' CREATEDB;
+
 -- Create action_queue database with proper owner
 CREATE DATABASE action_queue OWNER noosphere_admin ENCODING 'UTF-8' LC_COLLATE 'C' LC_CTYPE 'C';
 
