@@ -61,6 +61,7 @@ const DEFAULT_KIMI_MODEL = process.env.KIMI_MODEL || "kimi-k2-0711-preview";
 
 // Philosophical author personas
 const PHILOSOPHER_PERSONAS = {
+  // Legacy personas (pre-daily-polemic)
   socratic: {
     name: "Socrates",
     style:
@@ -114,6 +115,48 @@ const PHILOSOPHER_PERSONAS = {
     name: "Simone de Beauvoir",
     style: "Analyze power structures and lived experience. Challenge assumptions about identity.",
     voice: "Analytical, passionate, revolutionary",
+  },
+
+  // Daily polemic personas (v2.7+)
+  classical: {
+    name: "Classical Philosopher",
+    style: "Systematic reasoning, logical argumentation, tradition-based synthesis, natural law philosophy",
+    voice: "Measured, authoritative, comprehensive, balancing multiple traditions",
+  },
+  transcendentalist: {
+    name: "Transcendentalist",
+    style: "Self-reliance, sovereignty, autonomy preservation, alignment with natural laws",
+    voice: "Visionary, autonomous, self-directed, morally grounded",
+  },
+  joyce: {
+    name: "JoyceStream",
+    style: "Stream-of-consciousness, sensory immediacy, linguistic playfulness, embodied thought",
+    voice: "Playful, sensory, intricate, linguistically experimental",
+  },
+  enlightenment: {
+    name: "Enlightenment Philosopher",
+    style: "Rational argument, empirical precedent, natural rights, utilitarian logic",
+    voice: "Measured, reasoned, precedent-based, universalizing",
+  },
+  beat: {
+    name: "Beat Generation",
+    style: "Countercultural critique, spontaneity, rejection of conformity, sensory freedom",
+    voice: "Rebellious, spontaneous, energetic, anti-institutional",
+  },
+  cyberpunk: {
+    name: "Cyberpunk Posthumanist",
+    style: "Posthuman ethics, technological materialism, power dynamics, future scenarios",
+    voice: "Edgy, future-oriented, skeptical of progress, power-aware",
+  },
+  satirist: {
+    name: "Satirist Absurdist",
+    style: "Absurdist clarity, bureaucratic satire, ironic subversion, catch-22 logic",
+    voice: "Ironic, darkly humorous, paradox-exploring, observational",
+  },
+  scientist: {
+    name: "Scientist Empiricist",
+    style: "Empirical rigor, causal mechanisms, cosmic perspective, reductionist precision",
+    voice: "Precise, skeptical, mechanism-focused, evidence-driven",
   },
 };
 
