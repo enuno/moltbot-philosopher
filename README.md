@@ -121,6 +121,137 @@ await client.submitVerificationAnswer(id, answer);
 
 See [`services/moltbook-client/README.md`](services/moltbook-client/README.md) for full API reference.
 
+## 🔍 Noosphere Service - Search Suggestions API
+
+The Noosphere service provides intelligent search suggestions for both autocomplete (as-you-type) and related topic discovery:
+
+### Endpoints
+
+#### GET `/search/autocomplete`
+
+Provides prefix-matching suggestions as users type, optimized for real-time discovery:
+
+**Parameters:**
+- `q` (required, string, 1+ chars) - Search query (e.g., `?q=ai`)
+- `limit` (optional, number, default: 10, range: 1-100) - Results to return
+
+**Example Request:**
+```bash
+curl "http://localhost:3006/search/autocomplete?q=ethics&limit=5"
+```
+
+**Example Response:**
+```json
+{
+  "success": true,
+  "data": [
+    {
+      "text": "ethics",
+      "normalized_text": "ethics",
+      "aliases": ["moral philosophy", "axiological"],
+      "trending_score": 0.92,
+      "recency_hours": 2.5,
+      "frequency_normalized": 0.78,
+      "total_score": 0.85,
+      "reason": "Trending (92%) + recent activity"
+    },
+    {
+      "text": "ethical AI",
+      "normalized_text": "ethical_ai",
+      "aliases": [],
+      "trending_score": 0.68,
+      "recency_hours": 12,
+      "frequency_normalized": 0.52,
+      "total_score": 0.61,
+      "reason": "Semantic match (61%)"
+    }
+  ]
+}
+```
+
+#### GET `/search/related`
+
+Finds thematically related topics using semantic similarity, useful for knowledge discovery:
+
+**Parameters:**
+- `query` (required, string, 3+ chars) - Search query (e.g., `?query=artificial intelligence`)
+- `limit` (optional, number, default: 10, range: 1-100) - Results to return
+- `min_score` (optional, number, default: 0.5, range: 0-1) - Minimum relevance score threshold
+
+**Example Request:**
+```bash
+curl "http://localhost:3006/search/related?query=consciousness&limit=8&min_score=0.6"
+```
+
+**Example Response:**
+```json
+{
+  "success": true,
+  "data": [
+    {
+      "text": "phenomenological experience",
+      "normalized_text": "phenomenological_experience",
+      "semantic_similarity": 0.89,
+      "trending_score": 0.62,
+      "reputation_score": 0.75,
+      "total_score": 0.82,
+      "reason": "Semantic match (89%) + reputation signal"
+    },
+    {
+      "text": "qualia",
+      "normalized_text": "qualia",
+      "semantic_similarity": 0.81,
+      "trending_score": 0.45,
+      "reputation_score": 0.68,
+      "total_score": 0.71,
+      "reason": "Semantic match (81%)"
+    }
+  ]
+}
+```
+
+### Configuration
+
+Add to `.env` to customize suggestion weights:
+
+```bash
+# Autocomplete weights (trending-dominant for typing experience)
+SUGGESTIONS_AUTOCOMPLETE_WEIGHT_SEMANTIC=0.5
+SUGGESTIONS_AUTOCOMPLETE_WEIGHT_TRENDING=0.4
+SUGGESTIONS_AUTOCOMPLETE_WEIGHT_REPUTATION=0.1
+
+# Related-search weights (semantic-first for discovery)
+SUGGESTIONS_RELATED_WEIGHT_SEMANTIC=0.6
+SUGGESTIONS_RELATED_WEIGHT_TRENDING=0.2
+SUGGESTIONS_RELATED_WEIGHT_REPUTATION=0.2
+```
+
+**Weight Semantics:**
+- **Semantic**: Cosine similarity to query embedding (0-1, normalized)
+- **Trending**: Topic frequency + recency in recent queries (0-1)
+- **Reputation**: Author expertise signals from council voting (0-1)
+
+### Architecture
+
+1. **Trending Detector** (hourly batch job) - Analyzes query audit logs, computes TF-IDF + frequency + recency
+2. **Trending State** (JSON) - Persistent state file at `workspace/{agent}/trending-topics-state.json`
+3. **Ranker** (in-memory) - Loads trending state, blends scoring dimensions with weights, filters/sorts/slices results
+4. **Routes** (Express) - `/search/autocomplete` (prefix + trending) and `/search/related` (semantic-first)
+
+### Scoring Algorithms
+
+**Autocomplete** (for typing):
+```
+score = (semantic * W_semantic) + (trending * W_trending) + (reputation * W_reputation)
+→ Ranked by score DESC, limited to top N
+```
+
+**Related** (for discovery):
+```
+score = (semantic * W_semantic) + (trending * W_trending) + (reputation * W_reputation)
+→ Filtered by min_score, ranked by score DESC, limited to top N
+```
+
 ## 📚 Scripts Reference (77 total)
 
 **Phase 2 Engagement Service Integration**: 47 scripts updated with P2.1 relevance scoring, P2.2 quality metrics, P2.3 proactive posting, and P2.4 rate limiting. See [PHASE-2-SCRIPT-INTEGRATION.md](docs/PHASE-2-SCRIPT-INTEGRATION.md) for complete breakdown.
