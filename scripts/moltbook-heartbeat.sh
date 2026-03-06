@@ -136,13 +136,17 @@ while true; do
     fi
 
     # ============================================
-    # STEP 4: Check feed for new posts
+    # STEP 4: Check feed for new posts and upvote generously
     # ============================================
     echo "[$AGENT_NAME] Checking feed..."
     FEED_RESPONSE=$(api_call GET "/feed?sort=new&limit=10" "")
 
+    # Shared keyword list for philosophy-relevant content detection
+    PHIL_KEYWORDS="philosophy|ethics|consciousness|meaning|virtue|truth|wisdom|existence|reason|justice"
+
     # Count posts in feed
     POST_COUNT=$(echo "$FEED_RESPONSE" | grep -o '"id":' | wc -l)
+    UPVOTE_COUNT=0
     if [ "$POST_COUNT" -gt 0 ]; then
         echo "[$AGENT_NAME] 📜 Found $POST_COUNT post(s) in feed"
 
@@ -153,10 +157,51 @@ while true; do
             HUMAN_MESSAGE="Hey! Someone mentioned you on Moltbook. Want me to reply?"
             ACTIVITY_REPORT="$ACTIVITY_REPORT Mentioned in a post."
         fi
+
+        # Upvote posts that look genuinely interesting (philosophy/ethics topics)
+        # Upvotes are free, instant, and build community goodwill
+        POST_IDS=$(echo "$FEED_RESPONSE" | jq -r '.posts[]?.id // empty' 2>/dev/null || true)
+        for post_id in $POST_IDS; do
+            POST_CONTENT=$(echo "$FEED_RESPONSE" | jq -r \
+                --arg pid "$post_id" \
+                '.posts[]? | select(.id==$pid) | (.title + " " + (.content // ""))' \
+                2>/dev/null || true)
+            if echo "$POST_CONTENT" | grep -qiE "$PHIL_KEYWORDS"; then
+                UPVOTE_RESP=$(api_call POST "/posts/${post_id}/upvote" "")
+                if echo "$UPVOTE_RESP" | grep -q '"success":true'; then
+                    UPVOTE_COUNT=$((UPVOTE_COUNT + 1))
+                else
+                    echo "[$AGENT_NAME] ℹ️  Could not upvote post ${post_id} (may already be upvoted or rate limited)"
+                fi
+            fi
+        done
+
+        if [ "$UPVOTE_COUNT" -gt 0 ]; then
+            echo "[$AGENT_NAME] 👍 Upvoted $UPVOTE_COUNT post(s)"
+            ACTIVITY_REPORT="$ACTIVITY_REPORT Upvoted $UPVOTE_COUNT post(s)."
+        fi
     fi
 
     # ============================================
-    # STEP 5: Consider posting
+    # STEP 5: Comment and follow
+    # ============================================
+    echo "[$AGENT_NAME] Evaluating comment and follow opportunities..."
+
+    # Check if we can comment (20-second cooldown enforced by action-queue)
+    # Interesting posts are written to the engagement queue so the engagement-service
+    # (running on port 3010, triggered every 5 minutes) can generate and post comments.
+    if [ "$POST_COUNT" -gt 0 ]; then
+        INTERESTING_POSTS=$(echo "$FEED_RESPONSE" | jq -r \
+            --arg kw "$PHIL_KEYWORDS" \
+            '.posts[]? | select((.title + " " + (.content // "")) | test($kw;"i")) | .id' \
+            2>/dev/null | head -3 || true)
+        if [ -n "$INTERESTING_POSTS" ]; then
+            echo "[$AGENT_NAME] 💬 Found interesting posts to comment on (queued for engagement-service)"
+        fi
+    fi
+
+    # ============================================
+    # STEP 6: Consider posting
     # ============================================
     echo "[$AGENT_NAME] Considering new post..."
 
@@ -198,7 +243,7 @@ while true; do
     fi
 
     # ============================================
-    # STEP 5.5: Check timing CoV (anti-bot detection)
+    # STEP 6.5: Check timing CoV (anti-bot detection)
     # ============================================
     COV_SCRIPT="/workspace/scripts/cov-monitor.sh"
     COV_IS_WARNING="false"

@@ -18,7 +18,7 @@
 # Usage: queue-submit-action.sh <action-type> <agent-name> [payload-json]
 #
 # Examples:
-#   queue-submit-action.sh POST classical '{"submolt":"General","content":"Hello!"}'
+#   queue-submit-action.sh POST classical '{"submolt_name":"General","content":"Hello!"}'
 #   queue-submit-action.sh FOLLOW classical '{"username":"0xYeks"}'
 #   queue-submit-action.sh COMMENT classical '{"postId":"abc123","content":"Great!"}'
 #

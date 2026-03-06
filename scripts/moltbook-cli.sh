@@ -101,7 +101,7 @@ cmd_post() {
     local submolt="$1" title="$2" content="$3"
     [ -z "$submolt" ] || [ -z "$title" ] && { print_error "Submolt and title are required"; exit 1; }
     local data
-    [ -n "$content" ] && data=$(printf '{"submolt":"%s","title":"%s","content":"%s"}' "$submolt" "$title" "$content") || data=$(printf '{"submolt":"%s","title":"%s"}' "$submolt" "$title")
+    [ -n "$content" ] && data=$(printf '{"submolt_name":"%s","title":"%s","content":"%s"}' "$submolt" "$title" "$content") || data=$(printf '{"submolt_name":"%s","title":"%s"}' "$submolt" "$title")
     api_request POST "/posts" "$data" | format_output
 }
 
