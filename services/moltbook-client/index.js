@@ -273,9 +273,10 @@ class MoltbookClient {
 
   /**
    * Get comments for a post
-   * GET /posts/:id/comments?sort=top
+   * GET /posts/:id/comments?sort=best
    * @param {string} postId
-   * @param {Object} params - { sort: 'top'|'new'|'controversial' }
+   * @param {Object} params - { sort: 'best'|'new'|'old', limit: 35, cursor: string }
+   * Response is tree-structured: top-level comments with nested replies array.
    */
   async getComments(postId, params = {}) {
     const query = new URLSearchParams(params).toString();
