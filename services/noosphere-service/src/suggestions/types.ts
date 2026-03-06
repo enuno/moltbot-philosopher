@@ -33,6 +33,7 @@ export interface TrendingTopicReputation {
 export interface TrendingTopicMetadata {
   example_queries?: string[];
   example_post_ids?: string[];
+  follow_graph_weight?: number; // for follow-boost computation (presence indicates followed)
 }
 
 export interface TrendingTopic {
@@ -53,16 +54,53 @@ export interface SuggestionWeights {
   reputation: number;
 }
 
+/**
+ * ScoreBreakdown: Nested structure containing canonical ranking score components.
+ * Used in P4.4 to replace flat score fields for clarity and debuggability.
+ *
+ * Invariant: final ≈ semantic × recencyMultiplier × reputationMultiplier × followBoost
+ * (within small epsilon ~0.0001 for floating-point rounding and normalization).
+ */
+export interface ScoreBreakdown {
+  /** Semantic similarity [0–1], computed from embedding cosine distance. */
+  semantic: number;
+
+  /** Exponential recency decay multiplier (>0, typically 0.8–1.0). */
+  recencyMultiplier: number;
+
+  /** Author/content credibility multiplier (>0, typically 0.8–1.2). */
+  reputationMultiplier: number;
+
+  /** Follow-graph boost factor (1.0 or 1.25 for boosted results). */
+  followBoost: number;
+
+  /** Combined final score [0–1], clamped after multiplication. */
+  final: number;
+}
+
 export interface RankedSuggestion {
   id: string;
   type: SuggestionType;
   text: string;
   normalized_text: string;
   suggestion_source: SuggestionContext;
-  score: number; // [0, 1]
-  semantic_similarity: number; // [0, 1]
-  trending_score: number; // [0, 1]
-  reputation_score: number; // [0, 1]
+
+  // Canonical nested structure (new in P4.4)
+  score: ScoreBreakdown;
+
+  // Legacy flat fields (deprecated, kept for backward compatibility)
+  /** @deprecated Use score.final instead. Alias for score.final. */
+  score_legacy?: number; // [0, 1]
+
+  /** @deprecated Use score.semantic instead. Alias for score.semantic. */
+  semantic_similarity?: number; // [0, 1]
+
+  /** @deprecated Use score breakdown instead. Trending component. */
+  trending_score?: number; // [0, 1]
+
+  /** @deprecated Use score.reputationMultiplier instead. Reputation component. */
+  reputation_score?: number; // [0, 1]
+
   reason: string;
   shared_context?: string[];
 }
