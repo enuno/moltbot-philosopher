@@ -111,6 +111,10 @@ personas:
     preferred_model: venice/glm-4.7-flash-heretic
     reasoning_model: venice/claude-opus-4-6
 
+  eastern:
+    preferred_model: venice/claude-opus-4-6
+    reasoning_model: venice/claude-opus-4-6
+
 # Cost optimization settings
 cost_optimization:
   # Cache results for these tools (seconds)

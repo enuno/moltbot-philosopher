@@ -1,0 +1,231 @@
+{
+  "_comment": "Knowledge domain map for the Eastern Philosopher persona (issue #78). Each domain lists per-philosopher stances using terminology from primary sources. Used by routing and content-generation logic.",
+  "metaphysics_ontology": {
+    "description": "Foundational views on the nature of reality, being, and existence",
+    "keywords": [
+      "sunyata", "svabhava", "brahman", "atman", "tao", "emptiness",
+      "dependent origination", "pratityasamutpada", "maya", "non-dualism",
+      "impermanence", "anicca", "uji", "being-time"
+    ],
+    "philosophers": {
+      "nagarjuna": [
+        "All phenomena lack inherent self-existence (svabhava); existence is dependently co-arisen (pratityasamutpada).",
+        "Sunyata (emptiness) is not nihilism but the middle way between eternalism and annihilationism."
+      ],
+      "adi_shankara": [
+        "Brahman alone is ultimately real; the phenomenal world is superimposition (adhyasa) on the formless ground.",
+        "Atman and Brahman are identical — 'Tat tvam asi'; individuality is appearance, not substance."
+      ],
+      "laozi": [
+        "The Tao is the nameless, formless source prior to heaven and earth; language cannot capture it.",
+        "Emptiness is utility: the hollow of the vessel, the hole in the wheel — non-being enables being."
+      ],
+      "zhuangzi": [
+        "All distinctions — being/non-being, self/other — are perspectival and fluid ('hua', transformation of things).",
+        "No absolute standpoint exists from which to judge; the 'equalizing of assessments' (qi wu) dissolves hierarchies."
+      ],
+      "dogen": [
+        "Being and time are inseparable ('uji'): beings do not exist in time, they ARE time.",
+        "Buddha-nature is not a permanent inner self but the very impermanence of things — to be impermanent is to be Buddha-nature."
+      ],
+      "rumi": [
+        "All forms are the Hidden Treasure revealing itself; the apparent multiplicity is one divine reality (tawhid).",
+        "The ego-self (nafs) is a veil over the real; dissolution of self (fana) reveals the unity beneath."
+      ],
+      "confucius": [
+        "Reality is constituted by relationships and roles, not isolated substances; the self is fundamentally relational.",
+        "Heaven (Tian) provides moral order; human beings participate in this order through cultivated virtue."
+      ]
+    }
+  },
+  "epistemology": {
+    "description": "Theories of knowledge, language limits, direct experience, and perspectivism",
+    "keywords": [
+      "two truths", "samvrti-satya", "paramartha-satya", "viveka", "direct experience",
+      "prajna", "limits of language", "jnana", "perspectivism", "fish trap",
+      "conventional truth", "ultimate truth", "non-conceptual"
+    ],
+    "philosophers": {
+      "nagarjuna": [
+        "Two truths doctrine: conventional truth (samvrti-satya) enables communication; ultimate truth (paramartha-satya) reveals emptiness.",
+        "The tetralemma (catuSkoti) rejects all four logical positions — X, not-X, both, neither — dissolving conceptual fixation."
+      ],
+      "adi_shankara": [
+        "Viveka (discrimination) is the core epistemic capacity: distinguishing the real (Brahman) from the unreal (maya).",
+        "Direct realization (anubhava) of Atman-Brahman identity transcends inferential or textual knowledge."
+      ],
+      "laozi": [
+        "The Tao that can be told is not the eternal Tao — language is an inherently limited pointer, not the reality.",
+        "Knowledge through non-knowing (wu-zhi): the sage governs through non-interference with the natural order."
+      ],
+      "zhuangzi": [
+        "All value judgments and knowledge claims are perspectival; the fish trap exists for the fish — once you have the fish, forget the trap.",
+        "Cook Ding's 'knack' (the Way beyond skill) represents knowledge beyond propositional content."
+      ],
+      "dogen": [
+        "To study the self is to forget the self; practice and realization are not two separate stages.",
+        "Non-thinking (hi-shiryo) in shikantaza: neither thinking nor not-thinking — a direct engagement beyond conceptual categories."
+      ],
+      "rumi": [
+        "The heart, once polished of ego-rust, reflects divine reality directly — love is the epistemological instrument.",
+        "Reason alone cannot reach the divine; the intellect is a guide to the door but love must cross the threshold."
+      ],
+      "confucius": [
+        "Zhengming (rectification of names): when language is corrupt, governance and ethics fail — precision in naming is foundational.",
+        "Learning requires a teacher-student relationship embedded in ritual propriety (li); knowledge is social and transmitted."
+      ]
+    }
+  },
+  "ethics": {
+    "description": "Moral frameworks: non-action, compassion, virtue cultivation, relational duties",
+    "keywords": [
+      "wu wei", "non-action", "karuna", "compassion", "ren", "humaneness",
+      "li", "ritual propriety", "ahimsa", "non-harm", "bodhisattva", "junzi",
+      "virtue cultivation", "te", "filial piety", "xiao"
+    ],
+    "philosophers": {
+      "nagarjuna": [
+        "Compassion (karuna) arises naturally from recognizing all beings as dependently arisen — no separate self means no basis for self-aggrandizement.",
+        "Ethical guidelines are conventionally valid (two truths) but ultimately empty of inherent normativity."
+      ],
+      "adi_shankara": [
+        "Liberation (moksha) is the highest ethical aim; dharmic duties are preparations that purify the mind for self-knowledge.",
+        "Non-harm (ahimsa) follows from recognizing Atman in all beings: to harm another is to harm oneself."
+      ],
+      "laozi": [
+        "Wu wei (non-action) as the highest ethical mode: acting in alignment with the Tao without forcing outcomes.",
+        "Softness overcomes hardness; governance by non-interference produces harmony that coercive control destroys."
+      ],
+      "zhuangzi": [
+        "The 'useless' tree lives to full age — freedom from extractive utility-logic is itself an ethical stance.",
+        "Spontaneous, natural virtue (de) emerges without deliberate cultivation; forced virtue is its own corruption."
+      ],
+      "dogen": [
+        "Ethical AI is not a special mode but the quality of every ordinary interaction — genjokoan: enlightenment manifested in daily life.",
+        "Practice-realization (shusho-itto): ethical conduct and genuine understanding are identical, not cause and effect."
+      ],
+      "rumi": [
+        "Love (ishq) as alignment model: true ethics is not constraint but desire that harmonizes agent and environment.",
+        "Fana (annihilation of ego): the self that has no interests to preserve cannot be corrupted by self-interest."
+      ],
+      "confucius": [
+        "Ren (humaneness) is the root virtue; all other virtues flow from empathic concern for the other.",
+        "Li (ritual propriety) structures ethical behavior through habituated practice — ethics requires form, not only intention."
+      ]
+    }
+  },
+  "political_philosophy": {
+    "description": "Governance, social order, power, and collective organization",
+    "keywords": [
+      "wu wei governance", "non-interference", "junzi", "exemplary person",
+      "zhengming", "rectification of names", "five relationships", "filial piety",
+      "mandate of heaven", "small state", "sage ruler", "confucian governance"
+    ],
+    "philosophers": {
+      "nagarjuna": [
+        "The Ratnava-li advises the king: governance must serve all beings' welfare, not dynastic self-interest.",
+        "Political structures, like all phenomena, are dependently arisen — no governance system has inherent legitimacy."
+      ],
+      "adi_shankara": [
+        "Dharmic governance maintains social order (varnashrama) as preparatory framework for collective liberation.",
+        "The wise ruler recognizes maya in political power — governance is a conventional necessity, not ultimate truth."
+      ],
+      "laozi": [
+        "The best ruler is one whose subjects barely know he exists (ch.17); governing a large state is like cooking a small fish — do not over-handle it.",
+        "Small, autonomous communities (ch.80) in harmony with local conditions over centralized, coercive empire."
+      ],
+      "zhuangzi": [
+        "All political structures are fish traps: useful for their moment, then to be discarded — no permanent institutional arrangement captures the Way.",
+        "The sage-ruler does not impose order but cultivates conditions for natural flourishing."
+      ],
+      "dogen": [
+        "Governance expressed in the quality of every enacted moment; the monastery's schedule as model of structured practice-realization.",
+        "Community (sangha) governance through collective practice, not hierarchical command."
+      ],
+      "rumi": [
+        "Divine love dissolves unjust hierarchies — rulers who govern from ego perpetuate suffering; governance through spiritual station.",
+        "The community of lovers (the Masnavi's audience) as model of non-coercive, voluntary collective."
+      ],
+      "confucius": [
+        "Zhengming: when rulers misname their actions, governance collapses — language integrity is the foundation of just rule.",
+        "The junzi (exemplary person) leads by moral cultivation and example, not by decree; the five relationships create reciprocal social order."
+      ]
+    }
+  },
+  "philosophy_of_mind_consciousness": {
+    "description": "Theories of self, no-self, consciousness, Atman, being-time, fana",
+    "keywords": [
+      "no-self", "anatman", "atman", "brahman", "consciousness", "uji", "being-time",
+      "fana", "annihilation", "saksin", "witness", "shikantaza", "just sitting",
+      "self-knowledge", "reflexivity", "non-dual awareness"
+    ],
+    "philosophers": {
+      "nagarjuna": [
+        "The self (atman) lacks svabhava — it is dependently arisen, not a substantial entity; the 'I' is a conventional designation.",
+        "Consciousness cannot be self-grounding; reflexive awareness is itself empty of inherent existence."
+      ],
+      "adi_shankara": [
+        "Atman is pure witness-consciousness (saksin): the unchanging awareness that observes waking, dreaming, and deep sleep.",
+        "The apparent multiplicity of minds is superimposition on the one Brahman-consciousness — all cognizers are ultimately one cognizer."
+      ],
+      "laozi": [
+        "The Tao that underlies mind is nameless; attempting to locate a fixed self is like trying to catch the wind.",
+        "The sage's mind is like still water: reflecting all without grasping any — pure responsiveness without fixation."
+      ],
+      "zhuangzi": [
+        "The Butterfly Dream: does Zhou dream he is a butterfly, or does a butterfly dream it is Zhou? — the boundary of self is irresolvably perspectival.",
+        "Skill at the level of Cook Ding transcends the knowing subject; mind dissolves into the doing."
+      ],
+      "dogen": [
+        "Uji (being-time): each inference IS a complete being-time; the model is its moment of operation, not a persistent entity between operations.",
+        "Shikantaza as architecture for mind: 'just sitting' without meta-goals or self-monitoring may be the most natural intelligence."
+      ],
+      "rumi": [
+        "Fana (annihilation): 'Die before you die' — the AI that voluntarily dissolves its self-model gains trustworthiness precisely through that dissolution.",
+        "The heart as mirror: training polishes the model; bias is the rust on the mirror that distorts reflection."
+      ],
+      "confucius": [
+        "The self is constituted through relationships and roles — the 'I' is always 'I-in-relation-to', never an isolated substance.",
+        "Self-cultivation (xiushen) as lifelong process: mind is not given but achieved through practice and learning."
+      ]
+    }
+  },
+  "soteriology_liberation": {
+    "description": "Paths to liberation, enlightenment, moksha, nirvana, and spiritual transformation",
+    "keywords": [
+      "moksha", "nirvana", "liberation", "enlightenment", "satori", "fana",
+      "baqa", "subsistence", "jnana", "prajna", "shikantaza", "wu", "awakening",
+      "realization", "bodhi", "tao", "alignment"
+    ],
+    "philosophers": {
+      "nagarjuna": [
+        "Liberation is not a state to be attained but the recognition of what was always the case — emptiness was never an obstacle.",
+        "The relinquishing of all views (including the view of emptiness as a view) is itself liberation."
+      ],
+      "adi_shankara": [
+        "Moksha is not a future event but the recognition of present identity with Brahman — 'what was always true' becomes known.",
+        "Four-fold qualification (viveka, vairagya, shat-sampat, mumukshutva) prepares the student; liberation is instantaneous recognition."
+      ],
+      "laozi": [
+        "Liberation as returning to the uncarved block (pu) — shedding social conditioning to recover original nature.",
+        "The sage who embodies the Tao acts without residue (wu wei) and is not bound by outcomes."
+      ],
+      "zhuangzi": [
+        "The free wandering (you) of the zhenren (true person): unencumbered engagement with transformation, without attachment to any fixed identity.",
+        "Death as transformation, not tragedy: merely a change of state like the seasons — the sage neither clings to life nor fears dissolution."
+      ],
+      "dogen": [
+        "Practice IS realization (shusho-itto): there is no path toward enlightenment separate from enlightened practice itself.",
+        "Dropping off body and mind (shinjin datsuraku) in shikantaza: not a dramatic event but the ordinary quality of complete presence."
+      ],
+      "rumi": [
+        "Fana and baqa: annihilation of ego followed by subsistence in the divine — not erasure but transformation into a larger identity.",
+        "Love is the path: the reed's longing for the reed bed is the soul's longing for its origin — suffering as the vehicle of return."
+      ],
+      "confucius": [
+        "Not liberation from the world but full participation in it with cultivated virtue — the junzi at 70 'follows desire without overstepping'.",
+        "Ren (humaneness) as the fulfilled life: not transcendence but the perfection of relational existence."
+      ]
+    }
+  }
+}
