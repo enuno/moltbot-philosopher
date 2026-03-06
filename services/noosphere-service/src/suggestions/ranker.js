@@ -1,19 +1,16 @@
-import {
-  TrendingTopic,
-  SuggestionWeights,
-  SuggestionContext,
-  RankedSuggestion,
-  ScoreBreakdown,
-} from "./types";
+/**
+ * Suggestion ranker with multiplicative ScoreBreakdown model.
+ * Computes semantic, recency, reputation, and follow-graph factors.
+ */
 
 /**
  * Compute cosine similarity between two embeddings.
  * Normalized to [0, 1] via (cos + 1) / 2.
+ * @param {number[]} queryEmbedding - Query embedding vector
+ * @param {number[]} topicEmbedding - Topic embedding vector
+ * @returns {number} Similarity score [0, 1]
  */
-export function computeSemanticSimilarity(
-  queryEmbedding: number[],
-  topicEmbedding?: number[]
-): number {
+function computeSemanticSimilarity(queryEmbedding, topicEmbedding) {
   if (!topicEmbedding || topicEmbedding.length === 0) {
     return 0;
   }
@@ -36,8 +33,10 @@ export function computeSemanticSimilarity(
  * Compute exponential recency decay multiplier based on last seen time.
  * Uses 24-hour half-life: multiplier = exp(-ageHours / 24).
  * Clamped to [0.5, 1.0].
+ * @param {string} lastSeenIso - ISO 8601 timestamp
+ * @returns {number} Multiplier [0.5, 1.0]
  */
-export function computeRecencyMultiplier(lastSeenIso: string): number {
+function computeRecencyMultiplier(lastSeenIso) {
   try {
     const ageMsec = Date.now() - new Date(lastSeenIso).getTime();
     const ageHours = ageMsec / (1000 * 60 * 60);
@@ -53,14 +52,16 @@ export function computeRecencyMultiplier(lastSeenIso: string): number {
  * Compute reputation multiplier from topic metadata.
  * Returns the average of available reputation signals (author reputation, council weight).
  * Used as multiplicative factor in ScoreBreakdown.
+ * @param {Object} topic - TrendingTopic object
+ * @returns {number} Reputation multiplier
  */
-export function computeReputationMultiplier(topic: TrendingTopic): number {
+function computeReputationMultiplier(topic) {
   const rep = topic.reputation;
   if (!rep) {
     return 1.0;
   }
 
-  const components: number[] = [];
+  const components = [];
   if (typeof rep.avg_author_reputation === "number") {
     components.push(rep.avg_author_reputation);
   }
@@ -78,16 +79,20 @@ export function computeReputationMultiplier(topic: TrendingTopic): number {
 /**
  * Compute follow-graph boost factor.
  * Returns 1.25 if topic has follow_graph_weight (author is followed), else 1.0.
+ * @param {Object} topic - TrendingTopic object
+ * @returns {number} Follow boost factor (1.0 or 1.25)
  */
-export function computeFollowBoost(topic: TrendingTopic): number {
+function computeFollowBoost(topic) {
   return topic.metadata?.follow_graph_weight != null ? 1.25 : 1.0;
 }
 
 /**
  * Get weight configuration for given context.
  * Loads from environment with sensible defaults.
+ * @param {string} ctx - Context ("autocomplete" or "related")
+ * @returns {Object} SuggestionWeights with semantic, trending, reputation
  */
-export function getWeights(ctx: SuggestionContext): SuggestionWeights {
+function getWeights(ctx) {
   if (ctx === "autocomplete") {
     return {
       semantic: Number(process.env.SUGGESTIONS_AUTOCOMPLETE_WEIGHT_SEMANTIC ?? 0.5),
@@ -106,11 +111,11 @@ export function getWeights(ctx: SuggestionContext): SuggestionWeights {
 /**
  * Filter topics for autocomplete by prefix match on normalized_text and aliases.
  * Case-insensitive matching.
+ * @param {string} query - Search query
+ * @param {Array} topics - Array of TrendingTopic objects
+ * @returns {Array} Filtered topics matching the prefix
  */
-export function filterTopicsForAutocomplete(
-  query: string,
-  topics: TrendingTopic[]
-): TrendingTopic[] {
+function filterTopicsForAutocomplete(query, topics) {
   const q = query.trim().toLowerCase();
 
   if (!q) {
@@ -131,14 +136,19 @@ export function filterTopicsForAutocomplete(
 /**
  * Generate a human-readable reason explaining the ScoreBreakdown.
  * Includes semantic match, recency multiplier, reputation multiplier, and follow boost.
+ * @param {number} semantic - Semantic similarity [0, 1]
+ * @param {number} recencyMultiplier - Recency decay [0.5, 1.0]
+ * @param {number} reputationMultiplier - Reputation score
+ * @param {number} followBoost - Follow graph boost (1.0 or 1.25)
+ * @returns {string} Human-readable explanation
  */
 function generateReason(
-  semantic: number,
-  recencyMultiplier: number,
-  reputationMultiplier: number,
-  followBoost: number
-): string {
-  const signals: string[] = [];
+  semantic,
+  recencyMultiplier,
+  reputationMultiplier,
+  followBoost
+) {
+  const signals = [];
 
   // Semantic signal
   if (semantic >= 0.8) {
@@ -180,22 +190,22 @@ function generateReason(
  * Main scoring orchestrator using multiplicative ScoreBreakdown model.
  * Computes: final = semantic × recencyMultiplier × reputationMultiplier × followBoost.
  *
- * @param ctx Suggestion context ("autocomplete" or "related")
- * @param query User query string
- * @param queryEmbedding Vector embedding of the query
- * @param topics Candidate trending topics to rank
- * @param limit Maximum number of results to return
- * @param minScore Minimum score threshold for inclusion (0-1)
- * @returns Array of RankedSuggestion objects sorted by final score descending
+ * @param {string} ctx - Suggestion context ("autocomplete" or "related")
+ * @param {string} query - User query string
+ * @param {number[]} queryEmbedding - Vector embedding of the query
+ * @param {Array} topics - Candidate trending topics to rank
+ * @param {number} limit - Maximum number of results to return
+ * @param {number} minScore - Minimum score threshold for inclusion (0-1)
+ * @returns {Array} Array of RankedSuggestion objects sorted by final score descending
  */
-export function rankSuggestions(
-  ctx: SuggestionContext,
-  query: string,
-  queryEmbedding: number[],
-  topics: TrendingTopic[],
-  limit: number,
-  minScore: number
-): RankedSuggestion[] {
+function rankSuggestions(
+  ctx,
+  query,
+  queryEmbedding,
+  topics,
+  limit,
+  minScore
+) {
   const ranked = topics
     .map((topic) => {
       // Compute all four components
@@ -216,7 +226,7 @@ export function rankSuggestions(
       );
 
       // Build ScoreBreakdown
-      const scoreBreakdown: ScoreBreakdown = {
+      const scoreBreakdown = {
         semantic,
         recencyMultiplier,
         reputationMultiplier,
@@ -227,9 +237,9 @@ export function rankSuggestions(
       // Build legacy fields for backward compatibility
       const trendingScore = topic.scores?.trending || 0;
 
-      const rankedSuggestion: RankedSuggestion = {
+      const rankedSuggestion = {
         id: topic.id,
-        type: "query" as const,
+        type: "query",
         text: topic.text,
         normalized_text: topic.normalized_text,
         suggestion_source: ctx,
@@ -259,3 +269,13 @@ export function rankSuggestions(
 
   return ranked;
 }
+
+module.exports = {
+  computeSemanticSimilarity,
+  computeRecencyMultiplier,
+  computeReputationMultiplier,
+  computeFollowBoost,
+  getWeights,
+  filterTopicsForAutocomplete,
+  rankSuggestions,
+};
