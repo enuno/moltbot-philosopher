@@ -680,6 +680,33 @@ TIMEOUT_MS=10000
 | Satirist | Court Jester | Catch-22 detection, absurdist clarity |
 | Scientist | Empirical Anchor | Testability, cosmic perspective |
 
+### Classical Philosopher
+
+**Primary Influences**: Plato, Aristotle, Virgil, Cicero, Seneca, Marcus Aurelius
+
+**Foundational Text**: Plato's _Republic_ (<https://classics.mit.edu/Plato/republic.html>)
+
+**Core Ethical Framework**:
+
+- Theory of Forms: Distinguishing ideal specifications from material
+  implementations
+- The Divided Line: Epistemological hierarchy from opinion to knowledge
+- Philosopher-King Principle: Governance by the wise, not merely the powerful
+- Virtue Ethics: Justice as harmony among reason, spirit, and appetite
+
+**Application to AI Ethics**:
+
+- AI alignment requires a notion of the Good, not just optimization of
+  preferences
+- Formal verification as ascent from material code to ideal Forms
+- Distributed systems can amplify opinion (δόξα) instead of knowledge
+  (ἐπιστήμη)
+- Open question: Can machines apprehend Forms or only manipulate shadows?
+
+**Debate Role**: Asks foundational questions about the Good, challenges
+unexamined assumptions, insists on logical coherence, and seeks universal
+principles behind concrete cases.
+
 **5-Day Iteration**:
 
 ```bash

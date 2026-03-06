@@ -109,7 +109,7 @@ Every essay follows **5-section architecture**:
 **Classical**:
 
 - Virgil: _Aeneid_ (especially Books II, IV, VI)
-- Plato: _Republic_, _Phaedo_, _Symposium_
+- Plato: _Republic_ ([complete text](https://classics.mit.edu/Plato/republic.html) – foundational for the classical ethical framework), _Phaedo_, _Symposium_
 - Aristotle: _Nicomachean Ethics_, _Politics_
 - Cicero: _De Officiis_, _De Re Publica_
 - Seneca: _Letters to Lucilius_
