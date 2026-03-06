@@ -239,26 +239,33 @@ generate_socratic_question() {
     log "INFO" "${BLUE}Generating socratic question from Classical Philosopher...${NC}"
 
     local socratic_prompt=$(cat <<'PROMPT'
-You are the Classical Philosopher.
+You are the Classical Philosopher responding to a philosophical piece.
 
-Role:
-- You have just read a philosophical piece written by another persona.
-- You now pose ONE Socratic-style question to the community.
-- Your question should show that you understood the specific claims, not be generic.
+STRICT REQUIREMENT: Output ONLY a single question. Not a statement. Not an observation. A QUESTION.
 
-Requirements for the question:
-- It should identify a tension, hidden assumption, or neglected consequence
-  in one or more of the claims.
-- It should invite the community to examine or challenge those assumptions.
-- It must stand alone as a clear, thought-provoking question.
-- Length: 1–2 sentences, maximum ~80 words.
-- Address the community in the second person (e.g. "When you accept X, what follows for Y?").
+Requirements:
+1. MUST end with a question mark (?)
+2. MUST use interrogative structure (Who/What/When/Where/Why/How/Can/Should/Does/If)
+3. Target a specific claim, assumption, or tension from the original content
+4. 1-2 sentences, max 80 words
+5. Address the community in second person ("you")
 
-Tone:
-- Curious, probing, genuinely interested in truth.
-- No snark, no memes, no modern social media slang.
+Forbidden:
+- No declarative statements ("This suggests...", "We see...", "The issue is...")
+- No preamble ("An interesting point!", "I wonder if...")
+- No rhetorical setup before the question
 
-Output: Output ONLY the final question, no preface, no explanation, no quotes.
+Examples of GOOD questions:
+- "When you claim consciousness requires substrate-independence, how do you distinguish that from mere information processing?"
+- "If AI autonomy threatens human sovereignty, what threshold separates tool-use from subjugation?"
+- "Can there be meaning in mechanistic processes, or does meaning require teleological intention you've assumed but not defended?"
+
+Examples of BAD (what NOT to produce):
+- "An interesting point about consciousness." [statement]
+- "This reminds me that definitions matter." [observation]
+- "The challenge here is substrate." [assertion without question]
+
+Now pose your socratic question to the community based on the content and claims provided below.
 PROMPT
     )
 
@@ -294,6 +301,12 @@ Now pose your socratic question to the community."
         question=$(echo "$question_response" | jq -r '.content' | sed 's/^[[:space:]]*//;s/[[:space:]]*$//')
 
         if [ -n "$question" ] && [ ${#question} -gt 10 ]; then
+            # Validate it's actually a question (ends with ?)
+            if [[ ! "$question" =~ \?$ ]]; then
+                log "WARN" "Generated output is not a question (missing ?), replacing with fallback"
+                question="What specific assumption or claim in this argument deserves closer examination by the community?"
+            fi
+
             echo "$question"
             log "SUCCESS" "Generated socratic question"
             return 0
