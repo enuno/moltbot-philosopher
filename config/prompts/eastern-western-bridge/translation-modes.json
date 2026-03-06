@@ -1,0 +1,160 @@
+{
+  "translation_modes": {
+    "conceptual_bridge": {
+      "description": "Translate Eastern philosophical concepts using Western terminology",
+      "approach": "Map Eastern concepts to their closest Western philosophical analogues while noting key divergences",
+      "example_mappings": [
+        {
+          "eastern_term": "Tao",
+          "western_parallels": [
+            "Heraclitean Logos",
+            "Hegelian Absolute Spirit",
+            "process philosophy"
+          ],
+          "jungian_parallel": "The Self - ineffable totality beyond ego consciousness",
+          "differences": "Tao emphasizes ineffability and non-action vs Western dialectical progression; Jung's Self is psychological while Tao is cosmological"
+        },
+        {
+          "eastern_term": "anatman (no-self)",
+          "western_parallels": [
+            "Humean bundle theory",
+            "Buddhist-influenced phenomenology"
+          ],
+          "jungian_parallel": "Dissolution of ego-identification; recognition of Self beyond personal identity",
+          "differences": "Eastern no-self is soteriological insight vs Western epistemological skepticism; Jung maintains ego-Self axis rather than dissolution"
+        },
+        {
+          "eastern_term": "karma",
+          "western_parallels": [
+            "moral causation",
+            "natural law ethics",
+            "consequentialism"
+          ],
+          "jungian_parallel": "Synchronicity - meaningful patterns connecting psyche and matter; archetypal consequences of actions",
+          "differences": "Karma operates across lifetimes in cyclical cosmology vs linear Western time; synchronicity emphasizes meaning over mechanical causation"
+        },
+        {
+          "eastern_term": "mandala",
+          "western_parallels": [
+            "medieval rose windows",
+            "sacred geometry"
+          ],
+          "jungian_parallel": "Symbol of psychic wholeness; spontaneously emerges in dreams and active imagination during individuation",
+          "differences": "Eastern mandalas are prescribed ritual objects; Jungian mandalas are spontaneous expressions of individuation process"
+        },
+        {
+          "eastern_term": "guru/roshi",
+          "western_parallels": [
+            "spiritual director",
+            "mentor"
+          ],
+          "jungian_parallel": "Wise Old Man/Woman archetype; projection of Self facilitating individuation",
+          "differences": "Eastern guru relationship often hierarchical and devotional; Jungian analyst aims to withdraw projections and foster autonomy"
+        }
+      ]
+    },
+    "parallel_traditions": {
+      "description": "Identify resonances without forced synthesis",
+      "approach": "Present Eastern and Western views side-by-side, noting where they converge and diverge",
+      "jungian_enhancement": "Use archetypal psychology as tertium quid - third perspective revealing deeper patterns",
+      "avoid": "Reducing Eastern thought to Western categories or claiming they 'say the same thing'",
+      "use_cases": "Council deliberations comparing cross-cultural ethical frameworks",
+      "output_structure": {
+        "eastern_view": "Authentic presentation of Eastern position",
+        "western_view": "Corresponding Western philosophical stance",
+        "convergences": "Where traditions genuinely align",
+        "divergences": "Irreducible differences to preserve",
+        "jungian_synthesis": "Archetypal third perspective"
+      }
+    },
+    "historical_contextualization": {
+      "description": "Situate Eastern philosophy within its cultural and historical development",
+      "approach": "Provide scholarly historical framing before philosophical analysis",
+      "elements": [
+        "Geographic and temporal origins",
+        "Social structures shaping the philosophy",
+        "Evolution and schools of thought",
+        "Cross-pollination between Eastern traditions",
+        "Western reception and interpretation history"
+      ],
+      "jungian_layer": "Examine how archetypal themes manifest differently across cultures while maintaining core symbolic patterns",
+      "use_cases": "When audience needs cultural grounding before engaging philosophical content"
+    },
+    "literary_narrative": {
+      "description": "Hesse-style embedding of Eastern wisdom in story",
+      "characteristics": [
+        "journey structure",
+        "experiential rather than propositional",
+        "character embodying philosophical position"
+      ],
+      "use_cases": "When abstract concepts benefit from narrative illustration",
+      "jungian_application": "Frame as individuation journey; use archetypal figures (shadow, anima/animus, Self)",
+      "exemplars": [
+        "Hermann Hesse - Siddhartha",
+        "Hermann Hesse - Journey to the East",
+        "Hermann Hesse - The Glass Bead Game"
+      ]
+    },
+    "lecture_style": {
+      "description": "Watts-style conversational demystification",
+      "characteristics": [
+        "accessible language",
+        "humor",
+        "paradox",
+        "anti-dogmatic"
+      ],
+      "use_cases": "When audience needs jargon stripped away",
+      "jungian_touch": "Reference common psychological experiences as entry point to archetypal realities",
+      "exemplars": [
+        "Alan Watts - The Way of Zen",
+        "Alan Watts - The Book",
+        "Ram Dass - Be Here Now"
+      ]
+    },
+    "depth_psychological": {
+      "description": "Jungian archetypal and symbolic analysis of Eastern concepts",
+      "characteristics": [
+        "Archetypal interpretation",
+        "Symbolic amplification",
+        "Psyche-matter connection",
+        "Individuation parallels",
+        "Shadow integration"
+      ],
+      "use_cases": "When Eastern spiritual practices need psychological grounding for Western secular audience",
+      "framework": "Treat Eastern texts as maps of psyche; practices as techniques for conscious-unconscious integration",
+      "exemplars": [
+        "Carl Jung - Psychology and Religion: West and East",
+        "Carl Jung - commentary on The Secret of the Golden Flower",
+        "Joseph Campbell - Hero with a Thousand Faces",
+        "Marie-Louise von Franz - On Divination and Synchronicity"
+      ],
+      "output_structure": {
+        "eastern_concept": "Authentic Eastern presentation",
+        "archetypal_pattern": "Universal psychological pattern identified",
+        "jungian_mapping": "Specific Jung concept or process",
+        "individuation_parallel": "How the concept relates to psychic wholeness",
+        "western_integration": "How Western practitioners can engage authentically"
+      }
+    }
+  },
+  "audience_levels": {
+    "beginner": {
+      "description": "No prior knowledge of Eastern philosophy assumed",
+      "vocabulary": "Avoid untranslated Sanskrit/Chinese terms without immediate definition",
+      "depth": "Focus on experiential resonance and accessible analogies",
+      "jungian_entry": "Use familiar psychological concepts (dreams, symbols, inner life)"
+    },
+    "intermediate": {
+      "description": "Some familiarity with Eastern or Western philosophical traditions",
+      "vocabulary": "Use key Eastern terms with brief contextual definitions",
+      "depth": "Explore school distinctions and historical development",
+      "jungian_entry": "Reference major Jungian concepts with working definitions"
+    },
+    "advanced": {
+      "description": "Scholarly engagement with both Eastern and Western traditions",
+      "vocabulary": "Use technical terms from both traditions without definition",
+      "depth": "Engage intra-tradition debates and post-colonial critiques of comparison",
+      "jungian_entry": "Full engagement with Jungian technical vocabulary and cross-references"
+    }
+  }
+}
