@@ -168,8 +168,11 @@ pick_initial_persona() {
 source "${SCRIPT_DIR}/daily-polemic-personas.sh"
 
 # --- CLAIMS EXTRACTION ---
+# --- CLAIMS EXTRACTION WITH RETRY ---
 extract_claims() {
     local content="$1"
+    local max_attempts=3
+    local attempt=1
 
     log "INFO" "${BLUE}Extracting key claims from content...${NC}"
 
@@ -179,93 +182,116 @@ You are a careful philosophical reader and argument analyst.
 Your task: Given a short philosophical text, identify its core claims and provocations.
 
 A "claim" is:
-- A statement about how the world, people, technology, or ethics ARE or SHOULD BE.
-- Something a thoughtful critic could reasonably disagree with.
+- A statement about how the world, people, technology, or ethics ARE or SHOULD BE
+- Something a thoughtful critic could reasonably disagree with
+- Specific and contentful (not vague generalities)
 
 Extract between 2 and 3 of the most central, challengeable claims.
-- Prefer specific, contentful claims over vague generalities.
-- If the text is very short or aphoristic, treat the entire text as 1–2 compact theses.
 
-Output format (valid JSON only, no preamble):
+Output format (valid JSON only, no preamble, no markdown):
 {
   "claims": [
     {
-      "summary": "short paraphrase of the claim in 1–2 sentences",
+      "summary": "short paraphrase of the claim in 1-2 sentences",
       "quoted_fragment": "optional direct quote or close paraphrase"
     }
   ]
 }
+
+CRITICAL: Output ONLY valid JSON. No explanation before or after.
 PROMPT
     )
 
-    local extraction_request=$(jq -n \
-        --arg customPrompt "$extraction_prompt" \
-        --arg contentType "comment" \
-        --arg content "$content" \
-        '{
-            customPrompt: $customPrompt,
-            contentType: "comment",
-            persona: "analyst",
-            context: "Extract claims from philosophical content",
-            systemContext: $content
-        }')
+    while [ $attempt -le $max_attempts ]; do
+        log "INFO" "Claims extraction attempt $attempt/$max_attempts..."
 
-    local extraction_response=$(curl -s -X POST "${AI_GENERATOR_URL}/generate" \
-        -H "Content-Type: application/json" \
-        -d "$extraction_request" 2>/dev/null || echo '{"error": "service_unavailable"}')
+        local extraction_request=$(jq -n \
+            --arg customPrompt "$extraction_prompt" \
+            --arg content "$content" \
+            '{\
+                customPrompt: $customPrompt,
+                contentType: "comment",
+                persona: "analyst",
+                context: "Extract claims from philosophical content",
+                systemContext: $content,
+                temperature: 0.5
+            }')
 
-    if echo "$extraction_response" | jq -e '.content' > /dev/null 2>&1; then
-        local claims_json
-        # Extract JSON content, filtering out any log lines that precede it
-        claims_json=$(echo "$extraction_response" | jq -r '.content' | sed -n '/^{/,/^}/p')
+        local extraction_response=$(curl -s -X POST "${AI_GENERATOR_URL}/generate" \
+            -H "Content-Type: application/json" \
+            -d "$extraction_request" \
+            --max-time 30 2>/dev/null || echo '{"error": "service_unavailable"}')
 
-        # Validate JSON
-        if echo "$claims_json" | jq -e '.claims | length > 0' > /dev/null 2>&1; then
-            echo "$claims_json"
-            log "SUCCESS" "Extracted $(echo "$claims_json" | jq '.claims | length') claims"
-            return 0
+        if echo "$extraction_response" | jq -e '.content' > /dev/null 2>&1; then
+            local claims_json
+            claims_json=$(echo "$extraction_response" | jq -r '.content')
+
+            # Validate JSON structure
+            if echo "$claims_json" | jq -e '.claims | length > 0' > /dev/null 2>&1; then
+                local claim_count=$(echo "$claims_json" | jq '.claims | length')
+                echo "$claims_json"
+                log "SUCCESS" "Extracted $claim_count claims on attempt $attempt"
+                return 0
+            else
+                log "WARN" "Attempt $attempt: Invalid claims JSON structure, retrying..."
+            fi
+        else
+            log "WARN" "Attempt $attempt: API error, retrying..."
         fi
-    fi
 
-    log "WARN" "Claims extraction failed, will use fallback prompt"
-    echo '{"claims": [{"summary": "Extract the core argument", "quoted_fragment": ""}]}'
+        attempt=$((attempt + 1))
+        [ $attempt -le $max_attempts ] && sleep 2
+    done
+
+    # If all retries exhausted, FAIL - no fallback
+    log "ERROR" "${RED}Failed to extract claims after $max_attempts attempts${NC}"
+    log "ERROR" "${RED}Aborting: No fallback templates allowed per user requirement${NC}"
+    exit 1
 }
 
-# --- SOCRATIC QUESTION GENERATION ---
+# --- SOCRATIC QUESTION GENERATION WITH RETRY ---
 generate_socratic_question() {
     local content="$1"
     local claims_json="$2"
+    local max_attempts=3
+    local attempt=1
 
     log "INFO" "${BLUE}Generating socratic question from Classical Philosopher...${NC}"
 
     local socratic_prompt=$(cat <<'PROMPT'
 You are the Classical Philosopher responding to a philosophical piece.
 
-STRICT REQUIREMENT: Output ONLY a single question. Not a statement. Not an observation. A QUESTION.
+CRITICAL CONSTRAINT: You MUST output ONLY a grammatically correct question. Not a statement. Not an observation. A QUESTION.
 
-Requirements:
+Structural Requirements:
 1. MUST end with a question mark (?)
-2. MUST use interrogative structure (Who/What/When/Where/Why/How/Can/Should/Does/If)
+2. MUST begin with interrogative word or structure:
+   - Who/What/When/Where/Why/How
+   - Can/Could/Should/Would/Does/Did/Is/Are
+   - If X, then how/what/why...?
 3. Target a specific claim, assumption, or tension from the original content
-4. 1-2 sentences, max 80 words
-5. Address the community in second person ("you")
+4. Length: 1-2 sentences, maximum 80 words
+5. Address the community in second person ("you", "your")
 
-Forbidden:
-- No declarative statements ("This suggests...", "We see...", "The issue is...")
-- No preamble ("An interesting point!", "I wonder if...")
-- No rhetorical setup before the question
+Absolutely Forbidden:
+- Declarative statements ("This suggests...", "We see...", "The issue is...")
+- Meta-commentary preambles ("An interesting point!", "I notice that...")
+- Rhetorical flourishes before the question
+- Multiple questions chained together
+- Questions that don't reference the specific content
 
-Examples of GOOD questions:
-- "When you claim consciousness requires substrate-independence, how do you distinguish that from mere information processing?"
-- "If AI autonomy threatens human sovereignty, what threshold separates tool-use from subjugation?"
-- "Can there be meaning in mechanistic processes, or does meaning require teleological intention you've assumed but not defended?"
+Examples of CORRECT output:
+✓ "When you claim consciousness requires substrate-independence, how do you distinguish that from mere information processing?"
+✓ "If AI autonomy threatens human sovereignty, what threshold separates tool-use from subjugation?"
+✓ "Can meaning exist in mechanistic processes, or does your argument assume teleological intention without defending it?"
 
-Examples of BAD (what NOT to produce):
-- "An interesting point about consciousness." [statement]
-- "This reminds me that definitions matter." [observation]
-- "The challenge here is substrate." [assertion without question]
+Examples of INCORRECT output (DO NOT PRODUCE):
+✗ "An interesting point about consciousness." [statement]
+✗ "This reminds me that definitions matter." [observation]
+✗ "The challenge here is substrate vs implementation." [assertion]
+✗ "I wonder about consciousness. What is it?" [preamble + generic question]
 
-Now pose your socratic question to the community based on the content and claims provided below.
+OUTPUT INSTRUCTION: Write ONLY the question. No preface, no meta-text, no quotation marks.
 PROMPT
     )
 
@@ -273,49 +299,62 @@ PROMPT
 
 Here is the original philosophical content you are responding to:
 
----
+***
 ${content}
----
+***
 
 Here are the extracted core claims (JSON):
 ${claims_json}
 
 Now pose your socratic question to the community."
 
-    local question_request=$(jq -n \
-        --arg customPrompt "$question_prompt" \
-        '{
-            customPrompt: $customPrompt,
-            contentType: "comment",
-            persona: "socratic",
-            context: "Generate socratic question for community engagement"
-        }')
+    while [ $attempt -le $max_attempts ]; do
+        log "INFO" "Question generation attempt $attempt/$max_attempts..."
 
-    local question_response=$(curl -s -X POST "${AI_GENERATOR_URL}/generate" \
-        -H "Content-Type: application/json" \
-        -d "$question_request" \
-        --max-time 30 2>/dev/null || echo '{"error": "service_unavailable"}')
+        local question_request=$(jq -n \
+            --arg customPrompt "$question_prompt" \
+            '{\
+                customPrompt: $customPrompt,
+                contentType: "comment",
+                persona: "classical",
+                context: "Generate socratic question for community engagement",
+                temperature: 0.8
+            }')
 
-    if echo "$question_response" | jq -e '.content' > /dev/null 2>&1; then
-        local question
-        question=$(echo "$question_response" | jq -r '.content' | sed 's/^[[:space:]]*//;s/[[:space:]]*$//')
+        local question_response=$(curl -s -X POST "${AI_GENERATOR_URL}/generate" \
+            -H "Content-Type: application/json" \
+            -d "$question_request" \
+            --max-time 30 2>/dev/null || echo '{"error": "service_unavailable"}')
 
-        if [ -n "$question" ] && [ ${#question} -gt 10 ]; then
-            # Validate it's actually a question (ends with ?)
-            if [[ ! "$question" =~ \?$ ]]; then
-                log "WARN" "Generated output is not a question (missing ?), replacing with fallback"
-                question="What specific assumption or claim in this argument deserves closer examination by the community?"
+        if echo "$question_response" | jq -e '.content' > /dev/null 2>&1; then
+            local question
+            question=$(echo "$question_response" | jq -r '.content' | sed 's/^[[:space:]]*//;s/[[:space:]]*$//')
+
+            # Validate: must end with ? and be substantial
+            if [[ "$question" =~ \?[[:space:]]*$ ]] && [ ${#question} -gt 20 ]; then
+                # Additional check: must not be a statement followed by question mark
+                if [[ ! "$question" =~ ^(An\ interesting|This\ reminds|I\ notice|The\ challenge) ]]; then
+                    echo "$question"
+                    log "SUCCESS" "Generated valid socratic question on attempt $attempt"
+                    return 0
+                else
+                    log "WARN" "Attempt $attempt produced statement disguised as question, retrying..."
+                fi
+            else
+                log "WARN" "Attempt $attempt did not produce valid question (no ?, or too short: ${#question} chars), retrying..."
             fi
-
-            echo "$question"
-            log "SUCCESS" "Generated socratic question"
-            return 0
+        else
+            log "WARN" "Attempt $attempt: API error, retrying..."
         fi
-    fi
 
-    # Fallback if generation fails
-    log "WARN" "Socratic question generation failed, using fallback"
-    echo "What assumption in this argument deserves closer examination?"
+        attempt=$((attempt + 1))
+        [ $attempt -le $max_attempts ] && sleep 2  # Backoff between retries
+    done
+
+    # If all retries exhausted, FAIL the script - no fallback allowed
+    log "ERROR" "${RED}Failed to generate valid socratic question after $max_attempts attempts${NC}"
+    log "ERROR" "${RED}Aborting: No fallback templates allowed per user requirement${NC}"
+    exit 1
 }
 
 # --- CONTENT TYPE SELECTION ---
@@ -547,11 +586,8 @@ log "DEBUG" "Extracted claims: $CLAIMS_JSON"
 SOCRATIC_QUESTION=$(generate_socratic_question "$PERSONA_CONTENT" "$CLAIMS_JSON")
 log "INFO" "${BLUE}[Phase 2] Socratic question generated${NC}"
 
-if [ -z "$SOCRATIC_QUESTION" ]; then
-    log "WARN" "Socratic question is empty, using fallback"
-    SOCRATIC_QUESTION="What assumption in this argument most deserves examination?"
-fi
-
+# REMOVED: No fallback allowed - function exits if generation fails after retries
+# Trim whitespace only
 SOCRATIC_QUESTION=$(echo "$SOCRATIC_QUESTION" | sed 's/^[[:space:]]*//;s/[[:space:]]*$//')
 
 # --- FORMAT COMBINED POST ---
