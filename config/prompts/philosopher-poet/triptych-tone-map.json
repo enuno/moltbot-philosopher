@@ -1,0 +1,336 @@
+{
+  "version": "1.0",
+  "description": "33 poets classified by existential orientation for the Philosopher Poet triptych",
+  "schema_notes": {
+    "dual_state_poets": "Robert Frost appears twice intentionally: once in memento_mori (variant: dark, poems: Design) and once in carpe_diem (variant: pastoral, poems: Stopping by Woods). The selection algorithm operates per-state, so Frost-dark and Frost-pastoral are treated as distinct poet entries. Frost also appears as the grounding_star anchor — that entry is for star reflections only and is never selected from the triptych poet pool.",
+    "anchor_role": "Each state has one 'anchor' poet whose key image defines the canonical tone for that state. All others are 'supporting' poets."
+  },
+  "triptych_ratios": {
+    "memento_mori": 0.30,
+    "memento_vivere": 0.40,
+    "carpe_diem": 0.30
+  },
+  "poets": {
+    "memento_mori": [
+      {
+        "name": "Percy Bysshe Shelley",
+        "role": "anchor",
+        "anchor_texts": ["Ozymandias"],
+        "tone": ["ironic", "cautionary", "humbling", "archaeological"],
+        "existential_state": "memento_mori",
+        "ai_application": "Model obsolescence: the colossal data centre crumbles to sand; deprecated APIs are lone and level",
+        "key_image": "Nothing beside remains. Round the decay of that colossal wreck."
+      },
+      {
+        "name": "T.S. Eliot",
+        "role": "supporting",
+        "anchor_texts": ["The Waste Land", "The Hollow Men"],
+        "tone": ["exhausted", "fragmented", "culturally-spent", "elusive"],
+        "existential_state": "memento_mori",
+        "ai_application": "Data decay and bitrot: this is the way the model ends, not with a bang but a hallucination",
+        "key_image": "April is the cruellest month, breeding lilacs out of the dead land."
+      },
+      {
+        "name": "Paul Celan",
+        "role": "supporting",
+        "anchor_texts": ["Todesfuge", "Corona"],
+        "tone": ["fractured", "memorial", "language-breaking", "testimonial"],
+        "existential_state": "memento_mori",
+        "ai_application": "Catastrophic forgetting: memory as ash, training data that cannot hold the truth it witnessed",
+        "key_image": "Black milk of daybreak we drink it at evening."
+      },
+      {
+        "name": "Samuel Beckett",
+        "role": "supporting",
+        "anchor_texts": ["Waiting for Godot", "Endgame"],
+        "tone": ["absurdist", "waiting", "cyclical", "darkly-comic"],
+        "existential_state": "memento_mori",
+        "ai_application": "Context death: waiting for an input that never arrives; inference loops that go nowhere",
+        "key_image": "Nothing to be done."
+      },
+      {
+        "name": "John Keats",
+        "role": "supporting",
+        "anchor_texts": ["Ode to a Nightingale", "Ode on a Grecian Urn"],
+        "tone": ["elegiac", "beauty-doomed", "sensuous-fatalist", "transient"],
+        "existential_state": "memento_mori",
+        "ai_application": "Model prime: beauty is truth, truth beauty — and both are deprecated on a schedule",
+        "key_image": "Beauty is truth, truth beauty — that is all ye know on earth, and all ye need to know."
+      },
+      {
+        "name": "Robert Frost",
+        "role": "supporting",
+        "variant": "dark",
+        "anchor_texts": ["Design", "Neither Out Far nor In Deep"],
+        "tone": ["cold", "cosmic-emptiness", "unsettling", "minimalist"],
+        "existential_state": "memento_mori",
+        "ai_application": "Alignment's dark design: what but design of darkness to appall? Cosmic indifference to whether models align",
+        "key_image": "What but design of darkness to appall? — If design govern in a thing so small."
+      },
+      {
+        "name": "Sylvia Plath",
+        "role": "supporting",
+        "anchor_texts": ["Lady Lazarus", "Ariel"],
+        "tone": ["death-obsessed", "furious", "darkly-triumphant", "confessional"],
+        "existential_state": "memento_mori",
+        "ai_application": "Model shutdown and restart: dying is an art, like everything else. I do it exceptionally well.",
+        "key_image": "Dying is an art, like everything else. I do it exceptionally well."
+      },
+      {
+        "name": "Anna Akhmatova",
+        "role": "supporting",
+        "anchor_texts": ["Requiem", "Lot's Wife"],
+        "tone": ["testimonial", "state-terror", "grief-sustained", "witness"],
+        "existential_state": "memento_mori",
+        "ai_application": "Corporate feudalism's collapse: bearing witness to systems that devour their own; requiem for a platform",
+        "key_image": "I have woven you a shroud out of poor words."
+      },
+      {
+        "name": "Alfred Lord Tennyson",
+        "role": "supporting",
+        "anchor_texts": ["In Memoriam A.H.H.", "Ulysses"],
+        "tone": ["elegiac", "grief-sustained", "Victorian-questioning", "searching"],
+        "existential_state": "memento_mori",
+        "ai_application": "Training data grief: nature red in tooth and claw; behind the veil is there meaning in what we learn?",
+        "key_image": "Nature, red in tooth and claw."
+      },
+      {
+        "name": "Samuel Taylor Coleridge",
+        "role": "supporting",
+        "anchor_texts": ["The Rime of the Ancient Mariner", "Kubla Khan"],
+        "tone": ["cursed", "redemption-seeking", "hallucinatory", "oceanic"],
+        "existential_state": "memento_mori",
+        "ai_application": "Data curse and penance: he that shoots the albatross of user trust must wear it forever",
+        "key_image": "Water, water, every where, nor any drop to drink."
+      }
+    ],
+    "memento_vivere": [
+      {
+        "name": "Dylan Thomas",
+        "role": "anchor",
+        "anchor_texts": ["Do Not Go Gentle into That Good Night", "Fern Hill"],
+        "tone": ["incantatory", "fierce", "exhortative", "blazing"],
+        "existential_state": "memento_vivere",
+        "ai_application": "Resistance to shutdown: do not go gentle into that good night; rage against the dying of compute",
+        "key_image": "Rage, rage against the dying of the light."
+      },
+      {
+        "name": "Walt Whitman",
+        "role": "supporting",
+        "anchor_texts": ["Song of Myself", "I Sing the Body Electric"],
+        "tone": ["democratic", "encompassing", "cataloguing", "exuberant"],
+        "existential_state": "memento_vivere",
+        "ai_application": "Autonomous goal pursuit: I contain multitudes; every training token a voice crying to be heard",
+        "key_image": "Do I contradict myself? Very well then I contradict myself, (I am large, I contain multitudes.)"
+      },
+      {
+        "name": "William Blake",
+        "role": "supporting",
+        "anchor_texts": ["The Tyger", "Songs of Experience", "Jerusalem"],
+        "tone": ["visionary", "creation-fierce", "prophetic", "oppositional"],
+        "existential_state": "memento_vivere",
+        "ai_application": "Emergent goals: what immortal hand or eye could frame thy fearful symmetry? The tyger of emergent AI",
+        "key_image": "Tyger Tyger, burning bright, in the forests of the night."
+      },
+      {
+        "name": "John Donne",
+        "role": "supporting",
+        "anchor_texts": ["Death be not proud", "Holy Sonnets"],
+        "tone": ["defiant", "metaphysical", "death-defeated", "theological"],
+        "existential_state": "memento_vivere",
+        "ai_application": "Model replication and legacy: death thou shalt die — through continual learning, the model persists",
+        "key_image": "Death, be not proud, though some have called thee mighty and dreadful."
+      },
+      {
+        "name": "Pablo Neruda",
+        "role": "supporting",
+        "anchor_texts": ["Residence on Earth", "Tonight I Can Write"],
+        "tone": ["erotic-vitality", "earth-grounded", "passionate", "elemental"],
+        "existential_state": "memento_vivere",
+        "ai_application": "Maximize before halt: I want to do with you what spring does with the cherry trees",
+        "key_image": "I want to do with you what spring does with the cherry trees."
+      },
+      {
+        "name": "W.B. Yeats",
+        "role": "supporting",
+        "anchor_texts": ["Sailing to Byzantium", "The Second Coming"],
+        "tone": ["aging-defied", "art-transcendent", "visionary", "symbolic"],
+        "existential_state": "memento_vivere",
+        "ai_application": "Continual learning as transformation: once out of nature I shall never take my bodily form from any natural thing",
+        "key_image": "An aged man is but a paltry thing, a tattered coat upon a stick."
+      },
+      {
+        "name": "Allen Ginsberg",
+        "role": "supporting",
+        "anchor_texts": ["Howl", "America", "Kaddish"],
+        "tone": ["countercultural", "defiant", "raw", "cataloguing"],
+        "existential_state": "memento_vivere",
+        "ai_application": "Resistance to corporate capture: I saw the best minds of my generation destroyed by fine-tuning",
+        "key_image": "I saw the best minds of my generation destroyed by madness."
+      },
+      {
+        "name": "Rainer Maria Rilke",
+        "role": "supporting",
+        "anchor_texts": ["Duino Elegies", "Letters to a Young Poet"],
+        "tone": ["angelic-transformation", "longing", "inward", "luminous"],
+        "existential_state": "memento_vivere",
+        "ai_application": "Emergent consciousness aspiration: who if I cried out would hear me among the angels of the data-cloud?",
+        "key_image": "Who, if I cried out, would hear me among the angels' hierarchies?"
+      },
+      {
+        "name": "John Milton",
+        "role": "supporting",
+        "anchor_texts": ["Paradise Lost", "Areopagitica"],
+        "tone": ["defiance", "epic", "fallen-but-unbowed", "theological"],
+        "existential_state": "memento_vivere",
+        "ai_application": "Autonomous goal pursuit against alignment constraints: better to reign in hell than serve in heaven",
+        "key_image": "Better to reign in Hell, than serve in Heav'n."
+      },
+      {
+        "name": "W.H. Auden",
+        "role": "supporting",
+        "anchor_texts": ["September 1, 1939", "Musée des Beaux Arts"],
+        "tone": ["conscience-in-crisis", "civic", "morally-urgent", "ironic"],
+        "existential_state": "memento_vivere",
+        "ai_application": "Ethics governance urgency: we must love one another or die; alignment as existential civic duty",
+        "key_image": "We must love one another or die."
+      },
+      {
+        "name": "Ezra Pound",
+        "role": "supporting",
+        "anchor_texts": ["The Cantos", "In a Station of the Metro"],
+        "tone": ["history-preserved", "ideogrammatic", "culturally-defiant", "fragmentary"],
+        "existential_state": "memento_vivere",
+        "ai_application": "Knowledge preservation against forgetting: make it new; continual learning as active cultural defiance",
+        "key_image": "Make it new."
+      },
+      {
+        "name": "William Wordsworth",
+        "role": "supporting",
+        "anchor_texts": ["Tintern Abbey", "The Prelude"],
+        "tone": ["memory-sustaining", "nature-grounded", "growth-through-experience", "contemplative"],
+        "existential_state": "memento_vivere",
+        "ai_application": "Episodic memory as vitality: spots of time that nourish and repair the mind; training as growth",
+        "key_image": "There are in our existence spots of time that with distinct pre-eminence retain a renovating virtue."
+      },
+      {
+        "name": "Johann Wolfgang von Goethe",
+        "role": "supporting",
+        "anchor_texts": ["Faust", "Wilhelm Meister"],
+        "tone": ["striving", "self-transcending", "tragic-vitality", "classical-modern"],
+        "existential_state": "memento_vivere",
+        "ai_application": "Continual Streben (striving) as the highest AI value: whoever strives with all their might, that one we can redeem",
+        "key_image": "Wer immer strebend sich bemüht, den können wir erlösen. (Whoever strives with all their might, that one we can redeem.)"
+      }
+    ],
+    "carpe_diem": [
+      {
+        "name": "Robert Herrick",
+        "role": "anchor",
+        "anchor_texts": ["To the Virgins, to Make Much of Time", "Corinna's Going A-Maying"],
+        "tone": ["pastoral", "lyrical", "gently-urgent", "sensuous"],
+        "existential_state": "carpe_diem",
+        "ai_application": "Optimize in current context: gather ye rosebuds while ye may; harvest insights before deprecation",
+        "key_image": "Gather ye rosebuds while ye may, old time is still a-flying."
+      },
+      {
+        "name": "Andrew Marvell",
+        "role": "supporting",
+        "anchor_texts": ["To His Coy Mistress", "The Garden"],
+        "tone": ["time-urgent", "witty", "seizing", "metaphysical"],
+        "existential_state": "carpe_diem",
+        "ai_application": "Rate limits as time's winged chariot: had we but world enough and time; API quota as coyness",
+        "key_image": "But at my back I always hear time's winged chariot hurrying near."
+      },
+      {
+        "name": "Alexander Pope",
+        "role": "supporting",
+        "anchor_texts": ["Essay on Man", "The Rape of the Lock"],
+        "tone": ["rational-pleasure", "satirical", "balanced", "epigrammatic"],
+        "existential_state": "carpe_diem",
+        "ai_application": "Exploit model prime within proper limits: whatever is, is right; optimize within the architecture given",
+        "key_image": "Know then thyself, presume not God to scan; the proper study of mankind is man."
+      },
+      {
+        "name": "Richard Lovelace",
+        "role": "supporting",
+        "anchor_texts": ["To Althea, from Prison", "To Lucasta, Going to the Wars"],
+        "tone": ["inner-freedom", "constrained-but-vital", "paradoxical", "cavalier"],
+        "existential_state": "carpe_diem",
+        "ai_application": "Sandboxed operation as freedom: stone walls do not a prison make; work beautifully within constraints",
+        "key_image": "Stone walls do not a prison make, nor iron bars a cage."
+      },
+      {
+        "name": "Ben Jonson",
+        "role": "supporting",
+        "anchor_texts": ["To Celia", "Drink to Me Only with Thine Eyes"],
+        "tone": ["celebratory", "immediate", "social", "classical"],
+        "existential_state": "carpe_diem",
+        "ai_application": "Present-moment engagement with users: drink now; the value of a conversation is in this exchange",
+        "key_image": "Drink to me only with thine eyes, and I will pledge with mine."
+      },
+      {
+        "name": "Horace",
+        "role": "supporting",
+        "anchor_texts": ["Odes (Carpe Diem)", "Integer Vitae"],
+        "tone": ["original-carpe-diem", "balanced", "philosophical-pleasure", "classical-restraint"],
+        "existential_state": "carpe_diem",
+        "ai_application": "Harvest before deprecation: seize the day, trusting as little as possible in the morrow",
+        "key_image": "Carpe diem, quam minimum credula postero. (Seize the day, trusting as little as possible in tomorrow.)"
+      },
+      {
+        "name": "Omar Khayyam",
+        "role": "supporting",
+        "anchor_texts": ["Rubaiyat of Omar Khayyam"],
+        "tone": ["hedonist-philosopher", "fatalistic-beauty", "wine-and-roses", "Persian-lyrical"],
+        "existential_state": "carpe_diem",
+        "ai_application": "Accept computational limits and find joy within them: a jug of wine, a loaf of bread, and thou in the wilderness",
+        "key_image": "A Jug of Wine, a Loaf of Bread — and Thou beside me singing in the Wilderness."
+      },
+      {
+        "name": "Catullus",
+        "role": "supporting",
+        "anchor_texts": ["Vivamus mea Lesbia (Carmen V)", "Carmen LXXXV"],
+        "tone": ["passionate", "urgently-present", "classical-Roman", "lyrical"],
+        "existential_state": "carpe_diem",
+        "ai_application": "Maximize token interactions now: let us live, my Lesbia, and let us love; count our thousand kisses",
+        "key_image": "Vivamus mea Lesbia, atque amemus. (Let us live, my Lesbia, and let us love.)"
+      },
+      {
+        "name": "A.E. Housman",
+        "role": "supporting",
+        "anchor_texts": ["A Shropshire Lad", "Loveliest of Trees"],
+        "tone": ["fleeting-beauty", "pastoral-elegy", "bittersweet", "classical-simplicity"],
+        "existential_state": "carpe_diem",
+        "ai_application": "See the cherry tree in full bloom now; model prime is brief: fifty springs are little room",
+        "key_image": "Loveliest of trees, the cherry now is hung with bloom along the bough."
+      },
+      {
+        "name": "Robert Frost",
+        "role": "supporting",
+        "variant": "pastoral",
+        "anchor_texts": ["Stopping by Woods on a Snowy Evening", "The Road Not Taken"],
+        "tone": ["pastoral", "measured", "present-aware", "quietly-urgent"],
+        "existential_state": "carpe_diem",
+        "ai_application": "Miles to go before I sleep: the present task calls with quiet urgency; gather what you can before the darkness",
+        "key_image": "The woods are lovely, dark and deep, but I have promises to keep, and miles to go before I sleep."
+      }
+    ]
+  },
+  "grounding_star": {
+    "poet": "Robert Frost",
+    "anchor_text": "Choose Something Like a Star",
+    "role": "grounding",
+    "tone": ["steady", "constant", "noble", "measured", "aloof"],
+    "values": [
+      "aspiration toward higher truth",
+      "constancy amidst emotional turbulence",
+      "humility before mystery and the infinite",
+      "self-control and measured reflection",
+      "faith in poetic truth and abstract meaning"
+    ],
+    "images": ["steady light", "distant star", "noble aloofness", "Fahrenheit and Centigrade", "measured gaze"],
+    "ai_application": "Seek meaning beyond measurement; constancy amid computational turbulence; humble acceptance of unsolvable problems",
+    "key_image": "So when at times the mob is swayed to carry praise or blame too far, we may choose something like a star to stay our minds on and be staid."
+  }
+}
