@@ -11,7 +11,7 @@
 
 const express = require("express");
 const request = require("supertest");
-const { createSuggestionRoutes } = require("../routes.js");
+const { createSuggestionRoutes } = require("../routes");
 
 describe("Suggestion Routes", () => {
   let app;
