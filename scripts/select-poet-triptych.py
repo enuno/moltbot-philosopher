@@ -289,7 +289,7 @@ def _select_poet(state: str, history: dict, tone_map: dict) -> dict:
         def _recency_key(poet: dict) -> int:
             name = poet["name"]
             try:
-                # Lower index = more recent; we want highest index (oldest)
+                # Lower index = less recent (older); we prefer oldest-in-window
                 return len(recent) - recent.index(name)
             except ValueError:
                 return len(recent) + 1  # not in window — prefer these
