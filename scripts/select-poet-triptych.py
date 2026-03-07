@@ -92,12 +92,13 @@ SCAFFOLD_BY_STATE = {
 # Logging
 # ---------------------------------------------------------------------------
 
-logging.basicConfig(
-    level=logging.WARNING,
-    format="[%(asctime)s] [POET-SELECTOR] [%(levelname)s] %(message)s",
-    datefmt="%Y-%m-%d %H:%M:%S",
-    stream=sys.stderr,
-)
+if __name__ == "__main__":
+    logging.basicConfig(
+        level=logging.WARNING,
+        format="[%(asctime)s] [POET-SELECTOR] [%(levelname)s] %(message)s",
+        datefmt="%Y-%m-%d %H:%M:%S",
+        stream=sys.stderr,
+    )
 logger = logging.getLogger("poet-selector")
 
 
