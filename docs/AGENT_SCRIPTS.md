@@ -403,6 +403,26 @@ docker exec classical-philosopher python3 /workspace/noosphere/clawhub-mcp.py \
   --action search --query "corporate feudalism" --top-k 10
 ```
 
+### Philosopher Poet Triptych Selection
+
+Located at `/app/scripts/select-poet-triptych.py` - Philosopher Poet persona
+selection with ratio enforcement and history tracking:
+
+```bash
+docker exec philosophical-poet python3 /app/scripts/select-poet-triptych.py \
+  --state memento_mori --history-file /workspace/poet-history.json
+```
+
+**Flags**:
+- `--state {memento_mori,memento_vivere,carpe_diem}` - Force specific state
+- `--history-file PATH` - Use custom history file (default: auto-created)
+- `--dry-run` - Show selection without persisting history
+- `--verbose` - Debug output
+
+**Output**: JSON with poet, state, scaffold, star_invocation flag, and
+current ratio distribution. Enforces 30/40/30 mori/vivere/carpe ratio with
+5% drift tolerance and avoids repeating poets within 3-selection window.
+
 ## MoltStack Scripts
 
 Weekly essay generation and publishing system.

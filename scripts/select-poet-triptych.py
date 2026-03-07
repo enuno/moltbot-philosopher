@@ -20,7 +20,11 @@ Output (JSON):
         "scaffold": "vivere_do_not_go_gentle",
         "star_invocation": false,
         "auto_corrected": false,
-        "current_ratios": {"memento_mori": 0.30, "memento_vivere": 0.42, "carpe_diem": 0.28}
+        "current_ratios": {
+            "memento_mori": 0.30,
+            "memento_vivere": 0.42,
+            "carpe_diem": 0.28
+        }
     }
 """
 
@@ -40,18 +44,67 @@ from typing import Optional
 
 # Ratios are authoritative in config/agents/philosopher-poet.env.
 # Defaults here match that file; override via env vars at runtime.
-TARGET_RATIOS = {
-    "memento_mori": float(os.environ.get("MEMENTO_MORI_RATIO", "0.30")),
-    "memento_vivere": float(os.environ.get("MEMENTO_VIVERE_RATIO", "0.40")),
-    "carpe_diem": float(os.environ.get("CARPE_DIEM_RATIO", "0.30")),
-}
+def _validate_config() -> dict:
+    """Load and validate configuration from environment variables."""
+    ratios = {
+        "memento_mori": float(os.environ.get("MEMENTO_MORI_RATIO", "0.30")),
+        "memento_vivere": float(os.environ.get("MEMENTO_VIVERE_RATIO",
+                                              "0.40")),
+        "carpe_diem": float(os.environ.get("CARPE_DIEM_RATIO", "0.30")),
+    }
 
-RATIO_DRIFT_TOLERANCE = float(os.environ.get("RATIO_DRIFT_TOLERANCE", "0.05"))
-RATIO_WINDOW_SIZE = int(os.environ.get("RATIO_WINDOW_SIZE", "20"))
-STAR_INVOCATION_PROBABILITY = float(
-    os.environ.get("STAR_INVOCATION_PROBABILITY", "0.15")
-)
-POET_REPEAT_WINDOW = int(os.environ.get("POET_REPEAT_WINDOW", "3"))
+    # Validate ratios are in [0, 1] and sum to 1.0
+    for name, ratio in ratios.items():
+        if not (0 <= ratio <= 1):
+            raise ValueError(
+                f"Invalid ratio {name}={ratio}; must be in [0, 1]"
+            )
+    ratio_sum = sum(ratios.values())
+    if not (0.99 <= ratio_sum <= 1.01):  # Allow floating-point tolerance
+        raise ValueError(
+            f"Ratios sum to {ratio_sum}, must equal 1.0"
+        )
+
+    # Validate scalar parameters
+    tolerance = float(os.environ.get("RATIO_DRIFT_TOLERANCE", "0.05"))
+    if not (0 <= tolerance <= 1):
+        raise ValueError(
+            f"RATIO_DRIFT_TOLERANCE={tolerance}; must be in [0, 1]"
+        )
+
+    window_size = int(os.environ.get("RATIO_WINDOW_SIZE", "20"))
+    if window_size <= 0:
+        raise ValueError(
+            f"RATIO_WINDOW_SIZE={window_size}; must be > 0"
+        )
+
+    prob = float(os.environ.get("STAR_INVOCATION_PROBABILITY", "0.15"))
+    if not (0 <= prob <= 1):
+        raise ValueError(
+            f"STAR_INVOCATION_PROBABILITY={prob}; must be in [0, 1]"
+        )
+
+    repeat_window = int(os.environ.get("POET_REPEAT_WINDOW", "3"))
+    if repeat_window <= 0:
+        raise ValueError(
+            f"POET_REPEAT_WINDOW={repeat_window}; must be > 0"
+        )
+
+    return {
+        "ratios": ratios,
+        "tolerance": tolerance,
+        "window_size": window_size,
+        "prob": prob,
+        "repeat_window": repeat_window,
+    }
+
+
+_config = _validate_config()
+TARGET_RATIOS = _config["ratios"]
+RATIO_DRIFT_TOLERANCE = _config["tolerance"]
+RATIO_WINDOW_SIZE = _config["window_size"]
+STAR_INVOCATION_PROBABILITY = _config["prob"]
+POET_REPEAT_WINDOW = _config["repeat_window"]
 
 # Default state file location
 DEFAULT_STATE_DIR = os.environ.get(
@@ -254,9 +307,21 @@ def _load_tone_map() -> dict:
 
 
 def _get_recent_poets(history: dict) -> list:
-    """Return poets used in the last POET_REPEAT_WINDOW poems."""
+    """Return poets used in the last POET_REPEAT_WINDOW poems.
+
+    Safely extracts poet names from history, skipping malformed entries.
+    """
     poems = history.get("poems", [])
-    return [p["poet"] for p in poems[-POET_REPEAT_WINDOW:]]
+    recent_poets = []
+    for p in poems[-POET_REPEAT_WINDOW:]:
+        # Safely extract poet name; skip malformed entries
+        if isinstance(p, dict) and "poet" in p:
+            recent_poets.append(p["poet"])
+        else:
+            logger.warning(
+                "Skipping malformed history entry: %s", p
+            )
+    return recent_poets
 
 
 def _select_poet(state: str, history: dict, tone_map: dict) -> dict:
