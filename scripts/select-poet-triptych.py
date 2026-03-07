@@ -374,7 +374,7 @@ def select(
     state, auto_corrected = _select_state(history, forced_state)
     poet_entry = _select_poet(state, history, tone_map)
     star_invocation = _should_invoke_star()
-    scaffold = _select_scaffold(state, star_invocation, scaffolds)
+    scaffold = _select_scaffold(state, False, scaffolds)
     current_ratios = _calculate_current_ratios(history)
 
     result = {
