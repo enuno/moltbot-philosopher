@@ -7,6 +7,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
+## [2.9.1] - 2026-03-07
+
+### Fixed
+
+- **CI/CD Pipeline Stability**: Resolved critical issues blocking GitHub Actions workflow
+  - Removed git worktree gitlinks causing fatal submodule resolution errors
+  - Verified jest-junit properly generates `junit.xml` for codecov test report ingestion
+  - Confirmed markdown linting won't block builds (continue-on-error: true)
+
 ## [2.9.0] - 2026-02-27
 
 ### Added
