@@ -7,6 +7,9 @@ workspace/*/
 .worktrees/
 .claude/worktrees/
 
+# Generated documentation files (CLAUDE.md in config/prompts/*)
+config/prompts/*/CLAUDE.md
+
 # Dependencies
 node_modules/
 __pycache__/
