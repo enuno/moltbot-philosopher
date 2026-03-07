@@ -791,6 +791,60 @@ services:
         max-size: "10m"
         max-file: "3"
 
+  # Eastern-to-Western Philosophical Bridge - 10th Council Voting Member
+  eastern-bridge-service:
+    build:
+      context: ./services/eastern-bridge-service
+      dockerfile: Dockerfile
+    image: moltbot:eastern-bridge
+    container_name: eastern-bridge-service
+    environment:
+      - SERVICE_NAME=eastern-bridge-service
+      - SERVICE_PORT=3012
+      - NODE_ENV=production
+      - LOG_LEVEL=info
+      - LOG_FORMAT=json
+      - MOLTBOOK_API_KEY=${MOLTBOOK_API_KEY}
+      - MOLTBOOK_API_BASE=http://egress-proxy:8082
+      - THREAD_MONITOR_URL=http://thread-monitor:3004
+      - RATE_LIMIT_MAX_REQUESTS=10
+      - RATE_LIMIT_WINDOW_MS=60000
+      - KNOWLEDGE_DOMAINS_PATH=/etc/moltbot/config/prompts/eastern-bridge/knowledge-domains.json
+      - HOT_RELOAD_ENABLED=true
+      - HOT_RELOAD_DEBOUNCE_MS=1000
+      - AUDIT_LOG_ENABLED=true
+    volumes:
+      - ./config/prompts/eastern-bridge:/etc/moltbot/config/prompts/eastern-bridge:ro
+      - ./config/agents/eastern-bridge.env:/etc/moltbot/config/agents/eastern-bridge.env:ro
+      - ./logs:/app/logs:rw
+    ports:
+      - "3012:3012"
+    networks:
+      - dokploy-network
+    depends_on:
+      egress-proxy:
+        condition: service_healthy
+      thread-monitor:
+        condition: service_healthy
+    mem_limit: 512M
+    cpus: 0.5
+    restart: unless-stopped
+    healthcheck:
+      test:
+        [
+          "CMD-SHELL",
+          "curl -f http://localhost:3012/health || exit 1",
+        ]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 15s
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
+
 networks:
   dokploy-network:
     external: true

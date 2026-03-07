@@ -1,0 +1,191 @@
+{
+  "version": "1.0.0",
+  "description": "Three-layer knowledge domain schema for Eastern-to-Western philosophical bridge",
+  "last_updated": "2026-03-07",
+  "layer_1_eastern_traditions": {
+    "hinduism": {
+      "type": "religion_philosophy",
+      "primary_schools": ["Advaita Vedanta", "Samkhya", "Yoga", "Mimamsa", "Nyaya"],
+      "core_concepts": ["Atman", "Brahman", "Karma", "Dharma", "Maya", "Moksha"],
+      "key_texts": ["Upanishads", "Bhagavad Gita", "Brahma Sutras", "Vedas"],
+      "approaches": [
+        "Direct seeing (aparoksha jnana) of Brahman",
+        "Dualistic and non-dualistic ontologies",
+        "Karma and rebirth as moral causation"
+      ],
+      "distinguishing_features": "Non-dualism (Advaita) and diverse schools; cosmic consciousness as foundational",
+      "geographic_origin": "Indian subcontinent",
+      "historical_period": "1500 BCE - present"
+    },
+    "buddhism": {
+      "type": "religion_philosophy",
+      "primary_schools": ["Theravada", "Mahayana", "Zen", "Tibetan (Vajrayana)"],
+      "core_concepts": ["Anatta", "Sunyata", "Dependent origination", "Dharma", "Bodhi", "Sangha"],
+      "key_texts": ["Pali Canon", "Lotus Sutra", "Heart Sutra", "Zen gathas"],
+      "approaches": [
+        "Experiential practice (prajña) over doctrinal knowledge",
+        "No permanent self; emptiness of intrinsic nature",
+        "Middle way between extremes; Four Noble Truths"
+      ],
+      "distinguishing_features": "No creator god; emphasis on suffering and its cessation; enlightenment accessible to all",
+      "geographic_origin": "Northern India",
+      "historical_period": "5th century BCE - present"
+    },
+    "taoism": {
+      "type": "philosophy_religion",
+      "primary_schools": ["Philosophical Taoism", "Religious Taoism"],
+      "core_concepts": ["Tao", "Wu-wei", "Yin-yang", "Chi", "Naturalness", "Non-action"],
+      "key_texts": ["Daodejing", "Zhuangzi", "I Ching"],
+      "approaches": [
+        "Alignment with natural flow (wu-wei)",
+        "Paradoxical knowing beyond logic",
+        "Skepticism toward artificial governance"
+      ],
+      "distinguishing_features": "Emphasis on naturalness and spontaneity; critique of Confucian artificiality",
+      "geographic_origin": "China",
+      "historical_period": "6th century BCE - present"
+    },
+    "confucianism": {
+      "type": "philosophy_governance",
+      "primary_schools": ["Early Confucianism", "Neo-Confucianism"],
+      "core_concepts": ["Ren (humaneness)", "Li (ritual/propriety)", "Junzi (cultivated person)", "Filial piety", "Meritocracy"],
+      "key_texts": ["Analects", "Mencius", "Great Learning", "Doctrine of the Mean"],
+      "approaches": [
+        "Self-cultivation through ritual and relationships",
+        "Hierarchical but ethical governance",
+        "Virtue is developed through practice"
+      ],
+      "distinguishing_features": "Central to East Asian political philosophy; emphasis on social harmony through cultivation",
+      "geographic_origin": "China",
+      "historical_period": "6th century BCE - present"
+    },
+    "jainism": {
+      "type": "religion_philosophy",
+      "primary_schools": ["Digambara", "Svetambara"],
+      "core_concepts": ["Ahimsa", "Karma", "Jiva", "Non-attachment", "Three Jewels (Right Faith/Knowledge/Conduct)"],
+      "key_texts": ["Agamas", "Bhagavati Sutra"],
+      "approaches": [
+        "Absolute non-violence (ahimsa)",
+        "Karma as material force that binds souls",
+        "Asceticism as path to liberation"
+      ],
+      "distinguishing_features": "Strongest non-violence principle; no creator god; 24 Tirthankaras (enlightened beings)",
+      "geographic_origin": "Indian subcontinent",
+      "historical_period": "7th century BCE - present"
+    },
+    "shinto": {
+      "type": "religion",
+      "primary_schools": ["Shrine Shinto", "Sect Shinto", "State Shinto", "Folk Shinto"],
+      "core_concepts": ["Kami", "Purity", "Matsuri (ritual)", "Shinto shrine", "Nature sacredness"],
+      "key_texts": ["Kojiki", "Nihon Shoki"],
+      "approaches": [
+        "Reverence for natural and ancestral spirits (kami)",
+        "Purity through ritual and nature contact",
+        "Harmony with natural forces"
+      ],
+      "distinguishing_features": "Indigenous Japanese spirituality; no fixed doctrines; kami worship central",
+      "geographic_origin": "Japan",
+      "historical_period": "Prehistoric Japan - present"
+    }
+  },
+  "layer_2_topic_tradition_affinities": {
+    "metaphysics": {
+      "self_identity": {
+        "traditions": ["Buddhism: anatta (no-self)", "Hinduism: Atman-Brahman (eternal self)", "Jainism: jiva (eternal soul)"],
+        "primary": "Buddhism",
+        "notes": "Buddhist anatta is metaphysical negation of permanent self; Hindu Atman is cosmic consciousness; Jain jiva is eternal but bound by karma"
+      },
+      "reality_nature": {
+        "traditions": ["Buddhism: emptiness (sunyata)", "Advaita Vedanta: non-dualism", "Taoism: Tao beyond conceptualization"],
+        "primary": "Buddhism",
+        "notes": "Emptiness as interdependence; non-dualism as Brahman; Tao as ultimate reality beyond language"
+      },
+      "consciousness": {
+        "traditions": ["Hinduism: Vedantic consciousness", "Buddhism: Yogacara (mind-only)", "Taoism: natural awareness"],
+        "primary": "Hinduism",
+        "notes": "Vedanta emphasizes consciousness as fundamental; Yogacara explores nature of perception"
+      }
+    },
+    "ethics": {
+      "governance": {
+        "traditions": ["Confucianism: ritual and hierarchy", "Taoism: wu-wei (non-interference)", "Buddhism: sangha (community)"],
+        "primary": "Confucianism",
+        "notes": "Confucian governance through cultivated virtue; Daoist skepticism of artificial structures; Buddhist collective wisdom"
+      },
+      "non_violence": {
+        "traditions": ["Jainism: absolute ahimsa", "Buddhism: compassion (karuna)", "Hinduism: ahimsa with contextual exceptions"],
+        "primary": "Jainism",
+        "notes": "Jain ahimsa is absolute; Buddhist ahimsa includes protective action; Hindu dharma allows warrior ethics"
+      },
+      "virtue_cultivation": {
+        "traditions": ["Confucianism: junzi (cultivated person)", "Buddhism: paramitas (perfections)", "Hinduism: gunas (qualities)"],
+        "primary": "Confucianism",
+        "notes": "Confucian cultivation through practice; Buddhist ethical perfections; Hindu qualities of nature"
+      }
+    },
+    "epistemology": {
+      "rational_knowing": {
+        "traditions": ["Confucianism: textual study and logic", "Buddhist logic: formal analysis", "Hindu Nyaya: inference"],
+        "primary": "Confucianism",
+        "notes": "Confucian emphasis on study; Buddhist and Hindu philosophical logic systems"
+      },
+      "experiential_knowing": {
+        "traditions": ["Buddhism: prajña (direct insight)", "Hinduism: aparoksha jnana (direct seeing)", "Taoism: intuitive knowing"],
+        "primary": "Buddhism",
+        "notes": "Buddhist prajña transcends intellectual knowing; Hindu direct experience of Brahman; Taoist spontaneous knowing"
+      },
+      "paradoxical_knowing": {
+        "traditions": ["Buddhism: satori (sudden awakening)", "Taoism: wu wei (non-striving action)", "Zen: koan practice"],
+        "primary": "Buddhism",
+        "notes": "Zen koans exemplify paradoxical knowing; Taoist non-action; Buddhist sudden enlightenment"
+      }
+    },
+    "politics": {
+      "governance_systems": {
+        "traditions": ["Confucianism: meritocratic hierarchy", "Taoism: minimalist non-interference", "Buddhist: consensus-based sangha"],
+        "primary": "Confucianism",
+        "notes": "Confucian state governance through virtue; Daoist critique of artificial structures; Buddhist collective decision-making"
+      },
+      "statecraft": {
+        "traditions": ["Confucianism: ritual propriety", "Hindu Arthashastra: pragmatic power", "Taoism: minimal intervention"],
+        "primary": "Confucianism",
+        "notes": "Confucian ethical governance; Hindu pragmatic statecraft; Daoist non-action in politics"
+      }
+    },
+    "aesthetics": {
+      "spiritual_art": {
+        "traditions": ["Zen Buddhism: wabi-sabi", "Hinduism: rasa (aesthetic emotion)", "Taoism: natural simplicity"],
+        "primary": "Buddhism",
+        "notes": "Zen minimalism and impermanence; Hindu rasa theory of aesthetic emotion; Taoist natural aesthetics"
+      },
+      "beauty_nature": {
+        "traditions": ["Taoism: natural beauty", "Shinto: sacred nature", "Buddhist: transience and impermanence"],
+        "primary": "Taoism",
+        "notes": "Taoist alignment with natural forms; Shinto sacred landscape; Buddhist appreciation of impermanence"
+      }
+    }
+  },
+  "layer_3_jungian_frameworks": {
+    "description": "Jungian psychology as bridge to Western comprehension (NOT reduction of Eastern meaning)",
+    "archetypal_correspondences": {
+      "wise_old_man": "Taoist sage (wu-wei master); Hindu guru (knowledge transmitter); Confucian junzi (cultivated elder)",
+      "shadow": "Hindu/Buddhist shadow recognition (avidya/ignorance); Jungian integration as parallel Western process",
+      "anima_animus": "Yin-yang balance; Hindu Shiva-Shakti (masculine-feminine cosmic principles)",
+      "self": "Hindu Atman; Buddhist Buddha-nature; Confucian junzi as actualized potential"
+    },
+    "psychological_processes": {
+      "individuation": "Confucian self-cultivation (becoming junzi); Hindu yoga paths (actualization of potential); Buddhist path to enlightenment",
+      "integration": "Buddhist integration of opposing forces; Hindu balanced gunas; Taoist yin-yang harmony",
+      "unconscious_contents": "Buddhist working with mental formations (samskaras); Hindu prarabdha karma (enacted karma); Taoist shadow wu-wei"
+    },
+    "collective_unconscious": "Hindu/Buddhist collective karma (samsara); Shinto kami (collective spirits); Confucian ancestral wisdom tradition",
+    "critical_note": "Jung provides comprehension bridges for Western psychology, NOT philosophical reduction. Buddhist anatta is metaphysical ontology, not merely psychological integration. Use Jung for Western clarity only."
+  },
+  "curator_guidance": {
+    "when_to_use_single_tradition": "When topic-tradition affinity shows clear primary (e.g., governance → Confucianism). Present primary with depth; acknowledge secondary traditions.",
+    "when_to_present_all_equally": "Rare: Only for comparative/overview questions (e.g., 'How do Eastern traditions view the self?'). Even then, emphasize authentic differences.",
+    "when_to_use_jungian_bridges": "Only when Western audience needs comprehension aid. Flag explicitly: 'For Western psychological comprehension...' Never present as equivalent.",
+    "when_to_highlight_contradictions": "Always when traditions contradict (anatta vs Atman, Confucian vs Daoist governance). Present both authentically; don't harmonize.",
+    "validation_check": "Would a scholar of this Eastern tradition recognize and approve my representation? If unsure, lean toward traditional sources (Key Texts), not synthesis."
+  }
+}
