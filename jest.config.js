@@ -31,6 +31,8 @@ module.exports = {
     '/memory/',
     '/state/',
     '/logs/',
+    '/.worktrees/',
+    '/.claude/worktrees/',
   ],
 
   // Module path ignore patterns
@@ -39,6 +41,8 @@ module.exports = {
     '/memory/',
     '/state/',
     '/logs/',
+    '/.worktrees/',
+    '/.claude/worktrees/',
   ],
 
   // Coverage thresholds (relaxed during initial test development)
