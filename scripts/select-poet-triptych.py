@@ -118,14 +118,26 @@ def _load_history(history_file: str) -> dict:
 
 
 def _save_history(history: dict, history_file: str) -> None:
-    """Persist poem selection history to disk."""
+    """Persist poem selection history to disk atomically."""
     path = Path(history_file)
     path.parent.mkdir(parents=True, exist_ok=True)
+    tmp_path = path.with_suffix(path.suffix + ".tmp")
     try:
-        with path.open("w") as fh:
+        # Write to a temporary file in the same directory, then atomically
+        # replace the target file to avoid partially-written JSON.
+        with tmp_path.open("w") as fh:
             json.dump(history, fh, indent=2)
+            fh.flush()
+            os.fsync(fh.fileno())
+        os.replace(tmp_path, path)
     except OSError as exc:
         logger.warning("Could not write history file %s: %s", history_file, exc)
+        try:
+            if tmp_path.exists():
+                tmp_path.unlink()
+        except OSError:
+            # Best-effort cleanup; ignore errors removing temp file.
+            pass
 
 
 def _record_selection(
