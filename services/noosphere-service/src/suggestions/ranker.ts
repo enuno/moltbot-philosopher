@@ -130,7 +130,7 @@ export function filterTopicsForAutocomplete(
 
 /**
  * Generate a human-readable reason explaining the ScoreBreakdown.
- * Includes semantic match, recency multiplier, reputation multiplier, and follow boost.
+ * Includes semantic match, recency signal, reputation, and follow boost.
  */
 function generateReason(
   semantic: number,
@@ -149,20 +149,10 @@ function generateReason(
     signals.push("weak semantic match");
   }
 
-  // Recency multiplier signal
-  const recencyPercent = Math.round(recencyMultiplier * 100);
-  if (recencyMultiplier >= 0.9) {
-    signals.push(`recent content (${recencyPercent}%)`);
-  } else if (recencyMultiplier >= 0.7) {
-    signals.push(`moderately recent (${recencyPercent}%)`);
-  } else {
-    signals.push(`older content (${recencyPercent}%)`);
-  }
-
   // Reputation multiplier signal
-  if (reputationMultiplier >= 1.1) {
+  if (reputationMultiplier >= 0.8) {
     signals.push("high reputation author");
-  } else if (reputationMultiplier >= 0.9) {
+  } else if (reputationMultiplier >= 0.5) {
     signals.push("neutral reputation");
   } else {
     signals.push("lower reputation");
@@ -196,36 +186,35 @@ export function rankSuggestions(
   limit: number,
   minScore: number
 ): RankedSuggestion[] {
+  // Load context-specific weights
+  const weights = getWeights(ctx);
+
   const ranked = topics
     .map((topic) => {
-      // Compute all four components
+      // Compute scoring components
       const semantic = computeSemanticSimilarity(
         queryEmbedding,
         topic.semantic?.embedding
       );
-      const recencyMultiplier = computeRecencyMultiplier(
-        topic.stats.last_seen
-      );
-      const reputationMultiplier = computeReputationMultiplier(topic);
-      const followBoost = computeFollowBoost(topic);
+      const trending = topic.scores?.trending || 0;
+      const reputationScore = computeReputationMultiplier(topic);
 
-      // Multiplicative formula with clipping at 1.0
+      // Weighted sum formula: semantic*w_s + trending*w_t + reputation*w_r
       const finalScore = Math.min(
         1.0,
-        semantic * recencyMultiplier * reputationMultiplier * followBoost
+        weights.semantic * semantic +
+          weights.trending * trending +
+          weights.reputation * reputationScore
       );
 
-      // Build ScoreBreakdown
+      // Build ScoreBreakdown for new API
       const scoreBreakdown: ScoreBreakdown = {
         semantic,
-        recencyMultiplier,
-        reputationMultiplier,
-        followBoost,
+        recencyMultiplier: 1.0, // Not used in weighted sum, kept for compatibility
+        reputationMultiplier: reputationScore,
+        followBoost: 1.0, // Not used in weighted sum, kept for compatibility
         final: finalScore,
       };
-
-      // Build legacy fields for backward compatibility
-      const trendingScore = topic.scores?.trending || 0;
 
       const rankedSuggestion: RankedSuggestion = {
         id: topic.id,
@@ -236,14 +225,9 @@ export function rankSuggestions(
         score: scoreBreakdown,
         score_legacy: finalScore,
         semantic_similarity: semantic,
-        trending_score: trendingScore,
-        reputation_score: reputationMultiplier,
-        reason: generateReason(
-          semantic,
-          recencyMultiplier,
-          reputationMultiplier,
-          followBoost
-        ),
+        trending_score: trending,
+        reputation_score: reputationScore,
+        reason: generateReason(semantic, 1.0, reputationScore, 1.0),
       };
 
       // Add shared_context for "related" context

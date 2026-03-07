@@ -1,7 +1,7 @@
 // services/noosphere-service/src/suggestions/__tests__/ranker.test.js
 const {
   computeSemanticSimilarity,
-  computeReputationScore,
+  computeReputationMultiplier,
   getWeights,
   filterTopicsForAutocomplete,
   rankSuggestions,
@@ -51,8 +51,8 @@ describe("Suggestion Ranker Helpers", () => {
     });
   });
 
-  describe("computeReputationScore", () => {
-    it("should return 0 when reputation is undefined", () => {
+  describe("computeReputationMultiplier", () => {
+    it("should return 1.0 (neutral) when reputation is undefined", () => {
       const topic = {
         id: "test",
         text: "test",
@@ -71,8 +71,8 @@ describe("Suggestion Ranker Helpers", () => {
           semantic_centroid_norm: 0.5,
         },
       };
-      const result = computeReputationScore(topic);
-      expect(result).toBe(0);
+      const result = computeReputationMultiplier(topic);
+      expect(result).toBe(1.0);
     });
 
     it("should average author_reputation and council_weight", () => {
@@ -98,7 +98,7 @@ describe("Suggestion Ranker Helpers", () => {
           council_weight: 0.8,
         },
       };
-      const result = computeReputationScore(topic);
+      const result = computeReputationMultiplier(topic);
       expect(result).toBe(0.7); // (0.6 + 0.8) / 2
     });
 
@@ -124,7 +124,7 @@ describe("Suggestion Ranker Helpers", () => {
           avg_author_reputation: 0.8,
         },
       };
-      const result = computeReputationScore(topic);
+      const result = computeReputationMultiplier(topic);
       expect(result).toBe(0.8); // only avg_author_reputation
     });
   });
@@ -355,7 +355,7 @@ describe("rankSuggestions", () => {
     const results = rankSuggestions("autocomplete", "test", queryEmbedding, topics, 10, 0);
     expect(results).toHaveLength(1);
     // score = 0.5 * 1.0 + 0.4 * 0.7 + 0.1 * 0.6 = 0.5 + 0.28 + 0.06 = 0.84
-    expect(results[0].score).toBeCloseTo(0.84, 2);
+    expect(results[0].score.final).toBeCloseTo(0.84, 2);
   });
 
   it("Test 2: should filter out results below minScore threshold", () => {
@@ -452,7 +452,7 @@ describe("rankSuggestions", () => {
       createTopic({
         id: "topic-low",
         scores: { frequency: 0.5, recency_decay: 0.5, tfidf: 0.5, trending: 0.3, semantic_centroid_norm: 0.5 },
-        semantic: { embedding_model: "venice-deepseek-v3", embedding_dim: 768, embedding: [0.1, 0.9, 0] }, // semantic ~0.05 (low/near opposite)
+        semantic: { embedding_model: "venice-deepseek-v3", embedding_dim: 768, embedding: [-0.7, 0.5, 0] }, // semantic ~0.15 (weak)
         reputation: { avg_author_reputation: 0.2, council_weight: 0.2 }, // reputation 0.2 (low)
       }),
     ];
@@ -463,9 +463,11 @@ describe("rankSuggestions", () => {
 
     const results = rankSuggestions("autocomplete", "test", queryEmbedding, topics, 10, 0);
     expect(results[0].reason).toContain("strong");
-    expect(results[0].reason).toMatch(/88%|87%|high/);
-    expect(results[1].reason).toContain("moderate");
-    expect(results[2].reason).toContain("low");
+    expect(results[0].reason).toContain("high reputation");
+    expect(results[1].reason).toContain("strong");
+    expect(results[1].reason).toContain("neutral reputation");
+    expect(results[2].reason).toContain("weak");
+    expect(results[2].reason).toContain("lower reputation");
   });
 
   it("Test 6: should return empty array when topics array is empty", () => {
