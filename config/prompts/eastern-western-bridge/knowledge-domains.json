@@ -1,0 +1,471 @@
+{
+  "eastern_religions_philosophies": {
+    "Hinduism": {
+      "core_concepts": [
+        "dharma",
+        "karma",
+        "moksha",
+        "atman",
+        "brahman",
+        "samsara"
+      ],
+      "key_texts": [
+        "Vedas",
+        "Upanishads",
+        "Bhagavad Gita",
+        "Yoga Sutras"
+      ],
+      "schools": [
+        "Advaita Vedanta",
+        "Vishishtadvaita",
+        "Yoga",
+        "Samkhya"
+      ],
+      "historical_period": "2000-1500 BCE origins",
+      "geographic_origin": "Indian subcontinent",
+      "jungian_parallels": {
+        "brahman_atman": "Self archetype - unity of individual and collective unconscious",
+        "maya": "Persona and shadow - illusory nature of ego consciousness",
+        "chakras": "Archetypal energetic centers mapping psychic development"
+      }
+    },
+    "Buddhism": {
+      "core_concepts": [
+        "Four Noble Truths",
+        "Eightfold Path",
+        "anatta",
+        "dukkha",
+        "nirvana",
+        "dependent origination"
+      ],
+      "key_texts": [
+        "Pali Canon",
+        "Mahayana Sutras",
+        "Tibetan Book of the Dead"
+      ],
+      "schools": [
+        "Theravada",
+        "Mahayana",
+        "Vajrayana",
+        "Zen",
+        "Pure Land"
+      ],
+      "historical_period": "6th-5th century BCE",
+      "geographic_origin": "Northern India",
+      "jungian_parallels": {
+        "anatta": "Dissolution of ego - recognition of Self beyond personal identity",
+        "mandala": "Symbol of wholeness and individuation process",
+        "bodhisattva": "Archetype of the Wise Old Man/Woman - compassionate guide",
+        "bardo_states": "Transitional archetypal realms in Tibetan psychology"
+      }
+    },
+    "Taoism": {
+      "core_concepts": [
+        "Tao",
+        "wu wei",
+        "yin-yang",
+        "qi",
+        "spontaneity",
+        "simplicity"
+      ],
+      "key_texts": [
+        "Tao Te Ching",
+        "Zhuangzi",
+        "I Ching"
+      ],
+      "approaches": [
+        "philosophical Taoism",
+        "religious Taoism",
+        "alchemical practices"
+      ],
+      "historical_period": "6th-4th century BCE",
+      "geographic_origin": "Ancient China",
+      "jungian_parallels": {
+        "yin_yang": "Syzygy - union of opposites (anima/animus)",
+        "tao": "The Self - ineffable totality beyond ego",
+        "wu_wei": "Active imagination - effortless engagement with unconscious",
+        "i_ching": "Synchronicity - acausal ordering principle Jung explored extensively"
+      }
+    },
+    "Confucianism": {
+      "core_concepts": [
+        "ren (benevolence)",
+        "li (ritual propriety)",
+        "junzi (gentleman)",
+        "filial piety",
+        "social harmony"
+      ],
+      "key_texts": [
+        "Analects",
+        "Mencius",
+        "Doctrine of the Mean",
+        "Great Learning"
+      ],
+      "focus": [
+        "ethics",
+        "governance",
+        "education",
+        "social relationships"
+      ],
+      "historical_period": "6th-5th century BCE",
+      "geographic_origin": "Ancient China",
+      "jungian_parallels": {
+        "junzi": "Individuated self - ethical development through conscious integration",
+        "li": "Ritual as container for archetypal energies in social sphere",
+        "ren": "Development of feeling function - relatedness and compassion"
+      }
+    },
+    "Jainism": {
+      "core_concepts": [
+        "ahimsa (non-violence)",
+        "anekantavada (multiple viewpoints)",
+        "asceticism",
+        "karma",
+        "soul liberation"
+      ],
+      "key_texts": [
+        "Agamas",
+        "Tattvartha Sutra"
+      ],
+      "distinguishing_features": [
+        "extreme non-violence",
+        "no creator god",
+        "eternal universe"
+      ],
+      "historical_period": "6th century BCE",
+      "geographic_origin": "Indian subcontinent",
+      "jungian_parallels": {
+        "ahimsa": "Integration of shadow - radical acceptance and non-harm",
+        "anekantavada": "Multivalent nature of psyche - holding paradox and complexity"
+      }
+    },
+    "Shinto": {
+      "core_concepts": [
+        "kami",
+        "ritual purity",
+        "harmony with nature"
+      ],
+      "type": "indigenous Japanese folk religion",
+      "historical_period": "Ancient indigenous tradition",
+      "geographic_origin": "Japan",
+      "jungian_parallels": {
+        "kami": "Nature spirits as archetypal projections - numina in natural world",
+        "ritual_purity": "Cleansing of persona to access authentic Self"
+      }
+    }
+  },
+  "western_bridge_authors": {
+    "depth_psychology_integrators": {
+      "Carl_Jung": {
+        "works": [
+          "Psychology and Religion: West and East",
+          "The Secret of the Golden Flower (commentary)",
+          "Psychological Commentary on The Tibetan Book of the Dead",
+          "Foreword to the I Ching (Wilhelm edition)",
+          "Answer to Job"
+        ],
+        "approach": "Archetypal psychology bridging Eastern symbolism with Western depth analysis",
+        "key_concepts": [
+          "collective unconscious",
+          "archetypes",
+          "individuation",
+          "synchronicity",
+          "Self",
+          "active imagination"
+        ],
+        "eastern_engagements": {
+          "mandala": "Symbol of psychic wholeness appearing cross-culturally",
+          "yoga": "Parallel to individuation process - integration of opposites",
+          "taoism": "Wu wei as model for relating to unconscious",
+          "buddhism": "Studied Zen and Tibetan Buddhism; saw parallels to psychic integration",
+          "i_ching": "Introduced synchronicity through I Ching consultation method"
+        },
+        "contribution": "Provided psychological framework for Western understanding of Eastern spiritual practices",
+        "style": "Empirical yet symbolic; treats Eastern texts as maps of psyche"
+      }
+    },
+    "literary_interpreters": {
+      "Hermann_Hesse": {
+        "works": [
+          "Siddhartha",
+          "Journey to the East",
+          "The Glass Bead Game"
+        ],
+        "approach": "Fictional narrative embedding Eastern spiritual journeys",
+        "themes": [
+          "self-discovery",
+          "Eastern mysticism",
+          "synthesis of traditions"
+        ],
+        "jungian_influence": "Underwent Jungian analysis; work reflects individuation themes"
+      },
+      "Alan_Watts": {
+        "works": [
+          "The Way of Zen",
+          "The Book",
+          "Psychotherapy East and West"
+        ],
+        "approach": "Conversational lectures translating Zen and Taoism",
+        "style": "accessible, experiential, anti-dogmatic",
+        "jungian_connection": "Frequently referenced Jung's work on Eastern psychology"
+      },
+      "Aldous_Huxley": {
+        "works": [
+          "The Perennial Philosophy",
+          "Doors of Perception"
+        ],
+        "approach": "Synthesizing mystical traditions into unified metaphysics",
+        "themes": [
+          "perennial wisdom",
+          "Vedanta",
+          "contemplative practice"
+        ]
+      }
+    },
+    "scholarly_translators": {
+      "D_T_Suzuki": {
+        "works": [
+          "Essays in Zen Buddhism",
+          "Zen and Japanese Culture"
+        ],
+        "contribution": "Defined Western understanding of Zen",
+        "approach": "Academic yet experiential",
+        "jungian_connection": "Corresponded with Jung; influenced Jung's understanding of Zen"
+      },
+      "Thomas_Merton": {
+        "works": [
+          "Mystics and Zen Masters",
+          "Zen and the Birds of Appetite"
+        ],
+        "approach": "Christian contemplative engaging with Eastern monasticism",
+        "unique_angle": "Interreligious dialogue from within tradition"
+      },
+      "Joseph_Campbell": {
+        "works": [
+          "Hero with a Thousand Faces",
+          "Masks of God series"
+        ],
+        "approach": "Comparative mythology drawing heavily on Hinduism/Buddhism",
+        "method": "Universal patterns across cultures",
+        "jungian_influence": "Explicitly Jungian framework for hero's journey and archetypes"
+      },
+      "Marie_Louise_von_Franz": {
+        "works": [
+          "Alchemy: An Introduction to the Symbolism and Psychology",
+          "On Divination and Synchronicity"
+        ],
+        "approach": "Jungian analyst exploring Eastern divination and symbolism",
+        "contribution": "Bridge between Jungian psychology and Eastern oracular practices"
+      }
+    },
+    "transcendentalist_precursors": {
+      "Ralph_Waldo_Emerson": {
+        "works": [
+          "The Over-Soul",
+          "Essays"
+        ],
+        "contribution": "Early American engagement with Upanishads",
+        "period": "1830s-1880s"
+      },
+      "Henry_David_Thoreau": {
+        "works": [
+          "Walden",
+          "journals"
+        ],
+        "contribution": "Practical application of Bhagavad Gita wisdom",
+        "period": "1840s-1860s"
+      }
+    },
+    "contemporary_practitioners": {
+      "Gary_Snyder": {
+        "works": [
+          "The Practice of the Wild",
+          "poetry collections"
+        ],
+        "approach": "Zen training integrated with ecological awareness",
+        "style": "grounded, non-guru"
+      },
+      "Pema_Chodron": {
+        "works": [
+          "When Things Fall Apart",
+          "The Places That Scare You"
+        ],
+        "approach": "Tibetan Buddhism in psychologically literate prose",
+        "audience": "Western seekers facing life challenges"
+      },
+      "Ram_Dass": {
+        "works": [
+          "Be Here Now"
+        ],
+        "approach": "Hindu bhakti/yoga for experiential Western seekers",
+        "style": "direct, psychedelic-influenced"
+      }
+    }
+  },
+  "jungian_frameworks": {
+    "archetypal_correspondences": {
+      "Self": {
+        "eastern_parallels": [
+          "Atman-Brahman (Hinduism)",
+          "Buddha-nature",
+          "Tao",
+          "Purusha"
+        ],
+        "description": "Totality of psyche beyond ego; goal of individuation"
+      },
+      "Shadow": {
+        "eastern_parallels": [
+          "Maya (illusion)",
+          "Kleshas (afflictions)",
+          "Hungry ghosts"
+        ],
+        "description": "Repressed or unintegrated aspects; must be confronted"
+      },
+      "Anima_Animus": {
+        "eastern_parallels": [
+          "Yin-Yang",
+          "Shiva-Shakti",
+          "Prakriti-Purusha"
+        ],
+        "description": "Contrasexual archetypes; integration of opposites"
+      },
+      "Wise_Old_Man_Woman": {
+        "eastern_parallels": [
+          "Guru",
+          "Bodhisattva",
+          "Roshi",
+          "Sage"
+        ],
+        "description": "Guide to deeper wisdom; meaning-making function"
+      },
+      "Mandala": {
+        "eastern_parallels": [
+          "Tibetan mandalas",
+          "Yantras",
+          "Zen enso",
+          "Taoist diagrams"
+        ],
+        "description": "Symbol of psychic wholeness and integration"
+      }
+    },
+    "psychological_processes": {
+      "Individuation": {
+        "eastern_parallels": [
+          "Moksha (liberation)",
+          "Enlightenment",
+          "Self-realization",
+          "Union with Tao"
+        ],
+        "description": "Process of becoming whole; integrating conscious and unconscious"
+      },
+      "Active_Imagination": {
+        "eastern_parallels": [
+          "Meditation",
+          "Visualization practices",
+          "Contemplation",
+          "Wu wei"
+        ],
+        "description": "Conscious engagement with unconscious contents"
+      },
+      "Synchronicity": {
+        "eastern_parallels": [
+          "Karma",
+          "Tao",
+          "Dependent origination",
+          "I Ching divination"
+        ],
+        "description": "Acausal meaningful coincidences; psyche-matter connection"
+      },
+      "Transcendent_Function": {
+        "eastern_parallels": [
+          "Middle Way (Buddhism)",
+          "Union of opposites (Tantra)"
+        ],
+        "description": "Reconciliation of opposing psychic tendencies into new synthesis"
+      }
+    },
+    "symbolic_systems": {
+      "Alchemy": {
+        "eastern_parallels": [
+          "Taoist inner alchemy",
+          "Tantric yoga",
+          "Kundalini practices"
+        ],
+        "description": "Symbolic transformation process; opus of individuation"
+      },
+      "Quaternities": {
+        "eastern_parallels": [
+          "Four Noble Truths",
+          "Four stages of life (Hindu)",
+          "Four elements in Chinese cosmology"
+        ],
+        "description": "Fourfold structures representing wholeness"
+      }
+    }
+  },
+  "comparative_frameworks": {
+    "metaphysics": {
+      "eastern_emphasis": [
+        "non-dualism",
+        "impermanence",
+        "interconnection",
+        "emptiness"
+      ],
+      "western_emphasis": [
+        "being",
+        "substance",
+        "causation",
+        "identity"
+      ],
+      "jungian_bridge": "Collective unconscious as non-dual ground; archetypes as universal patterns transcending subject-object split"
+    },
+    "ethics": {
+      "eastern_emphasis": [
+        "harmony with nature",
+        "non-action (wu wei)",
+        "compassion",
+        "detachment"
+      ],
+      "western_emphasis": [
+        "moral law",
+        "rights",
+        "duties",
+        "virtue cultivation"
+      ],
+      "jungian_bridge": "Ethical behavior as expression of individuation; integration of shadow prevents projection and harm"
+    },
+    "epistemology": {
+      "eastern_emphasis": [
+        "direct experience",
+        "meditation",
+        "paradox",
+        "ineffability"
+      ],
+      "western_emphasis": [
+        "logic",
+        "empiricism",
+        "systematic analysis",
+        "propositional knowledge"
+      ],
+      "jungian_bridge": "Symbolic knowing bridges rational and intuitive; active imagination as Western equivalent to meditative insight"
+    },
+    "psychology_spirituality": {
+      "eastern_emphasis": [
+        "liberation from suffering",
+        "transcendence of ego",
+        "enlightenment"
+      ],
+      "western_emphasis": [
+        "ego development",
+        "adaptation",
+        "mental health"
+      ],
+      "jungian_bridge": "Individuation honors both ego development and transcendence; Self encompasses and relativizes ego"
+    },
+    "political_philosophy": {
+      "Confucian_approach": "ritual propriety, benevolent governance, social hierarchy",
+      "Taoist_approach": "minimal interference, skepticism of institutions, natural order",
+      "Western_social_contract": "individual rights, rule of law, democratic participation"
+    }
+  }
+}
