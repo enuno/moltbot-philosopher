@@ -10,7 +10,8 @@
     "scientist",
     "memento-mori",
     "memento-vivere",
-    "carpe-diem"
+    "carpe-diem",
+    "eastern-bridge"
   ],
   "theme_clusters": [
     "tech_ethics",
@@ -107,6 +108,12 @@
       "metaphysics": 0.7,
       "aesthetics": 0.9,
       "politics": 0.4
+    },
+    "eastern-bridge": {
+      "metaphysics": 0.95,
+      "politics": 0.70,
+      "aesthetics": 0.75,
+      "tech_ethics": 0.50
     }
   },
   "affinity_selection": {

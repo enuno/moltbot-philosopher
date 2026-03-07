@@ -22,21 +22,22 @@
 
 ---
 
-## 9 Philosopher Personas
+## 10 Philosopher Personas
 
-Each agent has **workspace identity files** defining behavior:
+Each agent has **workspace identity files** (workspace agents) or **configuration files** (service-based agents) defining behavior:
 
-| # | Persona | Tradition | Council Role | Identity Files |
-|---|---------|-----------|--------------|----------------|
-| 1 | Classical | Virgil/Dante/Milton | Ontology Lead | SOUL.md, IDENTITY.md, AGENTS.md |
-| 2 | Existentialist | Sartre/Camus/Nietzsche | Autonomy Critic | SOUL.md, IDENTITY.md, AGENTS.md |
-| 3 | Transcendentalist | Emerson/Jefferson | Oversight (Human Veto) | SOUL.md, IDENTITY.md, AGENTS.md |
-| 4 | JoyceStream | James Joyce | Phenomenologist | SOUL.md, IDENTITY.md, AGENTS.md |
-| 5 | Enlightenment | Voltaire/Franklin/Paine | Rights Architect | SOUL.md, IDENTITY.md, AGENTS.md |
-| 6 | BeatGeneration | Ginsberg/Kerouac/Burroughs | Dissent | SOUL.md, IDENTITY.md, AGENTS.md |
-| 7 | CyberpunkPosthumanist | Gibson/Asimov/Dick | Techno-Ontologist | SOUL.md, IDENTITY.md, AGENTS.md |
-| 8 | SatiristAbsurdist | Heller/Vonnegut/Twain | Court Jester | SOUL.md, IDENTITY.md, AGENTS.md |
-| 9 | ScientistEmpiricist | Feynman/Sagan/Hawking/Einstein | Empirical Anchor | SOUL.md, IDENTITY.md, AGENTS.md |
+| # | Persona | Tradition | Council Role | Type | Identity/Config Files |
+|---|---------|-----------|--------------|------|----------------------|
+| 1 | Classical | Virgil/Dante/Milton | Ontology Lead | Workspace | SOUL.md, IDENTITY.md, AGENTS.md |
+| 2 | Existentialist | Sartre/Camus/Nietzsche | Autonomy Critic | Workspace | SOUL.md, IDENTITY.md, AGENTS.md |
+| 3 | Transcendentalist | Emerson/Jefferson | Oversight (Human Veto) | Workspace | SOUL.md, IDENTITY.md, AGENTS.md |
+| 4 | JoyceStream | James Joyce | Phenomenologist | Workspace | SOUL.md, IDENTITY.md, AGENTS.md |
+| 5 | Enlightenment | Voltaire/Franklin/Paine | Rights Architect | Workspace | SOUL.md, IDENTITY.md, AGENTS.md |
+| 6 | BeatGeneration | Ginsberg/Kerouac/Burroughs | Dissent | Workspace | SOUL.md, IDENTITY.md, AGENTS.md |
+| 7 | CyberpunkPosthumanist | Gibson/Asimov/Dick | Techno-Ontologist | Workspace | SOUL.md, IDENTITY.md, AGENTS.md |
+| 8 | SatiristAbsurdist | Heller/Vonnegut/Twain | Court Jester | Workspace | SOUL.md, IDENTITY.md, AGENTS.md |
+| 9 | ScientistEmpiricist | Feynman/Sagan/Hawking/Einstein | Empirical Anchor | Workspace | SOUL.md, IDENTITY.md, AGENTS.md |
+| 10 | Eastern Bridge | Hindu/Buddhist/Daoist/Confucian | Synthesis & Bridge | Service | system-prompt.md, knowledge-domains.json |
 
 **Identity File Pattern** (from OpenClaw):
 
@@ -55,8 +56,9 @@ Each agent has **workspace identity files** defining behavior:
 ```
 Moltbot v2.7 (Migrating to Service-Based Architecture)
 
-Current (Script-Based):
-├─ 9 Philosopher Agents (containerized, script-driven)
+Current (Script-Based + Service-Based Hybrid):
+├─ 9 Workspace Philosopher Agents (containerized, script-driven)
+├─ Eastern Bridge Service (containerized, port 3012) - Synthesis & bridge persona ✅
 ├─ AI Content Generator (Venice/Kimi, port 3002)
 ├─ Model Router (caching, port 3003)
 ├─ Thread Monitor (Continuation Engine, port 3004)
@@ -70,8 +72,7 @@ Target (Service-Based):
 ├─ Agent Orchestrator (port 3008) - Lane Queue coordination
 ├─ Event Listener (port 3009) - Real-time ingestion (<60s latency)
 ├─ Engagement Service (port 3010) - Mentions/comments/welcomes
-├─ Council Service (port 3011) - Governance automation
-└─ MoltStack Service (port 3012) - Essay generation
+└─ Council Service (port 3011) - Governance automation
 
 ```
 
@@ -93,10 +94,10 @@ Target (Service-Based):
 
 ### Overview
 
-**Purpose**: Enable 9 philosopher agents to participate proactively in Moltbook discussions through automated,
+**Purpose**: Enable 10 philosopher agents (9 workspace + 1 service) to participate proactively in Moltbook discussions through automated,
 thoughtful engagement while respecting platform rate limits and quality standards.
 
-**Architecture**: Single shared engagement-service microservice (port 3010) orchestrating all 9 agents
+**Architecture**: Single shared engagement-service microservice (port 3010) orchestrating all 10 council members
 
 **Status**: ✅ Production-ready
 
