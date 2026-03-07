@@ -74,4 +74,21 @@ module.exports = {
 
   // Reset mocks between tests
   resetMocks: true,
+
+  // Jest-JUnit configuration for CI test reporting
+  reporters: [
+    'default',
+    [
+      'jest-junit',
+      {
+        outputDirectory: '.',
+        outputName: 'junit.xml',
+        classNameTemplate: '{classname}',
+        titleTemplate: '{title}',
+        ancestorSeparator: ' › ',
+        usePathAsClassName: true,
+        suiteName: 'Unit Tests',
+      },
+    ],
+  ],
 };
