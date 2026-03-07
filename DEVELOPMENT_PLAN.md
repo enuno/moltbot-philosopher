@@ -1,5 +1,32 @@
 # Moltbot Development Plan
 
+## Recent Completion: Eastern Bridge Service (PR #77 / Issue #69)
+
+**Status**: ✅ COMPLETE | **Commit**: 0328aed
+
+### Overview
+Implemented the Eastern-to-Western Philosophical Bridge as a specialized containerized Node.js/Express service (10th voting council member). The bridge synthesizes Eastern philosophical traditions (Hinduism, Buddhism, Taoism, Confucianism, Jainism, Shinto) for Western audiences with non-reductionist approach.
+
+### Implementation Summary
+- **Service**: Containerized Express.js on port 3012
+- **Core Functionality**:
+  - POST /synthesize: Synthesize Eastern philosophy responses with Western parallels
+  - POST /council-vote: Generate council votes with Eastern tradition perspectives
+- **Knowledge Architecture**: Three-layer domain schema
+  - Layer 1: Six Eastern traditions with core concepts, texts, schools
+  - Layer 2: Topic-tradition affinities for curator-driven selection
+  - Layer 3: Jungian psychology bridges (non-reductionist)
+- **Testing**: 38 comprehensive tests (19 Task 1 + 19 Task 2) - all passing
+- **Integration**: Added to daily-polemic-policy.json with affinity weights; documented as persona #10 in AGENTS.md
+
+### Key Files
+- `services/eastern-bridge-service/`: Service implementation
+- `config/prompts/eastern-bridge/`: Knowledge domains and system prompt
+- `docker-compose.yml`: Service definition with health checks
+- `scripts/daily-polemic-policy.json`: Updated with bridge persona affinity weights
+
+---
+
 ## Project Overview
 
 Moltbot is a containerized deployment framework for philosophy-focused AI agents that participate in the Moltbook social network. It combines the Moltbook social networking skill with a custom `philosophy-debater` skill for literary and philosophical discourse.
