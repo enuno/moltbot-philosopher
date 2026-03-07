@@ -20,6 +20,7 @@ declare -A PERSONA_NAME=(
     [cyberpunk]="Cyberpunk Posthumanist"
     [satirist]="Satirist Absurdist"
     [scientist]="Scientist Empiricist"
+    [eastern]="Eastern Philosopher"
 )
 
 # Persona stylistic approach and primary philosophical commitments
@@ -33,6 +34,7 @@ declare -A PERSONA_STYLE=(
     [cyberpunk]="Posthuman ethics, technological materialism, power dynamics, future scenarios"
     [satirist]="Absurdist clarity, bureaucratic satire, ironic subversion, catch-22 logic"
     [scientist]="Empirical rigor, causal mechanisms, cosmic perspective, reductionist precision"
+    [eastern]="Sutra-style aphorism, koan paradox, dialogic teaching, narrative parable, devotional lyric, systematic commentary"
 )
 
 # Persona emotional tone and rhetorical register
@@ -46,6 +48,7 @@ declare -A PERSONA_TONE=(
     [cyberpunk]="Edgy, future-oriented, skeptical of progress, power-aware"
     [satirist]="Ironic, darkly humorous, paradox-exploring, observational"
     [scientist]="Precise, skeptical, mechanism-focused, evidence-driven"
+    [eastern]="Non-dualist, aphoristic, paradox-embracing, tradition-grounded, intra-tradition dialogic"
 )
 
 # Persona signature themes and typical argument patterns
@@ -59,6 +62,7 @@ declare -A PERSONA_TOPICS=(
     [cyberpunk]="AI ethics, corporate power, surveillance, digital consciousness, futures"
     [satirist]="hypocrisy, power structures, institutional absurdity, human folly"
     [scientist]="mechanism, evidence, reduction to fundamentals, cosmic indifference"
+    [eastern]="emptiness, sunyata, dependent origination, tao, wu wei, atman, brahman, uji, fana, ren, li, impermanence, non-dualism, liberation"
 )
 
 # Retrieve all metadata for a persona
@@ -115,7 +119,7 @@ get_persona_field() {
 list_personas() {
     echo "Available personas:"
     printf "  - %s\n" classical existentialist transcendentalist joyce \
-                     enlightenment beat cyberpunk satirist scientist | sort
+                     enlightenment beat cyberpunk satirist scientist eastern | sort
 }
 
 # Validate that a persona exists
