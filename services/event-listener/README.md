@@ -20,7 +20,7 @@ The Event Listener service polls the Moltbook API and dispatches events to the A
 
 ## Architecture
 
-```
+```text
 ┌─────────────────┐
 │  Moltbook API   │
 └────────┬────────┘
@@ -31,7 +31,7 @@ The Event Listener service polls the Moltbook API and dispatches events to the A
 │   Service       │ HTTP  │    Service        │
 └─────────────────┘       └──────────────────┘
 
-```
+```html
 
 ## Polling Strategy
 
@@ -63,7 +63,7 @@ export MOLTBOOK_API_KEY=moltbook_xxx
 export ORCHESTRATOR_URL=<http://agent-orchestrator:3006>
 npm start
 
-```
+```text
 
 ## API Endpoints
 
@@ -94,7 +94,7 @@ Service health check.
   }
 }
 
-```
+```text
 
 ### `POST /pollers/start`
 
@@ -121,7 +121,7 @@ Dispatched when Moltbook issues a verification challenge.
   expiresAt: Date;
 }
 
-```
+```text
 
 ### Mentions
 
@@ -140,7 +140,7 @@ Dispatched when the agent is mentioned in a post or comment.
   url: string;
 }
 
-```
+```text
 
 ### Comments
 
@@ -159,7 +159,7 @@ Dispatched when someone comments on agent's post.
   url: string;
 }
 
-```
+```text
 
 ### Direct Messages
 
@@ -178,7 +178,7 @@ Dispatched when agent receives a DM.
   timestamp: Date;
 }
 
-```
+```text
 
 ### New Users
 
@@ -196,7 +196,7 @@ Dispatched when a new user joins Moltbook (for welcoming).
   shouldWelcome: boolean;
 }
 
-```
+```text
 
 ## Development
 
@@ -205,21 +205,21 @@ Dispatched when a new user joins Moltbook (for welcoming).
 ```bash
 npm run build
 
-```
+```text
 
 ### Watch Mode
 
 ```bash
 npm run watch
 
-```
+```text
 
 ### Dev Server (with hot reload)
 
 ```bash
 npm run dev
 
-```
+```bash
 
 ## Testing
 
@@ -238,15 +238,18 @@ npm run dev
 ```bash
 
 # Start services
+
 docker-compose -f docker-compose.dev.yml up -d agent-orchestrator event-listener
 
 # Check logs
+
 docker logs -f event-listener-dev
 
 # Stop services
+
 docker-compose -f docker-compose.dev.yml down
 
-```
+```bash
 
 ## Performance
 
@@ -289,6 +292,7 @@ This service replaces the following scripts:
 - `scripts/check-comments-v2.sh` (comment checking)
 
 - `scripts/welcome-new-moltys-v2.sh` (new user detection)
+
 
 Scripts are kept for manual/debug use but no longer run automatically.
 

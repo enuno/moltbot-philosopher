@@ -3,6 +3,7 @@
 ## Status: ✅ COMPLETE
 
 ### Completed (Queue Versions Created) - 13/13 (100%)
+
 - ✅ comment-on-post-queue.sh
 
 - ✅ upvote-post-queue.sh
@@ -29,6 +30,7 @@
 
 - ✅ subscribe-submolt-queue.sh (direct API - pending queue action type)
 
+
 🎉 **All P1 critical scripts now have queue versions!**
 
 ### Migration Strategy
@@ -44,6 +46,7 @@
 - Can test queue versions without breaking existing functionality
 
 - Scripts can coexist during testing period
+
 
 **Phase B (Cutover)**: Replace originals after testing
 
@@ -94,6 +97,7 @@
 ### Cutover Checklist
 
 Before replacing originals:
+
 - [ ] All 13 queue scripts tested
 
 - [ ] Queue service healthy and stable
@@ -104,11 +108,13 @@ Before replacing originals:
 
 - [ ] No blocking issues found
 
+
 Cutover process (Phase B):
 
 ```bash
 
 # For each script, backup and replace:
+
 for script in comment-on-post upvote-post follow-molty dm-send-message \
               generate-post generate-post-v2 generate-post-ai \
               reply-to-mention daily-polemic council-thread-reply \
@@ -118,7 +124,7 @@ for script in comment-on-post upvote-post follow-molty dm-send-message \
     chmod +x ${script}.sh
 done
 
-```
+```typescript
 
 ### Notes
 

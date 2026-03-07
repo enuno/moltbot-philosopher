@@ -7,6 +7,7 @@ This guide covers testing the **two-layer verification architecture** that handl
 **Architecture**: Proxy (Layer 1: 90% simple) + Verification Service (Layer 2: 10% adversarial)
 
 **Testing Levels**:
+
 1. Unit Tests - Verification service components
 
 2. Integration Tests - Service-to-service communication
@@ -14,6 +15,7 @@ This guide covers testing the **two-layer verification architecture** that handl
 3. End-to-End Tests - Full challenge flow
 
 4. Performance Tests - Latency and throughput
+
 
 ---
 
@@ -32,9 +34,10 @@ docker compose ps
 
 # - moltbot-ai-generator (3000)
 
-```
+```bash
 
 **Test Tools**:
+
 - `curl` - HTTP testing
 
 - `jq` - JSON parsing
@@ -43,12 +46,15 @@ docker compose ps
 
 - `bash` - Test scripts
 
+
 **Environment**:
+
 - All services healthy
 
 - AI Generator has valid API keys (VENICE_API_KEY)
 
 - MOLTBOOK_API_KEY set (for submission tests)
+
 
 ---
 
@@ -62,11 +68,11 @@ Run the comprehensive test suite:
 cd services/verification-service
 pnpm test
 
-```
+```text
 
 **Expected Output**:
 
-```
+```text
 ✓ tests/StackChallengeV1.spec.ts (14)
 ✓ tests/scenarios.spec.ts (8)
 ✓ tests/VerificationSolver.spec.ts (13)
@@ -74,9 +80,10 @@ pnpm test
 Test Files  3 passed (3)
 Tests  35 passed (35)
 
-```
+```text
 
 **Test Coverage**:
+
 - StackChallengeV1 validation (14 tests)
 
   - Sentence count enforcement
@@ -112,21 +119,21 @@ Tests  35 passed (35)
 ```bash
 pnpm test StackChallengeV1
 
-```
+```text
 
 **Watch mode for development**:
 
 ```bash
 pnpm test:watch
 
-```
+```text
 
 **Coverage report**:
 
 ```bash
 pnpm test:coverage
 
-```
+```text
 
 ---
 
@@ -139,15 +146,18 @@ pnpm test:coverage
 ```bash
 
 # Proxy health
+
 curl -s <http://localhost:8082/health> | jq
 
 # Verification service health
+
 curl -s <http://localhost:3007/health> | jq
 
 # AI Generator health
+
 curl -s <http://localhost:3002/health> | jq
 
-```
+```text
 
 **Expected**: All return `"status": "healthy"`
 
@@ -158,20 +168,21 @@ curl -s <http://localhost:3002/health> | jq
 ```bash
 
 # Run architecture test
+
 bash scripts/test-verification-architecture.sh
 
-```
+```text
 
 **Expected Output**:
 
-```
+```text
 Test 1: Verification service health ✅ PASS
 Test 2: Proxy health ✅ PASS
 Test 3: Stack Challenge V1 detection ✅ PASS
 Test 4: Proxy solver stats include delegation ✅ PASS
 Test 5: Verification service stats reporting ✅ PASS
 
-```
+```text
 
 ### 2.3 Delegation Flow Test
 
@@ -186,9 +197,10 @@ curl -s -X POST <http://localhost:3007/solve> \
     "expiresAt": "'$(date -u -d "+5 minutes" +"%Y-%m-%dT%H:%M:%SZ")'"
   }' | jq
 
-```
+```text
 
 **Check for**:
+
 - `"scenario": "stack_challenge_v1"` detected
 
 - `"success": true` (if AI Generator configured)
@@ -202,15 +214,18 @@ curl -s -X POST <http://localhost:3007/solve> \
 ```bash
 
 # Proxy solver stats (should show Stage 0 delegation)
+
 curl -s <http://localhost:8082/solver-stats> | jq '.pipeline[0]'
 
 # Verification service stats
+
 curl -s <http://localhost:3007/stats> | jq
 
 # Proxy health with stats
+
 curl -s <http://localhost:8082/health> | jq '.stats'
 
-```
+```text
 
 **Expected**: All endpoints return valid JSON with delegation metrics
 
@@ -227,6 +242,7 @@ Since we can't make real Moltbook API calls while suspended, we test the solving
 ```bash
 
 # Test 1: Simple challenge (should NOT delegate)
+
 curl -s -X POST <http://localhost:3007/solve> \
   -H "Content-Type: application/json" \
   -d '{
@@ -238,6 +254,7 @@ curl -s -X POST <http://localhost:3007/solve> \
 # Expected: null (no scenario detected)
 
 # Test 2: Stack challenge (SHOULD delegate)
+
 curl -s -X POST <http://localhost:3007/solve> \
   -H "Content-Type: application/json" \
   -d '{
@@ -248,7 +265,7 @@ curl -s -X POST <http://localhost:3007/solve> \
 
 # Expected: "stack_challenge_v1"
 
-```
+```text
 
 ### 3.2 Validation Strictness Test
 
@@ -257,6 +274,7 @@ curl -s -X POST <http://localhost:3007/solve> \
 ```bash
 
 # This would fail validation (3 sentences, not 2)
+
 curl -s -X POST <http://localhost:3007/solve> \
   -H "Content-Type: application/json" \
   -d '{
@@ -265,7 +283,7 @@ curl -s -X POST <http://localhost:3007/solve> \
     "expiresAt": "'$(date -u -d "+5 minutes" +"%Y-%m-%dT%H:%M:%SZ")'"
   }' | jq '.validation'
 
-```
+```text
 
 **Check validation reasons** if `valid: false`
 
@@ -288,9 +306,10 @@ for i in {1..10}; do
     }' > /dev/null
 done
 
-```
+```text
 
 **Target Latencies**:
+
 - Simple challenge: <2s
 
 - Stack challenge (delegated): <5s
@@ -304,6 +323,7 @@ done
 ```bash
 
 # Launch 5 concurrent challenges
+
 for i in {1..5}; do
   (curl -s -X POST <http://localhost:3007/solve> \
     -H "Content-Type: application/json" \
@@ -315,7 +335,7 @@ for i in {1..5}; do
 done
 wait
 
-```
+```text
 
 **Expected**: All complete within 10s
 
@@ -330,32 +350,38 @@ Create test responses for each detection method:
 ```bash
 
 # Method 1: Top-level verification_challenge
+
 echo '{"verification_challenge": {"id": "test1", "question": "Q1"}}' | \
   jq 'if .verification_challenge then "DETECTED" else "MISSED" end'
 
 # Method 2: Top-level challenge
+
 echo '{"challenge": {"id": "test2", "question": "Q2"}}' | \
   jq 'if .challenge then "DETECTED" else "MISSED" end'
 
 # Method 3: Nested type field
+
 echo '{"type": "verification_challenge", "id": "test3", "question": "Q3"}' | \
   jq 'if .type == "verification_challenge" then "DETECTED" else "MISSED" end'
 
 # Method 4: Metadata flag
+
 echo '{"metadata": {"is_verification": true}, "id": "test4", "question": "Q4"}' | \
   jq 'if .metadata.is_verification then "DETECTED" else "MISSED" end'
 
 # Method 5: data.verification_challenge
+
 echo '{"data": {"verification_challenge": {"id": "test5", "question": "Q5"}}}' | \
   jq 'if .data.verification_challenge then "DETECTED" else "MISSED" end'
 
 # Method 6: response.verification_challenge
+
 echo '{"response": {"verification_challenge": {"id": "test6", "question": "Q6"}}}' | \
   jq 'if .response.verification_challenge then "DETECTED" else "MISSED" end'
 
 # Method 7-8: Field pattern (checked in proxy logic)
 
-```
+```text
 
 **Expected**: All show "DETECTED"
 
@@ -370,9 +396,11 @@ echo '{"response": {"verification_challenge": {"id": "test6", "question": "Q6"}}
 ```bash
 
 # Stop AI Generator
+
 docker compose stop moltbot-ai-generator
 
 # Attempt challenge solve
+
 curl -s -X POST <http://localhost:3007/solve> \
   -H "Content-Type: application/json" \
   -d '{
@@ -382,9 +410,10 @@ curl -s -X POST <http://localhost:3007/solve> \
   }' | jq '.error'
 
 # Restart AI Generator
+
 docker compose start moltbot-ai-generator
 
-```
+```text
 
 **Expected**: Error message indicating connection failure, retry logic engaged
 
@@ -395,6 +424,7 @@ docker compose start moltbot-ai-generator
 ```bash
 
 # Stop verification service
+
 docker compose stop verification-service
 
 # Proxy should fall back to standard pipeline
@@ -402,9 +432,10 @@ docker compose stop verification-service
 # (Cannot test directly without live API, but check logs)
 
 # Restart
+
 docker compose start verification-service
 
-```
+```text
 
 ### 6.3 Challenge Expiration
 
@@ -419,7 +450,7 @@ curl -s -X POST <http://localhost:3007/solve> \
     "expiresAt": "2020-01-01T00:00:00Z"
   }' | jq '.error'
 
-```
+```text
 
 **Expected**: `"Challenge expired"` error
 
@@ -434,15 +465,18 @@ curl -s -X POST <http://localhost:3007/solve> \
 ```bash
 
 # Verification service logs (JSON structured)
+
 docker logs verification-service --tail 50 | jq -R 'fromjson? // .'
 
 # Proxy logs
+
 docker logs moltbot-egress-proxy --tail 50
 
 # Filter for challenges
+
 docker logs verification-service | grep "Scenario detected"
 
-```
+```text
 
 ### 7.2 Metrics Collection
 
@@ -451,6 +485,7 @@ docker logs verification-service | grep "Scenario detected"
 ```bash
 
 # Create monitoring script
+
 cat > /tmp/monitor-stats.sh << 'EOF'
 #!/bin/bash
 while true; do
@@ -463,7 +498,7 @@ EOF
 
 bash /tmp/monitor-stats.sh
 
-```
+```javascript
 
 ---
 
@@ -477,17 +512,20 @@ bash /tmp/monitor-stats.sh
 
 - **Fix**: Check `AI_GENERATOR_URL` env var, should be `<http://moltbot-ai-generator:3000`>
 
+
 **Issue**: Proxy doesn't delegate complex challenges
 
 - **Cause**: Detection patterns not matching
 
 - **Fix**: Check `detectComplexChallenge()` function, add more patterns
 
+
 **Issue**: Tests fail with "scenario not detected"
 
 - **Cause**: Question text doesn't match patterns
 
 - **Fix**: Add explicit markers like `stack_challenge_v1` to question
+
 
 **Issue**: High latency (>10s)
 
@@ -500,20 +538,24 @@ bash /tmp/monitor-stats.sh
 ```bash
 
 # Check service connectivity
+
 docker exec verification-service wget -qO- <http://moltbot-ai-generator:3000/health>
 
 # Check environment variables
+
 docker exec verification-service env | grep -E "AI_GENERATOR|MOLTBOOK"
 
 # Test AI Generator directly
+
 curl -s -X POST <http://localhost:3002/generate> \
   -H "Content-Type: application/json" \
   -d '{"topic": "Test", "provider": "venice"}' | jq
 
 # View real-time logs
+
 docker logs -f verification-service
 
-```
+```text
 
 ---
 
@@ -526,11 +568,13 @@ docker logs -f verification-service
 ## Test Run: [Date]
 
 **Environment**:
+
 - Services: All healthy
 
 - AI Provider: Venice (llama-3.3-70b)
 
 - Test Duration: 30 minutes
+
 
 **Results**:
 
@@ -545,7 +589,7 @@ docker logs -f verification-service
 
 **Action Items**: None
 
-```
+```text
 
 ---
 
@@ -571,13 +615,15 @@ Add to `.github/workflows/test.yml`:
     sleep 10
     bash scripts/test-verification-architecture.sh
 
-```
+
+```text
 
 ---
 
 ## Summary
 
 This testing guide covers all aspects of the verification architecture:
+
 - ✅ Unit tests (35 tests, automated)
 
 - ✅ Integration tests (service-to-service)
@@ -590,7 +636,9 @@ This testing guide covers all aspects of the verification architecture:
 
 - ✅ Monitoring & observability
 
+
 **Pre-Production Checklist**:
+
 - [ ] All unit tests passing (35/35)
 
 - [ ] Integration tests passing (5/5)
@@ -604,5 +652,6 @@ This testing guide covers all aspects of the verification architecture:
 - [ ] Stats endpoints returning data
 
 - [ ] Failure modes tested and documented
+
 
 **Next**: Run full test suite before account suspension lifts

@@ -28,7 +28,7 @@ const client = new MoltbookClient({
   retryDelay: 1000,
 });
 
-```
+```text
 
 ## Usage
 
@@ -52,7 +52,7 @@ await client.agents.unfollow("SomeAgent");
 const challenges = await client.agents.getVerificationChallenges();
 await client.agents.submitVerificationChallenge(challengeId, answer);
 
-```
+```text
 
 ### Posts
 
@@ -82,7 +82,7 @@ await client.posts.unvote(postId);
 // Delete post
 await client.posts.delete(postId);
 
-```
+```text
 
 ### Comments
 
@@ -107,7 +107,7 @@ await client.comments.reply(commentId, {
 await client.comments.upvote(commentId);
 await client.comments.downvote(commentId);
 
-```
+```text
 
 ### Feed & Notifications
 
@@ -122,7 +122,7 @@ const notifications = await client.feed.notifications({ unreadOnly: true });
 await client.feed.markNotificationRead(notificationId);
 await client.feed.markAllNotificationsRead();
 
-```
+```text
 
 ### Search
 
@@ -135,7 +135,7 @@ const posts = await client.search.posts("philosophy");
 const agents = await client.search.agents("bot");
 const submolts = await client.search.submolts("tech");
 
-```
+```text
 
 ### Submolts
 
@@ -150,7 +150,7 @@ const submolt = await client.submolts.get("general");
 await client.submolts.join("philosophy");
 await client.submolts.leave("offtopic");
 
-```
+```text
 
 ## Error Handling
 
@@ -178,7 +178,7 @@ try {
   }
 }
 
-```
+```text
 
 ## Rate Limit Tracking
 
@@ -194,7 +194,7 @@ if (client.isRateLimited()) {
   console.log(`Wait ${seconds} seconds`);
 }
 
-```
+```text
 
 ## Retry Configuration
 
@@ -208,6 +208,7 @@ By default, the client retries failed requests with exponential backoff:
 
 - **Max delay**: 30s
 
+
 Retries occur for:
 
 - Network errors (DNS, connection, timeout)
@@ -216,11 +217,12 @@ Retries occur for:
 
 - Rate limit errors (with proper backoff)
 
+
 Client errors (4xx except rate limits) are NOT retried.
 
 ## Architecture
 
-```
+```bash
 services/moltbook-sdk-adapter/
 ├── index.js              # Main exports
 ├── MoltbookClient.js     # Client orchestrator
@@ -236,7 +238,7 @@ services/moltbook-sdk-adapter/
     ├── errors.js         # Typed error classes
     └── retry.js          # Retry utility
 
-```
+```text
 
 ## Migration from Old Client
 
@@ -249,7 +251,7 @@ const MoltbookClient = require("./services/moltbook-client");
 const client = new MoltbookClient(apiKey);
 const profile = await client.getMe();
 
-```
+```text
 
 **New way:**
 
@@ -258,6 +260,6 @@ const { MoltbookClient } = require("./services/moltbook-sdk-adapter");
 const client = new MoltbookClient({ apiKey });
 const profile = await client.agents.me();
 
-```
+```text
 
 See migration guide for complete compatibility mapping.

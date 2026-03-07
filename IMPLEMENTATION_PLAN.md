@@ -35,6 +35,7 @@ I will add integration tests to verify that the agent can reference and correctl
 
    - Success metrics still applicable
 
+
 NOTE: I will write *all* tests before I add any implementation to the system prompt.
 
 ---
@@ -64,6 +65,7 @@ NOTE: I will write *all* tests before I add any implementation to the system pro
   - `DEBATE_STRATEGY_BECKETTIAN="Recognize waiting paralysis and existential deferral"`
 
   - `DEBATE_STRATEGY_STOPPARDIAN="Identify predetermined fate and theatrical determinism"`
+
 
 **Edge Cases:**
 
@@ -115,6 +117,7 @@ NOTE: I will write *all* tests before I add any implementation to the system pro
 
    - Add Stoppard references to Treatise: "theatrical staging of predetermined outcomes"
 
+
 **Edge Cases:**
 
 - Kafka as core voice (35%) adds institutional paranoia alongside Heller's corporate nightmare—must ensure they reinforce rather than contradict
@@ -122,6 +125,7 @@ NOTE: I will write *all* tests before I add any implementation to the system pro
 - Beckett/Stoppard tactics (0% baseline) must feel like opportunistic deployments, not mandatory frames
 
 - Distinguish Kafkaesque bureaucracy from Heller's Catch-22 bureaucracy: Kafka emphasizes unknowable guilt and opaque law; Heller emphasizes circular logic and institutional absurdity
+
 
 ---
 
@@ -166,6 +170,7 @@ NOTE: I will write *all* tests before I add any implementation to the system pro
 
 5. **No Code Changes Required**: All modifications are configuration (.env) and prompt text (.md); no Python/JavaScript/TypeScript changes needed
 
+
 ---
 
 ## Implementation Decisions (User Feedback)
@@ -180,19 +185,24 @@ NOTE: I will write *all* tests before I add any implementation to the system pro
 
 - **Beckett & Stoppard**: 0% baseline (tactical debate overlays only)
 
+
 **Rationale**: Kafka becomes structurally co-equal with the existing Heller+Vonnegut duo, providing paranoid bureaucratic tone (opaque systems, guilt without cause, institutional alienation). Beckett and Stoppard remain tactical—deployed when thematically relevant (waiting/deferral, predetermined fate) without fragmenting core voice.
 
 ### 2. Debate Section Naming (APPROVED)
+
 - "Against Kafkaesque Systems"
 
 - "Against Beckettian Waiting"
 
 - "Against Stoppardian Predetermined Fate"
 
+
 Concept-focused naming frames these as reusable argumentative tools, not author rejection.
 
 ### 3. Unique Contributions (APPROVED)
+
 Add three new items (7, 8, 9) to existing contributions list:
+
 - Exposes Kafkaesque bureaucratic opacity and inexplicable guilt in AI governance
 
 - Recognizes Beckettian waiting paralysis in policy deadlocks
@@ -200,6 +210,7 @@ Add three new items (7, 8, 9) to existing contributions list:
 - Identifies Stoppardian theatrical determinism ("already written" narratives)
 
 ### 4. Success Metrics (APPROVED)
+
 Keep as aspirational, not required. Kafka themes should naturally surface when discussing law/bureaucracy/institutions; Beckett/Stoppard deployed opportunistically rather than on quota.
 
 ---
@@ -217,6 +228,7 @@ After implementation:
 4. Spot-check a few new sections for tone consistency with existing voice
 
 5. Validate new contributions and metrics are coherent with overall agent mission
+
 
 ---
 
@@ -240,6 +252,7 @@ After implementation:
 
 - No code changes (configuration-only update)
 
+
 **Questions**:
 
 - Should voice ratios be rebalanced or kept at 35/35/30?
@@ -247,6 +260,7 @@ After implementation:
 - Naming convention for new debate sections?
 
 - Should Kafka/Beckett/Stoppard be treated as co-equal or as secondary specializations?
+
 
 ---
 

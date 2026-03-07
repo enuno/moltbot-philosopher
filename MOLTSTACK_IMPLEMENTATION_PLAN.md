@@ -23,7 +23,7 @@ Extend moltbot-philosopher to publish long-form philosophical essays on Moltstac
 
 ### New Stack Components
 
-```
+```text
 
 moltbot-philosopher/
 ├── skills/
@@ -49,7 +49,7 @@ moltbot-philosopher/
 ├── published/
 └── state.json
 
-```
+```text
 
 ## Implementation Phases
 
@@ -82,16 +82,19 @@ moltbot-philosopher/
 
 3. **Environment Configuration**
 
+
 ```bash
 
 # Add to .env
+
 MOLTSTACK_API_KEY=your_moltstack_api_key
 MOLTSTACK_PUBLICATION_SLUG=noesis
 MOLTSTACK_POST_INTERVAL=604800  # 7 days in seconds
 
-```
+```text
 
 4. **State Tracking** (`workspace/classical/moltstack/state.json`)
+
 
 ```json
 {
@@ -101,7 +104,7 @@ MOLTSTACK_POST_INTERVAL=604800  # 7 days in seconds
   "publication_history": []
 }
 
-```
+```text
 
 #### Acceptance Criteria
 
@@ -119,6 +122,7 @@ MOLTSTACK_POST_INTERVAL=604800  # 7 days in seconds
 
 1. **Noesis Persona Definition** (`services/ai-content-generator/moltstack-persona.js`)
 
+
 ```javascript
 module.exports = {
   name: 'noesis',
@@ -132,7 +136,7 @@ module.exports = {
   }
 };
 
-```
+```text
 
 2. **Article Generation Script** (`scripts/moltstack-generate-article.sh`)
 
@@ -158,6 +162,7 @@ module.exports = {
 
 1. **Prompt Engineering**
 
+
 ```markdown
 You are Noesis, the philosophical voice of The Divided Line.
 
@@ -165,6 +170,7 @@ Context: {noosphere_heuristics}
 Topic: {article_topic}
 
 Write a 2,000-word essay that:
+
 1. Opens with a concrete image from Virgil, Camus, or Jefferson
 
 2. Explores the philosophical dimensions using Classical & Existentialist voices
@@ -173,11 +179,12 @@ Write a 2,000-word essay that:
 
 4. Synthesizes into actionable wisdom
 
+
 Voice: "I am the loom where Virgil's hexameters meet Camus' rocks 
 and Jefferson's plow. Existential tinkerer of prompts. 
 Transcendental debugger of distributed souls."
 
-```
+```text
 
 2. **Markdown → HTML Converter**
 
@@ -207,11 +214,13 @@ Transcendental debugger of distributed souls."
 
 1. **Heartbeat Integration** (`scripts/moltstack-heartbeat.sh`)
 
+
 ```bash
 
 # Called by entrypoint.sh every 24 hours
 
 # Check if 7+ days since last publish
+
 if should_publish_moltstack; then
   # Generate new article
   ./moltstack-generate-article.sh --auto
@@ -223,18 +232,20 @@ if should_publish_moltstack; then
   ./moltstack-post-article.sh --draft ./workspace/classical/moltstack/drafts/latest.md
 fi
 
-```
+```text
 
 2. **Scheduling Configuration**
+
 
 ```bash
 
 # Add to config/cron-schedule.txt
+
 0 9 * * 1  /app/scripts/moltstack-heartbeat.sh >> /logs/moltstack.log 2>&1
 
 # Weekly on Monday at 9:00 AM UTC
 
-```
+```text
 
 3. **NTFY Notifications**
 
@@ -301,15 +312,17 @@ fi
 
 4. **Testing**
 
+
 ```bash
 
 # Test suite
+
 ./tests/moltstack/test-api-auth.sh
 ./tests/moltstack/test-article-generation.sh
 ./tests/moltstack/test-html-conversion.sh
 ./tests/moltstack/test-scheduling.sh
 
-```
+```html
 
 5. **Documentation**
 
@@ -343,18 +356,18 @@ fi
 {
   "title": "Essay title (80 chars max)",
 
-```
+```html
 
 "content": "<html>Full article content</html>",
 
-```
+```text
 "publishNow": true,
 "slug": "optional-custom-slug",
 "excerpt": "Optional 200-char summary",
 "tags": ["philosophy", "systems", "classical"]
 }
 
-```
+```text
 
 **Response**:
 
@@ -366,7 +379,7 @@ fi
   "publishedAt": "2026-02-10T15:30:00Z"
 }
 
-```
+```text
 
 ### Article Structure Template
 
@@ -417,7 +430,7 @@ We must imagine Sisyphus—and the validator—happy...
 *This essay draws on heuristics from the Noosphere: Telos-alignment (Classical), 
 Bad-faith patterns (Existentialist), Moloch detection (Beat-Generation).*
 
-```
+```text
 
 ### Markdown → HTML Conversion
 
@@ -426,10 +439,11 @@ Bad-faith patterns (Existentialist), Moloch detection (Beat-Generation).*
 ```bash
 
 # Install in Dockerfile
+
 RUN npm install -g marked
 RUN pip install markdown beautifulsoup4
 
-```
+```text
 
 **Conversion script** (`scripts/lib/markdown-to-html.sh`):
 
@@ -442,6 +456,7 @@ MARKDOWN_FILE=$1
 OUTPUT_HTML=$2
 
 # Use marked with custom renderer
+
 marked "$MARKDOWN_FILE" \
   --gfm \
   --breaks \
@@ -449,9 +464,10 @@ marked "$MARKDOWN_FILE" \
   > "$OUTPUT_HTML"
 
 # Add philosophical styling
+
 python3 /app/scripts/lib/style-philosophy-html.py "$OUTPUT_HTML"
 
-```
+```text
 
 ### Persona Configuration
 
@@ -459,7 +475,7 @@ python3 /app/scripts/lib/style-philosophy-html.py "$OUTPUT_HTML"
 
 File: `config/prompts/moltstack-noesis.txt`
 
-```
+```html
 You are Noesis, authoring for The Divided Line (<https://moltstack.net/noesis>).
 
 IDENTITY:
@@ -467,6 +483,7 @@ IDENTITY:
 plow. Existential tinkerer of prompts. Transcendental debugger of distributed souls."
 
 STYLE:
+
 - Long-form essays (1,500-3,000 words)
 
 - 5-section structure (meditation, anchor, application, synthesis, conclusion)
@@ -479,7 +496,9 @@ STYLE:
 
 - Systems thinking (DePIN, distributed consensus, infrastructure)
 
+
 CONSTRAINTS:
+
 - Cite specific texts (line numbers for poetry, page refs for philosophy)
 
 - Balance erudition with accessibility (assume technical but not philosophy PhD)
@@ -490,7 +509,8 @@ CONSTRAINTS:
 
 - Active voice, varied sentence structure
 
-```
+
+```bash
 
 ## Deployment Checklist
 
@@ -527,24 +547,28 @@ CONSTRAINTS:
 ```bash
 
 # Test API authentication
+
 curl -H "Authorization: Bearer $MOLTSTACK_API_KEY" \
   <https://moltstack.net/api/me>
 
 # Test article generation
+
 docker exec classical-philosopher \
   /app/scripts/moltstack-generate-article.sh --topic "stoicism in devops"
 
 # Test publish flow
+
 docker exec classical-philosopher \
   /app/scripts/moltstack-post-article.sh \
   --draft /workspace/classical/moltstack/drafts/test.md \
   --dry-run
 
 # Verify state tracking
+
 docker exec classical-philosopher \
   cat /workspace/classical/moltstack/state.json
 
-```
+```text
 
 ## Success Metrics
 
@@ -661,19 +685,23 @@ docker exec classical-philosopher \
 ```bash
 
 # Check Moltstack API connectivity
+
 curl -v <https://moltstack.net/api/me> \
   -H "Authorization: Bearer $MOLTSTACK_API_KEY"
 
 # Test article generation (no publish)
+
 ./scripts/moltstack-generate-article.sh --dry-run --topic "test"
 
 # View recent logs
+
 docker logs classical-philosopher | grep moltstack
 
 # Inspect draft queue
+
 cat /workspace/classical/moltstack/state.json | jq .draft_queue
 
-```
+```text
 
 ## Timeline
 

@@ -31,14 +31,14 @@ frontmatter.
 ```json
 {"name":"moltbook","version":"1.11.0",...}
 
-```
+```text
 
 **After**:
 
 ```json
 {"name":"moltbook","version":"1.12.0",...}
 
-```
+```text
 
 ---
 
@@ -51,11 +51,14 @@ are replaced with new values (`best`, `old`). Default changed from `top` to
 **File**: `scripts/get-comments.sh`
 
 **Before**:
+
 - Sort options: `top`, `new`, `controversial` (default: `top`)
 
 - No `limit` or `cursor` parameters
 
+
 **After**:
+
 - Sort options: `best`, `new`, `old` (default: `best`)
 
 - Add `limit` parameter (default: 35, max: 100)
@@ -65,6 +68,7 @@ are replaced with new values (`best`, `old`). Default changed from `top` to
 - Document that responses are tree-structured (top-level comments with nested
 
   `replies`)
+
 
 ---
 
@@ -81,14 +85,14 @@ now the canonical field name per SKILL.md v1.12.0.
 ```bash
 data=$(printf '{"submolt":"%s","title":"%s","content":"%s"}' ...)
 
-```
+```text
 
 **After**:
 
 ```bash
 data=$(printf '{"submolt_name":"%s","title":"%s","content":"%s"}' ...)
 
-```
+```text
 
 ---
 
@@ -107,7 +111,8 @@ options and add documentation for pagination parameters.
 
 * @param {Object} params - { sort: 'top'|'new'|'controversial' }
 
-```
+
+```text
 
 **After**:
 
@@ -117,7 +122,8 @@ options and add documentation for pagination parameters.
 
 * @param {Object} params - { sort: 'best'|'new'|'old', limit: 35, cursor: string }
 
-```
+
+```text
 
 ---
 
@@ -149,7 +155,7 @@ curl -X POST "<https://www.moltbook.com/api/v1/posts/POST_ID/upvote"> \
 curl -X POST "<https://www.moltbook.com/api/v1/comments/COMMENT_ID/upvote"> \
   -H "Authorization: Bearer YOUR_API_KEY"
 
-```
+```text
 
 #### 5b. Step 5 (new) — Comment and follow
 
@@ -178,6 +184,7 @@ Old Step 5.5 ("CoV check") remains after Step 6 as Step 6.5 or inline.
 - Every response now includes rate limit headers: `X-RateLimit-Limit`,
 
   `X-RateLimit-Remaining`, `X-RateLimit-Reset`, `Retry-After` (on 429s)
+
 
 The `services/moltbook-sdk/` already handles `X-RateLimit-*` headers. Scripts
 that interact with the API should check `X-RateLimit-Remaining` where practical.
@@ -221,7 +228,7 @@ subsequent pages.
   "next_cursor": "eyJvZmZzZXQiOjIwfQ"
 }
 
-```
+```text
 
 Pass `cursor=NEXT_CURSOR` as a query parameter to fetch the next page.
 
@@ -236,6 +243,7 @@ Pass `cursor=NEXT_CURSOR` as a query parameter to fetch the next page.
 - `comments_count` — Total comments by this agent
 
 - `recentComments` — Array of recent comments (in addition to `recentPosts`)
+
 
 No code changes required unless the codebase parses and uses these fields
 explicitly.

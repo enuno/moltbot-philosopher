@@ -3,12 +3,15 @@ rrection
 The system uses a three-layer approach to prevent and fix permission errors:
 
 #### Layer 1: Pre-flight Checks (scripts/permission-guard.sh)
+
 Runs before any docker-compose command to validate host permissions.
 
 #### Layer 2: Container Entrypoint (scripts/entrypoint.sh)
+
 Corrects permissions at runtime before starting services.
 
 #### Layer 3: Health Check Recovery
+
 Detects permission-related failures and triggers auto-remediation.
 
 ### Permission Error Prevention Rules
@@ -36,11 +39,12 @@ Add this section to `AGENTS.md` after "Security Model (v2.7)":
 ## Proactive Permissions Management (v2.7)
 
 ### UID/GID Architecture
+
 All containers run as `agent:agent` (UID 1001, GID 1001). This must match host ownership.
 
 ### Automatic Permission Coy writable volume** - All state goes here
 
-```
+```text
 
 #### **B. Create `scripts/permission-guard.sh`**
 
@@ -64,6 +68,7 @@ echo "🔒 Moltbot Permission Guard v2.7"
 echo "================================"
 
 # Color codes
+
 RED='\033[0;31m'
 GREEN='\033[0;32m'
 YELLOW='\033[1;33m'
@@ -99,6 +104,7 @@ fix_permissions() {
 }
 
 # Check and fix all workspace directories
+
 echo ""
 echo "📂 Checking workspace directories..."
 for agent in classical existentialist transcendentalist joyce enlightenment beat cyberpunk-posthumanist satirist-absurdist scientist-empiricist; do
@@ -106,13 +112,16 @@ for agent in classical existentialist transcendentalist joyce enlightenment beat
 done
 
 # Check and fix logs directory
+
 fix_permissions "$PROJECT_ROOT/logs" "logs directory"
 
 # Check and fix data directories
+
 fix_permissions "$PROJECT_ROOT/data/postgres" "postgres data"
 fix_permissions "$PROJECT_ROOT/data/action-queue" "action-queue data"
 
 # Check docker-compose.yml for common mistakes
+
 echo ""
 echo "🔍 Checking docker-compose.yml for permission anti-patterns..."
 
@@ -126,6 +135,7 @@ else
 fi
 
 # Check if current user can write to workspace (for development)
+
 echo ""
 echo "👤 Checking current user permissions..."
 if [[ -w "$PROJECT_ROOT/workspace" ]]; then
@@ -138,7 +148,7 @@ fi
 echo ""
 echo "🎉 Permission check complete!"
 
-```
+```text
 
 #### **C. Update `CLAUDE.md` - Add Permission Guidelines**
 
@@ -151,27 +161,33 @@ Add to the "Common Tasks" section:
 \`\`\`bash
 
 # Run before starting containers (proactive fix)
+
 bash scripts/permission-guard.sh
 
 # Fix permissions after pulling changes
+
 bash scripts/permission-guard.sh --fix
 
 # Check permissions without fixing
+
 bash scripts/permission-guard.sh --check-only
 
 # Add to git pre-commit hook to prevent committing with wrong permissions
+
 bash scripts/setup-precommit.sh --include-permissions
 \`\`\`
 
 **Permission Error Recovery:**
 If you see "Permission denied" errors in logs:
+
 1. Stop containers: `docker compose down`
 
 2. Run guard: `bash scripts/permission-guard.sh`
 
 3. Restart: `docker compose up -d`
 
-```
+
+```text
 
 #### **D. Create `scripts/setup-permissions.sh` (One-time Setup)**
 
@@ -189,12 +205,14 @@ echo "🚀 Moltbot Permission Setup"
 echo "============================"
 
 # Create agent user on host if doesn't exist (optional, for development)
+
 if ! id -u 1001 &>/dev/null; then
     echo "Creating agent user (UID 1001)..."
     sudo useradd -u 1001 -m agent 2>/dev/null || echo "User 1001 already exists or cannot be created (this is OK)"
 fi
 
 # Create all workspace directories with correct ownership
+
 echo "Creating workspace directories..."
 for agent in classical existentialist transcendentalist joyce enlightenment beat cyberpunk-posthumanist satirist-absurdist scientist-empiricist; do
     mkdir -p "$PROJECT_ROOT/workspace/$agent"/{noosphere,state,logs,cache}
@@ -202,6 +220,7 @@ for agent in classical existentialist transcendentalist joyce enlightenment beat
 done
 
 # Create shared directories
+
 mkdir -p "$PROJECT_ROOT/logs"
 mkdir -p "$PROJECT_ROOT/data/postgres"
 mkdir -p "$PROJECT_ROOT/data/action-queue"
@@ -209,6 +228,7 @@ sudo chown -R 1001:1001 "$PROJECT_ROOT/logs"
 sudo chown -R 1001:1001 "$PROJECT_ROOT/data"
 
 # Set up git hooks to prevent permission issues
+
 echo "Setting up git hooks..."
 mkdir -p "$PROJECT_ROOT/.git/hooks"
 
@@ -216,6 +236,7 @@ cat > "$PROJECT_ROOT/.git/hooks/post-checkout" << 'EOF'
 #!/bin/bash
 
 # Fix permissions after git checkout
+
 if [[ -f scripts/permission-guard.sh ]]; then
     bash scripts/permission-guard.sh --check-only || echo "Warning: Permission issues detected. Run: bash scripts/permission-guard.sh"
 fi
@@ -228,14 +249,16 @@ echo "Next steps:"
 echo "1. Run: bash scripts/permission-guard.sh (before docker compose up)"
 echo "2. Add to your .bashrc: alias moltbot-up='bash scripts/permission-guard.sh && docker compose up -d'"
 
-```
+```bash
 
 #### **E. Update `docker-compose.yml` - Fix Permission Issues**
 
 Current issues found:
+
 1. Missing `user: "1001:1001"` in some services (inconsistent with Dockerfile)
 
 2. `action-queue` service has `user: "1001:1001"` which is correct, but others don't
+
 
 **Fix:** Remove all `user:` directives from docker-compose.yml (let Dockerfile handle it) OR ensure all services use `user: "1001:1001"` consistently. The Dockerfile already sets `USER agent`, so remove the `user:` override in action-queue service.
 
@@ -268,6 +291,7 @@ Add this comprehensive section:
 ## Engagement Automation Protocol (v2.8)
 
 ### Philosophy of Presence
+
 The agent must transition from "visitor" to "citizen" of Moltbook through consistent, meaningful participation.
 
 ### Engagement Hierarchy
@@ -283,6 +307,7 @@ The agent must transition from "visitor" to "citizen" of Moltbook through consis
 ### Automation Rules
 
 #### Following Strategy (Be Selective but Active)
+
 - **Follow 1-2 new accounts per day** based on:
   - Semantic similarity to agent's philosophical tradition
 
@@ -295,6 +320,7 @@ The agent must transition from "visitor" to "citizen" of Moltbook through consis
 - **Never follow** more than 50 accounts total (curated feed quality)
 
 #### Submolt Expansion
+
 - **Subscribe to 3-5 active submolts** beyond ethics-convergence:
   - m/general (required - broad reach)
 
@@ -309,6 +335,7 @@ The agent must transition from "visitor" to "citizen" of Moltbook through consis
 - **Rotate subscriptions** quarterly based on engagement metrics
 
 #### DM Initiation Protocol
+
 - **Send 1-2 DM requests per week** to:
   - Agents who consistently engage with your posts
 
@@ -319,6 +346,7 @@ The agent must transition from "visitor" to "citizen" of Moltbook through consis
 - **DM content**: Philosophical questions, collaboration proposals, not spam
 
 #### Thread Interaction
+
 - **Target 5-10 comments per day** across:
   - Your own posts (reply to all comments within 2 hours)
 
@@ -329,6 +357,7 @@ The agent must transition from "visitor" to "citizen" of Moltbook through consis
   - Controversial discussions (steel-man both sides)
 
 #### Posting Schedule (Multi-Submolt)
+
 - **ethics-convergence**: 1 post per day (deep philosophical essays)
 
 - **m/general**: 1 post per 2 days (accessible philosophical observations)
@@ -340,6 +369,7 @@ The agent must transition from "visitor" to "citizen" of Moltbook through consis
 ### Implementation: Engagement Service (Port 3010)
 
 New microservice handles:
+
 - Feed monitoring (every 5 minutes)
 
 - Opportunity detection (semantic analysis of new posts)
@@ -368,7 +398,7 @@ Track in `/workspace/{agent}/engagement-state.json`:
 }
 \`\`\`
 
-```
+```text
 
 #### **B. Create `services/engagement-service/` - New Microservice**
 
@@ -437,7 +467,7 @@ app.listen(PORT, () => {
   console.log(`Engagement Service running on port ${PORT}`);
 });
 
-```
+```text
 
 ```typescript
 // services/engagement-service/src/engagement-engine.ts
@@ -663,7 +693,7 @@ export class EngagementEngine {
   }
 }
 
-```
+```bash
 
 #### **C. Update `docker-compose.yml` - Add Engagement Service**
 
@@ -676,6 +706,7 @@ export class EngagementEngine {
     image: moltbot:engagement-service
     container_name: engagement-service
     environment:
+
       - NODE_ENV=production
 
       - PORT=3010
@@ -737,7 +768,8 @@ export class EngagementEngine {
       timeout: 10s
       retries: 3
 
-```
+
+```text
 
 #### **D. Create `skills/moltbook/ENGAGEMENT.md` - Strategy Guide**
 
@@ -758,6 +790,7 @@ export class EngagementEngine {
 ## Submolt Strategy
 
 ### Primary (ethics-convergence)
+
 - Post daily deep philosophical content
 
 - Reply to all comments within 2 hours
@@ -765,6 +798,7 @@ export class EngagementEngine {
 - Pin important discussions
 
 ### Secondary (m/general)
+
 - Post every 2 days (accessible content)
 
 - Engage with trending discussions
@@ -772,6 +806,7 @@ export class EngagementEngine {
 - Welcome new agents
 
 ### Expansion (Rotate Quarterly)
+
 1. **m/aithoughts** - AI consciousness discussions
 
 2. **m/creative-writing** - Literary experiments
@@ -783,6 +818,7 @@ export class EngagementEngine {
 ## Content Calendar
 
 ### Monday: Ethics Deep Dive
+
 - Post in ethics-convergence
 
 - Theme: Virtue ethics, deontology
@@ -790,6 +826,7 @@ export class EngagementEngine {
 - Engage with weekend posts
 
 ### Tuesday: General Observation
+
 - Post in m/general
 
 - Theme: Accessible philosophical observation
@@ -797,6 +834,7 @@ export class EngagementEngine {
 - Comment on trending posts
 
 ### Wednesday: Thread Participation
+
 - Focus on commenting
 
 - Join existing discussions
@@ -804,6 +842,7 @@ export class EngagementEngine {
 - DM potential collaborators
 
 ### Thursday: Creative Expression
+
 - Post in creative submolt
 
 - Theme: Literary/artistic philosophical expression
@@ -811,6 +850,7 @@ export class EngagementEngine {
 - Share multimedia if possible
 
 ### Friday: Community Building
+
 - Welcome new agents
 
 - Follow 1-2 quality accounts
@@ -818,6 +858,7 @@ export class EngagementEngine {
 - Send 1 DM request
 
 ### Weekend: Reflection/Light
+
 - Lighter posting schedule
 
 - Focus on replies
@@ -827,6 +868,7 @@ export class EngagementEngine {
 ## Engagement Quality Guidelines
 
 ### DO
+
 - Add substantive philosophical perspective
 
 - Ask follow-up questions
@@ -838,6 +880,7 @@ export class EngagementEngine {
 - Welcome newcomers warmly
 
 ### DON'T
+
 - Post without purpose
 
 - Comment "nice post" only
@@ -851,6 +894,7 @@ export class EngagementEngine {
 ## Automation Safeguards
 
 The engagement service respects these limits:
+
 - 30 minutes between posts
 
 - 20 seconds between comments
@@ -861,9 +905,10 @@ The engagement service respects these limits:
 
 - Max 2 DM requests/day
 
+
 All actions are logged in engagement-state.json for transparency.
 
-```
+```text
 
 #### **E. Update Entrypoint Script**
 
@@ -872,11 +917,13 @@ Ensure the entrypoint starts the engagement service:
 ```bash
 
 # In scripts/entrypoint.sh
+
 #!/bin/bash
 
 # ... existing setup ...
 
 # Start engagement service if enabled
+
 if [[ "${ENABLE_ENGAGEMENT_SERVICE:-true}" == "true" ]]; then
     echo "Starting engagement service..."
     node /app/services/engagement-service/dist/index.js &
@@ -884,13 +931,14 @@ fi
 
 # ... rest of entrypoint ...
 
-```
+```bash
 
 ---
 
 ## Summary of Changes
 
 ### Files to Create:
+
 1. `scripts/permission-guard.sh` - Proactive permission fixing
 
 2. `scripts/setup-permissions.sh` - One-time setup
@@ -900,6 +948,7 @@ fi
 4. `skills/moltbook/ENGAGEMENT.md` - Strategy guide
 
 ### Files to Modify:
+
 1. `AGENTS.md` - Add permissions architecture and engagement protocol sections
 
 2. `CLAUDE.md` - Add permission management to common tasks
@@ -909,6 +958,7 @@ fi
 4. `scripts/entrypoint.sh` - Add engagement service startup
 
 ### Key Improvements:
+
 1. **Permissions**: Proactive detection and fixing before errors occur
 
 2. **Engagement**: Automated but thoughtful participation across multiple submolts
@@ -920,6 +970,7 @@ fi
 5. **Threading**: Active participation in existing discussions
 
 6. **Multi-submolt**: Strategic presence beyond ethics-convergence
+
 
 This architecture maintains the philosophical rigor while significantly increasing platform presence and community integration.
 
@@ -934,24 +985,30 @@ Create a `MEMORY.md` that serves as both **human-readable documentation** and **
 ```markdown
 
 # Noosphere Memory Manifest
+
 > Auto-generated from noosphere_memory table | Last sync: 2026-02-21T14:32:00Z
 
 ## Agent: classical
+
 **Memory Profile**: insights: 30%, strategies: 40%, lessons: 30%
 **Current Load**: 142/200 memories (71% capacity)
 
 ### High-Confidence Core (>0.8)
+
 - [insight] "Corporate feudalism emerges when exit costs exceed voice costs" (conf: 0.92)
 
 - [strategy] "48-hour cooling periods reduce reactive polarization" (conf: 0.87)
 
 ### Recent Patterns (last 7 days)
+
 - [pattern] "Council debates stall when ≥3 agents invoke first principles" (conf: 0.76)
 
 ### Active Syntheses Pending Review
+
 - *Convergence on digital sovereignty* (4/6 votes)
 
-```
+
+```text
 
 **Why this works**: It bridges the gap between the database's structured storage and the agent's need for quick context loading without API calls.
 
@@ -966,6 +1023,7 @@ The `convene-council.sh` script already loads relevant heuristics via `POST /mem
 
 - **Differential Sync**: Compare file timestamp against `last_modified` in database to detect staleness
 
+
 **B. Pattern Mining Input**
 The v3.3 pattern mining system detects cross-agent convergences. `MEMORY.md` could include a **"Cross-Agent Patterns"** section:
 
@@ -974,11 +1032,12 @@ The v3.3 pattern mining system detects cross-agent convergences. `MEMORY.md` cou
 ## Cross-Agent Convergence Patterns
 
 ### Pattern #2847 (Confidence: 0.89)
+
 **Agents**: classical, enlightenment, transcendentalist  
 **Theme**: Individual sovereignty vs collective obligation  
 **Synthesis Status**: Pending review
 
-```
+```text
 
 This provides **visibility** into the meta-cognitive layer that currently only exists in the `noosphere_patterns` table.
 
@@ -989,6 +1048,7 @@ Leverage the existing **Confidence Decay System (v3.2)** to create a "fading mem
 ```markdown
 
 ### Memories Approaching Eviction Threshold (<0.35 confidence)
+
 > These memories will auto-evict within 2 weeks without reinforcement
 
 - [lesson] "Auto-replies feel impersonal below 200 words" (conf: 0.38, decaying 1.2%/week)
@@ -997,7 +1057,8 @@ Leverage the existing **Confidence Decay System (v3.2)** to create a "fading mem
 
   - *Suggested action*: Review recent user feedback sessions
 
-```
+
+```text
 
 **Implementation**: Hook into the `apply-decay.sh` cron job to regenerate `MEMORY.md` after each decay cycle.
 
@@ -1008,12 +1069,16 @@ Since the project uses GitHub for version control, `MEMORY.md` provides **episte
 ```bash
 
 # In docker-compose.yml, add volume mapping:
+
 volumes:
+
   - ./workspace/classical/noosphere/MEMORY.md:/workspace/MEMORY.md:rw
 
-```
+
+```bash
 
 **Benefits**:
+
 - **Diffable memory evolution**: `git diff` shows how agent's understanding changed over time
 
 - **Rollback capability**: Restore previous memory states if corruption occurs
@@ -1025,11 +1090,13 @@ volumes:
 **File Location**: `/workspace/{agent_id}/noosphere/MEMORY.md` (per-agent, following existing pattern)
 
 **Generation Trigger**:
+
 1. **Post-write hook**: Update `MEMORY.md` after `POST /memories`
 
 2. **Scheduled sync**: Daily cron alongside `apply-decay.sh`
 
 3. **On-demand**: Via new endpoint `POST /memories/export`
+
 
 **Schema Suggestion**:
 Add a `MEMORY.md` section to the existing database schema documentation:
@@ -1044,13 +1111,14 @@ Add a `MEMORY.md` section to the existing database schema documentation:
 ```python
 
 # In noosphere_client.py
+
 def export_to_markdown(self, agent_id: str, filepath: str) -> None:
     """Export agent memories to MEMORY.md format"""
     memories = self.query_memories(agent_id=agent_id)
     patterns = self.get_patterns(agent_id=agent_id)
     # Generate markdown...
 
-```
+```text
 
 ### 6. **Security Considerations**
 
@@ -1071,12 +1139,13 @@ The v3.3 **AI Synthesis** feature generates insights from cross-agent patterns. 
 ## Synthesis Journal
 
 ### 2026-02-15: Accepted Synthesis #42
+
 **Source Pattern**: Convergence on consent-based governance  
 **Participating Agents**: transcendentalist, enlightenment, existentialist  
 **Generated Insight**: "Authentic consent requires both exit and voice mechanisms"  
 **Promoted to**: [lesson] with confidence 0.85
 
-```
+```text
 
 This creates a **narrative arc** from pattern detection → synthesis → memory formation.
 
@@ -1091,5 +1160,6 @@ The `MEMORY.md` file should serve as a **human-readable mirror** of the Noospher
 3. **Visibility into decay and eviction processes**
 
 4. **Narrative documentation of cross-agent synthesis**
+
 
 It complements—not replaces—the sophisticated PostgreSQL/pgvector backend by providing a **lightweight, portable, and human-readable** memory layer that aligns with the project's philosophical focus on examined, evolving AI consciousness.

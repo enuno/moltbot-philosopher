@@ -3,11 +3,13 @@
 ## Quick Reference
 
 **Services**:
+
 - Proxy: `<http://localhost:8082`> (egress-proxy)
 
 - Verification Service: `<http://localhost:3007`> (verification-service)
 
 - AI Generator: `<http://localhost:3002`> (moltbot-ai-generator, internal port 3000)
+
 
 **Logs**:
 
@@ -16,7 +18,7 @@ docker logs moltbot-egress-proxy --tail 50
 docker logs verification-service --tail 50
 docker logs moltbot-ai-generator --tail 50
 
-```
+```text
 
 **Quick Health Check**:
 
@@ -25,18 +27,20 @@ curl -s <http://localhost:8082/health> | jq '.status'
 curl -s <http://localhost:3007/health> | jq '.status'
 curl -s <http://localhost:3002/health> | jq '.status'
 
-```
+```text
 
 ---
 
 ## Issue 1: Verification Service Shows "fetch failed"
 
 **Symptoms**:
+
 - Logs show: `"error": "fetch failed"`
 
 - Verification service cannot reach AI Generator
 
 - Challenges fail with 3 retry attempts
+
 
 **Root Causes**:
 
@@ -47,7 +51,7 @@ curl -s <http://localhost:3002/health> | jq '.status'
 ```bash
 docker exec verification-service env | grep AI_GENERATOR_URL
 
-```
+```html
 
 **Expected**: `AI_GENERATOR_URL=<http://moltbot-ai-generator:3000`>
 
@@ -58,9 +62,10 @@ docker exec verification-service env | grep AI_GENERATOR_URL
 # Edit docker-compose.yml
 
 # Change AI_GENERATOR_URL to: <http://moltbot-ai-generator:3000>
+
 docker compose up -d verification-service
 
-```
+```text
 
 ### 1B: AI Generator Not Running
 
@@ -69,14 +74,14 @@ docker compose up -d verification-service
 ```bash
 docker compose ps moltbot-ai-generator
 
-```
+```text
 
 **Fix**:
 
 ```bash
 docker compose start moltbot-ai-generator
 
-```
+```text
 
 ### 1C: Network Issue
 
@@ -85,14 +90,14 @@ docker compose start moltbot-ai-generator
 ```bash
 docker exec verification-service wget -qO- <http://moltbot-ai-generator:3000/health>
 
-```
+```text
 
 **If fails**: Check Docker network
 
 ```bash
 docker network inspect moltbot-network | jq '.[0].Containers'
 
-```
+```text
 
 **Fix**: Recreate network
 
@@ -100,18 +105,20 @@ docker network inspect moltbot-network | jq '.[0].Containers'
 docker compose down
 docker compose up -d
 
-```
+```text
 
 ---
 
 ## Issue 2: Proxy Not Delegating Complex Challenges
 
 **Symptoms**:
+
 - Complex challenges handled by standard pipeline
 
 - `delegationAttempts` stays at 0
 
 - Stack challenges fail validation
+
 
 **Root Causes**:
 
@@ -122,7 +129,7 @@ docker compose up -d
 ```bash
 docker logs moltbot-egress-proxy --tail 100 | grep "Complex challenge detected"
 
-```
+```text
 
 **Test Pattern Matching**:
 
@@ -135,7 +142,7 @@ log('debug', 'Pattern check', {
   complexityScore: complexityScore
 });
 
-```
+```javascript
 
 **Fix**: Update patterns in `detectComplexChallenge()` function
 
@@ -147,14 +154,14 @@ log('debug', 'Pattern check', {
 docker compose ps verification-service
 curl <http://localhost:3007/health>
 
-```
+```text
 
 **Fix**:
 
 ```bash
 docker compose up -d verification-service
 
-```
+```text
 
 ### 2C: VERIFICATION_SERVICE_URL Not Set
 
@@ -163,7 +170,7 @@ docker compose up -d verification-service
 ```bash
 docker exec moltbot-egress-proxy env | grep VERIFICATION_SERVICE_URL
 
-```
+```html
 
 **Expected**: `VERIFICATION_SERVICE_URL=<http://verification-service:3007`>
 
@@ -172,20 +179,23 @@ docker exec moltbot-egress-proxy env | grep VERIFICATION_SERVICE_URL
 ```bash
 
 # Edit docker-compose.yml egress-proxy environment
+
 docker compose up -d egress-proxy
 
-```
+```text
 
 ---
 
 ## Issue 3: Challenge Validation Failures
 
 **Symptoms**:
+
 - `validation.valid: false` in response
 
 - Challenges marked as solved but not submitted
 
 - Stats show high failure rate for specific scenario
+
 
 **Root Causes**:
 
@@ -199,9 +209,10 @@ curl -s <http://localhost:3007/solve> \
   -d '{"challengeId":"test","question":"stack_challenge_v1 test","expiresAt":"2026-12-31T00:00:00Z"}' | \
   jq '.validation.reasons'
 
-```
+```text
 
 **Common Issues**:
+
 - Too many/few sentences → Adjust AI prompt
 
 - Markdown formatting → AI adds `*` or `` ` ``
@@ -210,6 +221,7 @@ curl -s <http://localhost:3007/solve> \
 
 - Hedging → AI says "I think", "maybe", "sorry"
 
+
 **Fix**: Adjust AI Generator prompt in `VerificationSolverEnhanced.ts`:
 
 ```typescript
@@ -217,7 +229,7 @@ prompt: `Answer this verification question concisely and accurately.
 Follow ALL constraints strictly. Use plain text only, no markdown.
 Be direct and confident, no apologies or hedging.\n\n${question}\n\nAnswer:`
 
-```
+```text
 
 ### 3B: Validation Rules Too Strict
 
@@ -226,7 +238,7 @@ Be direct and confident, no apologies or hedging.\n\n${question}\n\nAnswer:`
 ```bash
 docker logs verification-service | grep "Validation failed" | jq
 
-```
+```text
 
 **Adjust Rules**: Edit `src/solver/scenarios/StackChallengeV1.ts`
 
@@ -243,7 +255,7 @@ if (sentences.length < 2 || sentences.length > 3) {
   reasons.push(`Expected 2-3 sentences, got ${sentences.length}`);
 }
 
-```
+```text
 
 **Rebuild**:
 
@@ -253,18 +265,20 @@ pnpm build
 docker compose build verification-service
 docker compose up -d verification-service
 
-```
+```text
 
 ---
 
 ## Issue 4: High Latency (>10s)
 
 **Symptoms**:
+
 - Challenges take >10s to resolve
 
 - Stats show high p99 latency
 
 - Timeouts occurring
+
 
 **Root Causes**:
 
@@ -277,7 +291,7 @@ time curl -s -X POST <http://localhost:3002/generate> \
   -H "Content-Type: application/json" \
   -d '{"topic":"Test","provider":"venice"}' | jq
 
-```
+```text
 
 **Expected**: <2s response
 
@@ -286,7 +300,7 @@ time curl -s -X POST <http://localhost:3002/generate> \
 ```bash
 docker exec moltbot-ai-generator env | grep VENICE_API_KEY
 
-```
+```text
 
 ### 4B: Retry Loops
 
@@ -297,17 +311,18 @@ curl -s <http://localhost:3007/stats> | jq
 
 # Look for high failed count with many attempts
 
-```
+```text
 
 **Adjust Retries**:
 
 ```bash
 
 # In docker-compose.yml:
+
 MAX_RETRIES=2  # Reduce from 3
 TIMEOUT_MS=5000  # Reduce from 10000
 
-```
+```text
 
 ### 4C: Network Latency
 
@@ -316,7 +331,7 @@ TIMEOUT_MS=5000  # Reduce from 10000
 ```bash
 docker exec verification-service time wget -qO- <http://moltbot-ai-generator:3000/health>
 
-```
+```text
 
 **Expected**: <100ms
 
@@ -325,18 +340,20 @@ docker exec verification-service time wget -qO- <http://moltbot-ai-generator:300
 ```bash
 docker stats moltbot-egress-proxy verification-service moltbot-ai-generator
 
-```
+```text
 
 ---
 
 ## Issue 5: Detection Methods Not Working
 
 **Symptoms**:
+
 - Known challenge formats not detected
 
 - Challenges passed through without handling
 
 - Stats show 0 challenges detected
+
 
 **Diagnosis**:
 
@@ -347,15 +364,18 @@ docker stats moltbot-egress-proxy verification-service moltbot-ai-generator
 ```bash
 
 # Test top-level detection
+
 echo '{"verification_challenge":{"id":"test","question":"Q"}}' | jq
 
 # Test nested type
+
 echo '{"type":"verification_challenge","id":"test","question":"Q"}' | jq
 
 # Test metadata
+
 echo '{"metadata":{"is_verification":true},"id":"test","question":"Q"}' | jq
 
-```
+```text
 
 ### 5B: Check Proxy Detection Logic
 
@@ -364,7 +384,7 @@ echo '{"metadata":{"is_verification":true},"id":"test","question":"Q"}' | jq
 ```bash
 docker exec moltbot-egress-proxy cat /app/index.js | grep -A 50 "Enhanced detection"
 
-```
+```text
 
 **Test Pattern**:
 
@@ -377,7 +397,7 @@ log('debug', 'Detection attempt', {
   // ... etc
 });
 
-```
+```text
 
 ### 5C: Update Detection Patterns
 
@@ -391,7 +411,7 @@ else if (json.custom_verification_field) {
   detectionMethod = 'custom_verification_field';
 }
 
-```
+```text
 
 **Rebuild**:
 
@@ -399,18 +419,20 @@ else if (json.custom_verification_field) {
 docker compose build egress-proxy
 docker compose up -d egress-proxy
 
-```
+```text
 
 ---
 
 ## Issue 6: Stats Endpoints Not Responding
 
 **Symptoms**:
+
 - `/stats` or `/solver-stats` return errors
 
 - 404 or 500 errors
 
 - Stats show NaN or null values
+
 
 **Fixes**:
 
@@ -421,7 +443,7 @@ docker compose ps
 
 # Ensure all services show "Up" status
 
-```
+```text
 
 ### 6B: Port Mapping Issues
 
@@ -430,9 +452,10 @@ docker compose ps
 ```bash
 docker compose ps | grep -E "8082|3007"
 
-```
+```text
 
 **Expected**:
+
 - `0.0.0.0:8082->8082/tcp` (proxy)
 
 - `0.0.0.0:3007->3007/tcp` (verification)
@@ -444,20 +467,23 @@ docker compose ps | grep -E "8082|3007"
 ```bash
 
 # Restart services to reset
+
 docker compose restart moltbot-egress-proxy verification-service
 
-```
+```text
 
 ---
 
 ## Issue 7: Account Suspended Despite Architecture
 
 **Symptoms**:
+
 - Account suspended again
 
 - Challenges appear to be failing
 
 - Verification logs show successes but suspension anyway
+
 
 **Investigation**:
 
@@ -468,12 +494,14 @@ docker compose restart moltbot-egress-proxy verification-service
 ```bash
 
 # Last 24 hours of challenges
+
 docker logs moltbot-egress-proxy --since 24h | grep "Challenge"
 docker logs verification-service --since 24h | grep "scenario"
 
-```
+```text
 
 **Look For**:
+
 - Challenges that bypassed proxy
 
 - Validation failures
@@ -487,12 +515,13 @@ docker logs verification-service --since 24h | grep "scenario"
 ```bash
 
 # All these should use egress-proxy:8082
+
 docker exec classical-philosopher env | grep MOLTBOOK_API_URL
 docker exec existentialist-philosopher env | grep MOLTBOOK_API_URL
 
 # ... etc for all agents
 
-```
+```html
 
 **Expected**: All show `<http://egress-proxy:8082/api/v1`>
 
@@ -504,7 +533,7 @@ docker exec existentialist-philosopher env | grep MOLTBOOK_API_URL
 grep -r "www.moltbook.com" scripts/ --exclude="*.log"
 grep -r "api.moltbook.com" services/ --exclude-dir=node_modules
 
-```
+```text
 
 **Expected**: 0 results (all should use env vars)
 
@@ -513,11 +542,13 @@ grep -r "api.moltbook.com" services/ --exclude-dir=node_modules
 ## Issue 8: Memory Leaks / Performance Degradation
 
 **Symptoms**:
+
 - Services slowing down over time
 
 - High memory usage
 
 - Container restarts
+
 
 **Diagnosis**:
 
@@ -526,9 +557,10 @@ grep -r "api.moltbook.com" services/ --exclude-dir=node_modules
 ```bash
 docker stats --no-stream moltbot-egress-proxy verification-service
 
-```
+```text
 
 **Limits**:
+
 - Proxy: 512MB limit
 
 - Verification: 512MB limit
@@ -540,14 +572,14 @@ docker stats --no-stream moltbot-egress-proxy verification-service
 ```bash
 docker compose restart moltbot-egress-proxy verification-service
 
-```
+```text
 
 **Monitor**:
 
 ```bash
 watch -n 5 'docker stats --no-stream moltbot-egress-proxy verification-service'
 
-```
+```text
 
 ### 8C: Clear Cache
 
@@ -556,25 +588,29 @@ watch -n 5 'docker stats --no-stream moltbot-egress-proxy verification-service'
 ```bash
 
 # Check cache size
+
 curl -s <http://localhost:8082/cache-stats> | jq '.size'
 
 # Cache clears automatically based on TTL
 
 # Or restart proxy to force clear
+
 docker compose restart moltbot-egress-proxy
 
-```
+```text
 
 ---
 
 ## Issue 9: Test Suite Failures
 
 **Symptoms**:
+
 - Unit tests failing
 
 - Integration tests timing out
 
 - Validation tests not passing
+
 
 **Fixes**:
 
@@ -584,14 +620,16 @@ docker compose restart moltbot-egress-proxy
 cd services/verification-service
 pnpm test -- --reporter=verbose
 
-```
+```text
 
 **Common Issues**:
+
 - Mocked fetch not matching actual behavior
 
 - Timeout values too low
 
 - Validation rules changed
+
 
 **Fix**: Update tests to match implementation
 
@@ -600,21 +638,23 @@ pnpm test -- --reporter=verbose
 ```bash
 
 # Increase timeout in test
+
 curl -s --max-time 30 <http://localhost:3007/solve> ...
 
-```
+```text
 
 ### 9C: Re-run Tests Clean
 
 ```bash
 
 # Clean install
+
 cd services/verification-service
 rm -rf node_modules
 pnpm install
 pnpm test
 
-```
+```text
 
 ---
 
@@ -638,11 +678,12 @@ echo "Stats Summary:"
 curl -s <http://localhost:8082/solver-stats> | jq '.summary'
 curl -s <http://localhost:3007/stats> | jq '{total, solved, failed, successRate}'
 
-```
+```html
 
 ### 2. Alert Thresholds
 
 **Set up monitoring for**:
+
 - Success rate <95%
 
 - Delegation failures >10%
@@ -658,12 +699,13 @@ curl -s <http://localhost:3007/stats> | jq '{total, solved, failed, successRate}
 ```bash
 
 # docker-compose.yml already has:
+
 logging:
   options:
     max-size: "10m"
     max-file: "3"
 
-```
+```text
 
 ---
 
@@ -674,38 +716,46 @@ logging:
 ```bash
 
 # Stop all services
+
 docker compose down
 
 # Clear logs if needed
+
 rm -rf logs/*
 
 # Restart
+
 docker compose up -d
 
 # Wait for health
+
 sleep 30
 
 # Check health
+
 curl <http://localhost:8082/health>
 curl <http://localhost:3007/health>
 
-```
+```text
 
 ### Rollback to Previous Version
 
 ```bash
 
 # View git history
+
 git log --oneline | head -10
 
 # Rollback to previous commit
+
 git checkout <commit-hash>
 
 # Rebuild
+
 docker compose build
 docker compose up -d
 
-```
+```text
 
 ### Bypass Verification Service (Emergency)
 
@@ -714,33 +764,40 @@ docker compose up -d
 # If verification service is broken, temporarily disable delegation
 
 # Edit proxy index.js:
+
 const complexReason = null;  // Force to always return null
 
 # Rebuild
+
 docker compose build egress-proxy
 docker compose up -d egress-proxy
 
-```
+```bash
 
 ---
 
 ## Support Contacts
 
 **Documentation**:
+
 - [Testing Guide](/docs/VERIFICATION_TESTING_GUIDE.md)
 
 - [Challenge Test Suite](/docs/CHALLENGE_TEST_SUITE.md)
 
 - [Architecture (AGENTS.md)](/AGENTS.md#two-layer-verification-architecture-v27-)
 
+
 **Logs Location**:
+
 - Proxy: `docker logs moltbot-egress-proxy`
 
 - Verification: `docker logs verification-service`
 
 - AI Generator: `docker logs moltbot-ai-generator`
 
+
 **Stats Endpoints**:
+
 - `<http://localhost:8082/solver-stats`> - Proxy pipeline stats
 
 - `<http://localhost:3007/stats`> - Verification service stats
