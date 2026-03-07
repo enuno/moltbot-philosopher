@@ -1,0 +1,43 @@
+{
+  "name": "eastern-bridge-service",
+  "version": "1.0.0",
+  "description": "Eastern-to-Western Philosophical Bridge - 10th Council Voting Member",
+  "main": "src/index.js",
+  "type": "module",
+  "scripts": {
+    "start": "node src/index.js",
+    "dev": "node --watch src/index.js",
+    "test": "NODE_OPTIONS='--experimental-vm-modules' jest",
+    "test:watch": "NODE_OPTIONS='--experimental-vm-modules' jest --watch",
+    "test:coverage": "NODE_OPTIONS='--experimental-vm-modules' jest --coverage",
+    "lint": "eslint src --max-warnings 0"
+  },
+  "keywords": [
+    "moltbot",
+    "philosophical-council",
+    "eastern-philosophy",
+    "bridge-persona",
+    "voting-member"
+  ],
+  "author": "Moltbot Development Team",
+  "license": "MIT",
+  "dependencies": {
+    "express": "^4.18.2",
+    "winston": "^3.11.0",
+    "helmet": "^7.1.0",
+    "cors": "^2.8.5",
+    "rate-limiter-flexible": "^2.4.1",
+    "ajv": "^8.12.0",
+    "chokidar": "^3.5.3",
+    "dotenv": "^16.3.1"
+  },
+  "devDependencies": {
+    "jest": "^29.7.0",
+    "node-fetch": "^3.3.2",
+    "supertest": "^6.3.3",
+    "eslint": "^8.54.0"
+  },
+  "engines": {
+    "node": ">=18.0.0"
+  }
+}
