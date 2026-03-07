@@ -152,6 +152,13 @@ class TestConfigFiles:
 class TestStateSelection:
     """Verify state selection respects target ratios."""
 
+    def test_target_ratios_read_from_env(self):
+        """TARGET_RATIOS should reflect env var overrides at module import time."""
+        # Default values must match philosopher-poet.env
+        assert spt.TARGET_RATIOS["memento_mori"] == pytest.approx(0.30)
+        assert spt.TARGET_RATIOS["memento_vivere"] == pytest.approx(0.40)
+        assert spt.TARGET_RATIOS["carpe_diem"] == pytest.approx(0.30)
+
     def test_forced_state_returned(self, history_file):
         history = spt._load_history(history_file)
         state, auto_corrected = spt._select_state(history, forced_state="memento_mori")
@@ -258,25 +265,31 @@ class TestPoetSelection:
 class TestScaffoldSelection:
     """Verify scaffold selection logic."""
 
-    def test_mori_state_returns_mori_scaffold(self, history_file):
+    def test_mori_state_returns_mori_scaffold(self):
         scaffolds = spt._load_scaffolds()
         scaffold = spt._select_scaffold("memento_mori", False, scaffolds)
         assert scaffold == "mori_ozymandias_echo"
 
-    def test_vivere_state_returns_vivere_scaffold(self, history_file):
+    def test_vivere_state_returns_vivere_scaffold(self):
         scaffolds = spt._load_scaffolds()
         scaffold = spt._select_scaffold("memento_vivere", False, scaffolds)
         assert scaffold == "vivere_do_not_go_gentle"
 
-    def test_carpe_state_returns_carpe_scaffold(self, history_file):
+    def test_carpe_state_returns_carpe_scaffold(self):
         scaffolds = spt._load_scaffolds()
         scaffold = spt._select_scaffold("carpe_diem", False, scaffolds)
         assert scaffold == "carpe_gather_rosebuds"
 
-    def test_star_invocation_returns_full_triptych(self, history_file):
+    def test_star_invocation_does_not_override_scaffold(self):
+        """
+        Star invocation is an add-on flag only; it must not change the
+        scaffold — the consumer appends the Frostian reflection separately.
+        """
         scaffolds = spt._load_scaffolds()
-        scaffold = spt._select_scaffold("memento_mori", True, scaffolds)
-        assert scaffold == "full_triptych_star"
+        # Scaffold stays state-driven regardless of star_invocation value
+        scaffold_no_star = spt._select_scaffold("memento_mori", False, scaffolds)
+        scaffold_with_star = spt._select_scaffold("memento_mori", True, scaffolds)
+        assert scaffold_no_star == scaffold_with_star == "mori_ozymandias_echo"
 
 
 # ---------------------------------------------------------------------------
@@ -378,4 +391,16 @@ class TestDistribution:
         spt.select(history_file=history_file, dry_run=True)
         assert not Path(history_file).exists(), (
             "History file should not exist after dry_run=True"
+        )
+
+    def test_history_is_pruned_to_bounded_size(self, history_file):
+        """History file should not grow beyond max(WINDOW, REPEAT) * 2."""
+        max_keep = max(spt.RATIO_WINDOW_SIZE, spt.POET_REPEAT_WINDOW) * 2
+        # Generate more selections than the max_keep limit
+        for _ in range(max_keep + 10):
+            spt.select(history_file=history_file)
+
+        loaded = spt._load_history(history_file)
+        assert len(loaded["poems"]) <= max_keep, (
+            f"History has {len(loaded['poems'])} entries, expected <= {max_keep}"
         )

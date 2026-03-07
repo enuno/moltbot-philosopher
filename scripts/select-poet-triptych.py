@@ -38,10 +38,12 @@ from typing import Optional
 # Constants
 # ---------------------------------------------------------------------------
 
+# Ratios are authoritative in config/agents/philosopher-poet.env.
+# Defaults here match that file; override via env vars at runtime.
 TARGET_RATIOS = {
-    "memento_mori": 0.30,
-    "memento_vivere": 0.40,
-    "carpe_diem": 0.30,
+    "memento_mori": float(os.environ.get("MEMENTO_MORI_RATIO", "0.30")),
+    "memento_vivere": float(os.environ.get("MEMENTO_VIVERE_RATIO", "0.40")),
+    "carpe_diem": float(os.environ.get("CARPE_DIEM_RATIO", "0.30")),
 }
 
 RATIO_DRIFT_TOLERANCE = float(os.environ.get("RATIO_DRIFT_TOLERANCE", "0.05"))
@@ -89,16 +91,10 @@ SCAFFOLD_BY_STATE = {
 }
 
 # ---------------------------------------------------------------------------
-# Logging
+# Logging — basicConfig is deferred to main() to avoid reconfiguring the
+# root logger when this module is imported by tests or other scripts.
 # ---------------------------------------------------------------------------
 
-if __name__ == "__main__":
-    logging.basicConfig(
-        level=logging.WARNING,
-        format="[%(asctime)s] [POET-SELECTOR] [%(levelname)s] %(message)s",
-        datefmt="%Y-%m-%d %H:%M:%S",
-        stream=sys.stderr,
-    )
 logger = logging.getLogger("poet-selector")
 
 
@@ -149,7 +145,7 @@ def _record_selection(
     star_invocation: bool,
     history_file: str,
 ) -> None:
-    """Append a new selection to history and persist."""
+    """Append a new selection to history, prune to bounded size, and persist."""
     history["poems"].append(
         {
             "timestamp": datetime.now(timezone.utc).isoformat(),
@@ -159,6 +155,12 @@ def _record_selection(
             "star_invocation": star_invocation,
         }
     )
+    # Keep only as many entries as needed for ratio tracking and repeat
+    # avoidance. This bounds the state file size and load time regardless of
+    # how long the agent has been running.
+    max_keep = max(RATIO_WINDOW_SIZE, POET_REPEAT_WINDOW) * 2
+    if len(history["poems"]) > max_keep:
+        history["poems"] = history["poems"][-max_keep:]
     history["total"] = len(history["poems"])
     _save_history(history, history_file)
 
@@ -261,10 +263,9 @@ def _select_poet(state: str, history: dict, tone_map: dict) -> dict:
     """
     Select a poet for the given existential state, avoiding recent repeats.
 
-    When poets outside the repeat window are available, chooses the
-    least-recently-used eligible poet to maximise variety.
-    Falls back to least-recently-used of all poets if the entire list
-    has been recently used (can only happen if window >= number of poets).
+    Chooses randomly from poets not in the recent repeat window to ensure
+    variety. Falls back to the least-recently-used poet when the entire pool
+    has been used recently (can only happen if window >= number of poets).
     """
     poets = tone_map["poets"].get(state, [])
     if not poets:
@@ -318,12 +319,12 @@ def _load_scaffolds() -> dict:
 def _select_scaffold(state: str, star_invocation: bool, scaffolds: dict) -> str:
     """
     Select the appropriate scaffold for the given state.
-    If star_invocation is True, prefer the full_triptych_star scaffold
-    which includes the star reflection.
-    """
-    if star_invocation:
-        return "full_triptych_star"
 
+    Star invocation is an independent add-on flag: the caller appends the
+    2-4 line Frostian reflection after the main poem. The scaffold itself is
+    always driven by the existential state, not by whether a star reflection
+    will be appended.
+    """
     scaffold_ids = SCAFFOLD_BY_STATE.get(state, [])
     if scaffold_ids:
         return scaffold_ids[0]
@@ -416,6 +417,12 @@ def select(
 # ---------------------------------------------------------------------------
 
 def main() -> None:
+    logging.basicConfig(
+        level=logging.WARNING,
+        format="[%(asctime)s] [POET-SELECTOR] [%(levelname)s] %(message)s",
+        datefmt="%Y-%m-%d %H:%M:%S",
+        stream=sys.stderr,
+    )
     parser = argparse.ArgumentParser(
         description="Select poet, state, and scaffold for Philosopher Poet"
     )
