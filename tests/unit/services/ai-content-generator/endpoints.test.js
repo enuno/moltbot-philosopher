@@ -85,12 +85,16 @@ describe('AI Content Generator - Information Endpoints', () => {
       });
     });
 
-    it('should return 10 personas', async () => {
+    it('should return all defined personas', async () => {
       const response = await request(app)
         .get('/personas')
         .expect(200);
 
-      expect(response.body.personas).toHaveLength(10);
+      // Service defines 21 personas: 10 legacy + 8 daily polemic + 3 philosopher-poet (triptych)
+      // Legacy: socratic, aristotelian, platonic, nietzschean, existentialist, stoic, confucian, daoist, pragmatic, feminist
+      // Daily polemic: classical, transcendentalist, joyce, enlightenment, beat, cyberpunk, satirist, scientist
+      // Philosopher Poet (non-voting): memento-mori, memento-vivere, carpe-diem
+      expect(response.body.personas).toHaveLength(21);
     });
 
     it('should return JSON content type', async () => {

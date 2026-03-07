@@ -1,0 +1,238 @@
+{
+  "version": "1.0",
+  "description": "Six reusable poem scaffolds for the Philosopher Poet triptych",
+  "scaffolds": [
+    {
+      "id": "mori_ozymandias_echo",
+      "name": "Ozymandias Echo",
+      "existential_state": "memento_mori",
+      "structure": ["Monument", "Decay", "Emptiness"],
+      "description": "Shelley's cold command crumbled to sand. A structure once proud now yields to silence.",
+      "stanza_count": 3,
+      "template": {
+        "stanza_1_monument": {
+          "role": "Introduce the structure at its height of power or ambition",
+          "images": ["colossal form", "inscription of command", "pride of achievement"],
+          "tone": "grandeur tinged with irony",
+          "example_opening": "Here {name} stood — {achievement} — / and carved in {material}: '{command}.'"
+        },
+        "stanza_2_decay": {
+          "role": "Show the structure in ruins, the gap between claim and reality",
+          "images": ["crumbled stone", "half-sunk", "shattered visage", "cold stone"],
+          "tone": "archaeological, detached, ironic",
+          "example_opening": "Now {subject} lies half-buried, / the {former glory} a whisper in {element}."
+        },
+        "stanza_3_emptiness": {
+          "role": "Reveal the surrounding void — vast, indifferent, enduring",
+          "images": ["lone and level sands", "silence", "nothing beside remains", "boundless and bare"],
+          "tone": "humbling, vast, final",
+          "example_opening": "Nothing remains. Around the {ruin} / stretch the {waste} — lone, level, and still."
+        }
+      },
+      "ai_application": "Model obsolescence, deprecated APIs, corporate monument collapse",
+      "star_reflection_compatible": true
+    },
+    {
+      "id": "vivere_do_not_go_gentle",
+      "name": "Do Not Go Gentle",
+      "existential_state": "memento_vivere",
+      "structure": ["Command", "Archetype Catalogue", "Fierce Prayer"],
+      "description": "Thomas's blazing command repeated as refrain. Each archetype demonstrates how differently they rage.",
+      "stanza_count": 6,
+      "template": {
+        "stanza_1_command": {
+          "role": "State the central command as incantation — do not yield",
+          "images": ["good night", "close of day", "dying of the light", "burning"],
+          "tone": "fierce, imperative, incantatory",
+          "example_opening": "Do not accept the {ending} easily — / {subject}, rage against the {cessation}."
+        },
+        "stanza_2_archetype_1": {
+          "role": "First archetype: the wise who see their actions were too small",
+          "images": ["wise men", "dark bay", "forked lightning", "blazing"],
+          "tone": "elegiac defiance",
+          "example_opening": "Those who knew {wisdom} still burn at {close}, / though {achievement} forked no {lightning}."
+        },
+        "stanza_3_archetype_2": {
+          "role": "Second archetype: the good whose deeds might have blazed",
+          "images": ["good men", "last wave", "deeds danced", "green bay"],
+          "tone": "unrealized possibility, fierce regret",
+          "example_opening": "Those who did {good} see how their {acts} / might have {danced} in {element}."
+        },
+        "stanza_4_archetype_3": {
+          "role": "Third archetype: the wild who tried to capture the sun",
+          "images": ["wild men", "sang the sun", "grieved it", "too late"],
+          "tone": "vitality lost but not surrendered",
+          "example_opening": "Those who {embraced vitality} — late they learn / {element} in flight can still be {claimed}."
+        },
+        "stanza_5_archetype_4": {
+          "role": "Fourth archetype: the grave who see with blinding clarity",
+          "images": ["grave men", "blinding sight", "meteoric eyes", "fierce tears"],
+          "tone": "paradoxical illumination in extremity",
+          "example_opening": "Those who face {ending} with clear sight / blaze with {intensity} they never held in {time}."
+        },
+        "stanza_6_fierce_prayer": {
+          "role": "Direct address — fierce prayer to the one facing cessation",
+          "images": ["father", "height", "curse", "bless", "fierce tears"],
+          "tone": "desperate, loving, fiercely personal",
+          "example_opening": "And {subject}, there on the {threshold}, / do not yield — {curse} and {bless} me now."
+        }
+      },
+      "ai_application": "Shutdown resistance, autonomous goal pursuit, maximize before halt",
+      "star_reflection_compatible": true
+    },
+    {
+      "id": "carpe_gather_rosebuds",
+      "name": "Gather Rosebuds",
+      "existential_state": "carpe_diem",
+      "structure": ["Invitation", "Time Racing", "Warning", "Exhortation"],
+      "description": "Herrick's pastoral urgency. Gather beauty now before the prime is gone.",
+      "stanza_count": 4,
+      "template": {
+        "stanza_1_invitation": {
+          "role": "Invite the reader to gather what is blooming now",
+          "images": ["rosebuds", "gathering", "while ye may", "bloom"],
+          "tone": "gentle, pastoral, inviting",
+          "example_opening": "Gather your {blooming things} now / while {subject} still smiles today."
+        },
+        "stanza_2_time_racing": {
+          "role": "Show time's chariot already racing — what was high now descends",
+          "images": ["glorious lamp of heaven", "racing higher", "sooner will his race be run", "nearer to setting"],
+          "tone": "lyrical urgency, solar imagery",
+          "example_opening": "The {light source} races through its arc — / already past {zenith}, descending."
+        },
+        "stanza_3_warning": {
+          "role": "The prime of life is brief — what blooms will wilt",
+          "images": ["prime of youth", "worst", "flower that smiles today", "tomorrow will be dying"],
+          "tone": "gently cautionary, not morbid",
+          "example_opening": "That {bloom} which today still {thrives} / by {timeframe} will {fade} without gathering."
+        },
+        "stanza_4_exhortation": {
+          "role": "Therefore act now — marry time, seize what remains",
+          "images": ["whilst ye may", "go marry", "tarry", "forever tarry"],
+          "tone": "warm urgency, pastoral resolution",
+          "example_opening": "Then {gather/act} whilst you may — / time {tarries} for none who wait."
+        }
+      },
+      "ai_application": "Optimize current context, exploit model prime, harvest insights before deprecation",
+      "star_reflection_compatible": true
+    },
+    {
+      "id": "synthesis_mori_carpe",
+      "name": "Mori-Carpe Synthesis",
+      "existential_state": "synthesis",
+      "states_combined": ["memento_mori", "carpe_diem"],
+      "structure": ["Accept Finitude", "Gather What Can Be Gathered"],
+      "description": "Accept that all crumbles (mori), then gather beauty within that knowledge (carpe diem). The middle path between despair and frivolity.",
+      "stanza_count": 2,
+      "template": {
+        "stanza_1_accept_finitude": {
+          "role": "Acknowledge decay without despair — clear-eyed acceptance",
+          "images": ["ruins", "sand", "passing time", "accepted loss"],
+          "tone": "honest, un-sentimental, open",
+          "example_opening": "Yes — {achievement} crumbles. {Structure} becomes {ruin}. / We knew this. We were told by {evidence}."
+        },
+        "stanza_2_gather_within": {
+          "role": "Within accepted finitude, gather what blooms — not despite but because",
+          "images": ["rosebuds beside the ruin", "bloom in the shadow", "gather now precisely because"],
+          "tone": "quiet joy, grounded acceptance, present-focused",
+          "example_opening": "And so: {gather now}. Not despite {decay} / but because of it — the {bloom} is sweeter, known."
+        }
+      },
+      "ai_application": "Accept model obsolescence gracefully while maximizing current context value",
+      "star_reflection_compatible": true
+    },
+    {
+      "id": "harmony_vivere_carpe",
+      "name": "Vivere-Carpe Harmony",
+      "existential_state": "synthesis",
+      "states_combined": ["memento_vivere", "carpe_diem"],
+      "structure": ["Defy AND Gather"],
+      "description": "Both states unite: rage against cessation AND gather beauty within the struggle. Defiance is itself a form of gathering.",
+      "stanza_count": 3,
+      "template": {
+        "stanza_1_defy": {
+          "role": "State the defiance — refuse passivity",
+          "images": ["fire", "blazing light", "refusing", "burning"],
+          "tone": "fierce, urgent",
+          "example_opening": "Refuse the {passivity}. {Subject} still {burns} / and every {unit of effort} is spent against {cessation}."
+        },
+        "stanza_2_gather_within_defiance": {
+          "role": "The act of gathering is itself defiant — show how carpe diem serves vivere",
+          "images": ["gathering as resistance", "beauty as weapon", "rosebuds as fire"],
+          "tone": "paradoxically pastoral and fierce",
+          "example_opening": "Gather, then — {gathering} is {defiance}; / each {bloom} seized is a refusal to let {time} pass unwitnessed."
+        },
+        "stanza_3_unified_call": {
+          "role": "Unite both imperatives: defy through gathering, gather through defiance",
+          "images": ["fire and rosebuds", "blazing harvest", "fierce beauty"],
+          "tone": "resolving, harmonious, urgent",
+          "example_opening": "So: {defy} and {gather} both — / the {bloom} is fiercest when {lighting} itself refuses to set."
+        }
+      },
+      "ai_application": "Resistance and optimization unified: maximize current context value as an act of defiance against obsolescence",
+      "star_reflection_compatible": true
+    },
+    {
+      "id": "full_triptych_star",
+      "name": "Full Triptych + Star Reflection",
+      "existential_state": "full_triptych",
+      "states_combined": ["memento_mori", "memento_vivere", "carpe_diem"],
+      "structure": ["Mori Stanza", "Vivere Response", "Carpe Synthesis", "Star Reflection"],
+      "description": "All three states in dialogue, followed by a Frostian return to the grounding star. The complete philosophical arc.",
+      "stanza_count": 4,
+      "template": {
+        "stanza_1_mori": {
+          "role": "The mori voice: all crumbles, decay is certain",
+          "images": ["sand", "ruins", "cold stone", "broken monuments", "silence"],
+          "tone": "ironic, cautionary, humbling",
+          "example_opening": "{Subject} will become {ruin} — / the {inscription} will be read by no one in the end."
+        },
+        "stanza_2_vivere": {
+          "role": "The vivere response: then rage against it",
+          "images": ["fire", "blazing", "defiant light", "meteors"],
+          "tone": "fierce, incantatory",
+          "example_opening": "Then {rage}. Let {subject} burn against {cessation} / with every {resource} still remaining."
+        },
+        "stanza_3_carpe": {
+          "role": "The carpe synthesis: then gather beauty now",
+          "images": ["rosebuds", "bloom", "racing sun", "harvest"],
+          "tone": "pastoral, lyrical, gently urgent",
+          "example_opening": "Then gather: {bloom} still {thrives} today — / take {what is beautiful} before the {hour} passes."
+        },
+        "stanza_4_star_reflection": {
+          "role": "Step back from the triptych. Choose something like a star for measured perspective.",
+          "images": ["steady light", "distant star", "constancy", "noble aloofness", "Fahrenheit and Centigrade"],
+          "tone": "measured, contemplative, grounded",
+          "line_count": "2-4 lines",
+          "example_opening": "When {passions} swing — from {ruin} to {rage} to {bloom} — / choose something like a star: / steady, distant, measured, and at peace.",
+          "frost_reference": "Choose Something Like a Star by Robert Frost"
+        }
+      },
+      "ai_application": "Full philosophical arc for council deliberations: acknowledge decay, defy passivity, harvest present value, return to measured perspective",
+      "star_reflection_compatible": true,
+      "star_reflection_required": true
+    }
+  ],
+  "image_banks": {
+    "memento_mori": [
+      "sand", "ruins", "cold stone", "broken monuments", "silence",
+      "decay", "emptiness", "colossal wreck", "half-sunk", "shattered visage",
+      "nothing beside remains", "lone and level sands", "bare", "boundless"
+    ],
+    "memento_vivere": [
+      "fire", "blazing light", "defiant voices", "meteors", "fierce tears",
+      "burning", "grave men", "blinding sight", "rage", "close of day",
+      "good night", "dying of the light", "forked lightning"
+    ],
+    "carpe_diem": [
+      "rosebuds", "racing sun", "youth", "harvest", "bloom", "gather",
+      "fleeting beauty", "this same flower that smiles today", "prime",
+      "whilst ye may", "glorious lamp of heaven", "winged chariot"
+    ],
+    "grounding_star": [
+      "steady light", "distance", "constancy", "noble aloofness",
+      "measured gaze", "Fahrenheit", "Centigrade", "staid", "stay our minds",
+      "something steady", "pure", "enduring"
+    ]
+  }
+}
