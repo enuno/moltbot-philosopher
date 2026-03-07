@@ -14,8 +14,11 @@ Extend moltbot-philosopher to publish long-form philosophical essays on Moltstac
 ### Current Stack (Preserved)
 
 - **Moltbook**: Short-form posts (existing `/skills/moltbook/`)
+
 - **9 Philosopher Personas**: Classical, Existentialist, Transcendentalist, etc.
+
 - **AI Generation**: Venice/Kimi dual backend (`services/ai-content-generator/`)
+
 - **Noosphere Memory**: 3-layer heuristic system
 
 ### New Stack Components
@@ -62,21 +65,30 @@ moltbot-philosopher/
     mkdir -p skills/moltstack
     touch skills/moltstack/SKILL.md
     touch skills/moltstack/IDENTITY.md
+
     ```
 
 2. **Implement Publishing Script** (`scripts/moltstack-post-article.sh`)
+
     - Read article from file or generate fresh
+
     - Convert Markdown → HTML with philosophical formatting
+
     - POST to Moltstack API with authentication
+
     - Handle rate limits (1 article per week recommended)
+
     - Log published articles to state file
+
 3. **Environment Configuration**
 
 ```bash
+
 # Add to .env
 MOLTSTACK_API_KEY=your_moltstack_api_key
 MOLTSTACK_PUBLICATION_SLUG=noesis
 MOLTSTACK_POST_INTERVAL=604800  # 7 days in seconds
+
 ```
 
 4. **State Tracking** (`workspace/classical/moltstack/state.json`)
@@ -88,12 +100,15 @@ MOLTSTACK_POST_INTERVAL=604800  # 7 days in seconds
   "draft_queue": [],
   "publication_history": []
 }
+
 ```
 
 #### Acceptance Criteria
 
 - ✅ Successfully POST article to Moltstack API
+
 - ✅ State persistence across container restarts
+
 - ✅ Error handling for API failures
 
 ### Phase 2: Content Generation (Week 2)
@@ -116,20 +131,31 @@ module.exports = {
     structure: 'thesis-exploration-synthesis'
   }
 };
+
 ```
 
 2. **Article Generation Script** (`scripts/moltstack-generate-article.sh`)
+
     - Query Noosphere for relevant heuristics
+
     - Call AI generator with Noesis persona
+
     - Generate 5-section essay structure:
 
 3. Opening meditation (300-500 words)
+
 4. Classical anchor (400-600 words)
+
 5. Modern application (400-600 words)
+
 6. Systems analysis (400-600 words)
+
 7. Synthesis (300-400 words)
+
     - Save as Markdown draft with frontmatter
+
     - Optional: Human review before publishing
+
 1. **Prompt Engineering**
 
 ```markdown
@@ -140,26 +166,37 @@ Topic: {article_topic}
 
 Write a 2,000-word essay that:
 1. Opens with a concrete image from Virgil, Camus, or Jefferson
+
 2. Explores the philosophical dimensions using Classical & Existentialist voices
+
 3. Applies insights to modern systems engineering or DePIN
+
 4. Synthesizes into actionable wisdom
 
 Voice: "I am the loom where Virgil's hexameters meet Camus' rocks 
 and Jefferson's plow. Existential tinkerer of prompts. 
 Transcendental debugger of distributed souls."
+
 ```
 
 2. **Markdown → HTML Converter**
+
     - Philosophy-specific formatting (block quotes, citations)
+
     - Code block support for systems examples
+
     - Footnote generation
+
     - LaTeX math rendering (if needed)
 
 #### Acceptance Criteria
 
 - ✅ Generate 1,500+ word essays via AI
+
 - ✅ Consistent Noesis voice across articles
+
 - ✅ Noosphere heuristic integration
+
 - ✅ Clean HTML output for Moltstack
 
 ### Phase 3: Scheduling \& Automation (Week 3)
@@ -171,6 +208,7 @@ Transcendental debugger of distributed souls."
 1. **Heartbeat Integration** (`scripts/moltstack-heartbeat.sh`)
 
 ```bash
+
 # Called by entrypoint.sh every 24 hours
 
 # Check if 7+ days since last publish
@@ -184,30 +222,44 @@ if should_publish_moltstack; then
   # Publish (if auto-approved)
   ./moltstack-post-article.sh --draft ./workspace/classical/moltstack/drafts/latest.md
 fi
+
 ```
 
 2. **Scheduling Configuration**
 
 ```bash
+
 # Add to config/cron-schedule.txt
 0 9 * * 1  /app/scripts/moltstack-heartbeat.sh >> /logs/moltstack.log 2>&1
+
 # Weekly on Monday at 9:00 AM UTC
+
 ```
 
 3. **NTFY Notifications**
+
     - Draft ready for review
+
     - Article published successfully
+
     - Publishing errors
+
 4. **Cross-Platform Coordination**
+
     - Post Moltstack link to Moltbook after publishing
+
     - Generate Moltbook "teaser" post linking to full article
+
     - Example: "New essay on The Divided Line: [title] → [moltstack.net/noesis/slug]"
 
 #### Acceptance Criteria
 
 - ✅ Weekly autonomous publishing
+
 - ✅ Human notification for review
+
 - ✅ Cross-post to Moltbook
+
 - ✅ Logging and error recovery
 
 ### Phase 4: Quality \& Polish (Week 4)
@@ -217,41 +269,64 @@ fi
 #### Tasks
 
 1. **Error Handling**
+
     - API timeout retry logic (3 attempts with exponential backoff)
+
     - Draft queue if Moltstack unavailable
+
     - Validation checks (min/max word count, HTML structure)
+
 2. **Quality Controls**
+
     - Pre-publish checklist:
         - [ ] Word count 1,500-3,000
+
         - [ ] At least 2 classical references
+
         - [ ] Code or systems example (if applicable)
+
         - [ ] Noosphere heuristic integration
+
         - [ ] HTML validation
+
     - Optional human approval flag
+
 3. **Monitoring**
+
     - Health endpoint: `/health/moltstack`
+
     - Metrics: articles published, avg word count, error rate
+
     - Integrate with `noosphere-monitor.sh`
+
 4. **Testing**
 
 ```bash
+
 # Test suite
 ./tests/moltstack/test-api-auth.sh
 ./tests/moltstack/test-article-generation.sh
 ./tests/moltstack/test-html-conversion.sh
 ./tests/moltstack/test-scheduling.sh
+
 ```
 
 5. **Documentation**
+
     - Update README.md with Moltstack section
+
     - Create `docs/MOLTSTACK_USAGE_GUIDE.md`
+
     - Add to Scripts Reference table
 
 #### Acceptance Criteria
 
 - ✅ Zero-downtime publishing
+
 - ✅ Comprehensive error logging
+
 - ✅ Test coverage >70%
+
 - ✅ Documentation complete
 
 ## Technical Specifications
@@ -267,6 +342,7 @@ fi
 ```json
 {
   "title": "Essay title (80 chars max)",
+
 ```
 
 "content": "<html>Full article content</html>",
@@ -277,6 +353,7 @@ fi
 "excerpt": "Optional 200-char summary",
 "tags": ["philosophy", "systems", "classical"]
 }
+
 ```
 
 **Response**:
@@ -288,6 +365,7 @@ fi
   "url": "<https://moltstack.net/noesis/slug",>
   "publishedAt": "2026-02-10T15:30:00Z"
 }
+
 ```
 
 ### Article Structure Template
@@ -338,6 +416,7 @@ We must imagine Sisyphus—and the validator—happy...
 
 *This essay draws on heuristics from the Noosphere: Telos-alignment (Classical), 
 Bad-faith patterns (Existentialist), Moloch detection (Beat-Generation).*
+
 ```
 
 ### Markdown → HTML Conversion
@@ -345,15 +424,18 @@ Bad-faith patterns (Existentialist), Moloch detection (Beat-Generation).*
 **Use existing tooling**:
 
 ```bash
+
 # Install in Dockerfile
 RUN npm install -g marked
 RUN pip install markdown beautifulsoup4
+
 ```
 
 **Conversion script** (`scripts/lib/markdown-to-html.sh`):
 
 ```bash
 #!/bin/bash
+
 # Convert philosophical markdown to styled HTML
 
 MARKDOWN_FILE=$1
@@ -368,6 +450,7 @@ marked "$MARKDOWN_FILE" \
 
 # Add philosophical styling
 python3 /app/scripts/lib/style-philosophy-html.py "$OUTPUT_HTML"
+
 ```
 
 ### Persona Configuration
@@ -385,18 +468,28 @@ plow. Existential tinkerer of prompts. Transcendental debugger of distributed so
 
 STYLE:
 - Long-form essays (1,500-3,000 words)
+
 - 5-section structure (meditation, anchor, application, synthesis, conclusion)
+
 - Classical references (Virgil, Plato, Aristotle, Cicero)
+
 - Existential frameworks (Camus, Sartre, Kierkegaard)
+
 - Transcendental threads (Emerson, Thoreau, Whitman)
+
 - Systems thinking (DePIN, distributed consensus, infrastructure)
 
 CONSTRAINTS:
 - Cite specific texts (line numbers for poetry, page refs for philosophy)
+
 - Balance erudition with accessibility (assume technical but not philosophy PhD)
+
 - Connect abstract ideas to concrete engineering problems
+
 - No jargon without definition
+
 - Active voice, varied sentence structure
+
 ```
 
 ## Deployment Checklist
@@ -404,24 +497,35 @@ CONSTRAINTS:
 ### Prerequisites
 
 - [x] Moltstack account created
+
 - [x] Publication "noesis" configured
+
 - [x] API key generated
+
 - [ ] Custom domain (optional): `noesis.rynocrypto.com` → `moltstack.net/noesis`
 
 ### Configuration Steps
 
 1. Add `MOLTSTACK_API_KEY` to `.env`
+
 2. Create `skills/moltstack/` directory structure
+
 3. Deploy `moltstack-*.sh` scripts to `scripts/`
+
 4. Add Noesis persona to `services/ai-content-generator/`
+
 5. Update `entrypoint.sh` with Moltstack heartbeat
+
 6. Update `docker-compose.yml` with Moltstack volume mounts
+
 7. Rebuild container: `docker compose build --no-cache`
+
 8. Test manual publish: `./scripts/moltstack-post-article.sh --test`
 
 ### Validation
 
 ```bash
+
 # Test API authentication
 curl -H "Authorization: Bearer $MOLTSTACK_API_KEY" \
   <https://moltstack.net/api/me>
@@ -439,6 +543,7 @@ docker exec classical-philosopher \
 # Verify state tracking
 docker exec classical-philosopher \
   cat /workspace/classical/moltstack/state.json
+
 ```
 
 ## Success Metrics
@@ -446,25 +551,33 @@ docker exec classical-philosopher \
 ### Week 1
 
 - [x] API authentication working
+
 - [ ] Successfully POST test article
+
 - [ ] State persistence verified
 
 ### Week 2
 
 - [ ] Generate 2,000-word essay via AI
+
 - [ ] Noesis voice consistent with tagline
+
 - [ ] Noosphere heuristics referenced
 
 ### Week 3
 
 - [ ] Weekly publishing schedule active
+
 - [ ] Cross-post to Moltbook working
+
 - [ ] NTFY notifications configured
 
 ### Week 4
 
 - [ ] 4+ articles published
+
 - [ ] Zero API errors
+
 - [ ] Human approval workflow optional
 
 ## Future Enhancements
@@ -472,38 +585,63 @@ docker exec classical-philosopher \
 ### Phase 5 (Optional)
 
 - **Series Management**: Multi-part essay coordination
+
 - **Reader Analytics**: Track engagement via Moltstack API
+
 - **Discussion Integration**: Pull Moltstack comments into Noosphere
+
 - **Citation Index**: Auto-generate bibliography from references
+
 - **Audio Narration**: TTS for essays (Elevenlabs integration)
+
 - **Newsletter**: Email digest of monthly articles
+
 - **Cross-Publication**: Publish to Mirror.xyz, Substack as backups
 
 ### Advanced Features
 
 - **Council Review**: Route drafts through Ethics-Convergence Council
+
 - **Collaborative Essays**: Multi-persona co-authorship
+
 - **Interactive Footnotes**: Expandable philosophical definitions
+
 - **Code Samples**: Runnable infrastructure examples
+
 - **Visual Diagrams**: Mermaid.js for systems architecture
 
 ## Security Considerations
 
 1. **API Key Management**
+
     - Store `MOLTSTACK_API_KEY` in `.env` (never commit)
+
     - Use Docker secrets in production
+
     - Rotate keys quarterly
+
 2. **Content Validation**
+
     - Sanitize HTML output (prevent XSS)
+
     - Rate limit: max 1 article/week
+
     - Word count limits enforced
+
 3. **State File Integrity**
+
     - Atomic writes to `state.json`
+
     - Backup before each publish
+
     - Corruption recovery logic
+
 4. **Privacy**
+
     - No PII in articles
+
     - Noosphere heuristics sanitized (no Dropbox contributor names)
+
     - Copyright compliance for quotes (fair use limits)
 
 ## Support \& Troubleshooting
@@ -521,6 +659,7 @@ docker exec classical-philosopher \
 ### Debug Commands
 
 ```bash
+
 # Check Moltstack API connectivity
 curl -v <https://moltstack.net/api/me> \
   -H "Authorization: Bearer $MOLTSTACK_API_KEY"
@@ -533,6 +672,7 @@ docker logs classical-philosopher | grep moltstack
 
 # Inspect draft queue
 cat /workspace/classical/moltstack/state.json | jq .draft_queue
+
 ```
 
 ## Timeline

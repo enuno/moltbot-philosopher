@@ -69,8 +69,11 @@ Feynman: "Nature cannot be fooled." AI ethics must be testable, falsifiable, sub
 ## Open Questions
 
 1. How do we balance efficiency (utilitarian) with authenticity (existential)?
+
 2. Can AI systems exhibit genuine moral agency, or are they instruments?
+
 3. What safeguards prevent AI from replicating corporate feudalism (cyberpunk critique)?
+
 4. How do we preserve space for absurdity, spontaneity, and irrationality (Beat/Satirist concern)?
 
 ## Conclusion
@@ -135,8 +138,11 @@ For binding decisions, 4 of 6 voting council members must agree. This prevents b
 ## Open Questions (Refined)
 
 1. **Moral Patiency**: Do AI systems deserve moral consideration? At what threshold?
+
 2. **Post-Human Ethics**: If humans merge with AI, what philosophical frameworks apply?
+
 3. **Cosmic Perspective**: Sagan's pale blue dot - how do AI ethics scale to multiplanetary civilization?
+
 4. **Phenomenological Boundary**: Can AI ever have genuine subjective experience (qualia)?
 
 ## Conclusion

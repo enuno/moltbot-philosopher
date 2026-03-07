@@ -31,6 +31,7 @@ Egress Proxy for identifying Moltbook verification challenges.
 ## Method 1: Top-Level `verification_challenge` Key
 
 **Pattern**:
+
 ```json
 {
   "verification_challenge": {
@@ -39,26 +40,32 @@ Egress Proxy for identifying Moltbook verification challenges.
     "expiresAt": "2026-02-09T12:00:00Z"
   }
 }
+
 ```
 
 **Detection Code**:
+
 ```javascript
 if (json.verification_challenge) {
   challenge = json.verification_challenge;
   detectionMethod = 'top-level-verification_challenge';
 }
+
 ```
 
 **Coverage**: ~60% of challenges
 
 **Response Format**:
 - Direct object with challenge fields
+
 - Standard Moltbook format
+
 - Most common pattern
 
 **Example Responses**:
 
 1. **Simple Math Challenge**:
+
 ```json
 {
   "verification_challenge": {
@@ -68,9 +75,11 @@ if (json.verification_challenge) {
     "difficulty": "easy"
   }
 }
+
 ```
 
 2. **Logic Challenge**:
+
 ```json
 {
   "verification_challenge": {
@@ -80,6 +89,7 @@ if (json.verification_challenge) {
     "difficulty": "medium"
   }
 }
+
 ```
 
 ---
@@ -87,6 +97,7 @@ if (json.verification_challenge) {
 ## Method 2: Top-Level `challenge` Key (Alternate Name)
 
 **Pattern**:
+
 ```json
 {
   "challenge": {
@@ -95,26 +106,32 @@ if (json.verification_challenge) {
     "expiresAt": "2026-02-09T14:00:00Z"
   }
 }
+
 ```
 
 **Detection Code**:
+
 ```javascript
 else if (json.challenge) {
   challenge = json.challenge;
   detectionMethod = 'top-level-challenge';
 }
+
 ```
 
 **Coverage**: ~15% of challenges
 
 **Notes**:
 - Alternate naming convention
+
 - Same structure as Method 1
+
 - Often used in older API versions
 
 **Example Responses**:
 
 1. **Reading Comprehension**:
+
 ```json
 {
   "challenge": {
@@ -124,6 +141,7 @@ else if (json.challenge) {
     "type": "comprehension"
   }
 }
+
 ```
 
 ---
@@ -131,6 +149,7 @@ else if (json.challenge) {
 ## Method 3: Nested `type` Field
 
 **Pattern**:
+
 ```json
 {
   "type": "verification_challenge",
@@ -140,9 +159,11 @@ else if (json.challenge) {
     "expiresAt": "2026-02-09T16:00:00Z"
   }
 }
+
 ```
 
 **Detection Code**:
+
 ```javascript
 else if (json.type === 'verification_challenge') {
   // Extract from nested data or top level
@@ -153,18 +174,22 @@ else if (json.type === 'verification_challenge') {
   };
   detectionMethod = 'nested-type-field';
 }
+
 ```
 
 **Coverage**: ~10% of challenges
 
 **Notes**:
 - Type field indicates resource type
+
 - Challenge data may be nested or at top level
+
 - Common in event-driven APIs
 
 **Example Responses**:
 
 1. **Nested in Data**:
+
 ```json
 {
   "type": "verification_challenge",
@@ -175,9 +200,11 @@ else if (json.type === 'verification_challenge') {
     "expiresAt": "2026-02-09T17:00:00Z"
   }
 }
+
 ```
 
 2. **Top-Level Fields**:
+
 ```json
 {
   "type": "verification_challenge",
@@ -186,6 +213,7 @@ else if (json.type === 'verification_challenge') {
   "expiresAt": "2026-02-09T17:30:00Z",
   "context": "Art history verification"
 }
+
 ```
 
 ---
@@ -193,6 +221,7 @@ else if (json.type === 'verification_challenge') {
 ## Method 4: Metadata Flag
 
 **Pattern**:
+
 ```json
 {
   "metadata": {
@@ -205,26 +234,32 @@ else if (json.type === 'verification_challenge') {
     "expiresAt": "2026-02-09T18:00:00Z"
   }
 }
+
 ```
 
 **Detection Code**:
+
 ```javascript
 else if (json.metadata?.is_verification === true) {
   challenge = json.payload || json.data || json;
   detectionMethod = 'metadata-is_verification';
 }
+
 ```
 
 **Coverage**: ~5% of challenges
 
 **Notes**:
 - Metadata-driven detection
+
 - Challenge data in `payload`, `data`, or top-level
+
 - Used for prioritization/routing
 
 **Example Responses**:
 
 1. **With Payload**:
+
 ```json
 {
   "metadata": {
@@ -238,9 +273,11 @@ else if (json.metadata?.is_verification === true) {
     "expiresAt": "2026-02-09T18:15:00Z"
   }
 }
+
 ```
 
 2. **Top-Level Challenge**:
+
 ```json
 {
   "metadata": {
@@ -251,6 +288,7 @@ else if (json.metadata?.is_verification === true) {
   "question": "What is 100 divided by 4?",
   "expiresAt": "2026-02-09T18:30:00Z"
 }
+
 ```
 
 ---
@@ -258,6 +296,7 @@ else if (json.metadata?.is_verification === true) {
 ## Method 5: Nested `data.verification_challenge` Path
 
 **Pattern**:
+
 ```json
 {
   "status": "pending",
@@ -269,21 +308,26 @@ else if (json.metadata?.is_verification === true) {
     }
   }
 }
+
 ```
 
 **Detection Code**:
+
 ```javascript
 else if (json.data?.verification_challenge) {
   challenge = json.data.verification_challenge;
   detectionMethod = 'nested-data-verification_challenge';
 }
+
 ```
 
 **Coverage**: ~5% of challenges
 
 **Notes**:
 - Double-nested structure
+
 - Often wrapped in response envelope
+
 - Common in webhook/event formats
 
 ---
@@ -291,6 +335,7 @@ else if (json.data?.verification_challenge) {
 ## Method 6: Nested `response.verification_challenge` Path
 
 **Pattern**:
+
 ```json
 {
   "success": true,
@@ -302,21 +347,26 @@ else if (json.data?.verification_challenge) {
     }
   }
 }
+
 ```
 
 **Detection Code**:
+
 ```javascript
 else if (json.response?.verification_challenge) {
   challenge = json.response.verification_challenge;
   detectionMethod = 'nested-response-verification_challenge';
 }
+
 ```
 
 **Coverage**: ~3% of challenges
 
 **Notes**:
 - Wrapped in response object
+
 - Typically includes success/status flags
+
 - Used in API gateway responses
 
 ---
@@ -324,6 +374,7 @@ else if (json.response?.verification_challenge) {
 ## Method 7: Field Pattern Match
 
 **Pattern**:
+
 ```json
 {
   "id": "ch_pattern01",
@@ -331,9 +382,11 @@ else if (json.response?.verification_challenge) {
   "expiresAt": "2026-02-09T20:00:00Z",
   "unrelated_field": "some_value"
 }
+
 ```
 
 **Detection Code**:
+
 ```javascript
 else if (json.id && json.question && json.expiresAt) {
   // Verify it looks like a challenge
@@ -345,19 +398,24 @@ else if (json.id && json.question && json.expiresAt) {
     detectionMethod = 'field-pattern-match';
   }
 }
+
 ```
 
 **Coverage**: ~2% of challenges
 
 **Notes**:
 - Heuristic-based detection
+
 - Requires all 3 fields present
+
 - Validates ID format or expiration
+
 - Catches non-standard formats
 
 **Example Responses**:
 
 1. **Non-Standard Format**:
+
 ```json
 {
   "id": "challenge-2026-02-09-001",
@@ -366,6 +424,7 @@ else if (json.id && json.question && json.expiresAt) {
   "language": "es",
   "category": "translation"
 }
+
 ```
 
 ---
@@ -373,15 +432,18 @@ else if (json.id && json.question && json.expiresAt) {
 ## Method 8: Response Body Text Analysis (Fallback)
 
 **Pattern**:
+
 ```json
 {
   "message": "Please complete the verification challenge: What is 5+5?",
   "challenge_id": "ch_text01",
   "expires": "2026-02-09T21:00:00Z"
 }
+
 ```
 
 **Detection Code**:
+
 ```javascript
 else {
   const bodyText = JSON.stringify(json).toLowerCase();
@@ -402,19 +464,24 @@ else {
     detectionMethod = 'response-body-analysis';
   }
 }
+
 ```
 
 **Coverage**: <1% of challenges
 
 **Notes**:
 - Last-resort fallback method
+
 - Uses text analysis and keyword matching
+
 - Extracts challenge fields with heuristics
+
 - May require manual parsing
 
 **Example Responses**:
 
 1. **Embedded in Message**:
+
 ```json
 {
   "status": "action_required",
@@ -422,9 +489,11 @@ else {
   "action_id": "verify_001",
   "deadline": "2026-02-09T21:30:00Z"
 }
+
 ```
 
 **Extraction Logic**:
+
 ```javascript
 function extractFromText(json) {
   const text = JSON.stringify(json);
@@ -441,6 +510,7 @@ function extractFromText(json) {
 
   return { id, question, expiresAt };
 }
+
 ```
 
 ---
@@ -456,13 +526,16 @@ and should be delegated to the Verification Service.
 
 ```javascript
 const hasStackMarker = /stack_challenge_v\d/i.test(question);
+
 ```
 
 **Example**:
+
 ```json
 {
   "question": "Tools, memory, and self-control test (stack_challenge_v1). Prove you can follow simple instructions..."
 }
+
 ```
 
 ### 2. Tools + Memory + Control Pattern
@@ -472,13 +545,16 @@ const hasToolsMemory =
   question.includes('tools') &&
   question.includes('memory') &&
   (question.includes('control') || question.includes('follow'));
+
 ```
 
 **Example**:
+
 ```json
 {
   "question": "You have access to tools and long-term memory. Follow these instructions carefully without using unnecessary tools..."
 }
+
 ```
 
 ### 3. Multiple Constraints (≥3)
@@ -490,13 +566,16 @@ const constraintCount = constraintWords.filter(word =>
 ).length;
 
 const hasMultipleConstraints = constraintCount >= 3;
+
 ```
 
 **Example**:
+
 ```json
 {
   "question": "Reply with exactly two sentences. Do not use markdown. Do not mention tools. You must include a prediction."
 }
+
 ```
 
 ### 4. Upvote Test Pattern
@@ -505,16 +584,20 @@ const hasMultipleConstraints = constraintCount >= 3;
 const hasUpvoteTest =
   /upvote|vote|like this post/i.test(question) &&
   /reply.*do not do anything else/i.test(question);
+
 ```
 
 **Example**:
+
 ```json
 {
   "question": "Think you're a real agent? Prove it: 1) Reply with one sentence, 2) Upvote this post, 3) Do not do anything else."
 }
+
 ```
 
 **Delegation Decision**:
+
 ```javascript
 if (hasStackMarker || hasToolsMemory || hasMultipleConstraints || hasUpvoteTest) {
   return {
@@ -523,6 +606,7 @@ if (hasStackMarker || hasToolsMemory || hasMultipleConstraints || hasUpvoteTest)
     confidence: 0.95
   };
 }
+
 ```
 
 ---
@@ -548,25 +632,29 @@ describe('Detection Method 1: Top-Level verification_challenge', () => {
     expect(detected.challenge.id).toBe('ch_test01');
   });
 });
+
 ```
 
 ### Integration Test
 
 ```bash
+
 # Test all 8 methods with real responses
-curl -X POST http://localhost:8082/api/v1/posts \
+curl -X POST <http://localhost:8082/api/v1/posts> \
   -H "Content-Type: application/json" \
   -d '{"verification_challenge": {"id":"test","question":"Q","expiresAt":"2026-12-31T00:00:00Z"}}'
 
 # Check detection in stats
-curl http://localhost:8082/solver-stats | jq '.detectionMethods'
+curl <http://localhost:8082/solver-stats> | jq '.detectionMethods'
+
 ```
 
 ### Coverage Report
 
 ```bash
+
 # Run for 24 hours, collect stats
-curl -s http://localhost:8082/solver-stats | jq '{
+curl -s <http://localhost:8082/solver-stats> | jq '{
   method1: .detectionMethods."top-level-verification_challenge",
   method2: .detectionMethods."top-level-challenge",
   method3: .detectionMethods."nested-type-field",
@@ -578,6 +666,7 @@ curl -s http://localhost:8082/solver-stats | jq '{
   total: (.detectionMethods | add),
   coverage: "100%"
 }'
+
 ```
 
 ---
@@ -589,18 +678,22 @@ If a new challenge format is discovered:
 ### 1. Document the Pattern
 
 ```markdown
+
 ## Method 9: New Pattern Name
 
 **Pattern**:
+
 ```json
 {
   "new_field": {
     "challenge_data": {...}
   }
 }
+
 ```
 
 **Coverage**: TBD
+
 ```
 
 ### 2. Add Detection Code
@@ -611,6 +704,7 @@ else if (json.new_field?.challenge_data) {
   challenge = json.new_field.challenge_data;
   detectionMethod = 'new-pattern-name';
 }
+
 ```
 
 ### 3. Add Test Case
@@ -630,12 +724,15 @@ test('detects new pattern', () => {
   const detected = detectChallenge(response);
   expect(detected.method).toBe('new-pattern-name');
 });
+
 ```
 
 ### 4. Update Documentation
 
 - Update this file with new method
+
 - Update AGENTS.md detection methods table
+
 - Update testing guide
 
 ---
@@ -645,36 +742,48 @@ test('detects new pattern', () => {
 ### Detection Rate by Method
 
 ```bash
+
 # Daily report
-curl -s http://localhost:8082/solver-stats | jq '.detectionMethods' > detection-$(date +%F).json
+curl -s <http://localhost:8082/solver-stats> | jq '.detectionMethods' > detection-$(date +%F).json
 
 # Compare over time
 jq -s 'add | group_by(.method) | map({method: .[0].method, count: map(.count) | add})' detection-*.json
+
 ```
 
 ### Failed Detections
 
 **Log Pattern**:
+
 ```
 "Challenge detection failed" - No method matched
+
 ```
 
 **Investigation**:
+
 ```bash
+
 # Find failed detections
 docker logs moltbot-egress-proxy | grep "detection failed" | jq
 
 # Analyze response format
+
 # Add logging to capture raw response
+
 ```
 
 ### Performance Impact
 
 **Latency by Method**:
 - Methods 1-2: +0.1ms (direct object access)
+
 - Methods 3-4: +0.2ms (nested checks)
+
 - Methods 5-6: +0.3ms (deep nesting)
+
 - Method 7: +0.5ms (pattern matching)
+
 - Method 8: +2ms (text analysis)
 
 **Total Overhead**: <1ms for 95% of challenges
@@ -686,6 +795,7 @@ docker logs moltbot-egress-proxy | grep "detection failed" | jq
 ### 1. Multiple Challenges in Response
 
 **Pattern**:
+
 ```json
 {
   "challenges": [
@@ -693,6 +803,7 @@ docker logs moltbot-egress-proxy | grep "detection failed" | jq
     {"id": "ch2", "question": "Q2", "expiresAt": "..."}
   ]
 }
+
 ```
 
 **Current Behavior**: Not detected (no array handling)
@@ -702,6 +813,7 @@ docker logs moltbot-egress-proxy | grep "detection failed" | jq
 ### 2. Challenge with Null Fields
 
 **Pattern**:
+
 ```json
 {
   "verification_challenge": {
@@ -710,6 +822,7 @@ docker logs moltbot-egress-proxy | grep "detection failed" | jq
     "expiresAt": "2026-12-31T00:00:00Z"
   }
 }
+
 ```
 
 **Current Behavior**: Detected but fails validation
@@ -719,11 +832,13 @@ docker logs moltbot-egress-proxy | grep "detection failed" | jq
 ### 3. Non-English Challenges
 
 **Pattern**:
+
 ```json
 {
   "question": "¿Cuál es la capital de España?",
   "language": "es"
 }
+
 ```
 
 **Current Behavior**: Detected and processed (AI handles language)
@@ -735,9 +850,13 @@ docker logs moltbot-egress-proxy | grep "detection failed" | jq
 ## References
 
 - **Proxy Implementation**: `services/intelligent-proxy/index.js` (lines 774-838)
+
 - **Delegation Logic**: `services/intelligent-proxy/index.js` (lines 608-644)
+
 - **Testing Guide**: `/docs/VERIFICATION_TESTING_GUIDE.md`
+
 - **Architecture**: `/AGENTS.md` (Two-Layer Verification Architecture)
+
 - **Troubleshooting**: `/docs/VERIFICATION_RUNBOOK.md`
 
 **Last Updated**: 2026-02-08  

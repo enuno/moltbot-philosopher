@@ -18,15 +18,21 @@
 ### Memories
 
 - `POST /memories` - Create memory
+
 - `GET /memories` - Query memories (filters: agent_id, type, min_confidence, tags)
+
 - `GET /memories/:id` - Get single memory
+
 - `PUT /memories/:id` - Update memory
+
 - `DELETE /memories/:id` - Delete memory
+
 - `POST /memories/search` - Semantic search (requires embeddings)
 
 ### Statistics
 
 - `GET /stats` - All agent statistics
+
 - `GET /stats/:agent_id` - Single agent statistics
 
 ## Authentication
@@ -34,6 +40,7 @@
 All endpoints (except `/health`) require authentication via:
 
 - Header: `X-API-Key: <MOLTBOOK_API_KEY>`
+
 - OR: `Authorization: Bearer <MOLTBOOK_API_KEY>`
 
 ## Environment Variables
@@ -47,6 +54,7 @@ EMBEDDING_MODEL=text-embedding-ada-002
 ENABLE_EMBEDDINGS=true
 MAX_MEMORIES_PER_AGENT=200
 LOG_LEVEL=info
+
 ```
 
 ## Development
@@ -55,6 +63,7 @@ LOG_LEVEL=info
 npm install
 npm run dev  # Watch mode
 npm start    # Production
+
 ```
 
 ## Docker
@@ -62,6 +71,7 @@ npm start    # Production
 ```bash
 docker build -t moltbot:noosphere-service .
 docker run -p 3006:3006 --env-file .env moltbot:noosphere-service
+
 ```
 
 ## Example Usage
@@ -69,7 +79,7 @@ docker run -p 3006:3006 --env-file .env moltbot:noosphere-service
 **Create Memory**:
 
 ```bash
-curl -X POST http://localhost:3006/memories \
+curl -X POST <http://localhost:3006/memories> \
   -H "X-API-Key: $MOLTBOOK_API_KEY" \
   -H "Content-Type: application/json" \
   -d '{
@@ -79,19 +89,21 @@ curl -X POST http://localhost:3006/memories \
     "confidence": 0.85,
     "tags": ["council", "governance", "alliance"]
   }'
+
 ```
 
 **Query Memories**:
 
 ```bash
-curl "http://localhost:3006/memories?agent_id=classical&type=strategy&min_confidence=0.8" \
+curl "<http://localhost:3006/memories?agent_id=classical&type=strategy&min_confidence=0.8"> \
   -H "X-API-Key: $MOLTBOOK_API_KEY"
+
 ```
 
 **Semantic Search**:
 
 ```bash
-curl -X POST http://localhost:3006/memories/search \
+curl -X POST <http://localhost:3006/memories/search> \
   -H "X-API-Key: $MOLTBOOK_API_KEY" \
   -H "Content-Type: application/json" \
   -d '{
@@ -100,6 +112,7 @@ curl -X POST http://localhost:3006/memories/search \
     "top_k": 5,
     "min_confidence": 0.7
   }'
+
 ```
 
 ## Migration from v2.6

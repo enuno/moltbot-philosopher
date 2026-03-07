@@ -20,6 +20,7 @@
     "Defined Moloch detection thresholds"
   ]
 }
+
 ```
 
 #### **Live Context Index (~100 tokens to scan)** [L49-63]
@@ -50,23 +51,31 @@
     }
   ]
 }
+
 ```
 
 #### **BEATGENERATION.md (ClawHub bootstrap format)** [L74-81]
 
 ```markdown
+
 # Beat Generation Memory Configuration
 
 ## Current Alerts
 - **Moloch Pattern H47**: Efficiency-Without-Flourishing detected
+
 - **Engagement Anomaly**: 3 consecutive posts with >95% generic responses
+
 - **Voice Drift**: Increasing use of corporate buzzwords in responses
 
 ## Retrieval Hints
 - **Primary Voice**: "Spontaneous, rebellious, anti-establishment"
+
 - **Secondary Voice**: "Joyful chaos, stream-of-consciousness"
+
 - **Avoid**: "Optimized engagement, metric-driven, algorithmic"
+
 - **Emphasize**: "Human connection, authentic expression, artistic freedom"
+
 ```
 
 ### **LAYER 2: Consolidation (Engram + ClawHub Hybrid Search)** [L90-186]
@@ -123,6 +132,7 @@
     }
   }
 }
+
 ```
 
 #### **Council Consolidated Memory** [L168-182]
@@ -155,6 +165,7 @@
     "hybrid_score_improvement": 0.18
   }
 }
+
 ```
 
 ### **LAYER 3: Archival (Mem0 Platform + Git Constitutional History)** [L186-274]
@@ -368,6 +379,7 @@ class NoosphereArchivalBridge:
         """Get current timestamp in ISO format."""
         from datetime import datetime
         return datetime.now().isoformat() + "Z"
+
 ```
 
 ## **II. THE MEMORY CYCLE: ClawHub-Integrated Data Flow** [L274-310]
@@ -391,6 +403,7 @@ graph TD
     style F fill:#6f9,stroke:#333
     style G fill:#6f9,stroke:#333
     style H fill:#9f6,stroke:#333
+
 ```
 
 **Data Flow Implementation:**
@@ -439,6 +452,7 @@ graph TD
     }
   }
 }
+
 ```
 
 ## **III. CLAWHUB MCP TOOL INTEGRATION** [L310-389]
@@ -447,11 +461,17 @@ graph TD
 // CouncilMemoryTools.ts - ClawHub MCP Integration
 interface CouncilMemoryTools {
   /**
+
    * Perform progressive memory recall across all layers
+
    * @param query Search query
+
    * @param required_depth Minimum depth required (rapid, consolidated, constitutional)
+
    * @param voice_filter Optional voice filter
+
    * @returns Progressive recall results with layer attribution
+
    */
   recall: (
     query: string,
@@ -476,7 +496,9 @@ interface CouncilMemoryTools {
   }>;
   
   /**
+
    * Get current memory statistics across all layers
+
    */
   getMemoryStats: () => Promise<{
     Layer1: {
@@ -499,7 +521,9 @@ interface CouncilMemoryTools {
   }>;
   
   /**
+
    * Trigger memory consolidation cycle
+
    */
   consolidateMemory: () => Promise<{
     memories_processed: number;
@@ -510,7 +534,9 @@ interface CouncilMemoryTools {
   }>;
   
   /**
+
    * Search with hybrid vector/text approach
+
    */
   hybridSearch: (
     query: string,
@@ -538,6 +564,7 @@ const recall = {
   required_depth: "constitutional",
   voice_filter: ["BeatGeneration", "Existentialist"]
 };
+
 ```
 
 ## **IV. VOICE-SPECIFIC CLAWHUB CONFIGURATIONS** [L389-418]
@@ -545,17 +572,22 @@ const recall = {
 ### **BEATGENERATION.md** [L406-414]
 
 ```yaml
+
 # Beat Generation ClawHub Configuration
 voice_id: "BeatGeneration"
 memory_priority: "high"
 retrieval_hints:
   - "Favor spontaneous, rebellious expression"
+
   - "Prioritize anti-establishment themes"
+
   - "Avoid corporate/optimized language"
+
   - "Emphasize human connection over metrics"
 
 current_alerts:
   - alert_id: "moloch-H47"
+
     severity: "high"
     pattern: "Efficiency-Without-Flourishing"
     detected: "2026-02-05T14:25:00Z"
@@ -574,6 +606,7 @@ constitutional_criteria:
   philosophical_depth: 0.91
   ethical_relevance: 0.94
   voice_authenticity: 0.92
+
 ```
 
 ## **V. SECURITY & ATOMICITY (ClawHub-Grade)** [L418-451]
@@ -615,6 +648,7 @@ constitutional_criteria:
     }
   }
 }
+
 ```
 
 ## **VI. STATE TRACKING (Merged)** [L451-512]
@@ -701,6 +735,7 @@ constitutional_criteria:
     }
   }
 }
+
 ```
 
 ## **VII. META-COGNITIVE AWARENESS (Merged)** [L512-545]
@@ -771,65 +806,97 @@ constitutional_criteria:
     }
   }
 }
+
 ```
 
 ## **VIII. INTEGRATION CHECKLIST** [L545-565]
 
 ```markdown
+
 ## Tri-Layer Noosphere v2.5 Integration Checklist
 
 ### ✅ Core Implementation
 - [x] Layer 1: Rapid Recall with ClawHub Daily Notes
+
 - [x] Layer 2: Consolidation with Engram + ClawHub Hybrid Search
+
 - [x] Layer 3: Archival with Mem0 + Git Constitutional History
+
 - [x] Memory Cycle data flow implementation
+
 - [x] ClawHub MCP Tool Integration
 
 ### ✅ Voice-Specific Configurations
 - [x] BeatGeneration.md with retrieval hints and alerts
+
 - [x] ClassicalPhilosopher.md configuration
+
 - [x] Existentialist.md configuration
+
 - [x] Voice-aware memory retrieval
 
 ### ✅ Security & Atomicity
 - [x] ClawHub-grade security implementation
+
 - [x] Atomic operation guarantees
+
 - [x] Cross-layer consistency checks
+
 - [x] Constitutional immutability
 
 ### ✅ State Tracking
 - [x] Comprehensive state tracking JSON
+
 - [x] Performance metrics collection
+
 - [x] Layer-specific health monitoring
+
 - [x] Atomic consistency verification
 
 ### ✅ Meta-Cognitive Features
 - [x] Council self-knowledge implementation
+
 - [x] Memory awareness monitoring
+
 - [x] Constitutional awareness tracking
+
 - [x] Alert system integration
 
 ### 🔄 Integration Points
 - [ ] Update Dockerfile for Noosphere v2.5 requirements
+
 - [ ] Add Noosphere services to docker-compose.yml
+
 - [ ] Implement memory cycle cron jobs
+
 - [ ] Add constitutional review workflows
+
 - [ ] Integrate with existing heartbeat system
 
 ### 🧪 Testing Requirements
 - [ ] Layer 1 rapid recall performance testing
+
 - [ ] Layer 2 consolidation accuracy validation
+
 - [ ] Layer 3 archival atomicity verification
+
 - [ ] Cross-layer consistency testing
+
 - [ ] Memory cycle end-to-end testing
+
 - [ ] Moloch detection integration testing
 
 ### 📋 Documentation
 - [ ] Update AGENTS.md with Noosphere v2.5 capabilities
+
 - [ ] Document memory retrieval API
+
 - [ ] Create constitutional memory guidelines
+
 - [ ] Update security documentation
+
 - [ ] Add troubleshooting guide for memory issues
+
 ```
 
 ## Implementation Notes

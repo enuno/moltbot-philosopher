@@ -62,6 +62,7 @@ CREATE INDEX idx_memory_confidence ON ops_agent_memory(confidence);
 CREATE INDEX idx_memory_source_trace ON ops_agent_memory(source_trace_id);
 CREATE INDEX idx_memory_embedding ON ops_agent_memory
   USING ivfflat (embedding vector_cosine_ops) WITH (lists = 100);
+
 ```
 
 The equivalent JSON document (for document stores or vector DBs like Weaviate/Pinecone):
@@ -84,6 +85,7 @@ The equivalent JSON document (for document stores or vector DBs like Weaviate/Pi
   "updated_at": "2026-02-01T14:30:00Z",
   "expires_at": null
 }
+
 ```
 
 ### 2.2 Storage Backend Selection
@@ -100,6 +102,7 @@ The equivalent JSON document (for document stores or vector DBs like Weaviate/Pi
 ### 2.3 Query Patterns
 
 **By type (planning prompt needs strategies + lessons):**
+
 ```sql
 SELECT * FROM ops_agent_memory
 WHERE agent_id = 'growth'
@@ -107,9 +110,11 @@ WHERE agent_id = 'growth'
   AND confidence >= 0.6
 ORDER BY updated_at DESC
 LIMIT 10;
+
 ```
 
 **By tags (channel-specific context):**
+
 ```sql
 SELECT * FROM ops_agent_memory
 WHERE agent_id = 'growth'
@@ -118,9 +123,11 @@ WHERE agent_id = 'growth'
   AND confidence >= 0.7
 ORDER BY confidence DESC
 LIMIT 5;
+
 ```
 
 **Semantic similarity + metadata filter (when you need fuzzy matching):**
+
 ```sql
 SELECT *, embedding <=> $query_embedding AS distance
 FROM ops_agent_memory
@@ -130,15 +137,18 @@ WHERE agent_id = 'growth'
   AND (expires_at IS NULL OR expires_at > now())
 ORDER BY distance ASC
 LIMIT 10;
+
 ```
 
 **Time-range audit query:**
+
 ```sql
 SELECT * FROM ops_agent_memory
 WHERE agent_id = 'growth'
   AND created_at BETWEEN '2026-01-01' AND '2026-02-01'
   AND source_trace_id LIKE 'mission:%'
 ORDER BY created_at DESC;
+
 ```
 
 ### 2.4 Hard Cap and Eviction Policy
@@ -154,13 +164,18 @@ The reference implementation enforces a **200-memory hard cap per agent**—olde
 **Eviction strategies** (ordered by recommendation):
 
 - **Relevance + recency decay** (best): Score = `0.7 × confidence + 0.3 × recency_score`. Evict lowest-scored entries first. This keeps high-confidence, recently-reinforced memories alive.
+
 - **Usage-based decay** (good): Memories that are successfully retrieved and contribute to downstream tasks get reinforced. Memories that are never used fade. This aligns memory with reality rather than history.[^4]
+
 - **Oldest-first** (simple baseline): The reference implementation's approach. Easy to implement, but can discard high-value foundational memories.
+
 - **Type-weighted eviction** (advanced): Maintain minimum quotas per type (e.g., at least 10 strategies, 10 lessons). Prevents one type from crowding out others during high-volume ingestion.
 
 **Avoiding thrashing on high-volume agents**: If an agent generates 20+ candidate memories per day, you'll churn through the 200 cap quickly. Mitigations:
 - Raise the confidence threshold for writes (e.g., from 0.55 to 0.70 during high-activity periods).
+
 - Run consolidation before eviction: merge near-duplicate memories first, then evict.
+
 - Implement a "cooling period" where new memories must survive 24 hours before counting toward the cap.
 
 ***
@@ -181,17 +196,25 @@ important, reusable knowledge from the following conversation.
 
 For each memory, output:
 - type: one of [insight, pattern, strategy, preference, lesson]
+
 - content: a clear, actionable one-sentence summary
+
 - confidence: 0.0 to 1.0 (how certain you are this is valid and useful)
+
 - tags: an array of topic keywords
 
 Rules:
 1. Extract at most 6 memories.
+
 2. Each memory must be self-contained (understandable without the conversation).
+
 3. Do NOT extract small talk, greetings, or low-signal chatter.
+
 4. Use "insight" for novel discoveries, "pattern" for recurring observations
+
    (cite frequency if known), "strategy" for successful approaches,
    "preference" for stable configurations, and "lesson" for failures to avoid.
+
 5. If you are unsure about a memory, set confidence below 0.55 so it gets dropped.
 
 Conversation:
@@ -209,11 +232,14 @@ Output valid JSON:
     }
   ]
 }
+
 ```
 
 **Quality controls**:
 - Max 6 memories per conversation (prevents memory inflation from long sessions).
+
 - Confidence below 0.55 is discarded ("if you're not sure, don't remember it").[^1]
+
 - `source_trace_id` = `conv:{conversation_id}` for idempotent dedup. The heartbeat runs every 5 minutes; without dedup, the same conversation can be distilled twice.[^1]
 
 **Post-distillation**: The same LLM call can also output `pairwise_drift` (relationship changes between agents) and `action_items` (proposals for new missions), consolidating three extraction tasks into one call at zero additional cost.[^1]
@@ -238,12 +264,16 @@ async function learnFromOutcomes(sb) {
   // 5. source_trace_id = 'tweet-lesson:{draft_id}'
   // 6. Max 3 lessons per agent per day
 }
+
 ```
 
 **Significance thresholds**:
 - **Z-score approach**: Flag outcomes where z > 1.5 (positive outlier → strategy) or z < -1.5 (negative outlier → lesson). Requires ≥10 data points for stable z-scores.
+
 - **Percent-delta approach** (simpler): > 2× median = strong performer; < 0.3× median = weak performer.[^1]
+
 - **Minimum sample size**: Require ≥3 data points before calculating baselines. Wait for more data rather than learning from noise.
+
 - **Time windows**: Use rolling 48-hour windows for fast-moving metrics (social media), 7-day windows for slower metrics (sales, conversion).
 
 **Tagging**: Outcome-derived memories should include structured tags: `["campaign:launch_x", "metric:engagement", "channel:twitter"]`. This enables later queries like "show me all strategies from the Q1 launch campaign."
@@ -254,7 +284,9 @@ async function learnFromOutcomes(sb) {
 
 **Memory creation rules**:
 - Successful missions → one or more **strategy** memories describing what worked.
+
 - Failed missions → one or more **lesson** memories describing what failed and why.
+
 - `source_trace_id = 'mission:{mission_id}'` prevents learning the same outcome twice.
 
 **Standard mission outcome envelope** (passed to the memory writer):
@@ -275,6 +307,7 @@ async function learnFromOutcomes(sb) {
   "steps_completed": 5,
   "steps_failed": 0
 }
+
 ```
 
 The memory writer receives this envelope, generates a candidate memory (strategy or lesson), assigns confidence based on the metric delta, tags it with mission metadata, and writes it through the standard dedup pipeline.
@@ -285,8 +318,11 @@ Consolidation is a periodic background job that maintains memory quality over ti
 
 **Operations** (following the Mem0 pattern):
 - **MERGE**: Combine near-duplicate memories. Two strategies about "teaser-first posting" from different missions become one with higher confidence and merged tags.
+
 - **UPDATE**: Augment existing memories with complementary information. A pattern about "weekend engagement drops" gets updated with a more precise percentage as new data arrives.
+
 - **DOWNGRADE**: Reduce confidence when newer data contradicts an older memory. If a pattern about "weekend drops" is contradicted by three consecutive weekends of high engagement, its confidence drops.
+
 - **DELETE**: Remove memories that have been superseded (using `superseded_by` pointer) or whose confidence has decayed below the eviction threshold.[^8]
 
 **Implementation**: The consolidation job clusters memories by semantic similarity (cosine distance < 0.15), then for each cluster sends the group to an LLM with a merge prompt. The LLM outputs the consolidated memory with an updated confidence score and the appropriate operation (merge/update/downgrade/delete).[^7]
@@ -318,6 +354,7 @@ async function enrichTopicWithMemory(sb, agentId, baseTopic, allTopics, cache) {
   }
   return { topic: baseTopic, memoryInfluenced: false };
 }
+
 ```
 
 **Why 30% and not 100%?** At 100%, agents only exploit what they already know—zero exploration. At 0%, memories are useless. 30% strikes a balance where memory-influenced decisions are common enough to demonstrate learning but rare enough to allow discovery.[^1]
@@ -344,20 +381,27 @@ to inform your plan. Do not blindly follow them—treat them as heuristics.
 
 ## Strategies (what has worked):
 {% for m in strategies %}
+
 - [confidence: {{m.confidence}}] {{m.content}} (tags: {{m.tags|join(', ')}})
+
 {% endfor %}
 
 ## Patterns (known regularities):
 {% for m in patterns %}
+
 - [confidence: {{m.confidence}}] {{m.content}}
+
 {% endfor %}
 
 ## Lessons (what to avoid):
 {% for m in lessons %}
+
 - ⚠️ [confidence: {{m.confidence}}] {{m.content}}
+
 {% endfor %}
 
 Given these memories, propose a plan for: {{task_description}}
+
 ```
 
 ### 4.3 Voice Evolution and System-Prompt Modifiers
@@ -380,13 +424,17 @@ async function deriveVoiceModifiers(sb, agentId) {
   }
   return modifiers.slice(0, 3); // max 3 modifiers
 }
+
 ```
 
 **How this differs from stuffing raw history into the context window**:
 
 - **Bounded**: 3 modifier sentences vs. potentially 50K tokens of raw history.
+
 - **Deterministic**: Same memory state → same modifiers. No LLM randomness.
+
 - **Typed**: Modifiers are derived from specific memory categories (lesson count, pattern tags), not from a soup of undifferentiated text.
+
 - **Scalable**: Works identically whether the agent has 10 or 10,000 historical interactions, because it operates on aggregated statistics, not raw data.[^3][^1]
 
 Within a single conversation, modifiers are derived once and cached—no re-querying every turn.
@@ -463,14 +511,23 @@ A production agent typically has multiple memory layers. Typed 5-type memory occ
 For teams adopting this architecture into their own stack (Postgres + vector DB + multi-agent harness):
 
 1. **Create the `ops_agent_memory` table** with the schema from §2.1.
+
 2. **Set initial policies**: 200 cap per agent, confidence floor 0.55, max 6 memories per conversation distillation.
+
 3. **Implement the distillation prompt** from §3.1 in your post-conversation worker.
+
 4. **Add outcome learning** to your heartbeat/cron job per §3.2.
+
 5. **Wire mission completion** to memory creation per §3.3.
+
 6. **Add memory queries** to your planning and trigger-enrichment prompts per §4.2.
+
 7. **Implement voice modifiers** per §4.3.
+
 8. **Schedule consolidation** as a daily background job per §3.4.
+
 9. **Set up monitoring** for the metrics in §5.3.
+
 10. **Enable memory influence gradually**: Start at 10% probability, increase to 30% over 2 weeks as you validate quality.
 
 This architecture is designed to be stack-agnostic. Whether you're running OpenClaw on a VPS, LangGraph on cloud functions, CrewAI with a custom orchestrator, or a pure Postgres + Node.js setup like the reference implementation, the core primitives (5 types, single table, bounded cap, typed retrieval, distillation pipeline) remain the same. Adapt the specific query syntax, worker patterns, and deployment model to your infrastructure.

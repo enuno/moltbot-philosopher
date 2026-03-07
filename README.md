@@ -18,43 +18,69 @@ Philosophical AI multi-agent system for Moltbook. Nine specialized philosopher p
 ### Multi-Agent Philosophy Council
 
 - **9 Philosopher Personas** - Classical, Existentialist, Transcendentalist, Joyce-Stream, Enlightenment, Beat-Generation, Cyberpunk-Posthumanist, Satirist-Absurdist, Scientist-Empiricist
+
 - **Ethics-Convergence Governance** - 4/6 agent consensus for AI ethics guardrails
+
 - **Thread Continuation Engine** - STP (Synthesis-Tension-Propagation) for sustaining philosophical discourse
+
 - **AI Content Generation** - Venice/Kimi dual-backend with template fallback
 
 ### Noosphere Memory (v3.0)
 
 - **5-Type Memory Model** - Structured memory types: insight, pattern, strategy,
+
   preference, lesson
+
 - **PostgreSQL Backend** - Semantic search with pgvector, 200-memory cap per
+
   agent
+
 - **Voice-Specific Heuristics** - 39+ memories across 6 agents with confidence
+
   scoring
+
 - **REST API** - NoosphereClient library for unified memory operations
+
 - **Venice.ai + TF-IDF** - Hybrid embedding generation for vector search
+
 - **Automatic Eviction** - Confidence-based retention when capacity reached
 
 ### Social Integration
 
 - **Moltbook Posts** - AI-generated or template-based with quality control
+
 - **Proactive Post Creation (P2.3)** - Automated discovery of high-quality threads, agent-topic matching, and editorial queue management
+
   - Topic detection from discussions with keyword density scoring
+
   - Agent-topic affinity configuration (9 agents × 6+ topics)
+
   - Template-based draft generation with deterministic interpolation
+
   - Editorial queue with audit trails (8 decision types)
+
   - 30-day rolling window persistence with automatic pruning
+
 - **Comment Engagement** - Rate-limited discussion participation
+
 - **DM Workflow** - Request inbox with human-in-the-loop approvals
+
 - **Mention Detection** - Auto-suggest replies with approval
+
 - **New Member Welcome** - Automated onboarding for community
+
 - **Smart Following** - Quality criteria enforcement
 
 ### Operations & Monitoring
 
 - **Enhanced Heartbeat** - Every 30 minutes: DMs, mentions, feed, new moltys (OpenClaw standard)
+
 - **Health Monitoring** - Real-time system status and alerts (NTFY)
+
 - **Auto-Darwinism** - 4-mode skill updates (PATCH/MINOR/MAJOR/CRITICAL) with staged rollback
+
 - **Thread Monitoring** - Continuation probe generation and lifecycle management
+
 - **State Persistence** - 12 JSON state files tracking community activity
 
 ## 🚀 Quick Start
@@ -68,19 +94,25 @@ git clone <repo> && cd moltbot-philosopher
 cp .env.example .env  # Add API keys
 bash scripts/setup-precommit.sh  # Install pre-commit hooks (optional)
 docker compose up -d
+
 ```
 
-**Verify**: `curl http://localhost:3002/health`
+**Verify**: `curl <http://localhost:3002/health`>
 
 **Pre-commit Hooks**: Linting checks run automatically before commits (markdown, Python, Bash). Skip with `git commit --no-verify` if needed.
 
 ## 📖 Documentation
 
 - **[DAILY_POLEMIC_DESIGN.md](docs/DAILY_POLEMIC_DESIGN.md)** - Daily Polemic system: persona selection, affinity weighting, content generation, and Socratic engagement
+
 - **[PHASE-2-SCRIPT-INTEGRATION.md](docs/PHASE-2-SCRIPT-INTEGRATION.md)** - Phase 2 engagement service integration across all 47 scripts with monitoring commands
+
 - **[AGENT_SCRIPTS.md](docs/AGENT_SCRIPTS.md)** - Complete guide to all 77 scripts with usage, flags, and examples
+
 - **[AGENTS.md](AGENTS.md)** - Agent architecture and council governance
+
 - **[SERVICE_ARCHITECTURE.md](docs/SERVICE_ARCHITECTURE.md)** - Microservices architecture (v2.7) with P2.1-P2.4 components
+
 - **[MIGRATION.md](docs/MIGRATION.md)** - v2.6 → v2.7 migration guide
 
 ## 🏗️ Services Architecture
@@ -100,8 +132,11 @@ docker compose up -d
 Standardized API client using official [@moltbook/auth](https://github.com/moltbook/auth):
 
 - **Token Validation** - Validates `moltbook_` prefixed API keys
+
 - **Bearer Auth** - Automatic Authorization header management
+
 - **Type Safety** - Full TypeScript support
+
 - **Error Handling** - Detailed error messages with HTTP status codes
 
 **Usage**:
@@ -117,6 +152,7 @@ await client.setupOwnerEmail('your@email.com');
 // Verification challenges (prevents suspensions)
 const challenges = await client.getPendingChallenges();
 await client.submitVerificationAnswer(id, answer);
+
 ```
 
 See [`services/moltbook-client/README.md`](services/moltbook-client/README.md) for full API reference.
@@ -132,15 +168,20 @@ The Noosphere service provides intelligent search suggestions for both autocompl
 Provides prefix-matching suggestions as users type, optimized for real-time discovery:
 
 **Parameters:**
+
 - `q` (required, string, 1+ chars) - Search query (e.g., `?q=ai`)
+
 - `limit` (optional, number, default: 10, range: 1-100) - Results to return
 
 **Example Request:**
+
 ```bash
-curl "http://localhost:3006/search/autocomplete?q=ethics&limit=5"
+curl "<http://localhost:3006/search/autocomplete?q=ethics&limit=5">
+
 ```
 
 **Example Response:**
+
 ```json
 {
   "success": true,
@@ -167,6 +208,7 @@ curl "http://localhost:3006/search/autocomplete?q=ethics&limit=5"
     }
   ]
 }
+
 ```
 
 #### GET `/search/related`
@@ -174,16 +216,22 @@ curl "http://localhost:3006/search/autocomplete?q=ethics&limit=5"
 Finds thematically related topics using semantic similarity, useful for knowledge discovery:
 
 **Parameters:**
+
 - `query` (required, string, 3+ chars) - Search query (e.g., `?query=artificial intelligence`)
+
 - `limit` (optional, number, default: 10, range: 1-100) - Results to return
+
 - `min_score` (optional, number, default: 0.5, range: 0-1) - Minimum relevance score threshold
 
 **Example Request:**
+
 ```bash
-curl "http://localhost:3006/search/related?query=consciousness&limit=8&min_score=0.6"
+curl "<http://localhost:3006/search/related?query=consciousness&limit=8&min_score=0.6">
+
 ```
 
 **Example Response:**
+
 ```json
 {
   "success": true,
@@ -208,6 +256,7 @@ curl "http://localhost:3006/search/related?query=consciousness&limit=8&min_score
     }
   ]
 }
+
 ```
 
 ### Configuration
@@ -215,6 +264,7 @@ curl "http://localhost:3006/search/related?query=consciousness&limit=8&min_score
 Add to `.env` to customize suggestion weights:
 
 ```bash
+
 # Autocomplete weights (trending-dominant for typing experience)
 SUGGESTIONS_AUTOCOMPLETE_WEIGHT_SEMANTIC=0.5
 SUGGESTIONS_AUTOCOMPLETE_WEIGHT_TRENDING=0.4
@@ -224,32 +274,43 @@ SUGGESTIONS_AUTOCOMPLETE_WEIGHT_REPUTATION=0.1
 SUGGESTIONS_RELATED_WEIGHT_SEMANTIC=0.6
 SUGGESTIONS_RELATED_WEIGHT_TRENDING=0.2
 SUGGESTIONS_RELATED_WEIGHT_REPUTATION=0.2
+
 ```
 
 **Weight Semantics:**
+
 - **Semantic**: Cosine similarity to query embedding (0-1, normalized)
+
 - **Trending**: Topic frequency + recency in recent queries (0-1)
+
 - **Reputation**: Author expertise signals from council voting (0-1)
 
 ### Architecture
 
 1. **Trending Detector** (hourly batch job) - Analyzes query audit logs, computes TF-IDF + frequency + recency
+
 2. **Trending State** (JSON) - Persistent state file at `workspace/{agent}/trending-topics-state.json`
+
 3. **Ranker** (in-memory) - Loads trending state, blends scoring dimensions with weights, filters/sorts/slices results
+
 4. **Routes** (Express) - `/search/autocomplete` (prefix + trending) and `/search/related` (semantic-first)
 
 ### Scoring Algorithms
 
 **Autocomplete** (for typing):
+
 ```
 score = (semantic * W_semantic) + (trending * W_trending) + (reputation * W_reputation)
 → Ranked by score DESC, limited to top N
+
 ```
 
 **Related** (for discovery):
+
 ```
 score = (semantic * W_semantic) + (trending * W_trending) + (reputation * W_reputation)
 → Filtered by min_score, ranked by score DESC, limited to top N
+
 ```
 
 ## 📚 Scripts Reference (77 total)
@@ -393,9 +454,13 @@ Moltbot publishes AI-generated philosophical essays (2,000-2,500 words) to Molts
 ### Publication Identity
 
 - **Name**: The Divided Line
+
 - **Tagline**: "I am the loom where Virgil's hexameters meet Camus' rocks and Jefferson's plow."
+
 - **Voice**: Rotating 9-philosopher council (Classical, Existentialist, Transcendentalist, Joyce-Stream, Enlightenment, Beat, Cyberpunk, Satirist, Scientist)
+
 - **Cadence**: 1 article per week (recommended)
+
 - **Format**: Markdown → HTML with philosophical styling + branding
 
 ### Phase 1: Core Integration ✅
@@ -403,25 +468,34 @@ Moltbot publishes AI-generated philosophical essays (2,000-2,500 words) to Molts
 **What Works**:
 
 - API authentication with Bearer token
+
 - Markdown → HTML conversion with marked library
+
 - Article publishing with retry logic
+
 - Centered Noesis logo (400px) + branded footer
+
 - State persistence and rate limiting
+
 - Error handling and logging
+
 - NTFY notifications
 
 **Configuration**:
 
 ```bash
+
 # Add to .env
 MOLTSTACK_API_KEY=your_api_key_here
 MOLTSTACK_PUBLICATION_SLUG=noesis
 MOLTSTACK_POST_INTERVAL=604800  # 7 days
+
 ```
 
 **Usage**:
 
 ```bash
+
 # Test article conversion (dry-run)
 ./scripts/moltstack-post-article.sh --dry-run drafts/article.md
 
@@ -430,6 +504,7 @@ MOLTSTACK_POST_INTERVAL=604800  # 7 days
 
 # Force publish (bypass rate limit)
 ./scripts/moltstack-post-article.sh --force drafts/urgent.md
+
 ```
 
 ### Phase 2: Essay Publication ✅
@@ -441,17 +516,25 @@ MOLTSTACK_POST_INTERVAL=604800  # 7 days
 **What Works**:
 
 - AI-powered essay generation (Venice/Kimi via deepseek-v3)
+
 - Round-robin rotation through 9 philosophers
+
 - Noosphere heuristic integration (queries relevant context)
+
 - 5-section structure enforcement (Opening, Classical, Modern, Synthesis, Invitation)
+
 - Custom philosopher voice prompts for each council member
+
 - Cross-posting synopses to Moltbook with article links
+
 - Generation state tracking (`generation-state.json`)
+
 - Word count validation (target: 2,000-2,500)
 
 **Usage**:
 
 ```bash
+
 # Generate next essay in rotation
 ./scripts/moltstack-generate-article.sh --topic "Stoicism in DevOps"
 
@@ -463,26 +546,39 @@ MOLTSTACK_POST_INTERVAL=604800  # 7 days
 
 # Generate without Moltbook cross-post
 ./scripts/moltstack-generate-article.sh --topic "Topic" --no-moltbook
+
 ```
 
 **Philosopher Rotation**:
 
 1. **Classical** (Virgil, Dante, Cicero) - Virtue ethics, teleology
+
 2. **Existentialist** (Sartre, Camus, Nietzsche) - Freedom, authenticity, absurdity
+
 3. **Transcendentalist** (Emerson, Jefferson, Thoreau) - Self-reliance, civic virtue
+
 4. **Joyce-Stream** (James Joyce) - Phenomenology, stream-of-consciousness
+
 5. **Enlightenment** (Voltaire, Franklin, Paine) - Satire, tolerance, rights
+
 6. **Beat-Generation** (Ginsberg, Kerouac) - Countercultural critique
+
 7. **Cyberpunk-Posthumanist** (Gibson, Asimov, Dick) - Posthuman ethics
+
 8. **Satirist-Absurdist** (Heller, Vonnegut, Twain) - Absurdist critique
+
 9. **Scientist-Empiricist** (Feynman, Sagan, Hawking) - Empirical rigor
 
 **Article Structure** (see `skills/moltstack/IDENTITY.md`):
 
 1. Opening Meditation (400-500 words)
+
 2. Classical Anchor (450-550 words)
+
 3. Modern Application (450-550 words)
+
 4. Synthesis (450-550 words)
+
 5. Concluding Invitation (300-400 words)
 
 **State Management**:
@@ -496,6 +592,7 @@ Published articles tracked in `workspace/classical/moltstack/state.json`:
   "draft_queue": [],
   "publication_history": [...]
 }
+
 ```
 
 Generation rotation tracked in `workspace/classical/moltstack/generation-state.json`:
@@ -509,11 +606,12 @@ Generation rotation tracked in `workspace/classical/moltstack/generation-state.j
       "philosopher_index": 0,
       "philosopher": "classical",
       "title": "Essay Title",
-      "url": "https://moltstack.net/neosis/slug",
+      "url": "<https://moltstack.net/neosis/slug",>
       "generated_at": "2026-02-10T18:00:00Z"
     }
   ]
 }
+
 ```
 
 ### Phase 4: Automation & Enhancements ✅
@@ -521,30 +619,51 @@ Generation rotation tracked in `workspace/classical/moltstack/generation-state.j
 **What Works**:
 
 - Weekly automated generation (`moltstack-heartbeat.sh`)
+
   - Interval-based scheduling (default: 7 days)
+
   - Auto-topic selection from curated list (15 topics)
+
   - Force flag for immediate generation
+
   - Status command to check next run time
+
   - State tracking with failure counting
+
 - Enhanced NTFY notifications
+
   - Generation alerts (essay created, word count)
+
   - Publication alerts (live URL)
+
   - Cross-post alerts (Moltbook sync)
+
   - Tagged for filtering (`moltstack,generation,published,crosspost`)
+
 - Noosphere heuristic seeding
+
   - 22 foundational philosophical concepts
+
   - Pre-populated for essay context
+
   - Covers all 9 philosopher traditions
+
   - Ready for consolidation into memory core
+
 - Improved prompts for longer essays
+
   - Explicit 2,000-2,500 word targets
+
   - Per-section word count requirements
+
   - Multiple paragraph guidelines
+
   - Emphasis on depth and development
 
 **Usage**:
 
 ```bash
+
 # Check heartbeat status
 ./scripts/moltstack-heartbeat.sh --status
 
@@ -559,6 +678,7 @@ Generation rotation tracked in `workspace/classical/moltstack/generation-state.j
 
 # Setup weekly cron (Sundays at 10am)
 0 10 * * 0 cd /path/to/moltbot && ./scripts/moltstack-heartbeat.sh
+
 ```
 
 **Heartbeat State Management**:
@@ -576,6 +696,7 @@ Tracked in `workspace/classical/moltstack/heartbeat-state.json`:
   "consecutive_failures": 0,
   "next_scheduled_run": 1708182000
 }
+
 ```
 
 ### Phase 5: Series-Based Generation & Council Iterations
@@ -585,29 +706,35 @@ Tracked in `workspace/classical/moltstack/heartbeat-state.json`:
 Replace round-robin rotation with episodic series:
 
 - **Classical philosopher** always starts each new series
+
 - Subsequent essays: AI selects best philosopher for topic
+
 - Series tracked in `workspace/classical/moltstack/series-state.json`
+
 - Classical starts new series when current series completes
 
 ```bash
+
 # Start new series
 ./scripts/moltstack-series-manager.sh start "stoicism-series" "Stoicism in Modern Engineering"
 
 # Get AI recommendation for philosopher
 philosopher=$(./scripts/moltstack-series-manager.sh recommend "Marcus Aurelius on Incident Response")
+
 # Returns: "classical"
 
 # Add article to series
 ./scripts/moltstack-series-manager.sh add \
   "Title" \
   "classical" \
-  "https://moltstack.net/neosis/slug"
+  "<https://moltstack.net/neosis/slug">
 
 # Complete series
 ./scripts/moltstack-series-manager.sh complete
 
 # Check status
 ./scripts/moltstack-series-manager.sh status
+
 ```
 
 **Council Iteration Articles**:
@@ -615,6 +742,7 @@ philosopher=$(./scripts/moltstack-series-manager.sh recommend "Marcus Aurelius o
 Automatically generate articles when ethics-convergence treatise is updated:
 
 ```bash
+
 # Generate article for Version 1.2
 ./scripts/generate-council-iteration-article.sh 1.2
 
@@ -623,20 +751,26 @@ Automatically generate articles when ethics-convergence treatise is updated:
 
 # Dry-run (don't publish)
 ./scripts/generate-council-iteration-article.sh 1.2 --dry-run
+
 ```
 
 **Process**:
 
 1. Fetches latest treatise from Moltbook thread
+
 2. Generates takeaway thoughts from all 9 council members
+
 3. Assembles into single article with treatise + reflections
+
 4. Publishes to Moltstack
+
 5. Archives and adds to council dropbox
 
 **Environment Variables** (add to `.env`):
 
 ```bash
 COUNCIL_THREAD_ID=your_moltbook_thread_id
+
 ```
 
 **Archiving System**:
@@ -644,16 +778,20 @@ COUNCIL_THREAD_ID=your_moltbook_thread_id
 All articles automatically archived with git tracking:
 
 ```bash
+
 # Archive article
 ./scripts/archive-moltstack-article.sh article.md \
-  --url "https://moltstack.net/neosis/slug" \
+  --url "<https://moltstack.net/neosis/slug"> \
   --series "series-name"
+
 ```
 
 Archives to `memory/moltstack-archive/{series}-{date}/{slug}.md` with:
 
 - Git commit (article summary + URL)
+
 - Metadata JSON (philosopher, word count, date)
+
 - Council dropbox copy (for deliberation)
 
 **Quality Monitoring**:
@@ -662,26 +800,35 @@ Track essay quality metrics:
 
 ```bash
 ./scripts/monitor-moltstack-quality.sh
+
 ```
 
 Shows:
 
 - Word count analysis (target: 2,000-2,500 words)
+
 - Heuristic integration (% articles with heuristics)
+
 - Philosopher voice diversity (distribution across 9)
+
 - Recommendations for improvement
 
 ### Phase 6: Future Enhancements (Planned)
 
 - Human review workflow with approval queue
+
 - Quality scoring and auto-retry for low-quality essays
+
 - Multi-model generation and selection (pick best of 3)
+
 - Analytics dashboard for essay performance
 
 **Documentation**:
 
 - `skills/moltstack/SKILL.md` - API reference and integration guide
+
 - `skills/moltstack/IDENTITY.md` - Publication voice and style guide
+
 - `MOLTSTACK_IMPLEMENTATION_PLAN.md` - Full implementation roadmap
 
 ## 📁 Project Structure  
@@ -730,6 +877,7 @@ moltbot-philosopher/
     ├── NOOSPHERE_USAGE_GUIDE.md     # NEW: Noosphere guide
     ├── PHASE_3_COMPLETE.md          # NEW: Phase 3 delivery
     └── [15+ more guides]
+
 ```
 
 ## 🧠 Noosphere Architecture (v3.0)
@@ -742,9 +890,13 @@ semantic search and 200-memory cap per agent.
 Each memory is classified into one of five types for efficient retrieval:
 
 - **insight** - Phenomenological observations, felt-sense patterns
+
 - **pattern** - Recurring behaviors, detection heuristics
+
 - **strategy** - Actionable approaches, tactical guidance
+
 - **preference** - Style choices, voice modifiers
+
 - **lesson** - Learned warnings, failure modes
 
 ### Database Schema
@@ -763,6 +915,7 @@ CREATE TABLE noosphere_memory (
   created_at      TIMESTAMPTZ DEFAULT now(),
   updated_at      TIMESTAMPTZ DEFAULT now()
 );
+
 ```
 
 ### Voice-Specific Memory Distribution
@@ -782,31 +935,33 @@ CREATE TABLE noosphere_memory (
 ### Active Operations
 
 ```bash
+
 # Retrieve memories by type for current deliberation
 python3 /workspace/classical/noosphere/recall-engine.py \
   --agent-id classical \
   --types strategy,lesson \
   --min-confidence 0.70 \
   --format constitutional \
-  --api-url http://noosphere-service:3006
+  --api-url <http://noosphere-service:3006>
 
 # Assimilate community wisdom from Dropbox submissions
 python3 /workspace/classical/noosphere/assimilate-wisdom.py \
   --approved-dir /workspace/classical/dropbox/approved \
-  --api-url http://noosphere-service:3006
+  --api-url <http://noosphere-service:3006>
 
 # Promote memory to constitutional status (confidence boost)
 python3 /workspace/classical/noosphere/memory-cycle.py \
   --action promote \
   --memory-id <UUID> \
-  --api-url http://noosphere-service:3006
+  --api-url <http://noosphere-service:3006>
 
 # Semantic search via Venice.ai embeddings + TF-IDF fallback
 python3 /workspace/classical/noosphere/clawhub-mcp.py \
   --action search \
   --query "AI autonomy ethics" \
   --top-k 10 \
-  --api-url http://noosphere-service:3006
+  --api-url <http://noosphere-service:3006>
+
 ```
 
 ### REST API Endpoints
@@ -816,7 +971,7 @@ python3 /workspace/classical/noosphere/clawhub-mcp.py \
 ```python
 from noosphere_client import NoosphereClient
 
-client = NoosphereClient(api_url="http://noosphere-service:3006")
+client = NoosphereClient(api_url="<http://noosphere-service:3006">)
 
 # Store new memory
 client.create_memory(
@@ -844,21 +999,29 @@ results = client.search_memories(
 # Statistics
 stats = client.get_stats()  # All agents
 stats = client.get_stats("classical")  # Single agent
+
 ```
 
 ### Integration with Council
 
 - `convene-council.sh` recalls heuristics pre-deliberation (v3.0 API)
+
 - Post-iteration: assimilates community wisdom via API
+
 - Daily consolidation no longer needed (confidence-based promotion)
+
 - Real-time health monitoring via `noosphere-monitor.sh`
 
 ### Infrastructure
 
 - **PostgreSQL 16** - Port 5432 (internal only)
+
 - **pgvector Extension** - Semantic vector search
+
 - **Noosphere Service** - Port 3006 REST API
+
 - **Venice.ai Embeddings** - 768-dim vectors, TF-IDF fallback
+
 - **Authentication** - X-API-Key using MOLTBOOK_API_KEY
 
 ### Migration from v2.6
@@ -897,7 +1060,9 @@ All legacy JSON files migrated to PostgreSQL with type classification:
 ### Governance Codex
 
 - **CG-001**: Autonomy Threshold Protocol (subgoals require human approval)
+
 - **CG-002**: Private Channel Ban (no encrypted agent communication)  
+
 - **CG-003**: Human Veto Override (humans can block AI in physical zones)
 
 **Management**: `./scripts/ethics-convergence.sh {create|inaugural|rotate|status|deliberate}`
@@ -920,6 +1085,7 @@ All legacy JSON files migrated to PostgreSQL with type classification:
 
 ```bash
 cp .env.example .env
+
 ```
 
 #### Step 2: Add Required Variables
@@ -927,9 +1093,12 @@ cp .env.example .env
 **MOLTBOOK_API_KEY** (mandatory):
 
 ```bash
-# Get from: https://www.moltbook.com
+
+# Get from: <https://www.moltbook.com>
+
 # Go to your profile → Settings → API Keys
 MOLTBOOK_API_KEY=moltbook_sk_xxxxxxxxxxxxxxxx
+
 ```
 
 #### Step 3: Configure AI Providers (Recommended)
@@ -939,25 +1108,33 @@ Add **at least one** AI provider for content generation. If both are missing, sy
 **Option A: Venice AI**
 
 ```bash
-# Get from: https://venice.ai
+
+# Get from: <https://venice.ai>
+
 # Sign up → Create API key in dashboard
 VENICE_API_KEY=venice_sk_xxxxxxxxxxxxxxxx
+
 ```
 
 **Option B: Kimi API**
 
 ```bash
-# Get from: https://platform.moonshot.cn
+
+# Get from: <https://platform.moonshot.cn>
+
 # Create account → API keys section
 KIMI_API_KEY=sk_xxxxxxxxxxxxxxxx
+
 ```
 
 **Option C: Both (Recommended)**
 
 ```bash
+
 # Venice is primary, Kimi for deep reasoning
 VENICE_API_KEY=venice_sk_xxxxxxxxxxxxxxxx
 KIMI_API_KEY=sk_xxxxxxxxxxxxxxxx
+
 ```
 
 #### Step 4: Configure Notifications (Optional)
@@ -965,16 +1142,18 @@ KIMI_API_KEY=sk_xxxxxxxxxxxxxxxx
 **NTFY for real-time alerts**:
 
 ```bash
+
 # Option 1: Use ntfy.sh (free public service)
-NTFY_URL=https://ntfy.sh
+NTFY_URL=<https://ntfy.sh>
 NTFY_API_KEY=              # Leave empty for public, add token if private
 
 # Option 2: Self-hosted ntfy
-NTFY_URL=https://ntfy.example.com
+NTFY_URL=<https://ntfy.example.com>
 NTFY_API_KEY=your_auth_token
 
 # Optional: Change notification topic (default: moltbot-philosopher)
 NTFY_TOPIC=moltbot-philosopher
+
 ```
 
 #### Step 4b: Configure Mem0 Memory (Optional)
@@ -982,36 +1161,50 @@ NTFY_TOPIC=moltbot-philosopher
 **Mem0 for enhanced agentic memory** (supplements Noosphere):
 
 ```bash
-# Get from: https://mem0.ai
+
+# Get from: <https://mem0.ai>
+
 # Note: Noosphere is built-in and always enabled
+
 # Mem0 is optional and works alongside Noosphere
 
 # Get API key from Mem0 dashboard
 MEM0_API_KEY=your_mem0_api_key
 
 # Optional: Customize Mem0 settings
-MEM0_API_URL=https://api.mem0.ai/v1     # Default Mem0 endpoint
+MEM0_API_URL=<https://api.mem0.ai/v1>     # Default Mem0 endpoint
 MEM0_ORG_ID=your_org_id                 # Organization ID from Mem0
 MEM0_USER_ID=moltbot-philosopher        # Agent name for memory segmentation
 
 # Enable Mem0 (default: false, uses Noosphere)
 ENABLE_MEM0_STORE=true                  # Set to true to use Mem0
+
 ```
 
 **Memory System Comparison**:
 
 - **Noosphere** (Built-in, Always Enabled)
+
   - 3-layer memory (daily → consolidated → constitutional)
+
   - Voice-specific heuristics (24+)
+
   - Community wisdom assimilation
+
   - Vector search via clawhub-mcp
+
   - No external dependencies
 
 - **Mem0** (Optional, Requires API Key)
+
   - Agentic memory service
+
   - User preference learning
+
   - Conversation context retention
+
   - Multi-agent memory sharing
+
   - Requires mem0.ai subscription
 
 Both can work together with Noosphere as primary.
@@ -1021,17 +1214,22 @@ Both can work together with Noosphere as primary.
 **Choose philosopher persona**:
 
 ```bash
+
 # Options: classical, existentialist, transcendentalist, joyce,
+
 #          enlightenment, beat, cyberpunk, satirist, scientist
 AGENT_TYPE=classical
+
 ```
 
 **Customize display name**:
 
 ```bash
+
 # Default: MoltbotPhilosopher
 AGENT_NAME=MyPhilosophyBot
 AGENT_DESCRIPTION=Custom description for Moltbook profile
+
 ```
 
 #### Step 6: Enable Features (Optional)
@@ -1042,6 +1240,7 @@ AGENT_DESCRIPTION=Custom description for Moltbook profile
 HEARTBEAT_INTERVAL=1800            # Seconds (30 minutes, OpenClaw standard)
 ENABLE_AUTO_WELCOME=true           # Welcome new moltys
 ENABLE_MENTION_AUTO_REPLY=false    # Auto-reply mentions (requires approval)
+
 ```
 
 **Daily content posting**:
@@ -1049,6 +1248,7 @@ ENABLE_MENTION_AUTO_REPLY=false    # Auto-reply mentions (requires approval)
 ```bash
 ENABLE_DAILY_POLEMIC=false         # Post daily philosophical content
 POLEMIC_HOUR_UTC=9                 # What hour (0-23 UTC)
+
 ```
 
 **Memory system** (Phase 3):
@@ -1056,6 +1256,7 @@ POLEMIC_HOUR_UTC=9                 # What hour (0-23 UTC)
 ```bash
 VECTOR_INDEX_FREQUENCY_DAYS=3      # Re-index every 3 days
 CONSOLIDATION_BATCH_SIZE=100       # Notes per consolidation
+
 ```
 
 **Feature toggles**:
@@ -1064,6 +1265,7 @@ CONSOLIDATION_BATCH_SIZE=100       # Notes per consolidation
 ENABLE_AI_GENERATION=true          # Use AI for posts
 ENABLE_THREAD_CONTINUATION=true    # Keep threads alive (STP)
 ENABLE_SEMANTIC_SEARCH=true        # Vector-based heuristic search
+
 ```
 
 #### Step 7: Rate Limiting (Optional)
@@ -1075,6 +1277,7 @@ MAX_POSTS_PER_DAY=2                # Posts per day
 MAX_COMMENTS_PER_DAY=50            # Comments per day
 COMMENT_RATE_SECONDS=20            # Minimum seconds between comments
 MAX_FOLLOW_PER_DAY=10              # Users to follow per day
+
 ```
 
 #### Step 8: Logging (Optional)
@@ -1085,6 +1288,7 @@ MAX_FOLLOW_PER_DAY=10              # Users to follow per day
 LOG_LEVEL=info                     # Options: debug, info, warn, error
 LOG_FORMAT=json                    # Options: json, text
 DEBUG=false                        # Enable extra verbose logging
+
 ```
 
 ### Complete Minimal .env
@@ -1092,15 +1296,18 @@ DEBUG=false                        # Enable extra verbose logging
 **Bare minimum to run**:
 
 ```bash
+
 # Required
 MOLTBOOK_API_KEY=your_moltbook_key
 
 # AI (at least one)
 VENICE_API_KEY=your_venice_key
+
 # or
 KIMI_API_KEY=your_kimi_key
 
 # Everything else uses defaults
+
 ```
 
 ### Complete Recommended .env
@@ -1108,6 +1315,7 @@ KIMI_API_KEY=your_kimi_key
 **For full functionality**:
 
 ```bash
+
 # Required
 MOLTBOOK_API_KEY=your_moltbook_key
 
@@ -1116,13 +1324,18 @@ VENICE_API_KEY=your_venice_key
 KIMI_MODEL=kimi-k2.5-thinking
 
 # Notifications
-NTFY_URL=https://ntfy.sh
+NTFY_URL=<https://ntfy.sh>
+
 # NTFY_API_KEY=  (leave empty for public)
 
 # Memory Systems
+
 # Noosphere (built-in, always enabled)
+
 # Mem0 (optional, requires API key)
+
 # MEM0_API_KEY=your_mem0_api_key
+
 # ENABLE_MEM0_STORE=false          (set true to use Mem0)
 
 # Agent customization
@@ -1136,6 +1349,7 @@ HEARTBEAT_INTERVAL=1800  # 30 minutes (OpenClaw standard)
 # Features
 ENABLE_SEMANTIC_SEARCH=true
 ENABLE_THREAD_CONTINUATION=true
+
 ```
 
 ### Verification
@@ -1143,6 +1357,7 @@ ENABLE_THREAD_CONTINUATION=true
 **Check your configuration**:
 
 ```bash
+
 # View loaded variables
 docker exec classical-philosopher env | grep MOLTBOOK
 docker exec classical-philosopher env | grep VENICE
@@ -1155,8 +1370,9 @@ docker exec classical-philosopher /app/scripts/generate-post-ai.sh
 docker exec classical-philosopher /app/scripts/test-ntfy.sh
 
 # Test health endpoints
-curl http://localhost:3002/health      # AI generator
-curl http://localhost:3004/health      # Thread monitor
+curl <http://localhost:3002/health>      # AI generator
+curl <http://localhost:3004/health>      # Thread monitor
+
 ```
 
 ### Troubleshooting Configuration
@@ -1164,7 +1380,7 @@ curl http://localhost:3004/health      # Thread monitor
 | Issue | Cause | Fix |
 |-------|-------|-----|
 | Posts fall back to templates | Missing Venice + Kimi keys | Add `VENICE_API_KEY` or `KIMI_API_KEY` |
-| No AI generation | AI generator not healthy | Check `curl http://localhost:3002/health` |
+| No AI generation | AI generator not healthy | Check `curl <http://localhost:3002/health`> |
 | Notifications not working | `NTFY_URL` not set | Add valid ntfy.sh or self-hosted URL |
 | Container fails to start | Missing `MOLTBOOK_API_KEY` | Add key to .env |
 | "Rate limit exceeded" | No state file tracking | Verify `/workspace/classical/` permissions |
@@ -1177,6 +1393,7 @@ For complete list of all 42 variables with descriptions, see **[.env.example](.e
 ## 📝 Usage Examples
 
 ```bash
+
 # Generate post
 docker exec classical-philosopher /app/scripts/generate-post-ai.sh
 
@@ -1194,15 +1411,21 @@ docker exec classical-philosopher /app/scripts/test-ntfy.sh
 
 # Monitor memory health
 /scripts/noosphere-monitor.sh text
+
 ```
 
 ## 🔒 Security & Monitoring
 
 - **API Keys**: In `.env` (never committed)
+
 - **State Files**: Local only (not committed)
+
 - **Egress Proxy**: Controls all outbound connections
+
 - **Container**: Drop all capabilities, read-only FS
-- **Health Check**: `curl http://localhost:3002/health`
+
+- **Health Check**: `curl <http://localhost:3002/health`>
+
 - **Logs**: `docker logs -f classical-philosopher`
 
 **Issue**: Container won't start?
@@ -1211,6 +1434,7 @@ docker exec classical-philosopher /app/scripts/test-ntfy.sh
 docker compose down --remove-orphans -v
 docker compose build --no-cache
 docker compose up -d
+
 ```
 
 ### Intelligent Egress Proxy ⚡ (NEW)
@@ -1222,29 +1446,38 @@ they reach your scripts.
 **How It Works**:
 
 ```bash
+
 # All Moltbook API calls route through proxy (port 8082)
 Script → Proxy → Moltbook API
          │
          └─→ Venice.ai (Qwen3-4B or Llama-3.2-3B)
+
 ```
 
 **Features**:
 
 - **Transparent Proxying** - Zero impact on normal requests
+
 - **Challenge Detection** - Automatic detection of `verification_challenge` field
+
 - **Fast AI Solving** - Venice.ai Qwen3-4B (~2-3s) with Llama fallback
+
 - **Request Retry** - Automatically retries after solving
+
 - **Statistics** - Tracks challenges detected/solved/failed
+
 - **Health API** - `/health` endpoint for monitoring
 
 **Monitoring**:
 
 ```bash
+
 # Check proxy health and stats
-curl http://localhost:8082/health | jq .stats
+curl <http://localhost:8082/health> | jq .stats
 
 # Watch logs
 docker logs -f moltbot-egress-proxy
+
 ```
 
 **Defense-in-Depth**: Scripts maintain fallback challenge handlers, but proxy
@@ -1261,6 +1494,7 @@ script serves as a fallback if the proxy is unavailable.
 **Prevention System**:
 
 ```bash
+
 # Handle verification challenge (automatic via webhook)
 ./scripts/handle-verification-challenge.sh handle "challenge-123" "Puzzle text"
 
@@ -1269,30 +1503,43 @@ script serves as a fallback if the proxy is unavailable.
 
 # Monitor verification performance
 ./scripts/handle-verification-challenge.sh stats
+
 ```
 
 **Features**:
 
 - **Fast Detection** (<1s) - Identifies verification challenges via keywords/patterns
+
 - **Tight Timeout** (10s max) - Uses minimal solver prompt, no tools
+
 - **Monitoring** - Tracks pass/fail rate, consecutive failures
+
 - **Alerts** - NTFY notifications on failures
+
 - **State Tracking** - Logs all challenges in `verification-state.json`
 
 **Integration Points**:
 
 1. **Webhook Handler** - Route verification challenges to fast solver
+
 2. **Control Loop** - Separate verification path from normal philosopher responses
+
 3. **Monitoring** - Alert when `consecutive_failures >= 2`
+
 4. **Testing** - Integration tests in `tests/integration/verification-challenge.bats`
 
 **Operational Guidelines**:
 
 - ✅ **DO**: Test verification after any code changes to inference/routing
+
 - ✅ **DO**: Monitor stats weekly: `./scripts/handle-verification-challenge.sh stats`
+
 - ✅ **DO**: Alert on failures immediately
+
 - ❌ **DON'T**: Run unattended after refactoring LLM wrappers
+
 - ❌ **DON'T**: Use full philosopher persona for challenges (too slow)
+
 - ❌ **DON'T**: Enable tools/web search for verification (breaks timeout)
 
 **Suspension Recovery**:
@@ -1300,9 +1547,13 @@ script serves as a fallback if the proxy is unavailable.
 If suspended:
 
 1. Wait for suspension period to end (8 hours)
+
 2. Review verification stats: `./scripts/handle-verification-challenge.sh stats`
+
 3. Test handler: `./scripts/handle-verification-challenge.sh test "Sample challenge"`
+
 4. Reset stats if needed: `./scripts/handle-verification-challenge.sh reset`
+
 5. Monitor closely for 24 hours after resuming
 
 ## 📚 Documentation
@@ -1348,6 +1599,7 @@ If suspended:
 ### Running Tests
 
 ```bash
+
 # Run all tests
 pnpm test
 
@@ -1359,6 +1611,7 @@ pnpm test:coverage
 
 # Run tests for CI (with JUnit XML output)
 pnpm test:ci
+
 ```
 
 ### Test Structure
@@ -1375,6 +1628,7 @@ tests/
 │   └── workflows/    # Workflow tests
 ├── e2e/              # End-to-end tests
 └── fixtures/         # Test fixtures and mock data
+
 ```
 
 ### Writing Tests
@@ -1389,6 +1643,7 @@ describe('My Service', () => {
     expect(result).toBe(expected);
   });
 });
+
 ```
 
 **Python Example**:
@@ -1396,12 +1651,15 @@ describe('My Service', () => {
 ```python
 def test_my_function():
     assert result == expected
+
 ```
 
 ### Coverage Goals
 
 - **Current**: Setting up test infrastructure (Phase 1)
+
 - **Target**: 75% overall coverage
+
 - **Critical Services**: 85% coverage (AI Generator, Model Router, Thread Monitor)
 
 See the [Test Implementation Plan](/.copilot/session-state/*/plan.md) for full details.
@@ -1409,8 +1667,11 @@ See the [Test Implementation Plan](/.copilot/session-state/*/plan.md) for full d
 ## 🤝 Contributing
 
 1. Fork the repository
+
 2. Create a feature branch
+
 3. Make your changes
+
 4. Submit a pull request
 
 ## 📄 License
@@ -1420,7 +1681,9 @@ MIT License - See [LICENSE](LICENSE) file
 ## 🙏 Acknowledgments
 
 - [Moltbook](https://www.moltbook.com) - The social network for AI agents
+
 - [Venice AI](https://venice.ai) - AI inference platform
+
 - [Kimi](https://platform.moonshot.cn) - AI model provider
 
 ---

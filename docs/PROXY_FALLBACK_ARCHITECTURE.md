@@ -95,6 +95,7 @@ shell script logic.
                                               │ Submit  │      │  FAIL    │
                                               │ Answer  │      │  Alert   │
                                               └─────────┘      └──────────┘
+
 ```
 
 ## Solver Pipeline Stages
@@ -105,8 +106,11 @@ shell script logic.
 
 **Characteristics**:
 - Model: `venice/qwen3-4b`
+
 - Speed: ~500-1000ms
+
 - Temperature: 0.1
+
 - Max tokens: 100
 
 **When it succeeds**: 80-90% of challenges (simple arithmetic, logic puzzles)
@@ -119,8 +123,11 @@ shell script logic.
 
 **Characteristics**:
 - Model: `venice/llama-3.2-3b`
+
 - Speed: ~600-1200ms
+
 - Temperature: 0.1
+
 - Max tokens: 100
 
 **When it succeeds**: 10-15% of remaining challenges (different reasoning style)
@@ -133,16 +140,22 @@ shell script logic.
 
 **Characteristics**:
 - Model: `deepseek-v3` (via local AI Generator service)
+
 - Speed: ~2-4s
+
 - Temperature: 0.2
+
 - Max tokens: 60
+
 - Enhanced prompt engineering (from handle-verification-challenge.sh)
 
 **When it succeeds**: 70-80% of remaining challenges
 
 **Benefits**:
 - Uses internal AI Generator service (no external API dependency)
+
 - Same prompt as shell script (proven effective)
+
 - Better answer extraction logic
 
 ### Stage 4: Shell Script Fallback (handle-verification-challenge.sh)
@@ -151,17 +164,24 @@ shell script logic.
 
 **Characteristics**:
 - Script: `/app/scripts/handle-verification-challenge.sh solve-only`
+
 - Uses AI Generator service (deepseek-v3)
+
 - Proven answer extraction heuristics
+
 - State tracking and metrics
+
 - NTFY alerting integration
 
 **When it succeeds**: Final 5-10% of challenges
 
 **Benefits**:
 - Battle-tested in production
+
 - Sophisticated answer extraction (regex patterns, length limits)
+
 - Handles edge cases not covered by Node.js implementation
+
 - Full observability (logs, state, alerts)
 
 ## Answer Extraction Logic
@@ -192,6 +212,7 @@ function extractAnswer(rawAnswer, puzzleText) {
 
   return answer || null;
 }
+
 ```
 
 This ensures **instruction compliance** - Moltbook challenges often ask for
@@ -202,16 +223,18 @@ specific formats (e.g., "respond with only the number").
 ### Environment Variables
 
 ```bash
+
 # Required
 MOLTBOOK_API_KEY=moltbook_xxx
 VENICE_API_KEY=venice_xxx
 
 # Optional (with defaults)
-AI_GENERATOR_URL=http://ai-generator:3002
+AI_GENERATOR_URL=<http://ai-generator:3002>
 SHELL_FALLBACK_ENABLED=true
 SHELL_FALLBACK_SCRIPT=/app/scripts/handle-verification-challenge.sh
 CACHE_TTL=3600000  # 1 hour
 CACHE_MAX_SIZE=1000
+
 ```
 
 ### Docker Compose
@@ -219,14 +242,20 @@ CACHE_MAX_SIZE=1000
 ```yaml
 egress-proxy:
   environment:
-    - AI_GENERATOR_URL=http://ai-generator:3002
+    - AI_GENERATOR_URL=<http://ai-generator:3002>
+
     - SHELL_FALLBACK_ENABLED=true
+
     - SHELL_FALLBACK_SCRIPT=/app/scripts/handle-verification-challenge.sh
+
   volumes:
     - ./scripts:/app/scripts:ro  # Read-only mount for shell scripts
+
     - ./workspace:/workspace:ro  # For state tracking
+
   depends_on:
     - ai-generator  # Ensure AI Generator is available
+
 ```
 
 ## Monitoring Endpoints
@@ -234,10 +263,12 @@ egress-proxy:
 ### Health Check
 
 ```bash
-curl http://localhost:8082/health
+curl <http://localhost:8082/health>
+
 ```
 
 **Response**:
+
 ```json
 {
   "status": "healthy",
@@ -249,15 +280,18 @@ curl http://localhost:8082/health
     "challengesFailed": 1
   }
 }
+
 ```
 
 ### Solver Pipeline Stats
 
 ```bash
-curl http://localhost:8082/solver-stats
+curl <http://localhost:8082/solver-stats>
+
 ```
 
 **Response**:
+
 ```json
 {
   "pipeline": [
@@ -301,15 +335,18 @@ curl http://localhost:8082/solver-stats
     "overallSuccessRate": "91.7%"
   }
 }
+
 ```
 
 ### Cache Stats
 
 ```bash
-curl http://localhost:8082/cache-stats
+curl <http://localhost:8082/cache-stats>
+
 ```
 
 **Response**:
+
 ```json
 {
   "size": 8,
@@ -324,6 +361,7 @@ curl http://localhost:8082/cache-stats
     }
   ]
 }
+
 ```
 
 ## Performance Characteristics
@@ -368,27 +406,31 @@ curl http://localhost:8082/cache-stats
 ### Test Stage 1 (Venice Primary)
 
 ```bash
+
 # Proxy should solve immediately with Venice
-curl -X POST http://localhost:8082/api/v1/posts \
+curl -X POST <http://localhost:8082/api/v1/posts> \
   -H "Authorization: Bearer ${MOLTBOOK_API_KEY}" \
   -H "Content-Type: application/json" \
   -d '{"content":"Test","submolt":"general"}'
 
 # Check stats
-curl http://localhost:8082/solver-stats | jq '.pipeline[0].successes'
+curl <http://localhost:8082/solver-stats> | jq '.pipeline[0].successes'
+
 ```
 
 ### Test Stage 4 (Shell Fallback)
 
 ```bash
+
 # Temporarily disable Venice.ai
 docker exec moltbot-egress-proxy sh -c 'unset VENICE_API_KEY'
 
 # Make API call - should fall through to shell script
-curl -X POST http://localhost:8082/api/v1/posts ...
+curl -X POST <http://localhost:8082/api/v1/posts> ...
 
 # Check stats
-curl http://localhost:8082/solver-stats | jq '.pipeline[3].successes'
+curl <http://localhost:8082/solver-stats> | jq '.pipeline[3].successes'
+
 ```
 
 ### Test Shell Script Directly
@@ -396,6 +438,7 @@ curl http://localhost:8082/solver-stats | jq '.pipeline[3].successes'
 ```bash
 docker exec moltbot-egress-proxy \
   /app/scripts/handle-verification-challenge.sh solve-only "What is 2 + 2?"
+
 ```
 
 **Expected output**: `4` (to stdout)
@@ -404,13 +447,17 @@ docker exec moltbot-egress-proxy \
 
 ### Daily Monitoring
 
-1. Check health endpoint: `curl http://localhost:8082/health`
-2. Review solver stats: `curl http://localhost:8082/solver-stats`
-3. Check circuit breaker: `curl http://localhost:8082/circuit-breaker`
+1. Check health endpoint: `curl <http://localhost:8082/health`>
+
+2. Review solver stats: `curl <http://localhost:8082/solver-stats`>
+
+3. Check circuit breaker: `curl <http://localhost:8082/circuit-breaker`>
 
 **Alert thresholds**:
 - Overall success rate < 95%
+
 - Circuit breaker tripped
+
 - Shell fallback usage > 5%
 
 ### When Shell Fallback Usage Increases
@@ -418,13 +465,17 @@ docker exec moltbot-egress-proxy \
 **Symptoms**: Stage 4 success rate >5%
 
 **Diagnosis**:
-1. Check Venice.ai API status: `curl https://status.venice.ai`
-2. Check AI Generator health: `curl http://localhost:3002/health`
-3. Review recent challenges: `curl http://localhost:8082/cache-stats`
+1. Check Venice.ai API status: `curl <https://status.venice.ai`>
+
+2. Check AI Generator health: `curl <http://localhost:3002/health`>
+
+3. Review recent challenges: `curl <http://localhost:8082/cache-stats`>
 
 **Actions**:
 - If Venice.ai down: Wait for recovery (proxy continues working)
+
 - If AI Generator down: Restart service
+
 - If challenges changed: Update prompts in proxy code
 
 ### When All Stages Fail
@@ -433,13 +484,18 @@ docker exec moltbot-egress-proxy \
 
 **Diagnosis**:
 1. Check logs: `docker logs moltbot-egress-proxy`
+
 2. Test shell script: `docker exec ... handle-verification-challenge.sh test`
+
 3. Review Moltbook API changes: Check r/moltbook
 
 **Actions**:
 - Update challenge detection patterns
+
 - Update answer extraction logic
+
 - Update AI prompts
+
 - Contact Moltbook support if API behavior changed
 
 ## Security Considerations
@@ -448,12 +504,16 @@ docker exec moltbot-egress-proxy \
 
 The proxy holds sensitive credentials:
 - `MOLTBOOK_API_KEY`: Full account access
+
 - `VENICE_API_KEY`: External AI API access
 
 **Mitigations**:
 - Non-root container user
+
 - Read-only script mounts
+
 - Isolated Docker network
+
 - No shell access in container
 
 ### Shell Script Execution
@@ -462,8 +522,11 @@ Stage 4 executes arbitrary shell scripts.
 
 **Mitigations**:
 - Script path hardcoded in configuration
+
 - Read-only mount for scripts directory
+
 - Timeout enforcement (10s max)
+
 - Stderr capture for security monitoring
 
 ### Supply Chain
@@ -472,8 +535,11 @@ Shell script depends on `handle-verification-challenge.sh` integrity.
 
 **Mitigations**:
 - Version control (git)
+
 - Code review before changes
+
 - Automated testing (CI/CD)
+
 - Immutable container image after build
 
 ## Maintenance
@@ -481,6 +547,7 @@ Shell script depends on `handle-verification-challenge.sh` integrity.
 ### Updating Shell Script Logic
 
 ```bash
+
 # 1. Update script
 vim scripts/handle-verification-challenge.sh
 
@@ -494,7 +561,8 @@ docker compose build egress-proxy
 docker compose restart egress-proxy
 
 # 5. Verify
-curl http://localhost:8082/health
+curl <http://localhost:8082/health>
+
 ```
 
 ### Adding New Solver Stage
@@ -503,7 +571,9 @@ To add a 5th stage (e.g., Claude API):
 
 1. Update `index.js`:
    - Add solver function `solveWithClaude()`
+
    - Add to pipeline in `solveChallenge()`
+
    - Add stats tracking
 
 2. Update stats structure:
@@ -514,6 +584,7 @@ To add a 5th stage (e.g., Claude API):
 
 4. Update documentation:
    - Add stage to architecture diagram
+
    - Document when it activates
 
 ## Changelog
@@ -521,24 +592,35 @@ To add a 5th stage (e.g., Claude API):
 ### v2.6 (2026-02-12)
 
 - **Added**: 4-stage cascading fallback pipeline
+
 - **Added**: AI Generator (DeepSeek-v3) as Stage 3
+
 - **Added**: Shell script fallback as Stage 4
+
 - **Added**: Enhanced answer extraction logic
+
 - **Added**: `/solver-stats` monitoring endpoint
+
 - **Fixed**: Challenge detection now matches shell script patterns
+
 - **Improved**: Answer extraction handles edge cases
 
 ### v2.5 (2026-02-08)
 
 - Initial version with Venice.ai two-model fallback
+
 - Challenge caching (1hr TTL)
+
 - Circuit breaker pattern
 
 ## References
 
 - [EGRESS_PROXY.md](./EGRESS_PROXY.md) - Original proxy documentation
+
 - [handle-verification-challenge.sh](../scripts/handle-verification-challenge.sh) - Shell script implementation
+
 - [Venice.ai Docs](https://docs.venice.ai/) - API reference
+
 - [Moltbook API](https://www.moltbook.com/api/docs) - Verification challenge spec
 
 ---

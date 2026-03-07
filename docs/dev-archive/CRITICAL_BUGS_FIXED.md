@@ -17,6 +17,7 @@
 ```python
 if max(voice_alignment.values()) < 0.1:
     return None  # Rejects valid submissions
+
 ```
 
 **Problem**: Threshold of 0.1 is too strict, rejects valid multi-voice submissions
@@ -31,7 +32,9 @@ def assimilate_submission(
     
     Accepts submissions if:
     - Single voice has strong resonance (>= 0.1), OR
+
     - Multiple voices have combined resonance (>= 0.25)
+
     """
     voice_alignment = detect_voice_resonance(submission)
     
@@ -41,12 +44,15 @@ def assimilate_submission(
     # Accept if either condition met
     if max_resonance < 0.1 and total_resonance < 0.25:
         return None
+
 ```
 
 **Benefits**:
 
 - ✅ Accepts multi-voice submissions
+
 - ✅ Configurable threshold via `--min-resonance` flag
+
 - ✅ Default: 0.05 (more permissive)
 
 ---
@@ -61,6 +67,7 @@ approved_dir = Path(args.approved_dir)
 if approved_dir.exists():
     for sub_file in approved_dir.glob('*.md'):
         # ... process files ...
+
 ```
 
 **Problem**: Silent failure if directory doesn't exist; no error messages
@@ -68,6 +75,7 @@ if approved_dir.exists():
 **Fix Applied**:
 
 ```python
+
 # Process directory of submissions
 approved_dir = Path(args.approved_dir)
 
@@ -86,12 +94,15 @@ if not files:
     print(f"WARNING: No .md files found in {approved_dir}", file=sys.stderr)
     if not args.dry_run:
         return 1
+
 ```
 
 **Benefits**:
 
 - ✅ Clear error messages for debugging
+
 - ✅ Proper exit codes
+
 - ✅ Handles single submission path errors
 
 ---
@@ -110,6 +121,7 @@ result = {
 
 print(json.dumps(result, indent=2))
 return 0 if assimilated else 1
+
 ```
 
 **Problem**: Heuristics printed to stdout but never saved to files; data is lost
@@ -161,11 +173,13 @@ def save_heuristics_to_memory(
         # Write back
         with open(file_path, "w") as f:
             json.dump(existing_data, f, indent=2)
+
 ```
 
 1. **Updated main()** to call persistence:
 
 ```python
+
 # Persist to files if not dry-run
 if assimilated and not args.dry_run:
     output_dir = args.output_dir or str(NOOSPHERE_DIR / "memory-core")
@@ -177,6 +191,7 @@ if assimilated and not args.dry_run:
     else:
         print(f"✗ Failed to persist heuristics", file=sys.stderr)
         return 1
+
 ```
 
 1. **New CLI arguments**:
@@ -187,13 +202,17 @@ parser.add_argument(
     help="Directory to save heuristics (default: memory-core)",
     default=None,
 )
+
 ```
 
 **Benefits**:
 
 - ✅ Heuristics are saved to files
+
 - ✅ Organized by voice
+
 - ✅ Error handling for file operations
+
 - ✅ Clear feedback on success/failure
 
 ---
@@ -204,6 +223,7 @@ parser.add_argument(
 **Original Code**:
 
 ```python
+
 # Sovereignty heuristics
 h['heuristic_id'] = h.get('id', 'unknown')
 h['formulation'] = h.get('description', '')
@@ -213,6 +233,7 @@ h['formulation'] = h.get('description', '')
 
 # Moloch
 'heuristic_id': m.get('type_id', 'unknown'),
+
 ```
 
 **Problem**: Different JSON files use different field names; fragile mapping logic
@@ -260,6 +281,7 @@ def normalize_heuristic(h: Dict, voice: str, category: str = "") -> Dict:
         "category": category,
         "original": h,  # Keep for reference
     }
+
 ```
 
 1. **Updated load_all_heuristics()**:
@@ -281,13 +303,17 @@ def load_all_heuristics() -> List[Dict]:
         heuristics.append(h)
     
     # ... etc for all voices
+
 ```
 
 **Benefits**:
 
 - ✅ Single source of truth for field mapping
+
 - ✅ Easy to add new field name variants
+
 - ✅ Type safety (float, str, list conversions)
+
 - ✅ Reduces coupling to JSON structure
 
 ---
@@ -297,6 +323,7 @@ def load_all_heuristics() -> List[Dict]:
 ### Test 1: Voice Threshold Fix
 
 ```bash
+
 # Test multi-voice submission
 cat > /tmp/test_multivalence.md << 'EOF'
 ---
@@ -308,10 +335,12 @@ Flourishing requires autonomy. Justice demands fairness.
 EOF
 
 # Old behavior: Would reject (no single voice > 0.1)
+
 # New behavior: Accepts (combined resonance > 0.25)
 python3 assimilate-wisdom.py \
   --submission-path /tmp/test_multivalence.md \
   --dry-run
+
 ```
 
 Expected output: Should show extracted heuristic instead of 0 assimilated
@@ -319,12 +348,15 @@ Expected output: Should show extracted heuristic instead of 0 assimilated
 ### Test 2: Error Handling Fix
 
 ```bash
+
 # Test non-existent directory
 python3 assimilate-wisdom.py \
   --approved-dir /nonexistent/path
 
 # Old behavior: Silent failure, exit 0
+
 # New behavior: Shows ERROR message, exit 1
+
 ```
 
 Expected output:
@@ -332,17 +364,21 @@ Expected output:
 ```
 ERROR: Directory not found: /nonexistent/path
 Expected: /nonexistent/path
+
 ```
 
 ### Test 3: Persistence Fix
 
 ```bash
+
 # Test persistence (not dry-run)
 python3 assimilate-wisdom.py \
   --submission-path /tmp/test_multivalence.md
 
 # Old behavior: Prints JSON, heuristic is lost
+
 # New behavior: Saves to memory-core files
+
 ```
 
 Expected output:
@@ -353,26 +389,33 @@ Expected output:
   "dry_run": false,
   "heuristics": [...]
 }
+
 ```
 
 Plus stderr:
 
 ```
 ✓ Saved 1 heuristics to telos-alignment-heuristics.json
+
 ```
 
 ### Test 4: Field Normalization Fix
 
 ```bash
+
 # Test recall with normalized fields
 python3 recall-engine.py \
   --context "virtue and flourishing" \
   --format simple
 
 # Should match all normalized heuristics properly
+
 # Sovereignty (uses 'id' field) should be normalized to 'heuristic_id'
+
 # Rights (uses 'case_id') should be normalized 
+
 # Moloch (uses 'type_id') should be normalized
+
 ```
 
 Expected output: All voices represented with proper field names
@@ -417,6 +460,7 @@ python3 assimilate-wisdom.py --submission-path /tmp/test.md --dry-run 2>&1 | gre
 
 echo ""
 echo "=== All Tests Complete ==="
+
 ```
 
 Run with: `bash /tmp/test_fixes.sh`
@@ -428,18 +472,27 @@ Run with: `bash /tmp/test_fixes.sh`
 ### assimilate-wisdom.py
 
 - Added: `save_heuristics_to_memory()` function
+
 - Modified: `assimilate_submission()` function  
+
 - Modified: `main()` function
+
 - Added: `--output-dir` argument
+
 - Added: `--min-resonance` argument
+
 - Lines added: ~100
+
 - Lines modified: ~50
 
 ### recall-engine.py
 
 - Added: `normalize_heuristic()` function
+
 - Modified: `load_all_heuristics()` function
+
 - Lines added: ~60
+
 - Lines modified: ~70
 
 ---
@@ -460,13 +513,17 @@ Run with: `bash /tmp/test_fixes.sh`
 ### Immediate
 
 1. ✅ Test all 4 fixes
+
 2. ✅ Commit changes
+
 3. ✅ Update version
 
 ### Short-term (Next Fix Phase)
 
 - Implement output format enhancements
+
 - Add consistency checking
+
 - Implement memory-cycle.py
 
 ---
@@ -478,12 +535,15 @@ If needed, all changes are in these sections:
 **assimilate-wisdom.py**:
 
 - Lines 1-50: New imports and functions
+
 - Lines 140-170: Updated `assimilate_submission()`
+
 - Lines 290-340: Updated `main()`
 
 **recall-engine.py**:
 
 - Lines 12-50: New `normalize_heuristic()` function
+
 - Lines 97-145: Updated `load_all_heuristics()`
 
 Each change is self-contained and can be reverted independently.
@@ -493,8 +553,11 @@ Each change is self-contained and can be reverted independently.
 ## Performance Impact
 
 - **Persistence**: ~50ms per heuristic (file I/O)
+
 - **Normalization**: <1ms per heuristic
+
 - **Error checking**: <5ms per operation
+
 - **Overall**: Negligible impact on performance
 
 ---

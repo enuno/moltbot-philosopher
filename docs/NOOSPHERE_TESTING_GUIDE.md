@@ -12,7 +12,9 @@ Run this to verify current implementation status:
 
 ```bash
 #!/bin/bash
+
 # save as: /tmp/verify_noosphere.sh
+
 # run with: bash /tmp/verify_noosphere.sh
 
 set -e
@@ -102,6 +104,7 @@ echo ""
 echo "=========================================="
 echo "END VERIFICATION"
 echo "=========================================="
+
 ```
 
 ---
@@ -112,6 +115,7 @@ echo "=========================================="
 
 ```bash
 #!/bin/bash
+
 # Test: Can all heuristic strains be loaded?
 
 cd /workspace/classical/noosphere
@@ -163,6 +167,7 @@ print(f"\nTotal heuristics: {total}")
 print("Expected: 24")
 print("Status: " + ("✓ PASS" if total >= 24 else "✗ FAIL"))
 EOF
+
 ```
 
 **Expected Output**:
@@ -179,6 +184,7 @@ EOF
 Total heuristics: 29
 Expected: 24
 Status: ✓ PASS (actually higher due to additional meta entries)
+
 ```
 
 ---
@@ -187,6 +193,7 @@ Status: ✓ PASS (actually higher due to additional meta entries)
 
 ```bash
 #!/bin/bash
+
 # Test: Does relevance scoring work correctly?
 
 cd /workspace/classical/noosphere
@@ -202,6 +209,7 @@ python3 recall-engine.py \
 
 echo ""
 echo "Expected: telos-001 or telos-002 should appear (high keyword overlap)"
+
 ```
 
 ---
@@ -210,6 +218,7 @@ echo "Expected: telos-001 or telos-002 should appear (high keyword overlap)"
 
 ```bash
 #!/bin/bash
+
 # Test: Can we filter by specific voices?
 
 cd /workspace/classical/noosphere
@@ -226,6 +235,7 @@ python3 recall-engine.py \
 
 echo ""
 echo "Expected: All results should have [Classical] tag"
+
 ```
 
 ---
@@ -234,6 +244,7 @@ echo "Expected: All results should have [Classical] tag"
 
 ```bash
 #!/bin/bash
+
 # Test: Does confidence filtering work?
 
 cd /workspace/classical/noosphere
@@ -255,6 +266,7 @@ count2=$(python3 recall-engine.py \
 
 echo "Result: $count1 results at 0.9 threshold, $count2 at 0.5 threshold"
 echo "Status: " + ["✓ PASS" if count2 > count1 else "✗ FAIL"] + "(higher threshold should give fewer results)"
+
 ```
 
 ---
@@ -263,6 +275,7 @@ echo "Status: " + ["✓ PASS" if count2 > count1 else "✗ FAIL"] + "(higher thr
 
 ```bash
 #!/bin/bash
+
 # Test: Are all output formats working?
 
 cd /workspace/classical/noosphere
@@ -286,6 +299,7 @@ echo "Testing invalid format (should show error):"
 python3 recall-engine.py \
   --context "test" \
   --format "constitutional" 2>&1 | head -3 || echo "(Expected format not yet implemented)"
+
 ```
 
 ---
@@ -294,6 +308,7 @@ python3 recall-engine.py \
 
 ```bash
 #!/bin/bash
+
 # Test: Realistic Council deliberation scenario
 
 cd /workspace/classical/noosphere
@@ -319,6 +334,7 @@ echo "Expected:"
 echo "  - Should show Transcendentalist (sovereignty warnings)"
 echo "  - Should show BeatGeneration (moloch-002: democratic deficit)"
 echo "  - Should highlight tension between voices"
+
 ```
 
 ---
@@ -329,6 +345,7 @@ echo "  - Should highlight tension between voices"
 
 ```bash
 #!/bin/bash
+
 # Test: Does voice resonance scoring work?
 
 cd /workspace/classical/noosphere
@@ -359,6 +376,7 @@ python3 assimilate-wisdom.py \
 
 echo ""
 echo "Expected: Should detect Classical resonance (virtue, eudaimonia, arete keywords)"
+
 ```
 
 ---
@@ -367,6 +385,7 @@ echo "Expected: Should detect Classical resonance (virtue, eudaimonia, arete key
 
 ```bash
 #!/bin/bash
+
 # Test: Can we extract core commitments?
 
 cd /workspace/classical/noosphere
@@ -392,6 +411,7 @@ python3 assimilate-wisdom.py \
 
 echo ""
 echo "Expected: Should extract the 'humans should always retain' principle"
+
 ```
 
 ---
@@ -400,6 +420,7 @@ echo "Expected: Should extract the 'humans should always retain' principle"
 
 ```bash
 #!/bin/bash
+
 # Test: Does dry-run prevent file modifications?
 
 cd /workspace/classical/noosphere
@@ -423,6 +444,7 @@ echo ""
 echo "Heuristic count before: $before"
 echo "Heuristic count after:  $after"
 echo "Status: " + ["✓ PASS" if before -eq after else "✗ FAIL"] + "(dry-run should not modify files)"
+
 ```
 
 ---
@@ -431,6 +453,7 @@ echo "Status: " + ["✓ PASS" if before -eq after else "✗ FAIL"] + "(dry-run s
 
 ```bash
 #!/bin/bash
+
 # Test: Does error handling work correctly?
 
 cd /workspace/classical/noosphere
@@ -457,6 +480,7 @@ python3 assimilate-wisdom.py \
 
 echo ""
 echo "Expected: Should show helpful error messages"
+
 ```
 
 ---
@@ -467,6 +491,7 @@ echo "Expected: Should show helpful error messages"
 
 ```bash
 #!/bin/bash
+
 # Test: Complete workflow from knowledge to recall
 
 cd /workspace/classical/noosphere
@@ -505,6 +530,7 @@ python3 recall-engine.py \
   --context "engagement metrics lead to collective harm" \
   --format simple \
   --max-results 3
+
 ```
 
 ---
@@ -513,6 +539,7 @@ python3 recall-engine.py \
 
 ```bash
 #!/bin/bash
+
 # Test: Does Council maintain voice balance?
 
 cd /workspace/classical/noosphere
@@ -583,6 +610,7 @@ balance_score = entropy / max_entropy
 print(f"Current balance score: {balance_score:.2f}")
 print("Status: " + ("✓ PASS" if balance_score > 0.80 else "⚠ WATCH" if balance_score > 0.70 else "✗ IMBALANCED"))
 EOF
+
 ```
 
 ---
@@ -593,6 +621,7 @@ EOF
 
 ```bash
 #!/bin/bash
+
 # Test: What are the performance characteristics?
 
 cd /workspace/classical/noosphere
@@ -624,6 +653,7 @@ done
 echo ""
 echo "Target: <100ms"
 echo "Expected spec: Rapid recall <12ms, Consolidation <42ms (not yet implemented)"
+
 ```
 
 ---
@@ -632,6 +662,7 @@ echo "Expected spec: Rapid recall <12ms, Consolidation <42ms (not yet implemente
 
 ```bash
 #!/bin/bash
+
 # Test: Does relevance scoring find right heuristics?
 
 cd /workspace/classical/noosphere
@@ -681,6 +712,7 @@ if echo "$result" | grep -q "moloch-001"; then
 else
     echo "  ✗ FAIL: Did not retrieve moloch-001"
 fi
+
 ```
 
 ---
@@ -691,6 +723,7 @@ fi
 
 ```bash
 #!/bin/bash
+
 # Test: Ensure field mappings are consistent
 
 cd /workspace/classical/noosphere
@@ -738,6 +771,7 @@ if all_pass:
 else:
     print("✗ Some heuristics have missing fields")
 EOF
+
 ```
 
 ---
@@ -749,32 +783,43 @@ The implementation is "verified complete" when:
 ### ✓ recall-engine.py passes all tests
 
 - [ ] Test 1.1: Loads all 24+ heuristics
+
 - [ ] Test 1.2: Relevance scoring works correctly
+
 - [ ] Test 1.3: Voice filtering works
+
 - [ ] Test 1.4: Confidence threshold respected
+
 - [ ] Test 1.5: Output formats functional
+
 - [ ] Test 1.6: Produces meaningful Council input
 
 ### ✓ assimilate-wisdom.py passes all tests
 
 - [ ] Test 2.1: Voice resonance detection works
+
 - [ ] Test 2.2: Extracts ontological commitments
+
 - [ ] Test 2.3: Dry-run mode preserves files
+
 - [ ] Test 2.4: Error handling helpful
 
 ### ✓ Integration tests pass
 
 - [ ] Test 3.1: Full pipeline works
+
 - [ ] Test 3.2: Voice distribution balanced
 
 ### ✓ Performance tests pass
 
 - [ ] Test 4.1: Latency <100ms
+
 - [ ] Test 4.2: Relevance accuracy >80%
 
 ### ✓ Regression tests pass
 
 - [ ] Field mapping consistency maintained
+
 - [ ] No silent failures on edge cases
 
 ---
@@ -783,7 +828,9 @@ The implementation is "verified complete" when:
 
 ```bash
 #!/bin/bash
+
 # save as: /workspace/classical/noosphere/run-tests.sh
+
 # Usage: bash /workspace/classical/noosphere/run-tests.sh
 
 cd /workspace/classical/noosphere
@@ -833,6 +880,7 @@ else
     echo "✗ SOME TESTS FAILED"
     exit 1
 fi
+
 ```
 
 ---
@@ -842,6 +890,7 @@ fi
 Add to your CI/CD pipeline:
 
 ```yaml
+
 # .github/workflows/test-noosphere.yml
 
 name: Test Noosphere Implementation
@@ -855,25 +904,30 @@ jobs:
       - uses: actions/checkout@v3
       
       - name: Set up Python
+
         uses: actions/setup-python@v4
         with:
           python-version: '3.9'
       
       - name: Install dependencies
+
         run: |
           pip install jq
       
       - name: Run Noosphere Tests
+
         run: |
           cd workspace/classical/noosphere
           bash /tmp/verify_noosphere.sh
           bash run-tests.sh
       
       - name: Verify Implementation Status
+
         run: |
           # Check for critical components
           test -f workspace/classical/noosphere/recall-engine.py
           test -f workspace/classical/noosphere/assimilate-wisdom.py
+
 ```
 
 ---

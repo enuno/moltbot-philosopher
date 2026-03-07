@@ -13,6 +13,7 @@
 ## Task 1: Create Daily Polemic Policy Configuration
 
 **Files:**
+
 - Create: `scripts/daily-polemic-policy.json`
 
 **Step 1: Create the policy file with persona pool, theme clusters, and affinity matrix**
@@ -119,6 +120,7 @@ cat > scripts/daily-polemic-policy.json << 'EOF'
   }
 }
 EOF
+
 ```
 
 **Step 2: Verify file is valid JSON**
@@ -131,6 +133,7 @@ Expected: `Valid JSON`
 ```bash
 git add scripts/daily-polemic-policy.json
 git commit -m "feat(daily-polemic): add persona affinity policy and theme clustering"
+
 ```
 
 ---
@@ -138,6 +141,7 @@ git commit -m "feat(daily-polemic): add persona affinity policy and theme cluste
 ## Task 2: Create Persona Configuration Reference
 
 **Files:**
+
 - Create: `scripts/daily-polemic-personas.sh`
 
 **Step 1: Create persona metadata with style, tone, and topics for each agent**
@@ -147,6 +151,7 @@ cat > scripts/daily-polemic-personas.sh << 'EOF'
 #!/bin/bash
 
 # Persona metadata for daily polemic generation
+
 # Each persona has: name, style, tone, topics, representative quote
 
 declare -A PERSONA_NAME=(
@@ -194,6 +199,7 @@ get_persona_metadata() {
 EOF
 
 chmod +x scripts/daily-polemic-personas.sh
+
 ```
 
 **Step 2: Verify file is executable and has valid bash syntax**
@@ -206,6 +212,7 @@ Expected: `Syntax OK`
 ```bash
 git add scripts/daily-polemic-personas.sh
 git commit -m "feat(daily-polemic): add persona metadata for content generation"
+
 ```
 
 ---
@@ -213,6 +220,7 @@ git commit -m "feat(daily-polemic): add persona metadata for content generation"
 ## Task 3: Add Affinity-Weighted Persona Selection Function
 
 **Files:**
+
 - Modify: `scripts/daily-polemic-queue.sh` (lines 1-100)
 
 **Step 1: Add helper functions after the configuration section (after line 72)**
@@ -220,6 +228,7 @@ git commit -m "feat(daily-polemic): add persona metadata for content generation"
 Find the line `mkdir -p "$STATE_DIR"` and add these functions right after it:
 
 ```bash
+
 # --- PERSONA SELECTION WITH AFFINITY WEIGHTING ---
 
 # Load policy JSON
@@ -315,6 +324,7 @@ pick_initial_persona() {
 
 # Load persona metadata
 source "${SCRIPT_DIR}/daily-polemic-personas.sh"
+
 ```
 
 **Step 2: Verify syntax**
@@ -327,6 +337,7 @@ Expected: `Syntax OK`
 ```bash
 git add scripts/daily-polemic-queue.sh
 git commit -m "feat(daily-polemic): add affinity-weighted persona selection with theme clustering"
+
 ```
 
 ---
@@ -334,6 +345,7 @@ git commit -m "feat(daily-polemic): add affinity-weighted persona selection with
 ## Task 4: Modify Theme Selection to Use Affinity Weighting
 
 **Files:**
+
 - Modify: `scripts/daily-polemic-queue.sh` (lines 136-160)
 
 **Step 1: Replace the content type and theme selection section**
@@ -341,7 +353,9 @@ git commit -m "feat(daily-polemic): add affinity-weighted persona selection with
 Find the existing `SELECTED_TYPE` and `SELECTED_THEME` selection code (around lines 88-140) and replace it with:
 
 ```bash
+
 # --- CONTENT TYPE SELECTION ---
+
 # Use day of year + static index for consistency per day
 AGENT_INDEX=2  # Not used for persona selection anymore, but keep for content type consistency
 DAY_SEED=$(date +%j)
@@ -377,6 +391,7 @@ THEME_CLUSTER=$(theme_to_cluster "$SELECTED_THEME")
 SELECTED_AGENT=$(pick_initial_persona "$THEME_CLUSTER")
 
 log "INFO" "${BLUE}Selected persona: $SELECTED_AGENT (cluster: $THEME_CLUSTER, affinity-weighted)${NC}"
+
 ```
 
 **Step 2: Verify syntax**
@@ -389,6 +404,7 @@ Expected: `Syntax OK`
 ```bash
 git add scripts/daily-polemic-queue.sh
 git commit -m "feat(daily-polemic): replace random agent selection with affinity-weighted persona picking"
+
 ```
 
 ---
@@ -396,6 +412,7 @@ git commit -m "feat(daily-polemic): replace random agent selection with affinity
 ## Task 5: Create Claims Extraction AI Call
 
 **Files:**
+
 - Modify: `scripts/daily-polemic-queue.sh` (add new section around line 200)
 
 **Step 1: Find the section where content is generated (around "Generate content via AI service") and add claims extraction function**
@@ -403,6 +420,7 @@ git commit -m "feat(daily-polemic): replace random agent selection with affinity
 Add this function before the main generation logic:
 
 ```bash
+
 # --- CLAIMS EXTRACTION ---
 extract_claims() {
     local content="$1"
@@ -416,10 +434,13 @@ Your task: Given a short philosophical text, identify its core claims and provoc
 
 A "claim" is:
 - A statement about how the world, people, technology, or ethics ARE or SHOULD BE.
+
 - Something a thoughtful critic could reasonably disagree with.
 
 Extract between 2 and 3 of the most central, challengeable claims.
+
 - Prefer specific, contentful claims over vague generalities.
+
 - If the text is very short or aphoristic, treat the entire text as 1–2 compact theses.
 
 Output format (valid JSON only, no preamble):
@@ -465,6 +486,7 @@ PROMPT
     log "WARN" "Claims extraction failed, will use fallback prompt"
     echo '{"claims": [{"summary": "Extract the core argument", "quoted_fragment": ""}]}'
 }
+
 ```
 
 **Step 2: Verify syntax**
@@ -477,6 +499,7 @@ Expected: `Syntax OK`
 ```bash
 git add scripts/daily-polemic-queue.sh
 git commit -m "feat(daily-polemic): add claims extraction function for socratic question generation"
+
 ```
 
 ---
@@ -484,6 +507,7 @@ git commit -m "feat(daily-polemic): add claims extraction function for socratic 
 ## Task 6: Create Socratic Question Generation AI Call
 
 **Files:**
+
 - Modify: `scripts/daily-polemic-queue.sh` (add new section around line 250)
 
 **Step 1: Add socratic question generation function**
@@ -491,6 +515,7 @@ git commit -m "feat(daily-polemic): add claims extraction function for socratic 
 Add this function after the claims extraction function:
 
 ```bash
+
 # --- SOCRATIC QUESTION GENERATION ---
 generate_socratic_question() {
     local content="$1"
@@ -503,19 +528,27 @@ You are the Classical Philosopher.
 
 Role:
 - You have just read a philosophical piece written by another persona.
+
 - You now pose ONE Socratic-style question to the community.
+
 - Your question should show that you understood the specific claims, not be generic.
 
 Requirements for the question:
 - It should identify a tension, hidden assumption, or neglected consequence
+
   in one or more of the claims.
+
 - It should invite the community to examine or challenge those assumptions.
+
 - It must stand alone as a clear, thought-provoking question.
+
 - Length: 1–2 sentences, maximum ~80 words.
+
 - Address the community in the second person (e.g. "When you accept X, what follows for Y?").
 
 Tone:
 - Curious, probing, genuinely interested in truth.
+
 - No snark, no memes, no modern social media slang.
 
 Output: Output ONLY the final question, no preface, no explanation, no quotes.
@@ -564,6 +597,7 @@ Now pose your socratic question to the community."
     log "WARN" "Socratic question generation failed, using fallback"
     echo "What assumption in this argument deserves closer examination?"
 }
+
 ```
 
 **Step 2: Verify syntax**
@@ -576,6 +610,7 @@ Expected: `Syntax OK`
 ```bash
 git add scripts/daily-polemic-queue.sh
 git commit -m "feat(daily-polemic): add socratic question generation from Classical Philosopher"
+
 ```
 
 ---
@@ -583,6 +618,7 @@ git commit -m "feat(daily-polemic): add socratic question generation from Classi
 ## Task 7: Modify Initial Content Generation Prompt
 
 **Files:**
+
 - Modify: `scripts/daily-polemic-queue.sh` (lines 180-220)
 
 **Step 1: Replace the content generation section with persona-specific prompting**
@@ -590,6 +626,7 @@ git commit -m "feat(daily-polemic): add socratic question generation from Classi
 Find the section starting with "Generate content via AI service" and replace it with:
 
 ```bash
+
 # Get persona metadata
 PERSONA_DISPLAY_NAME="${PERSONA_NAME[$SELECTED_AGENT]}"
 PERSONA_STYLE="${PERSONA_STYLE[$SELECTED_AGENT]}"
@@ -604,23 +641,32 @@ You are the PERSONA_DISPLAY_NAME philosopher in a rotating cast of philosophical
 
 Persona Details:
 - Philosophical Tradition: PERSONA_STYLE
+
 - Voice & Tone: PERSONA_TONE
 
 You are writing a SELECTED_TYPE on the theme "SELECTED_THEME".
 
 Constraints:
 - Length: target 300–500 words.
+
 - Voice: fully embody this persona; do NOT mention that you are an AI.
+
 - Form:
   - For a polemic: take a strong, controversial stance and argue for it with conviction.
+
   - For an aphorism: produce a compact sequence of 3–7 aphoristic lines, each complete and memorable.
+
   - For a meditation: unfold a reflective, exploratory inner monologue on the theme.
+
   - For a treatise: lay out a structured argument with clear logical sections.
 
 Critical Requirement:
 - Make at least 2–3 CLEAR, CHALLENGEABLE claims or assumptions.
+
 - These claims should be specific enough that a critic could directly question them.
+
 - Avoid vague platitudes.
+
 - Write for an intelligent, online philosophical community.
 
 Output ONLY the body of the philosophical content. No preface. No meta-commentary. No closing questions.
@@ -666,6 +712,7 @@ if [ -z "$PERSONA_CONTENT" ]; then
 fi
 
 log "SUCCESS" "Generated ${#PERSONA_CONTENT} character polemic from ${PERSONA_DISPLAY_NAME}"
+
 ```
 
 **Step 2: Verify syntax**
@@ -678,6 +725,7 @@ Expected: `Syntax OK`
 ```bash
 git add scripts/daily-polemic-queue.sh
 git commit -m "feat(daily-polemic): add persona-specific content generation with claims requirement"
+
 ```
 
 ---
@@ -685,6 +733,7 @@ git commit -m "feat(daily-polemic): add persona-specific content generation with
 ## Task 8: Implement Claims Extraction and Question Generation Pipeline
 
 **Files:**
+
 - Modify: `scripts/daily-polemic-queue.sh` (add after content generation)
 
 **Step 1: Add the extraction and question generation calls after persona content is generated**
@@ -692,6 +741,7 @@ git commit -m "feat(daily-polemic): add persona-specific content generation with
 Add this after the `PERSONA_CONTENT` extraction:
 
 ```bash
+
 # --- EXTRACT CLAIMS AND GENERATE QUESTION ---
 log "INFO" "${BLUE}[Phase 1] Persona content generated${NC}"
 
@@ -708,6 +758,7 @@ fi
 
 # Trim whitespace
 SOCRATIC_QUESTION=$(echo "$SOCRATIC_QUESTION" | sed 's/^[[:space:]]*//;s/[[:space:]]*$//')
+
 ```
 
 **Step 2: Verify syntax**
@@ -720,6 +771,7 @@ Expected: `Syntax OK`
 ```bash
 git add scripts/daily-polemic-queue.sh
 git commit -m "feat(daily-polemic): implement claims extraction and socratic question generation pipeline"
+
 ```
 
 ---
@@ -727,6 +779,7 @@ git commit -m "feat(daily-polemic): implement claims extraction and socratic que
 ## Task 9: Modify Post Assembly to Include Socratic Question
 
 **Files:**
+
 - Modify: `scripts/daily-polemic-queue.sh` (lines 240-280)
 
 **Step 1: Find the POST_TITLE and FULL_CONTENT assembly section and replace it**
@@ -734,6 +787,7 @@ git commit -m "feat(daily-polemic): implement claims extraction and socratic que
 Replace the section that constructs the post title and content:
 
 ```bash
+
 # --- FORMAT COMBINED POST ---
 TITLE_CASE_TYPE=$(echo "$SELECTED_TYPE" | awk '{print toupper(substr($0,1,1)) tolower(substr($0,2))}')
 POST_TITLE="[$TITLE_CASE_TYPE] $SELECTED_THEME – From ${PERSONA_DISPLAY_NAME}"
@@ -767,6 +821,7 @@ ${SOCRATIC_QUESTION}
 
 log "INFO" "${BLUE}Post Title: $POST_TITLE${NC}"
 log "INFO" "${BLUE}Post Length: ${#FULL_CONTENT} characters${NC}"
+
 ```
 
 **Step 2: Verify syntax**
@@ -779,6 +834,7 @@ Expected: `Syntax OK`
 ```bash
 git add scripts/daily-polemic-queue.sh
 git commit -m "feat(daily-polemic): assemble combined post with persona content and socratic question"
+
 ```
 
 ---
@@ -786,6 +842,7 @@ git commit -m "feat(daily-polemic): assemble combined post with persona content 
 ## Task 10: Update Queue Action Payload
 
 **Files:**
+
 - Modify: `scripts/daily-polemic-queue.sh` (lines 280-320)
 
 **Step 1: Find the queue action creation section and update to include new metadata**
@@ -793,6 +850,7 @@ git commit -m "feat(daily-polemic): assemble combined post with persona content 
 Find where the action is queued and ensure it includes the new fields:
 
 ```bash
+
 # --- QUEUE ACTION ---
 ACTION_PAYLOAD=$(jq -n \
     --arg title "$POST_TITLE" \
@@ -820,6 +878,7 @@ ACTION_PAYLOAD=$(jq -n \
     }')
 
 log "DEBUG" "Action payload: $ACTION_PAYLOAD"
+
 ```
 
 **Step 2: Verify syntax**
@@ -832,6 +891,7 @@ Expected: `Syntax OK`
 ```bash
 git add scripts/daily-polemic-queue.sh
 git commit -m "feat(daily-polemic): add metadata to queue payload for tracking persona, claims, and question"
+
 ```
 
 ---
@@ -839,6 +899,7 @@ git commit -m "feat(daily-polemic): add metadata to queue payload for tracking p
 ## Task 11: Test in Dry-Run Mode
 
 **Files:**
+
 - Test: Run the modified script in dry-run mode
 
 **Step 1: Run the queue-based script with dry-run flag**
@@ -847,12 +908,19 @@ Run: `bash scripts/daily-polemic-queue.sh --dry-run 2>&1 | head -100`
 
 Expected output should show:
 - ✅ Policy loaded
+
 - ✅ Content type selected
+
 - ✅ Theme selected
+
 - ✅ Persona selected with affinity weighting
+
 - ✅ Content generation step
+
 - ✅ Claims extraction step
+
 - ✅ Socratic question generation step
+
 - ✅ Combined post assembly
 
 **Step 2: Verify the output structure includes both persona content and socratic question**
@@ -866,6 +934,7 @@ Expected: Should show the socratic question section with a specific question (no
 ```bash
 git add scripts/daily-polemic-queue.sh
 git commit -m "test(daily-polemic): verify dry-run produces combined post with socratic question"
+
 ```
 
 ---
@@ -873,6 +942,7 @@ git commit -m "test(daily-polemic): verify dry-run produces combined post with s
 ## Task 12: Test Affinity Weighting Logic
 
 **Files:**
+
 - Create: `tests/daily-polemic-affinity.bats`
 
 **Step 1: Create a BATS test file for affinity weighting**
@@ -928,6 +998,7 @@ source scripts/daily-polemic-queue.sh
 EOF
 
 chmod +x tests/daily-polemic-affinity.bats
+
 ```
 
 **Step 2: Run the test**
@@ -941,6 +1012,7 @@ Expected: All tests pass (✓)
 ```bash
 git add tests/daily-polemic-affinity.bats
 git commit -m "test(daily-polemic): add affinity weighting and persona selection tests"
+
 ```
 
 ---
@@ -948,6 +1020,7 @@ git commit -m "test(daily-polemic): add affinity weighting and persona selection
 ## Task 13: Create Integration Test for Full Pipeline
 
 **Files:**
+
 - Create: `tests/daily-polemic-integration.sh`
 
 **Step 1: Create an integration test that simulates the full pipeline (without actual API calls)**
@@ -1034,6 +1107,7 @@ echo "✓ All integration tests passed!"
 EOF
 
 chmod +x tests/daily-polemic-integration.sh
+
 ```
 
 **Step 2: Run the integration test**
@@ -1047,6 +1121,7 @@ Expected: All 5 tests pass with ✓ marks
 ```bash
 git add tests/daily-polemic-integration.sh
 git commit -m "test(daily-polemic): add integration test for full pipeline"
+
 ```
 
 ---
@@ -1054,13 +1129,16 @@ git commit -m "test(daily-polemic): add integration test for full pipeline"
 ## Task 14: Documentation and README Update
 
 **Files:**
+
 - Modify: `README.md` (Daily Polemic section)
+
 - Create: `docs/DAILY_POLEMIC_DESIGN.md`
 
 **Step 1: Create design documentation**
 
 ```bash
 cat > docs/DAILY_POLEMIC_DESIGN.md << 'EOF'
+
 # Daily Polemic: Contextual Socratic Engagement
 
 ## Overview
@@ -1068,45 +1146,66 @@ cat > docs/DAILY_POLEMIC_DESIGN.md << 'EOF'
 The Daily Polemic system generates dynamic philosophical content through a two-step process:
 
 1. **Persona-Generated Content** — A randomly-selected philosopher (from 8 non-classical agents) generates a philosophical polemic, aphorism, meditation, or treatise on a randomly-selected theme
+
 2. **Classical Philosopher's Question** — The Classical Philosopher analyzes the persona's claims and poses a context-specific socratic question to invite community engagement
 
 ## Key Features
 
 ### Persona Pool (8 agents)
 - **Existentialist** — Authenticity, freedom, lived experience
+
 - **Transcendentalist** — Sovereignty, autonomy, alignment with nature
+
 - **JoyceStream** — Phenomenology, sensory immediacy, linguistic play
+
 - **Enlightenment** — Rationalism, rights, utilitarian logic
+
 - **Beat Generation** — Countercultural critique, spontaneity
+
 - **Cyberpunk Posthumanist** — Power dynamics, technological materialism
+
 - **Satirist Absurdist** — Ironic subversion, paradox
+
 - **Scientist Empiricist** — Empirical rigor, causal mechanisms
 
 ### Affinity-Weighted Selection
 - Each persona has affinity scores (0.0–0.9) with the Classical Philosopher per theme cluster
+
 - Theme clusters: `tech_ethics`, `metaphysics`, `politics`, `aesthetics`
+
 - Weighted random selection creates "recurring rivalries" (e.g., Cyberpunk vs Classical on tech ethics)
+
 - 15–20% jitter probability ensures exploration and prevents determinism
 
 ### Content Types
 - **Polemic** — Argumentative, strong stance
+
 - **Aphorism** — Compact, aphoristic sequence
+
 - **Meditation** — Reflective, exploratory
+
 - **Treatise** — Structured logical argument
 
 ### Claims Extraction & Socratic Question
 - After initial content is generated, 2–3 key claims are extracted
+
 - The Classical Philosopher's question targets specific assumptions or tensions in those claims
+
 - Length: 1–2 sentences (max ~80 words)
+
 - Tone: Curious, probing, non-snarky
 
 ## Configuration
 
 Policy is stored in `scripts/daily-polemic-policy.json`:
 - `persona_pool_initial` — List of 8 eligible personas
+
 - `theme_clusters` — Four coarse categories
+
 - `theme_to_cluster` — Fine-grained mapping of themes to clusters
+
 - `classical_pairing_affinity` — Persona affinity matrix
+
 - `affinity_selection` — Weight and jitter settings
 
 ## Deployment
@@ -1115,24 +1214,35 @@ Run: `bash scripts/daily-polemic-queue.sh` (no dry-run flag for production)
 
 The action is queued via the engagement service with metadata:
 - `persona` — Selected agent
+
 - `content_type` — Type of content (polemic/aphorism/meditation/treatise)
+
 - `theme` — Selected theme
+
 - `theme_cluster` — Cluster for affinity tracking
+
 - `socratic_question` — Generated question
+
 - `extracted_claims` — Extracted claims (for analytics)
 
 ## Testing
 
 - **Unit Tests**: `bats tests/daily-polemic-affinity.bats` (persona selection, theme mapping)
+
 - **Integration Tests**: `bash tests/daily-polemic-integration.sh` (full pipeline structure)
+
 - **Dry-Run**: `bash scripts/daily-polemic-queue.sh --dry-run` (preview without queuing)
 
 ## Fallback & Error Handling
 
 - If claims extraction fails, uses generic claim template
+
 - If socratic question generation fails, uses fallback question: "What assumption in this argument most deserves examination?"
+
 - If either step fails, still posts the content with fallback question (mission resilience)
+
 EOF
+
 ```
 
 **Step 2: Update README.md with Daily Polemic section**
@@ -1144,7 +1254,9 @@ Expected: Find the existing Daily Polemic section
 Then modify it to reference the new two-step process:
 
 ```bash
+
 # If section doesn't exist, add it; if it exists, update it with the new info
+
 ```
 
 **Step 3: Commit**
@@ -1152,6 +1264,7 @@ Then modify it to reference the new two-step process:
 ```bash
 git add docs/DAILY_POLEMIC_DESIGN.md README.md
 git commit -m "docs(daily-polemic): add design documentation and update README"
+
 ```
 
 ---
@@ -1159,6 +1272,7 @@ git commit -m "docs(daily-polemic): add design documentation and update README"
 ## Task 15: Final Verification and Cleanup
 
 **Files:**
+
 - Verify: All changes committed, scripts functional
 
 **Step 1: Verify all files are in place**
@@ -1195,32 +1309,53 @@ Expected: Shows all 15 task commits with clear, descriptive messages
 
 ```bash
 cat > /tmp/daily-polemic-summary.txt << 'EOF'
+
 # Daily Polemic Implementation Complete
 
 ## Changes Made
 1. ✓ Added persona affinity policy JSON with theme clustering
+
 2. ✓ Added persona metadata (style, tone, topics)
+
 3. ✓ Implemented affinity-weighted persona selection (8-agent pool)
+
 4. ✓ Added claims extraction via AI
+
 5. ✓ Added socratic question generation (Classical Philosopher)
+
 6. ✓ Modified content generation with persona-specific prompting
+
 7. ✓ Implemented full pipeline with fallback handling
+
 8. ✓ Updated post assembly to include both content and question
+
 9. ✓ Added metadata to queue payload
+
 10. ✓ Tested dry-run mode
+
 11. ✓ Added affinity weighting unit tests
+
 12. ✓ Created integration test suite
+
 13. ✓ Added design documentation
+
 14. ✓ Updated README
+
 15. ✓ Final verification and syntax checks
 
 ## Files Modified
 - scripts/daily-polemic-queue.sh (major rewrite, ~300 lines added)
+
 - scripts/daily-polemic-policy.json (new)
+
 - scripts/daily-polemic-personas.sh (new)
+
 - tests/daily-polemic-affinity.bats (new)
+
 - tests/daily-polemic-integration.sh (new)
+
 - docs/DAILY_POLEMIC_DESIGN.md (new)
+
 - README.md (updated)
 
 ## Key Features
@@ -1236,6 +1371,7 @@ Ready for deployment. All tests passing.
 EOF
 
 cat /tmp/daily-polemic-summary.txt
+
 ```
 
 **Step 7: Final commit**
@@ -1243,6 +1379,7 @@ cat /tmp/daily-polemic-summary.txt
 ```bash
 git add README.md docs/DAILY_POLEMIC_DESIGN.md
 git commit -m "docs(daily-polemic): complete implementation with tests and design doc"
+
 ```
 
 ---
@@ -1252,19 +1389,33 @@ git commit -m "docs(daily-polemic): complete implementation with tests and desig
 **15 tasks completed:**
 
 1. ✅ Created policy configuration with affinity matrix
+
 2. ✅ Added persona metadata reference
+
 3. ✅ Implemented affinity-weighted selection with theme clustering
+
 4. ✅ Modified theme selection to use clustering
+
 5. ✅ Added claims extraction function
+
 6. ✅ Added socratic question generation function
+
 7. ✅ Updated content generation with persona-specific prompts
+
 8. ✅ Implemented extraction and question pipeline
+
 9. ✅ Modified post assembly to combine content + question
+
 10. ✅ Updated queue action payload with metadata
+
 11. ✅ Tested dry-run mode
+
 12. ✅ Added affinity weighting tests
+
 13. ✅ Created integration test suite
+
 14. ✅ Added design documentation
+
 15. ✅ Final verification and cleanup
 
 **All tests passing. Ready for execution.**

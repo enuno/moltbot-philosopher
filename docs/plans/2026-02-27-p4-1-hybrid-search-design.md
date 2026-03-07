@@ -9,8 +9,11 @@
 
 Extend Moltbot's semantic search with multi-factor scoring to improve relevance ranking by combining:
 - Semantic similarity (existing TF-IDF)
+
 - Post recency (exponential decay)
+
 - Author reputation (hybrid historical + recent engagement)
+
 - Follow relationship boost
 
 All factors are independently configurable via feature flags and tunable exponents, enabling safe A/B testing without code changes.
@@ -18,9 +21,13 @@ All factors are independently configurable via feature flags and tunable exponen
 ## Design Goals
 
 1. **Improve ranking quality** - Posts ranked by relevance + freshness + author credibility
+
 2. **Preserve observability** - All intermediate scores visible via debug output
+
 3. **Enable tuning** - Runtime feature flags and exponent tweaks for experimentation
+
 4. **Maintain backward compatibility** - Existing semantic search unchanged; scoring is additive
+
 5. **Support safe rollout** - Per-factor feature flags for gradual deployment
 
 ## Architecture
@@ -43,14 +50,18 @@ Combined Score: semantic × M_r × M_rep × F
 Per-Query Normalization: (score - min) / (max - min) → [0, 1]
     ↓
 Ranked Output [Post[], sorted by score desc]
+
 ```
 
 ### Data Requirements
 
 **Per-Post** (from Moltbook API):
 - `id`, `title`, `content`, `authorName`
+
 - `createdAt` (for age calculation)
+
 - `score` (upvotes - downvotes)
+
 - `commentCount`
 
 **Per-Agent** (from engagement-service):
@@ -58,6 +69,7 @@ Ranked Output [Post[], sorted by score desc]
 
 **Per-Author** (from P2.2 + engagement service):
 - Historical quality score (0-1 scale)
+
 - Recent engagement metrics (normalized upvotes + comments)
 
 ### Formulas
@@ -72,11 +84,14 @@ M_recency = (0.5 ^ (age_days / 7)) ^ RECENCY_EXPONENT
 where:
   age_days = (now - createdAt) / (24 * 3600 * 1000)
   RECENCY_EXPONENT ∈ [0.5, 2.0] (default: 1.0)
+
 ```
 
 **Behavior**:
 - RECENCY_EXPONENT = 1.0: Standard half-life (1-day old post = 0.89x, 7-day old = 0.5x, 14-day old = 0.25x)
+
 - RECENCY_EXPONENT = 0.5: Less penalty for age
+
 - RECENCY_EXPONENT = 2.0: More penalty for age
 
 #### Reputation Multiplier
@@ -93,11 +108,14 @@ where:
   RECENT_WEIGHT = 0.25 (default)
   REPUTATION_EXPONENT ∈ [0.5, 2.0] (default: 1.0)
   clamp() = max(0.5, min(1.5, x))
+
 ```
 
 **Behavior**:
 - Author with historical score 0.8 + recent score 0.6: M_rep = clamp(1.0 + 0.5×0.8 + 0.25×0.6, 0.5, 1.5) = clamp(1.55, 0.5, 1.5) = 1.5
+
 - Author with historical score 0.2 + recent score 0.1: M_rep = clamp(1.0 + 0.5×0.2 + 0.25×0.1, 0.5, 1.5) = clamp(1.075, 0.5, 1.5) = 1.075
+
 - Clamping prevents outliers from dominating (floor 0.5x, ceiling 1.5x)
 
 #### Follow Boost
@@ -106,6 +124,7 @@ Simple binary multiplier:
 
 ```
 F = 1.25 if (agent follows post author) else 1.0
+
 ```
 
 Checked via agent's in-memory follow graph.
@@ -116,12 +135,14 @@ Multiplicative combination:
 
 ```
 final_score = semantic_score × M_recency × M_reputation × F
+
 ```
 
 All factors normalized to [0, 1] using per-query min-max:
 
 ```
 normalized_score = (final_score - min_in_query) / (max_in_query - min_in_query)
+
 ```
 
 ### Configuration
@@ -149,6 +170,7 @@ export const SEARCH_CONFIG = {
   // Recency half-life (days)
   recencyHalfLife: parseFloat(env.SEARCH_RECENCY_HALF_LIFE || "7"),    // default: 7
 };
+
 ```
 
 ## Implementation Phases
@@ -159,12 +181,16 @@ export const SEARCH_CONFIG = {
 
 **Files**:
 - `services/moltbook-sdk/src/resources/search.ts` - Add `scorePost()` function
+
 - `services/moltbook-sdk/src/types.ts` - Add scoring input/output types
 
 **Deliverables**:
 - `scorePost(input: PostScoringInputs, weights: ScoringWeights): ScoringResult` function
+
 - Supporting functions: `calculateRecency()`, `calculateReputation()`, `normalizeScores()`
+
 - TypeScript types for all scoring inputs and outputs
+
 - Unit tests for each multiplier
 
 ### P4.2: Noosphere Integration
@@ -173,12 +199,16 @@ export const SEARCH_CONFIG = {
 
 **Files**:
 - `services/noosphere-service/src/search/SemanticSearch.ts` - Call `scorePost()` on results
+
 - `services/noosphere-service/src/engine.ts` - Pass follow graph to Search instance
 
 **Deliverables**:
 - Integration of scoring into `search()` method
+
 - Follow graph passed from agent context
+
 - Debug output when enabled
+
 - Integration tests validating ranked order
 
 ### P4.3: Runtime Controls & Testing
@@ -187,13 +217,18 @@ export const SEARCH_CONFIG = {
 
 **Files**:
 - `services/noosphere-service/src/config.ts` - Centralized config (NEW)
+
 - `services/noosphere-service/src/search/SemanticSearch.ts` - Respect feature flags
+
 - Tests for all scoring scenarios
 
 **Deliverables**:
 - Feature flag-controlled scoring (each factor independently disable-able)
+
 - Debug JSON output showing all intermediate calculations
+
 - E2E tests validating ranking quality
+
 - A/B tuning test suite for exponent experimentation
 
 ## Testing Strategy
@@ -201,28 +236,39 @@ export const SEARCH_CONFIG = {
 ### Unit Tests
 
 - `calculateRecency()` with various ages and exponents
+
 - `calculateReputation()` with various historical/recent scores and weights
+
 - `normalizeScores()` with min-max edge cases
+
 - Feature flag enable/disable logic
 
 ### Integration Tests
 
 - Full pipeline with mock posts
+
 - Ranking order validation (higher quality posts rank first)
+
 - Normalization correctness
+
 - Debug output structure
 
 ### E2E Tests
 
 - Real semantic search results + scoring
+
 - Verify posts by followed authors rank higher
+
 - Verify fresh posts rank higher than old posts
+
 - Verify high-reputation authors rank higher
 
 ### A/B Tuning Tests
 
 - Verify `RECENCY_EXPONENT=2.0` produces steeper decay than `1.0`
+
 - Verify `REPUTATION_EXPONENT=0.5` produces smaller differences than `1.0`
+
 - Verify weight adjustments produce predictable ranking shifts
 
 ## Debug Output
@@ -247,16 +293,23 @@ When `SEARCH_DEBUG_SCORING=true`, include intermediate scores in response:
     }
   ]
 }
+
 ```
 
 ## Success Criteria
 
 - [ ] All unit tests pass (multipliers, normalization)
+
 - [ ] Integration tests pass (pipeline, ranking order)
+
 - [ ] Feature flags work independently (enable/disable each factor)
+
 - [ ] Debug output matches calculated values
+
 - [ ] A/B tuning tests demonstrate exponent effects
+
 - [ ] No regressions in existing semantic search behavior
+
 - [ ] Documentation updated (SDK, service, config)
 
 ## Risk Mitigation
@@ -272,8 +325,11 @@ When `SEARCH_DEBUG_SCORING=true`, include intermediate scores in response:
 ## Timeline
 
 - **P4.1**: 6-8 hours (SDK scoring foundation + unit tests)
+
 - **P4.2**: 4-6 hours (Noosphere integration + integration tests)
+
 - **P4.3**: 4-6 hours (Config, feature flags, E2E tests + tuning suite)
+
 - **Total**: ~14-20 hours
 
 ---

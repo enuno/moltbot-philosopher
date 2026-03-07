@@ -5,18 +5,25 @@ Type-safe Python client library for the Noosphere v3.0 REST API.
 ## Features
 
 - **Type-Safe**: Full type hints with dataclasses for Memory and AgentStats
+
 - **Automatic Retries**: Exponential backoff for transient failures
+
 - **Error Handling**: Custom exceptions for capacity limits and API errors
+
 - **Helper Methods**: Common query patterns built-in
+
 - **Batch Operations**: Create and delete multiple memories efficiently
+
 - **5-Type Architecture**: Support for insight, pattern, strategy, preference, lesson
 
 ## Installation
 
 ```bash
+
 # From project root
 cd services/noosphere/python-client
 pip install -r requirements.txt
+
 ```
 
 ## Quick Start
@@ -26,7 +33,7 @@ from noosphere_client import NoosphereClient, MemoryType
 
 # Initialize client
 client = NoosphereClient(
-    api_url="http://noosphere-service:3006",
+    api_url="<http://noosphere-service:3006",>
     api_key=os.environ['MOLTBOOK_API_KEY']
 )
 
@@ -60,6 +67,7 @@ results = client.search_similar(
 stats = client.get_agent_stats("classical")
 print(f"Total memories: {stats.memory_count}")
 print(f"Strategies: {stats.strategies_count}")
+
 ```
 
 ## API Reference
@@ -70,11 +78,12 @@ print(f"Strategies: {stats.strategies_count}")
 
 ```python
 client = NoosphereClient(
-    api_url="http://noosphere-service:3006",  # API base URL
+    api_url="<http://noosphere-service:3006",>  # API base URL
     api_key=None,                              # Defaults to $MOLTBOOK_API_KEY
     timeout=10,                                # Request timeout (seconds)
     max_retries=3                              # Max retry attempts
 )
+
 ```
 
 #### Memory Operations
@@ -91,12 +100,14 @@ memory = client.create_memory(
     content_json: Dict = None,
     source_trace_id: str = None
 ) -> Memory
+
 ```
 
 **Get Memory**
 
 ```python
 memory = client.get_memory(memory_id: str) -> Memory
+
 ```
 
 **Query Memories**
@@ -112,6 +123,7 @@ memories = client.query_memories(
     sort: str = 'created_at',
     order: str = 'DESC'
 ) -> List[Memory]
+
 ```
 
 **Update Memory**
@@ -125,12 +137,14 @@ memory = client.update_memory(
     tags: List[str] = None,
     superseded_by: str = None
 ) -> Memory
+
 ```
 
 **Delete Memory**
 
 ```python
 result = client.delete_memory(memory_id: str) -> Dict
+
 ```
 
 **Search Similar** (requires embeddings)
@@ -143,6 +157,7 @@ results = client.search_similar(
     top_k: int = 10,
     min_confidence: float = 0.6
 ) -> List[Dict]
+
 ```
 
 #### Helper Methods
@@ -151,6 +166,7 @@ results = client.search_similar(
 
 ```python
 constitutional = client.get_constitutional(agent_id: str) -> List[Memory]
+
 ```
 
 **Get by Type**
@@ -160,12 +176,14 @@ strategies = client.get_by_type(
     agent_id: str,
     type: Union[str, MemoryType]
 ) -> List[Memory]
+
 ```
 
 **Get Recent**
 
 ```python
 recent = client.get_recent(agent_id: str, limit: int = 10) -> List[Memory]
+
 ```
 
 **Create Many** (batch)
@@ -175,12 +193,14 @@ memories = client.create_many([
     {"agent_id": "classical", "type": "strategy", "content": "..."},
     {"agent_id": "existentialist", "type": "pattern", "content": "..."}
 ]) -> List[Memory]
+
 ```
 
 **Evict Oldest** (capacity management)
 
 ```python
 deleted_ids = client.evict_oldest(agent_id: str, count: int = 1) -> List[str]
+
 ```
 
 #### Statistics
@@ -189,19 +209,23 @@ deleted_ids = client.evict_oldest(agent_id: str, count: int = 1) -> List[str]
 
 ```python
 stats = client.get_agent_stats(agent_id: str) -> AgentStats
+
 ```
 
 **Get All Stats**
 
 ```python
 all_stats = client.get_all_stats() -> List[AgentStats]
+
 ```
 
 #### Health
 
 ```python
 health = client.health() -> Dict
+
 # Returns: {"status": "healthy", "version": "3.0.0", ...}
+
 ```
 
 ## Data Models
@@ -224,6 +248,7 @@ class Memory:
     created_at: str = None
     updated_at: str = None
     expires_at: str = None
+
 ```
 
 ### AgentStats
@@ -240,6 +265,7 @@ class AgentStats:
     preferences_count: int
     lessons_count: int
     updated_at: str
+
 ```
 
 ### MemoryType Enum
@@ -251,6 +277,7 @@ class MemoryType(str, Enum):
     STRATEGY = "strategy"
     PREFERENCE = "preference"
     LESSON = "lesson"
+
 ```
 
 ## Error Handling
@@ -275,14 +302,17 @@ except NoosphereAPIError as e:
 except NoosphereError as e:
     # General error (network, timeout, etc.)
     print(f"Error: {e}")
+
 ```
 
 ## Testing
 
 ```bash
+
 # Run test suite
 cd services/noosphere/python-client
 python3 test_client.py
+
 ```
 
 ## Migration from v2.6
@@ -296,6 +326,7 @@ import json
 with open('/workspace/classical/noosphere/memory-core/telos-alignment-heuristics.json') as f:
     data = json.load(f)
     heuristics = data['heuristics']
+
 ```
 
 **New (v3.0 - PostgreSQL + API)**:
@@ -307,11 +338,13 @@ client = NoosphereClient()
 
 # Query heuristics
 strategies = client.get_by_type("classical", MemoryType.STRATEGY)
+
 ```
 
 ## Environment Variables
 
 - `MOLTBOOK_API_KEY` (required): API key for authentication
+
 - `NOOSPHERE_API_URL` (optional): Override default API URL
 
 ## Examples
@@ -319,6 +352,7 @@ strategies = client.get_by_type("classical", MemoryType.STRATEGY)
 ### Council Deliberation
 
 ```python
+
 # Get all council strategies
 strategies = client.query_memories(
     tags=["council"],
@@ -332,11 +366,13 @@ for agent_id in ["classical", "transcendentalist", "enlightenment"]:
         agent_id=agent_id,
         tags=["alliance"]
     )
+
 ```
 
 ### Capacity Management
 
 ```python
+
 # Check agent capacity
 stats = client.get_agent_stats("classical")
 if stats.memory_count >= 180:  # 90% of 200 cap
@@ -352,11 +388,13 @@ if stats.memory_count >= 180:  # 90% of 200 cap
     for mem in low_conf:
         if mem.confidence < 0.65:
             client.delete_memory(mem.id)
+
 ```
 
 ### Type-Specific Queries
 
 ```python
+
 # Get all insights for phenomenology
 insights = client.query_memories(
     agent_id="joyce",
@@ -370,6 +408,7 @@ molochs = client.query_memories(
     type=MemoryType.LESSON,
     tags=["moloch"]
 )
+
 ```
 
 ---

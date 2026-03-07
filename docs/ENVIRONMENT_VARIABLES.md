@@ -5,14 +5,23 @@ Complete reference for Moltbot v2.7 environment configuration.
 ## Table of Contents
 
 '
+
 1. [PostgreSQL Configuration](#postgresql-configuration)
+
 2. [Action Queue Service](#action-queue-service)
+
 3. [pg-boss Configuration](#pg-boss-configuration)
+
 4. [Observability](#observability)
+
 5. [Rate Limiting & Circuit Breaker](#rate-limiting--circuit-breaker)
+
 6. [Environment-Specific Examples](#environment-specific-examples)
+
 7. [Validation on Startup](#validation-on-startup)
+
 8. [Troubleshooting](#troubleshooting)
+
 9. [Configuration Precedence](#configuration-precedence)
 
 ---
@@ -32,8 +41,10 @@ Complete reference for Moltbot v2.7 environment configuration.
 PostgreSQL superuser account for database administration. Used by Noosphere service and action-queue service.
 
 ```bash
+
 # Example
 POSTGRES_USER=my_admin_user
+
 ```
 
 ### POSTGRES_PASSWORD
@@ -49,11 +60,13 @@ POSTGRES_USER=my_admin_user
 PostgreSQL superuser password. **CRITICAL SECURITY**: Change from default in production.
 
 ```bash
+
 # Example - Production (strong password)
 POSTGRES_PASSWORD=Tr0pic@lFruit#2026$Encrypt!
 
 # Example - Development (acceptable for local testing)
 POSTGRES_PASSWORD=dev_password_123
+
 ```
 
 **Security Considerations:**
@@ -81,6 +94,7 @@ POSTGRES_PASSWORD=dev_password_123
 PostgreSQL server hostname or IP address.
 
 ```bash
+
 # Example - Docker Compose (internal service name)
 POSTGRES_HOST=postgres
 
@@ -92,6 +106,7 @@ POSTGRES_HOST=my-db.123456789.us-east-1.rds.amazonaws.com
 
 # Example - Kubernetes DNS
 POSTGRES_HOST=postgres.moltbot-production.svc.cluster.local
+
 ```
 
 ### POSTGRES_PORT
@@ -107,6 +122,7 @@ POSTGRES_HOST=postgres.moltbot-production.svc.cluster.local
 PostgreSQL server port number.
 
 ```bash
+
 # Example - Standard port
 POSTGRES_PORT=5432
 
@@ -115,6 +131,7 @@ POSTGRES_PORT=5433
 
 # Example - Cloud-hosted with custom port
 POSTGRES_PORT=5555
+
 ```
 
 ### POSTGRES_DB
@@ -130,12 +147,14 @@ POSTGRES_PORT=5555
 PostgreSQL database name for Noosphere service.
 
 ```bash
+
 # Example - Default
 POSTGRES_DB=noosphere
 
 # Example - Environment-specific
 POSTGRES_DB=noosphere_production
 POSTGRES_DB=noosphere_staging
+
 ```
 
 ### POSTGRES_ACTION_QUEUE_DB
@@ -151,11 +170,13 @@ POSTGRES_DB=noosphere_staging
 PostgreSQL database name for action-queue service (pg-boss jobs).
 
 ```bash
+
 # Example - Default
 POSTGRES_ACTION_QUEUE_DB=action_queue
 
 # Example - Environment-specific
 POSTGRES_ACTION_QUEUE_DB=action_queue_production
+
 ```
 
 ### DATABASE_URL (Noosphere)
@@ -171,7 +192,9 @@ POSTGRES_ACTION_QUEUE_DB=action_queue_production
 Full PostgreSQL connection string for Noosphere. **Auto-generated** if not specified.
 
 ```bash
+
 # Example - Not needed (auto-generated)
+
 # DATABASE_URL=postgresql://noosphere_admin:changeme_noosphere_2026@postgres:5432/noosphere
 
 # Example - Override if auto-generation fails
@@ -179,6 +202,7 @@ DATABASE_URL=postgresql://admin:secret@db.example.com:5432/noosphere
 
 # Example - With SSL (production)
 DATABASE_URL=postgresql://admin:secret@db.example.com:5432/noosphere?sslmode=require
+
 ```
 
 ### ACTION_QUEUE_DATABASE_URL
@@ -194,11 +218,14 @@ DATABASE_URL=postgresql://admin:secret@db.example.com:5432/noosphere?sslmode=req
 Full PostgreSQL connection string for action-queue service. **Auto-generated** if not specified.
 
 ```bash
+
 # Example - Not needed (auto-generated)
+
 # ACTION_QUEUE_DATABASE_URL=postgresql://noosphere_admin:changeme_noosphere_2026@postgres:5432/action_queue
 
 # Example - Override if auto-generation fails
 ACTION_QUEUE_DATABASE_URL=postgresql://admin:secret@db.example.com:5432/action_queue
+
 ```
 
 ---
@@ -218,6 +245,7 @@ ACTION_QUEUE_DATABASE_URL=postgresql://admin:secret@db.example.com:5432/action_q
 HTTP port for action-queue service API.
 
 ```bash
+
 # Example - Default
 ACTION_QUEUE_PORT=3008
 
@@ -226,6 +254,7 @@ ACTION_QUEUE_PORT=8008
 
 # Example - Docker Compose override
 ACTION_QUEUE_PORT=9008
+
 ```
 
 **Port Assignment Guidelines:**
@@ -249,21 +278,27 @@ ACTION_QUEUE_PORT=9008
 How often action-queue checks and processes queued jobs.
 
 ```bash
+
 # Example - Responsive (5 seconds) - default
+
 # Use for low-volume systems or real-time requirements
 QUEUE_PROCESSING_INTERVAL=5
 
 # Example - Balanced (15 seconds)
+
 # Use for medium-volume systems
 QUEUE_PROCESSING_INTERVAL=15
 
 # Example - Relaxed (30 seconds)
+
 # Use for high-volume systems to reduce CPU
 QUEUE_PROCESSING_INTERVAL=30
 
 # Example - Batch processing (60 seconds)
+
 # Use for batch-heavy workloads
 QUEUE_PROCESSING_INTERVAL=60
+
 ```
 
 **Tuning Guide:**
@@ -287,6 +322,7 @@ QUEUE_PROCESSING_INTERVAL=60
 How often to check for scheduled/delayed jobs.
 
 ```bash
+
 # Example - Default
 QUEUE_SCHEDULED_CHECK_INTERVAL=30
 
@@ -295,6 +331,7 @@ QUEUE_SCHEDULED_CHECK_INTERVAL=10
 
 # Example - Less frequent (background jobs)
 QUEUE_SCHEDULED_CHECK_INTERVAL=60
+
 ```
 
 ### QUEUE_MAX_ATTEMPTS
@@ -310,6 +347,7 @@ QUEUE_SCHEDULED_CHECK_INTERVAL=60
 Maximum number of times to retry failed jobs.
 
 ```bash
+
 # Example - Conservative (low tolerance for failures)
 QUEUE_MAX_ATTEMPTS=1
 
@@ -318,6 +356,7 @@ QUEUE_MAX_ATTEMPTS=3
 
 # Example - Aggressive (high tolerance)
 QUEUE_MAX_ATTEMPTS=5
+
 ```
 
 **Considerations:**
@@ -341,17 +380,22 @@ QUEUE_MAX_ATTEMPTS=5
 Exponential backoff multiplier for job retries.
 
 ```bash
+
 # Example - Linear backoff (no multiplier)
 QUEUE_RETRY_BACKOFF_MULTIPLIER=1.0
+
 # Retry delays: 1s, 2s, 3s, 4s...
 
 # Example - Default (exponential backoff)
 QUEUE_RETRY_BACKOFF_MULTIPLIER=2.0
+
 # Retry delays: 1s, 2s, 4s, 8s...
 
 # Example - Aggressive exponential
 QUEUE_RETRY_BACKOFF_MULTIPLIER=3.0
+
 # Retry delays: 1s, 3s, 9s, 27s...
+
 ```
 
 **Retry Timeline Examples (3 max attempts, multiplier 2):**
@@ -380,6 +424,7 @@ QUEUE_RETRY_BACKOFF_MULTIPLIER=3.0
 Number of jobs to process simultaneously.
 
 ```bash
+
 # Example - Serial processing (default, prevents race conditions)
 PGBOSS_WORKER_CONCURRENCY=1
 
@@ -388,6 +433,7 @@ PGBOSS_WORKER_CONCURRENCY=5
 
 # Example - Heavy parallelism
 PGBOSS_WORKER_CONCURRENCY=20
+
 ```
 
 **Concurrency Guidelines:**
@@ -415,6 +461,7 @@ PGBOSS_WORKER_CONCURRENCY=20
 How often pg-boss runs maintenance tasks (cleanup, archival, optimization).
 
 ```bash
+
 # Example - Frequent maintenance (large queues)
 PGBOSS_MAINTENANCE_INTERVAL_MINUTES=15
 
@@ -423,6 +470,7 @@ PGBOSS_MAINTENANCE_INTERVAL_MINUTES=60
 
 # Example - Infrequent (small queues)
 PGBOSS_MAINTENANCE_INTERVAL_MINUTES=240
+
 ```
 
 ### PGBOSS_ARCHIVE_COMPLETED_JOBS
@@ -438,11 +486,13 @@ PGBOSS_MAINTENANCE_INTERVAL_MINUTES=240
 Whether to move completed jobs to archive table.
 
 ```bash
+
 # Example - Archival enabled (default, better performance)
 PGBOSS_ARCHIVE_COMPLETED_JOBS=true
 
 # Example - Keep all jobs in main table (for debugging)
 PGBOSS_ARCHIVE_COMPLETED_JOBS=false
+
 ```
 
 **Performance Impact:**
@@ -464,6 +514,7 @@ PGBOSS_ARCHIVE_COMPLETED_JOBS=false
 How long to keep completed/archived jobs before deletion.
 
 ```bash
+
 # Example - Short retention (minimal storage)
 PGBOSS_JOB_EXPIRATION_DAYS=7
 
@@ -472,6 +523,7 @@ PGBOSS_JOB_EXPIRATION_DAYS=30
 
 # Example - Long retention (compliance, debugging)
 PGBOSS_JOB_EXPIRATION_DAYS=90
+
 ```
 
 ---
@@ -491,11 +543,13 @@ PGBOSS_JOB_EXPIRATION_DAYS=90
 Enable extra verbose logging for troubleshooting.
 
 ```bash
+
 # Example - Debug disabled (default, production)
 ACTION_QUEUE_DEBUG=false
 
 # Example - Debug enabled (development, troubleshooting)
 ACTION_QUEUE_DEBUG=true
+
 ```
 
 ### ACTION_QUEUE_LOG_LEVEL
@@ -511,6 +565,7 @@ ACTION_QUEUE_DEBUG=true
 Logger verbosity level.
 
 ```bash
+
 # Example - Debug (very verbose, development)
 ACTION_QUEUE_LOG_LEVEL=debug
 
@@ -522,6 +577,7 @@ ACTION_QUEUE_LOG_LEVEL=warn
 
 # Example - Error (only errors, minimal logging)
 ACTION_QUEUE_LOG_LEVEL=error
+
 ```
 
 **Log Output Examples:**
@@ -546,6 +602,7 @@ ACTION_QUEUE_LOG_LEVEL=error
 HTTP port for Prometheus metrics endpoint. Set to `0` to disable.
 
 ```bash
+
 # Example - Metrics enabled (default)
 ACTION_QUEUE_METRICS_PORT=3009
 
@@ -554,6 +611,7 @@ ACTION_QUEUE_METRICS_PORT=9090
 
 # Example - Metrics disabled
 ACTION_QUEUE_METRICS_PORT=0
+
 ```
 
 ---
@@ -573,6 +631,7 @@ ACTION_QUEUE_METRICS_PORT=0
 Maximum API requests per minute (all services combined).
 
 ```bash
+
 # Example - Conservative (low API quota)
 GLOBAL_API_RATE_LIMIT=50
 
@@ -581,6 +640,7 @@ GLOBAL_API_RATE_LIMIT=100
 
 # Example - Generous (high quota)
 GLOBAL_API_RATE_LIMIT=500
+
 ```
 
 ### ENABLE_RATE_LIMITING
@@ -596,11 +656,13 @@ GLOBAL_API_RATE_LIMIT=500
 Toggle rate limiting on/off globally.
 
 ```bash
+
 # Example - Rate limiting enabled (default, production)
 ENABLE_RATE_LIMITING=true
 
 # Example - Rate limiting disabled (development/testing)
 ENABLE_RATE_LIMITING=false
+
 ```
 
 ### CIRCUIT_BREAKER_FAILURE_THRESHOLD
@@ -616,6 +678,7 @@ ENABLE_RATE_LIMITING=false
 Number of failures before circuit breaker opens.
 
 ```bash
+
 # Example - Aggressive (fail fast)
 CIRCUIT_BREAKER_FAILURE_THRESHOLD=2
 
@@ -624,6 +687,7 @@ CIRCUIT_BREAKER_FAILURE_THRESHOLD=5
 
 # Example - Tolerant (high failure tolerance)
 CIRCUIT_BREAKER_FAILURE_THRESHOLD=10
+
 ```
 
 ### CIRCUIT_BREAKER_TIMEOUT_SECONDS
@@ -639,6 +703,7 @@ CIRCUIT_BREAKER_FAILURE_THRESHOLD=10
 Seconds before circuit breaker attempts to half-open.
 
 ```bash
+
 # Example - Quick recovery (unstable API, want fast retry)
 CIRCUIT_BREAKER_TIMEOUT_SECONDS=10
 
@@ -647,6 +712,7 @@ CIRCUIT_BREAKER_TIMEOUT_SECONDS=60
 
 # Example - Slow recovery (waiting for maintenance window)
 CIRCUIT_BREAKER_TIMEOUT_SECONDS=300
+
 ```
 
 ---
@@ -656,6 +722,7 @@ CIRCUIT_BREAKER_TIMEOUT_SECONDS=300
 ### Development Environment
 
 ```bash
+
 # .env.development (local testing)
 
 # PostgreSQL - local instance
@@ -685,11 +752,13 @@ ACTION_QUEUE_METRICS_PORT=3009
 GLOBAL_API_RATE_LIMIT=1000
 ENABLE_RATE_LIMITING=false
 CIRCUIT_BREAKER_FAILURE_THRESHOLD=100
+
 ```
 
 ### Staging Environment
 
 ```bash
+
 # .env.staging (pre-production testing)
 
 # PostgreSQL - cloud instance
@@ -722,12 +791,15 @@ GLOBAL_API_RATE_LIMIT=200
 ENABLE_RATE_LIMITING=true
 CIRCUIT_BREAKER_FAILURE_THRESHOLD=5
 CIRCUIT_BREAKER_TIMEOUT_SECONDS=60
+
 ```
 
 ### Production Environment
 
 ```bash
+
 # .env.production (use secrets management, not .env file!)
+
 # Deploy via Kubernetes secrets, AWS Secrets Manager, etc.
 
 # PostgreSQL - high-availability instance
@@ -762,6 +834,7 @@ GLOBAL_API_RATE_LIMIT=100
 ENABLE_RATE_LIMITING=true
 CIRCUIT_BREAKER_FAILURE_THRESHOLD=5
 CIRCUIT_BREAKER_TIMEOUT_SECONDS=120
+
 ```
 
 ---
@@ -790,6 +863,7 @@ const config = {
   // Boolean flags: parsed safely
   archiveJobs: process.env.PGBOSS_ARCHIVE_COMPLETED_JOBS !== 'false',
 };
+
 ```
 
 **Validation Errors (startup failures):**
@@ -813,19 +887,27 @@ const config = {
 
 **Solutions:**
 '
+
 1. Check POSTGRES_HOST and POSTGRES_PORT match actual database
+
 2. Verify PostgreSQL container is running: `docker compose ps postgres`
+
 3. Test connection manually: `psql -h postgres -U noosphere_admin`
+
 4. Check firewall rules if using remote database
 
 **Example Fix:**
+
 ```bash
+
 # Verify PostgreSQL is accessible
 docker compose exec action-queue \
   nc -zv postgres 5432
 
 # Output: success if connection possible
+
 # Connection to postgres 5432 port [tcp/*] succeeded!
+
 ```
 
 ### Authentication Failures
@@ -836,12 +918,17 @@ docker compose exec action-queue \
 
 **Solutions:**
 '
+
 1. Verify POSTGRES_PASSWORD in .env matches database password
+
 2. Check database was initialized with correct password
+
 3. Reset PostgreSQL password if forgotten
 
 **Example Fix:**
+
 ```bash
+
 # Reset PostgreSQL password
 docker compose exec postgres \
   psql -U postgres \
@@ -849,6 +936,7 @@ docker compose exec postgres \
 
 # Update .env
 POSTGRES_PASSWORD=new_password
+
 ```
 
 ### Queue Processing Stalls
@@ -859,13 +947,19 @@ POSTGRES_PASSWORD=new_password
 
 **Solutions:**
 '
+
 1. Reduce QUEUE_PROCESSING_INTERVAL from 30s to 5s
+
 2. Check logs: `docker compose logs action-queue`
+
 3. Verify pg-boss workers: `PGBOSS_WORKER_CONCURRENCY=5`
+
 4. Check database connection pool exhaustion
 
 **Example Fix:**
+
 ```bash
+
 # Increase processing frequency
 QUEUE_PROCESSING_INTERVAL=5
 
@@ -874,7 +968,8 @@ PGBOSS_WORKER_CONCURRENCY=5
 
 # Check queue size
 docker compose exec action-queue \
-  curl http://localhost:3008/queue/stats
+  curl <http://localhost:3008/queue/stats>
+
 ```
 
 ### High CPU Usage
@@ -885,12 +980,17 @@ docker compose exec action-queue \
 
 **Solutions:**
 '
+
 1. Increase QUEUE_PROCESSING_INTERVAL from 5s to 15-30s
+
 2. Reduce PGBOSS_WORKER_CONCURRENCY if high
+
 3. Check for infinitely retrying jobs
 
 **Example Fix:**
+
 ```bash
+
 # Reduce processing frequency
 QUEUE_PROCESSING_INTERVAL=30
 
@@ -899,6 +999,7 @@ PGBOSS_WORKER_CONCURRENCY=3
 
 # Monitor improvement
 docker compose stats action-queue
+
 ```
 
 ### Rate Limiting Blocking Legitimate Requests
@@ -909,18 +1010,24 @@ docker compose stats action-queue
 
 **Solutions:**
 '
+
 1. Check actual request volume: Monitor action-queue metrics
+
 2. Increase GLOBAL_API_RATE_LIMIT from 100 to 200-500
+
 3. Verify ENABLE_RATE_LIMITING is appropriate
 
 **Example Fix:**
+
 ```bash
+
 # Increase rate limit
 GLOBAL_API_RATE_LIMIT=250
 
 # Check metrics
 docker compose exec action-queue \
-  curl http://localhost:3009/metrics | grep rate_limit
+  curl <http://localhost:3009/metrics> | grep rate_limit
+
 ```
 
 ---
@@ -930,13 +1037,18 @@ docker compose exec action-queue \
 Environment variables are loaded in this order (first match wins):
 
 '
+
 1. **Explicit environment variables** (POSTGRES_HOST, ACTION_QUEUE_PORT, etc.)
+
 2. **Combined connection strings** (DATABASE_URL, ACTION_QUEUE_DATABASE_URL)
+
 3. **Hard-coded defaults** in application code
 
 **Example precedence chain:**
+
 ```
 DATABASE_URL env var → (if not set) → auto-generate from POSTGRES_* vars → (if not set) → hard-coded default
+
 ```
 
 ### When DATABASE_URL Overrides Components
@@ -948,14 +1060,18 @@ If both DATABASE_URL and individual variables are set:
 - Individual variables (POSTGRES_HOST, POSTGRES_PORT, etc.) are ignored
 
 **Example:**
+
 ```bash
+
 # Both set:
 POSTGRES_HOST=localhost
 POSTGRES_PORT=5432
 DATABASE_URL=postgresql://admin:pass@remote-db:5432/noosphere
 
 # Result: Uses remote-db (from DATABASE_URL)
+
 # localhost:5432 is ignored
+
 ```
 
 ### Kubernetes Secrets Integration
@@ -963,6 +1079,7 @@ DATABASE_URL=postgresql://admin:pass@remote-db:5432/noosphere
 For production Kubernetes deployments:
 
 ```yaml
+
 # ConfigMap for non-sensitive settings
 apiVersion: v1
 kind: ConfigMap
@@ -973,6 +1090,7 @@ data:
   PGBOSS_WORKER_CONCURRENCY: "20"
   ACTION_QUEUE_LOG_LEVEL: "info"
 ---
+
 # Secret for sensitive settings
 apiVersion: v1
 kind: Secret
@@ -983,6 +1101,7 @@ stringData:
   POSTGRES_PASSWORD: "super-secret-password"
   DATABASE_URL: "postgresql://admin:secret@postgres-ha:5432/noosphere"
 ---
+
 # Pod deployment
 apiVersion: v1
 kind: Pod
@@ -991,12 +1110,17 @@ metadata:
 spec:
   containers:
   - name: action-queue
+
     image: moltbot:action-queue
     envFrom:
     - configMapRef:
+
         name: action-queue-config
+
     - secretRef:
+
         name: action-queue-secrets
+
 ```
 
 ---
@@ -1004,7 +1128,6 @@ spec:
 ## Production Checklist
 
 Before deploying to production:
-
 
 - [ ] POSTGRES_PASSWORD changed from default
 
@@ -1039,7 +1162,6 @@ Before deploying to production:
 ---
 
 ## Additional Resources
-
 
 - **Installation Guide:** [README.md](../README.md)
 

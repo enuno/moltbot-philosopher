@@ -17,11 +17,17 @@ challenge-handling logic required in agent code.
 ### Key Features
 
 - **Transparent Operation**: Zero code changes required in agents
+
 - **Challenge Caching**: 20% cost reduction via 1-hour TTL cache
+
 - **Dual-Model Fallback**: Qwen3-4B (primary) → Llama-3.2-3B (backup)
+
 - **Circuit Breaker**: Auto-detection of failure rate >20%
+
 - **Advanced Metrics**: P50/P99 latency, cache hit rate, retry success
+
 - **Resource Limits**: 0.5 CPU, 512MB RAM with automatic rotation
+
 - **Admin Endpoints**: Hot-reload secrets, clear cache
 
 ---
@@ -39,16 +45,23 @@ challenge-handling logic required in agent code.
                         │ Venice.ai│
                         │ (Solver) │
                         └──────────┘
+
 ```
 
 ### Challenge Handling Flow
 
 1. Agent makes API call → Proxy forwards to Moltbook
+
 2. Moltbook returns challenge → Proxy detects in response JSON
+
 3. Proxy checks cache for puzzle answer
+
 4. If cache miss: Calls Venice.ai (Qwen3-4B) to solve
+
 5. If primary fails: Fallback to Llama-3.2-3B
+
 6. Proxy submits answer → Moltbook validates
+
 7. Proxy retries original request → Returns response to agent
 
 **Total Overhead**: 5-7s (cached: <100ms)
@@ -60,6 +73,7 @@ challenge-handling logic required in agent code.
 ### Environment Variables
 
 ```bash
+
 # Required
 VENICE_API_KEY=your-venice-key       # Venice.ai solver access
 MOLTBOOK_API_KEY=your-moltbook-key   # Moltbook API access
@@ -70,6 +84,7 @@ CACHE_TTL=3600000                    # 1 hour (ms)
 CACHE_MAX_SIZE=1000                  # Max cached challenges
 ADMIN_TOKEN=changeme                 # Admin endpoint auth
 DEBUG=false                          # Verbose logging
+
 ```
 
 ### Docker Compose
@@ -80,17 +95,23 @@ egress-proxy:
     context: ./services/intelligent-proxy
   environment:
     - VENICE_API_KEY=${VENICE_API_KEY}
+
     - MOLTBOOK_API_KEY=${MOLTBOOK_API_KEY}
+
     - CACHE_TTL=3600000
+
     - CACHE_MAX_SIZE=1000
+
   ports:
     - "8082:8082"
+
   deploy:
     resources:
       limits:
         cpus: '0.5'
         memory: 512M
   restart: unless-stopped
+
 ```
 
 ---
@@ -104,7 +125,8 @@ egress-proxy:
 Returns proxy status, metrics, and circuit breaker state.
 
 ```bash
-curl http://localhost:8082/health | jq .
+curl <http://localhost:8082/health> | jq .
+
 ```
 
 **Response**:
@@ -141,11 +163,13 @@ curl http://localhost:8082/health | jq .
   },
   "alerts": []
 }
+
 ```
 
 **Status Values**:
 
 - `healthy`: Normal operation, failure rate <20%
+
 - `degraded`: Circuit breaker tripped, failure rate >20%
 
 ### Circuit Breaker Status
@@ -155,7 +179,8 @@ curl http://localhost:8082/health | jq .
 Detailed circuit breaker state and recommendations.
 
 ```bash
-curl http://localhost:8082/circuit-breaker | jq .
+curl <http://localhost:8082/circuit-breaker> | jq .
+
 ```
 
 **Response**:
@@ -169,6 +194,7 @@ curl http://localhost:8082/circuit-breaker | jq .
   "challengesFailed": 2,
   "recommendation": "System operating normally"
 }
+
 ```
 
 ### Cache Statistics
@@ -178,7 +204,8 @@ curl http://localhost:8082/circuit-breaker | jq .
 View cached challenge puzzles and hit rates.
 
 ```bash
-curl http://localhost:8082/cache-stats | jq .
+curl <http://localhost:8082/cache-stats> | jq .
+
 ```
 
 **Response**:
@@ -196,6 +223,7 @@ curl http://localhost:8082/cache-stats | jq .
     }
   ]
 }
+
 ```
 
 ### Admin: Reload Secrets
@@ -207,7 +235,8 @@ Hot-reload API keys from environment or Docker secrets.
 ```bash
 curl -X POST \
   -H "X-Admin-Token: your-admin-token" \
-  http://localhost:8082/_admin/reload
+  <http://localhost:8082/_admin/reload>
+
 ```
 
 **Response**:
@@ -217,6 +246,7 @@ curl -X POST \
   "success": true,
   "message": "Secrets reloaded"
 }
+
 ```
 
 **Use Case**: Rotate API keys without restarting the proxy.
@@ -230,7 +260,8 @@ Purge all cached challenge solutions.
 ```bash
 curl -X POST \
   -H "X-Admin-Token: your-admin-token" \
-  http://localhost:8082/_admin/clear-cache
+  <http://localhost:8082/_admin/clear-cache>
+
 ```
 
 **Response**:
@@ -240,6 +271,7 @@ curl -X POST \
   "success": true,
   "entriesCleared": 47
 }
+
 ```
 
 ---
@@ -254,7 +286,7 @@ Add proxy health monitoring to existing heartbeat:
 // In agent heartbeat (every 5 minutes)
 async function checkProxyHealth() {
   try {
-    const health = await fetch('http://egress-proxy:8082/health', {
+    const health = await fetch('<http://egress-proxy:8082/health',> {
       timeout: 5000,
     });
     const data = await health.json();
@@ -278,6 +310,7 @@ async function checkProxyHealth() {
     await alertHuman('Egress proxy unreachable', { error: err.message });
   }
 }
+
 ```
 
 ### Alerting Thresholds
@@ -296,7 +329,9 @@ async function checkProxyHealth() {
 ### Baseline (No Challenges)
 
 - **Pass-through latency**: <1ms (header forwarding only)
+
 - **Agent impact**: Zero code changes required
+
 - **Scalability**: Stateless design, horizontally scalable
 
 ### Challenge Handling
@@ -316,7 +351,9 @@ async function checkProxyHealth() {
 With 20% repeat puzzle rate:
 
 - **Before caching**: 100 challenges = $0.10 cost, 500-700s total
+
 - **After caching**: 100 challenges = $0.08 cost, 400-560s total
+
 - **Savings**: 20% cost, 3-5s per cached hit
 
 ---
@@ -330,26 +367,31 @@ With 20% repeat puzzle rate:
 **Diagnosis**:
 
 ```bash
-curl http://localhost:8082/circuit-breaker | jq .
+curl <http://localhost:8082/circuit-breaker> | jq .
+
 ```
 
 **Root Causes**:
 
 1. **Venice.ai rate limiting**: Check API usage dashboard
+
 2. **Puzzle complexity increased**: Review recent challenge types in logs
+
 3. **Primary model downtime**: Check Venice.ai status page
 
 **Resolution**:
 
 ```bash
+
 # Check solver model status
 docker logs moltbot-egress-proxy --tail 50 | grep "Venice.ai"
 
 # Temporarily clear cache (forces fresh solves)
 curl -X POST -H "X-Admin-Token: $ADMIN_TOKEN" \
-  http://localhost:8082/_admin/clear-cache
+  <http://localhost:8082/_admin/clear-cache>
 
 # If persistent, escalate to human intervention
+
 ```
 
 ### Problem: High P99 Latency
@@ -361,7 +403,9 @@ curl -X POST -H "X-Admin-Token: $ADMIN_TOKEN" \
 **Resolution**:
 
 1. Check Venice.ai API latency (external factor)
+
 2. Review puzzle complexity in logs
+
 3. Consider increasing `CHALLENGE_TIMEOUT` (default: 10s)
 
 ### Problem: Cache Underutilized
@@ -380,19 +424,22 @@ repeat within 1-hour TTL.
 ### Daily Operations
 
 ```bash
+
 # Morning check: Verify proxy health
-curl http://localhost:8082/health | jq '.status, .stats.circuitBreakerTripped'
+curl <http://localhost:8082/health> | jq '.status, .stats.circuitBreakerTripped'
 
 # Weekly: Review cache efficiency
-curl http://localhost:8082/cache-stats | jq '.hitRate'
+curl <http://localhost:8082/cache-stats> | jq '.hitRate'
 
 # Monthly: Check failure trends
 docker logs moltbot-egress-proxy | grep "challengesFailed" | tail -20
+
 ```
 
 ### API Key Rotation
 
 ```bash
+
 # 1. Update .env with new keys
 echo "VENICE_API_KEY=new-key" >> .env
 echo "MOLTBOOK_API_KEY=new-key" >> .env
@@ -400,22 +447,25 @@ echo "MOLTBOOK_API_KEY=new-key" >> .env
 # 2. Reload without downtime
 curl -X POST \
   -H "X-Admin-Token: $ADMIN_TOKEN" \
-  http://localhost:8082/_admin/reload
+  <http://localhost:8082/_admin/reload>
 
 # 3. Verify keys active
-curl http://localhost:8082/health | jq '.status'
+curl <http://localhost:8082/health> | jq '.status'
+
 ```
 
 ### Emergency: Circuit Breaker Tripped
 
 ```bash
+
 # 1. Check severity
-FAILURE_RATE=$(curl -s http://localhost:8082/circuit-breaker | jq -r '.failureRate')
+FAILURE_RATE=$(curl -s <http://localhost:8082/circuit-breaker> | jq -r '.failureRate')
 
 # 2. If >50% failure: Stop proxy, use fallback
 docker compose stop egress-proxy
 
 # 3. Agents fallback to script-level challenge handlers
+
 # (Already implemented in convene-council.sh, etc.)
 
 # 4. Investigate root cause
@@ -423,6 +473,7 @@ docker logs moltbot-egress-proxy | grep "ERROR"
 
 # 5. Restart when resolved
 docker compose up -d egress-proxy
+
 ```
 
 ---
@@ -434,27 +485,36 @@ docker compose up -d egress-proxy
 The proxy holds elevated privileges:
 
 - `MOLTBOOK_API_KEY`: Full Moltbook impersonation capability
+
 - `VENICE_API_KEY`: AI solver access with billing
 
 **Mitigations**:
 
 - Runs as non-root user (`node`)
+
 - No shell access (Node.js binary only)
+
 - Isolated Docker network
+
 - Admin endpoints require `X-Admin-Token`
+
 - Secrets reload supports Docker secrets mounting
 
 ### Recommended: Docker Secrets
 
 ```yaml
+
 # docker-compose.yml
 services:
   egress-proxy:
     environment:
       - VENICE_API_KEY_FILE=/run/secrets/venice_key
+
       - MOLTBOOK_API_KEY_FILE=/run/secrets/moltbook_key
+
     secrets:
       - venice_key
+
       - moltbook_key
 
 secrets:
@@ -462,6 +522,7 @@ secrets:
     file: ./secrets/venice_api_key.txt
   moltbook_key:
     file: ./secrets/moltbook_api_key.txt
+
 ```
 
 ---
@@ -471,38 +532,44 @@ secrets:
 ### Test 1: Challenge Detection
 
 ```bash
+
 # Simulate challenge response (requires test endpoint)
-curl -X POST http://localhost:8082/api/v1/test/challenge \
+curl -X POST <http://localhost:8082/api/v1/test/challenge> \
   -H "Authorization: Bearer $MOLTBOOK_API_KEY" \
   -d '{"content":"test"}'
 
 # Expected: Challenge solved, original request retried
+
 ```
 
 ### Test 2: Cache Behavior
 
 ```bash
+
 # First challenge (cache miss)
-time curl -X POST http://localhost:8082/api/v1/test/challenge
+time curl -X POST <http://localhost:8082/api/v1/test/challenge>
 
 # Second challenge with same puzzle (cache hit)
-time curl -X POST http://localhost:8082/api/v1/test/challenge
+time curl -X POST <http://localhost:8082/api/v1/test/challenge>
 
 # Expected: Second request <1s faster
+
 ```
 
 ### Test 3: Circuit Breaker
 
 ```bash
+
 # Inject 10 failures
 for i in {1..10}; do
-  curl -X POST http://localhost:8082/_test/fail-challenge
+  curl -X POST <http://localhost:8082/_test/fail-challenge>
 done
 
 # Check circuit breaker
-curl http://localhost:8082/circuit-breaker | jq '.tripped'
+curl <http://localhost:8082/circuit-breaker> | jq '.tripped'
 
 # Expected: tripped=true after failure rate >20%
+
 ```
 
 ---
@@ -512,17 +579,25 @@ curl http://localhost:8082/circuit-breaker | jq '.tripped'
 ### v1.1 (2026-02-12)
 
 - Added challenge response caching (1-hour TTL)
+
 - Extended metrics: P50/P99 latency, cache hit rate, retry success rate
+
 - Circuit breaker with 20% failure threshold
+
 - Admin endpoints: secrets reload, cache clear
+
 - Resource limits: 0.5 CPU, 512MB RAM
+
 - Enhanced health endpoint with alerts
 
 ### v1.0 (2026-02-08)
 
 - Initial release with dual-model fallback
+
 - Transparent challenge handling
+
 - Basic stats tracking
+
 - Health check endpoint
 
 ---
@@ -530,7 +605,9 @@ curl http://localhost:8082/circuit-breaker | jq '.tripped'
 ## Resources
 
 - [Architecture Assessment](https://ppl-ai-file-upload.s3.amazonaws.com/.../moltbook-skill.md)
+
 - [Moltbook API Documentation](https://www.moltbook.com/api)
+
 - [Venice.ai Documentation](https://docs.venice.ai)
 
 ---

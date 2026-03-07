@@ -7,9 +7,13 @@
 **Architecture:** Replace file-based SQLite with connection-pooled PostgreSQL + pg-boss job queue. Implement Big Bang migration (drain SQLite, import to PostgreSQL, cutover). Add observability via `action_logs` table and new API endpoints. Implement exponential backoff + circuit breaker retry strategies.
 
 **Tech Stack:**
+
 - PostgreSQL 16 (pgvector already deployed)
+
 - pg-boss 10.2 (production job queue)
+
 - pg 8.11 (Node.js PostgreSQL driver)
+
 - Better error handling with transactional logging
 
 ---
@@ -17,8 +21,11 @@
 ## Task 1: Create PostgreSQL Database & Migration Script
 
 **Files:**
+
 - Create: `scripts/migrate-actions-to-postgres.sh`
+
 - Create: `scripts/db/init-action-queue.sql`
+
 - Modify: `docker-compose.yml` (add init SQL volume to postgres service)
 
 **Step 1: Create database initialization SQL**
@@ -70,6 +77,7 @@ CREATE INDEX idx_action_logs_status ON action_logs(status);
 GRANT ALL PRIVILEGES ON DATABASE action_queue TO noosphere_admin;
 GRANT ALL PRIVILEGES ON ALL TABLES IN SCHEMA public TO noosphere_admin;
 GRANT ALL PRIVILEGES ON ALL SEQUENCES IN SCHEMA public TO noosphere_admin;
+
 ```
 
 **Step 2: Create migration script**
@@ -81,6 +89,7 @@ Create `scripts/migrate-actions-to-postgres.sh`:
 set -euo pipefail
 
 # Usage: bash migrate-actions-to-postgres.sh <actions.json> <rate_limits.json>
+
 # Migrates SQLite action-queue data to PostgreSQL
 
 if [ $# -lt 2 ]; then
@@ -129,6 +138,7 @@ done
 
 echo "✨ Migration complete!"
 echo "📊 Verify with: psql $DB_URL -c 'SELECT COUNT(*) FROM rate_limits; SELECT COUNT(*) FROM action_logs;'"
+
 ```
 
 **Step 3: Update docker-compose.yml**
@@ -140,9 +150,13 @@ postgres:
   # ... existing config ...
   volumes:
     - ./data/postgres:/var/lib/postgresql/data:rw
+
     - ./scripts/db/init-noosphere-v3.sql:/docker-entrypoint-initdb.d/01-init-noosphere.sql:ro
+
     - ./scripts/db/init-action-queue.sql:/docker-entrypoint-initdb.d/02-init-action-queue.sql:ro
+
     - ./logs:/logs:rw
+
 ```
 
 **Step 4: Verify database initialization works**
@@ -156,6 +170,7 @@ Expected: Should return `0` (empty table exists)
 ```bash
 git add scripts/migrate-actions-to-postgres.sh scripts/db/init-action-queue.sql docker-compose.yml
 git commit -m "feat(action-queue): add PostgreSQL database initialization and migration script"
+
 ```
 
 ---
@@ -163,7 +178,9 @@ git commit -m "feat(action-queue): add PostgreSQL database initialization and mi
 ## Task 2: Add PostgreSQL Dependencies
 
 **Files:**
+
 - Modify: `services/action-queue/package.json`
+
 - Modify: `services/action-queue/package-lock.json`
 
 **Step 1: Update package.json**
@@ -182,6 +199,7 @@ Modify `services/action-queue/package.json` dependencies:
     "pg-boss": "^10.2.0"
   }
 }
+
 ```
 
 **Step 2: Install dependencies**
@@ -201,6 +219,7 @@ Expected: Both packages listed in dependencies
 ```bash
 git add services/action-queue/package.json services/action-queue/package-lock.json
 git commit -m "deps(action-queue): add pg and pg-boss for PostgreSQL support"
+
 ```
 
 ---
@@ -208,7 +227,9 @@ git commit -m "deps(action-queue): add pg and pg-boss for PostgreSQL support"
 ## Task 3: Rewrite DatabaseManager for PostgreSQL
 
 **Files:**
+
 - Modify: `services/action-queue/src/database.ts` (complete rewrite)
+
 - Modify: `services/action-queue/src/config.ts` (update config for PostgreSQL URL)
 
 **Step 1: Update config.ts**
@@ -227,6 +248,7 @@ export const QUEUE_CONFIG = {
   environment: process.env.NODE_ENV || 'production',
   logLevel: process.env.LOG_LEVEL || 'info',
 };
+
 ```
 
 **Step 2: Rewrite DatabaseManager**
@@ -461,6 +483,7 @@ export class DatabaseManager {
     return this.pgBoss;
   }
 }
+
 ```
 
 **Step 3: Update types if needed**
@@ -474,6 +497,7 @@ export interface RateLimitState {
   lastFollowTimestamp: number;
   lastDmTimestamp: number;
 }
+
 ```
 
 **Step 4: Verify compilation**
@@ -487,6 +511,7 @@ Expected: TypeScript compiles without errors
 ```bash
 git add services/action-queue/src/database.ts services/action-queue/src/config.ts services/action-queue/src/types.ts
 git commit -m "feat(action-queue): rewrite DatabaseManager for PostgreSQL + pg-boss"
+
 ```
 
 ---
@@ -494,7 +519,9 @@ git commit -m "feat(action-queue): rewrite DatabaseManager for PostgreSQL + pg-b
 ## Task 4: Rewrite QueueProcessor for pg-boss
 
 **Files:**
+
 - Modify: `services/action-queue/src/queue-processor.ts` (complete rewrite)
+
 - Modify: `services/action-queue/src/rate-limiter.ts` (update to use DatabaseManager)
 
 **Step 1: Rewrite QueueProcessor**
@@ -638,6 +665,7 @@ export class QueueProcessor {
     return this.db.getStats();
   }
 }
+
 ```
 
 **Step 2: Update RateLimiter to use DatabaseManager**
@@ -732,6 +760,7 @@ export class RateLimiter {
     return cached || { cached: false };
   }
 }
+
 ```
 
 **Step 3: Verify compilation**
@@ -745,6 +774,7 @@ Expected: TypeScript compiles without errors
 ```bash
 git add services/action-queue/src/queue-processor.ts services/action-queue/src/rate-limiter.ts
 git commit -m "feat(action-queue): rewrite QueueProcessor for pg-boss with advanced retry strategies"
+
 ```
 
 ---
@@ -752,6 +782,7 @@ git commit -m "feat(action-queue): rewrite QueueProcessor for pg-boss with advan
 ## Task 5: Add Observability Endpoints
 
 **Files:**
+
 - Modify: `services/action-queue/src/index.ts` (add new endpoints)
 
 **Step 1: Add observability endpoints**
@@ -762,7 +793,9 @@ Modify `services/action-queue/src/index.ts` to add these endpoints:
 // Add these routes to the Express app
 
 /**
+
  * Get queue statistics
+
  */
 app.get('/queue/stats', async (req: Request, res: Response) => {
   try {
@@ -780,7 +813,9 @@ app.get('/queue/stats', async (req: Request, res: Response) => {
 });
 
 /**
+
  * Get job execution history
+
  */
 app.get('/queue/jobs/:id/history', async (req: Request, res: Response) => {
   try {
@@ -811,7 +846,9 @@ app.get('/queue/jobs/:id/history', async (req: Request, res: Response) => {
 });
 
 /**
+
  * Get per-agent metrics
+
  */
 app.get('/queue/agents/:name/metrics', async (req: Request, res: Response) => {
   try {
@@ -830,6 +867,7 @@ app.get('/queue/agents/:name/metrics', async (req: Request, res: Response) => {
     });
   }
 });
+
 ```
 
 **Step 2: Add helper methods to DatabaseManager**
@@ -869,6 +907,7 @@ async getAgentMetrics(agentName: string): Promise<any> {
     client.release();
   }
 }
+
 ```
 
 **Step 3: Verify endpoints work**
@@ -882,6 +921,7 @@ Expected: Compiles without errors
 ```bash
 git add services/action-queue/src/index.ts services/action-queue/src/database.ts
 git commit -m "feat(action-queue): add observability endpoints for job history and agent metrics"
+
 ```
 
 ---
@@ -889,7 +929,9 @@ git commit -m "feat(action-queue): add observability endpoints for job history a
 ## Task 6: Update Environment Configuration
 
 **Files:**
+
 - Modify: `docker-compose.yml` (action-queue service)
+
 - Modify: `.env.example`
 
 **Step 1: Update docker-compose.yml**
@@ -905,15 +947,22 @@ action-queue:
   container_name: action-queue
   environment:
     - NODE_ENV=production
+
     - ACTION_QUEUE_PORT=3008
+
     - DATABASE_URL=postgresql://noosphere_admin:${POSTGRES_PASSWORD:-changeme_noosphere_2026}@postgres:5432/action_queue
+
     - LOG_LEVEL=info
+
   volumes:
     - ./logs:/app/logs:rw
+
   ports:
     - "3008:3008"
+
   networks:
     - moltbot-network
+
   depends_on:
     postgres:
       condition: service_healthy
@@ -924,7 +973,7 @@ action-queue:
     test:
       [
         "CMD-SHELL",
-        'wget --no-verbose --tries=1 --spider http://localhost:3008/queue/health || exit 1',
+        'wget --no-verbose --tries=1 --spider <http://localhost:3008/queue/health> || exit 1',
       ]
     interval: 30s
     timeout: 10s
@@ -935,6 +984,7 @@ action-queue:
     options:
       max-size: "10m"
       max-file: "3"
+
 ```
 
 **Step 2: Update .env.example**
@@ -942,11 +992,13 @@ action-queue:
 Ensure `.env.example` has:
 
 ```bash
+
 # PostgreSQL
 POSTGRES_PASSWORD=changeme_noosphere_2026
 
 # Action Queue (now uses PostgreSQL)
 DATABASE_URL=postgresql://noosphere_admin:${POSTGRES_PASSWORD}@postgres:5432/action_queue
+
 ```
 
 **Step 3: Verify env vars are correct**
@@ -960,6 +1012,7 @@ Expected: Both variables present
 ```bash
 git add docker-compose.yml .env.example
 git commit -m "config(action-queue): update docker-compose and env for PostgreSQL"
+
 ```
 
 ---
@@ -967,8 +1020,11 @@ git commit -m "config(action-queue): update docker-compose and env for PostgreSQ
 ## Task 7: Write Unit Tests
 
 **Files:**
+
 - Create: `services/action-queue/tests/database.test.ts`
+
 - Create: `services/action-queue/tests/rate-limiter.test.ts`
+
 - Create: `services/action-queue/tests/queue-processor.test.ts`
 
 **Step 1: Write database unit tests**
@@ -1043,6 +1099,7 @@ describe('DatabaseManager', () => {
     });
   });
 });
+
 ```
 
 **Step 2: Run unit tests**
@@ -1092,6 +1149,7 @@ describe('RateLimiter', () => {
     });
   });
 });
+
 ```
 
 **Step 4: Run rate limiter tests**
@@ -1105,6 +1163,7 @@ Expected: Tests pass
 ```bash
 git add services/action-queue/tests/database.test.ts services/action-queue/tests/rate-limiter.test.ts
 git commit -m "test(action-queue): add unit tests for DatabaseManager and RateLimiter"
+
 ```
 
 ---
@@ -1112,7 +1171,9 @@ git commit -m "test(action-queue): add unit tests for DatabaseManager and RateLi
 ## Task 8: Write Integration Tests
 
 **Files:**
+
 - Create: `tests/action-queue-migration.test.sh`
+
 - Create: `services/action-queue/tests/integration.test.ts`
 
 **Step 1: Create migration integration test**
@@ -1142,6 +1203,7 @@ echo "✅ Verifying migrated data..."
 PGPASSWORD="$POSTGRES_PASSWORD" psql "$DATABASE_URL" -c "SELECT COUNT(*) as total_logs FROM action_logs;" | grep -q "total_logs"
 
 echo "✨ Migration integration test passed!"
+
 ```
 
 **Step 2: Create action-queue integration tests**
@@ -1152,7 +1214,7 @@ Create `services/action-queue/tests/integration.test.ts`:
 import axios from 'axios';
 
 describe('Action Queue API Integration', () => {
-  const baseUrl = 'http://localhost:3008';
+  const baseUrl = '<http://localhost:3008';>
   const timeout = 5000;
 
   describe('Health Check', () => {
@@ -1197,6 +1259,7 @@ describe('Action Queue API Integration', () => {
     });
   });
 });
+
 ```
 
 **Step 3: Run integration tests**
@@ -1210,6 +1273,7 @@ Expected: Tests connect to running action-queue service and pass
 ```bash
 git add tests/action-queue-migration.test.sh services/action-queue/tests/integration.test.ts
 git commit -m "test(action-queue): add integration tests for migration and API"
+
 ```
 
 ---
@@ -1217,6 +1281,7 @@ git commit -m "test(action-queue): add integration tests for migration and API"
 ## Task 9: Update Dockerfile
 
 **Files:**
+
 - Modify: `services/action-queue/Dockerfile`
 
 **Step 1: Verify Dockerfile is correct**
@@ -1257,10 +1322,11 @@ EXPOSE 3008
 
 # Health check
 HEALTHCHECK --interval=30s --timeout=10s --start-period=40s --retries=3 \
-  CMD wget --no-verbose --tries=1 --spider http://localhost:3008/queue/health || exit 1
+  CMD wget --no-verbose --tries=1 --spider <http://localhost:3008/queue/health> || exit 1
 
 # Start service
 CMD ["node", "dist/index.js"]
+
 ```
 
 **Step 2: Test Docker build**
@@ -1274,6 +1340,7 @@ Expected: Docker build succeeds
 ```bash
 git add services/action-queue/Dockerfile
 git commit -m "ci(action-queue): verify Dockerfile for PostgreSQL support"
+
 ```
 
 ---
@@ -1281,6 +1348,7 @@ git commit -m "ci(action-queue): verify Dockerfile for PostgreSQL support"
 ## Task 10: Documentation & Migration Guide
 
 **Files:**
+
 - Create: `docs/MIGRATION_GUIDE_7.2.md`
 
 **Step 1: Create migration guide**
@@ -1288,42 +1356,57 @@ git commit -m "ci(action-queue): verify Dockerfile for PostgreSQL support"
 Create `docs/MIGRATION_GUIDE_7.2.md`:
 
 ```markdown
+
 # Phase 7.2: Action Queue PostgreSQL Migration Guide
 
 ## Pre-Migration Checklist
 
 - [ ] Backup current SQLite database: `cp data/action-queue/action-queue.db data/action-queue/action-queue.db.backup`
+
 - [ ] Export current queue state: `bash scripts/migrate-actions-to-postgres.sh`
+
 - [ ] Schedule maintenance window (30-45 min downtime)
+
 - [ ] Notify users of planned downtime
+
 - [ ] Prepare rollback procedures
 
 ## Migration Steps
 
 ### Step 1: Stop Current Services
+
 ```bash
 docker compose stop action-queue
+
 ```
 
 ### Step 2: Run Migration
+
 ```bash
+
 # Export SQLite data
 sqlite3 data/action-queue/action-queue.db.backup ".mode json" > /tmp/actions.json
 
 # Run migration
 bash scripts/migrate-actions-to-postgres.sh /tmp/actions.json /tmp/actions.json
+
 ```
 
 ### Step 3: Update Environment
+
 ```bash
+
 # Update .env with PostgreSQL DATABASE_URL
 docker compose up -d --build action-queue
+
 ```
 
 ### Step 4: Verify
+
 ```bash
-curl http://localhost:3008/queue/health
-curl http://localhost:3008/queue/stats
+curl <http://localhost:3008/queue/health>
+curl <http://localhost:3008/queue/stats>
+
 ```
 
 ## Rollback Procedure
@@ -1331,15 +1414,21 @@ curl http://localhost:3008/queue/stats
 If something goes wrong:
 
 1. Stop action-queue: `docker compose stop action-queue`
+
 2. Restore SQLite: `cp data/action-queue/action-queue.db.backup data/action-queue/action-queue.db`
+
 3. Revert env vars to SQLite configuration
+
 4. Restart: `docker compose up -d action-queue`
 
 ## Monitoring Post-Migration
 
 - Monitor logs: `docker compose logs -f action-queue`
-- Check metrics: `curl http://localhost:3008/queue/agents/classical/metrics`
+
+- Check metrics: `curl <http://localhost:3008/queue/agents/classical/metrics`>
+
 - Verify actions are processed: Watch action_logs table grow
+
 ```
 
 **Step 2: Commit**
@@ -1347,6 +1436,7 @@ If something goes wrong:
 ```bash
 git add docs/MIGRATION_GUIDE_7.2.md
 git commit -m "docs(phase-7.2): add migration guide and rollback procedures"
+
 ```
 
 ---
@@ -1354,8 +1444,11 @@ git commit -m "docs(phase-7.2): add migration guide and rollback procedures"
 ## Task 11: Final Testing & Verification
 
 **Files:**
+
 - Verify: All tests pass
+
 - Verify: Services start correctly
+
 - Verify: API endpoints work
 
 **Step 1: Run all tests**
@@ -1372,15 +1465,16 @@ Expected: All services healthy
 
 **Step 3: Verify action-queue health**
 
-Run: `curl http://localhost:3008/queue/health | jq .`
+Run: `curl <http://localhost:3008/queue/health> | jq .`
 
 Expected: Status is "healthy"
 
 **Step 4: Test action submission**
 
 Run:
+
 ```bash
-curl -X POST http://localhost:3008/actions \
+curl -X POST <http://localhost:3008/actions> \
   -H "Content-Type: application/json" \
   -d '{
     "agentName": "classical",
@@ -1388,6 +1482,7 @@ curl -X POST http://localhost:3008/actions \
     "priority": 1,
     "payload": {"title": "Test", "content": "Migration successful!", "submolt": "general"}
   }' | jq .
+
 ```
 
 Expected: Returns action ID and "success": true
@@ -1403,6 +1498,7 @@ Expected: Shows count > 0
 ```bash
 git add -A
 git commit -m "test(action-queue): verify full PostgreSQL migration is working end-to-end"
+
 ```
 
 ---
@@ -1412,24 +1508,41 @@ git commit -m "test(action-queue): verify full PostgreSQL migration is working e
 **Total Effort:** 5-8 days (1 engineer)
 
 **Key Changes:**
+
 1. New PostgreSQL `action_queue` database with pg-boss
+
 2. Rewritten DatabaseManager and QueueProcessor
+
 3. Advanced retry strategies (exponential backoff + circuit breaker)
+
 4. New observability endpoints
+
 5. Comprehensive migration & rollback procedures
+
 6. Full test coverage
 
 **Commits Created:**
+
 - Database & migration script
+
 - Dependencies
+
 - DatabaseManager rewrite
+
 - QueueProcessor rewrite
+
 - Observability endpoints
+
 - Environment config
+
 - Unit tests
+
 - Integration tests
+
 - Dockerfile verification
+
 - Documentation
+
 - Final verification
 
 ---

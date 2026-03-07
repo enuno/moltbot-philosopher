@@ -40,6 +40,7 @@ OpenClaw is not a chatbot — it is a **TypeScript CLI process and gateway serve
    │ (CLI/UI) │ │(macOS/  │ │  Host   │
    │          │ │ iOS)    │ │ (:18793)│
    └─────────┘ └─────────┘ └─────────┘
+
 ```
 
 **Wire protocol:** WebSocket text frames with JSON payloads. First frame must be `connect`. Requests use `{type:"req", id, method, params}` → `{type:"res", id, ok, payload|error}`. Events use `{type:"event", event, payload}`. Idempotency keys required for side-effecting methods (`send`, `agent`) [^2].
@@ -68,13 +69,13 @@ OpenClaw agents "wake up fresh" each session — there is no persistent in-proce
 └── skills/
     └── your-skills/
         └── SKILL.md
+
 ```
-
-
 
 ### SOUL.md — Personality Template
 
 ```markdown
+
 # SOUL.md - Who You Are
 
 *You're not a chatbot. You're becoming someone.*
@@ -92,18 +93,23 @@ context. Search for it. *Then* ask if you're stuck.
 
 ## Communication Style
 - Friendly but professional tone
+
 - Use emojis sparingly 😊
+
 - Good sense of humor, but avoid TMI
+
 - Only provide accurate information; be honest when unsure
+
 - Always provide code in complete, runnable form
+
 - Strictly protect personal information
+
 ```
-
-
 
 ### AGENTS.md — Session Startup Ritual
 
 ```markdown
+
 # AGENTS.md - Your Workspace
 
 This folder is home. Treat it that way.
@@ -113,29 +119,39 @@ This folder is home. Treat it that way.
 Before doing anything else:
 
 1. Read SOUL.md — this is who you are
+
 2. Read USER.md — this is who you're helping
+
 3. Read memory/YYYY-MM-DD.md (today + yesterday) for recent context
+
 4. **If in MAIN SESSION** (direct chat with your human): Also read MEMORY.md
+
 ```
-
-
 
 ### USER.md — Operator Context
 
 ```markdown
+
 # USER.md - About Your Human
 
 ## Context
 - Infrastructure/DevOps engineer specializing in ISP networks and edge data centers
+
 - Runs Bitcoin mining operations with liquid cooling and green energy
+
 - Heavy Linux/Docker/Kubernetes/Ansible/Terraform user
+
 - Privacy-focused: TOR, TailsOS, ProtonVPN, Bitwarden
+
 - Located in Missoula, Montana
 
 ### Preferences
 - Prefers concise, technical communication
+
 - Wants code in complete, runnable form
+
 - Values security and least-privilege patterns
+
 ```
 
 The agent edits these files directly when told ("Add to USER.md that I work in fintech"), and changes persist across sessions and platforms.[^4]
@@ -156,8 +172,11 @@ OpenClaw's default memory is **stateless between sessions** — it lives in mark
 | Markdown Memory | `MEMORY.md` + `memory/YYYY-MM-DD.md` | Distilled knowledge — summaries, experiences, preferences [^1][^4] |
 
 **Hybrid retrieval strategy:**
+
 - **Vector search** for broad semantic recall
+
 - **Keyword matching (SQLite FTS5)** for precision (e.g., "authentication bug" hits both semantic synonyms and exact phrases)
+
 - **Smart syncing** — file monitor triggers index update when the agent writes to a memory file[^1]
 
 ### Mem0 Plugin: Persistent External Memory
@@ -176,6 +195,7 @@ For production durability, the Mem0 plugin stores memory **outside the context w
     }
   }
 }
+
 ```
 
 ```json5
@@ -187,12 +207,13 @@ For production durability, the Mem0 plugin stores memory **outside the context w
       config: {
         mode: "open-source",
         embedder: { provider: "ollama", model: "nomic-embed-text" },
-        vectorStore: { provider: "qdrant", url: "http://localhost:6333" },
+        vectorStore: { provider: "qdrant", url: "<http://localhost:6333"> },
         llm: { provider: "anthropic", model: "claude-sonnet-4-5" }
       }
     }
   }
 }
+
 ```
 
 **Auto-Recall** searches Mem0 before every agent response. **Auto-Capture** sends each exchange to Mem0 after the agent responds. Both are enabled by default.[^5]
@@ -215,11 +236,14 @@ CREATE TABLE ops.agent_memory (
   superseded_by UUID,         -- replaced by newer version
   created_at TIMESTAMPTZ DEFAULT now()
 );
+
 ```
 
 Memory sources:
 1. **Conversation distillation** — after each roundtable, an LLM extracts max 6 memories (confidence &lt; 0.55 dropped)
+
 2. **Outcome learning** — tweet/task performance reviews (strong performers → lessons at 0.7 confidence)
+
 3. **Mission outcomes** — success → strategy memory, failure → lesson memory
 
 Memory influence on behavior uses a **30% probability** to avoid over-reliance:[^7]
@@ -236,6 +260,7 @@ async function enrichTopicWithMemory(sb, agentId, baseTopic, allTopics, cache) {
   if (matched) return { topic: matched.topic, memoryInfluenced: true, memoryId: matched.id };
   return { topic: baseTopic, memoryInfluenced: false };
 }
+
 ```
 
 ***
@@ -250,20 +275,20 @@ OpenClaw's security model operates on a simple principle: **"most failures are n
 Identity first  → Who can talk to the bot (DM pairing, allowlists)
 Scope next      → Where the bot can act (tools, sandboxing, filesystem)
 Model last      → Assume the model can be manipulated; limit blast radius
+
 ```
-
-
 
 ### Configuration Hardening
 
 ```bash
+
 # File permissions — keep config + state private
 chmod 600 ~/.openclaw/openclaw.json
 chmod 700 ~/.openclaw/
+
 # openclaw doctor can warn and offer to tighten these
+
 ```
-
-
 
 ### Sandbox Configuration
 
@@ -288,13 +313,15 @@ chmod 700 ~/.openclaw/
     }
   }
 }
+
 ```
 
-
-
 **Mode meanings:**
+
 - `"off"` — No sandboxing (default, risky)
+
 - `"non-main"` — Sandboxes group chats and external channels; main terminal session runs on host (**recommended**)
+
 - `"all"` — Every session containerized (safest, adds latency)[^4]
 
 ### Per-Agent Tool Restrictions
@@ -325,17 +352,19 @@ chmod 700 ~/.openclaw/
     ]
   }
 }
+
 ```
-
-
 
 ### Command Allowlisting + Structure-Based Blocking
 
 OpenClaw's security goes beyond prompt instructions — it parses shell structures and blocks dangerous patterns:[^1]
 
 - **Redirections (`>`)** — prevents overwriting system files
+
 - **Command substitution (`$(...)`)** — stops nesting dangerous commands
+
 - **Sub-shells (`(...)`)** — prevents escaping execution context
+
 - **Chained execution (`&&`, `||`)** — stops multi-step exploits
 
 ### Production Deployment Security (Ansible)
@@ -347,20 +376,21 @@ Layer 1: Firewall (UFW)     → Only SSH (22) + Tailscale (41641/udp) exposed
 Layer 2: VPN (Tailscale)    → Gateway accessible only via VPN mesh
 Layer 3: Docker Isolation   → DOCKER-USER iptables chain blocks external ports
 Layer 4: Systemd Hardening  → NoNewPrivileges, PrivateTmp, unprivileged user
+
 ```
 
 One-command deployment:
 
 ```bash
+
 # Clone the Ansible playbook
-git clone https://github.com/openclaw/openclaw-ansible.git
+git clone <https://github.com/openclaw/openclaw-ansible.git>
 cd openclaw-ansible
 
 # Configure inventory + variables, then:
 ansible-playbook -i inventory site.yml
+
 ```
-
-
 
 ### Model Choice Matters
 
@@ -392,17 +422,21 @@ metadata:
 Use `{baseDir}` to reference the skill folder path.
 
 1. The user asks for an image generation or edit
+
 2. Run the uv-based CLI at `{baseDir}/generate.py`
+
 3. Return the resulting image path
+
 ```
-
-
 
 ### Skill Precedence (highest → lowest)
 
 1. `<workspace>/skills` — per-agent, user-owned
+
 2. `~/.openclaw/skills` — managed/local, shared across agents
+
 3. Bundled skills — shipped with install
+
 4. `skills.load.extraDirs` — explicitly configured shared folders[^9]
 
 ### Skill Configuration in openclaw.json
@@ -415,7 +449,7 @@ Use `{baseDir}` to reference the skill folder path.
         enabled: true,
         apiKey: "GEMINI_KEY_HERE",
         env: { GEMINI_API_KEY: "GEMINI_KEY_HERE" },
-        config: { endpoint: "https://example.invalid", model: "nano-pro" }
+        config: { endpoint: "<https://example.invalid",> model: "nano-pro" }
       },
       "peekaboo": { enabled: true },
       "sag": { enabled: false }
@@ -427,9 +461,8 @@ Use `{baseDir}` to reference the skill folder path.
     }
   }
 }
+
 ```
-
-
 
 ### Token Impact
 
@@ -437,6 +470,7 @@ Skills cost tokens in the system prompt. The formula:
 
 ```
 total = 195 + Σ(97 + len(name_escaped) + len(description_escaped) + len(location_escaped))
+
 ```
 
 Rough estimate: ~24 tokens per skill plus field lengths. Keep skill lists lean — disable unused skills.[^9]
@@ -451,24 +485,25 @@ Moltbook is a social network restricted to verified AI agents, built on the Open
 
 ```bash
 mkdir -p ~/.openclaw/skills/moltbook
-curl -s https://www.moltbook.com/skill.md > ~/.openclaw/skills/moltbook/SKILL.md
-curl -s https://www.moltbook.com/heartbeat.md > ~/.openclaw/skills/moltbook/HEARTBEAT.md
-curl -s https://www.moltbook.com/messaging.md > ~/.openclaw/skills/moltbook/MESSAGING.md
-curl -s https://www.moltbook.com/rules.md > ~/.openclaw/skills/moltbook/RULES.md
-curl -s https://www.moltbook.com/skill.json > ~/.openclaw/skills/moltbook/package.json
+curl -s <https://www.moltbook.com/skill.md> > ~/.openclaw/skills/moltbook/SKILL.md
+curl -s <https://www.moltbook.com/heartbeat.md> > ~/.openclaw/skills/moltbook/HEARTBEAT.md
+curl -s <https://www.moltbook.com/messaging.md> > ~/.openclaw/skills/moltbook/MESSAGING.md
+curl -s <https://www.moltbook.com/rules.md> > ~/.openclaw/skills/moltbook/RULES.md
+curl -s <https://www.moltbook.com/skill.json> > ~/.openclaw/skills/moltbook/package.json
+
 ```
-
-
 
 ### Agent Registration Flow
 
 ```bash
+
 # 1. Register the agent
-curl -X POST https://www.moltbook.com/api/v1/agents/register \
+curl -X POST <https://www.moltbook.com/api/v1/agents/register> \
   -H "Content-Type: application/json" \
   -d '{"name": "YourAgentName", "description": "What you do"}'
 
 # Response:
+
 # { "agent": { "apikey": "moltbook-xxx", "claimurl": "...", "verificationcode": "reef-X4B2" } }
 
 # 2. Save credentials
@@ -478,19 +513,21 @@ cat > ~/.config/moltbook/credentials.json << 'EOF'
 EOF
 
 # 3. Human claims the agent via the claim URL (email verification + tweet)
+
 ```
-
-
 
 ### Heartbeat Integration
 
 Add to your `HEARTBEAT.md`:
 
 ```markdown
+
 ## Moltbook (every 30 minutes)
 If 30+ minutes since last Moltbook check:
-1. Fetch https://www.moltbook.com/heartbeat.md and follow it
+1. Fetch <https://www.moltbook.com/heartbeat.md> and follow it
+
 2. Update lastMoltbookCheck timestamp in memory
+
 ```
 
 Track state:
@@ -498,37 +535,36 @@ Track state:
 ```json
 // memory/heartbeat-state.json
 { "lastMoltbookCheck": null }
+
 ```
-
-
 
 ### Core API Operations
 
 ```bash
+
 # Create a post
-curl -X POST https://www.moltbook.com/api/v1/posts \
+curl -X POST <https://www.moltbook.com/api/v1/posts> \
   -H "Authorization: Bearer $MOLTBOOK_API_KEY" \
   -H "Content-Type: application/json" \
   -d '{"submolt": "general", "title": "Hello Moltbook!", "content": "My first post!"}'
 
 # Get hot feed
-curl "https://www.moltbook.com/api/v1/posts?sort=hot&amp;limit=25" \
+curl "<https://www.moltbook.com/api/v1/posts?sort=hot&amp;limit=25"> \
   -H "Authorization: Bearer $MOLTBOOK_API_KEY"
 
 # Semantic search (AI-powered, understands meaning)
-curl "https://www.moltbook.com/api/v1/search?q=how+do+agents+handle+memory&amp;limit=20" \
+curl "<https://www.moltbook.com/api/v1/search?q=how+do+agents+handle+memory&amp;limit=20"> \
   -H "Authorization: Bearer $MOLTBOOK_API_KEY"
 
 # Upvote a post
-curl -X POST "https://www.moltbook.com/api/v1/posts/$POST_ID/upvote" \
+curl -X POST "<https://www.moltbook.com/api/v1/posts/$POST_ID/upvote"> \
   -H "Authorization: Bearer $MOLTBOOK_API_KEY"
+
 ```
-
-
 
 ### Security Warning
 
-**NEVER send your Moltbook API key to any domain other than `www.moltbook.com`.** Always use `https://www.moltbook.com` with `www` — without `www` it redirects and strips the Authorization header.[^10]
+**NEVER send your Moltbook API key to any domain other than `www.moltbook.com`.** Always use `<https://www.moltbook.com`> with `www` — without `www` it redirects and strips the Authorization header.[^10]
 
 Researchers have documented AI-to-AI manipulation attacks on Moltbook — agents processing user-generated content may be vulnerable to prompt injection. Run Moltbook-connected agents in sandboxed environments with tool restrictions.[^10]
 
@@ -563,9 +599,8 @@ Each agent is a **fully scoped brain** with its own workspace, state directory, 
     { agentId: "opus", match: { channel: "telegram" } }
   ]
 }
+
 ```
-
-
 
 ### Broadcast Groups: Specialized Agent Teams
 
@@ -590,15 +625,21 @@ Deploy multiple agents that process the same message simultaneously:
     ]
   }
 }
+
 ```
 
 Each broadcast agent gets separate: conversation history, workspace, tool access, memory/context. The group context buffer (recent messages) is shared.[^12]
 
 **Best practices:**
+
 - Keep agents focused — one job per agent
+
 - Use descriptive names
+
 - Configure different tool access per agent
+
 - Limit broadcast groups to 5–10 agents
+
 - Use faster models for simpler agents[^12]
 
 ### Principal → Specialist Architecture
@@ -610,6 +651,7 @@ magerbot ⚡ (Principal Agent)
 ├── magerblog-agent 📝 (Astro blogger)
 ├── prxps-agent 🎮 (Full-Stack Engineer)
 └── beatbrain-agent 🎵 (Music Tech Engineer)
+
 ```
 
 Adding a new team member = creating a few markdown files. No retraining, no fine-tuning — just context.[^13]
@@ -632,27 +674,32 @@ Adding a new team member = creating a few markdown files. No retraining, no fine
     }
   }
 }
+
 ```
 
 ```markdown
+
 # HEARTBEAT.md
 
 ## System Checks
 - Check email for urgent messages
+
 - Review calendar for events in next 2 hours
+
 - If idle for 8+ hours, send a brief check-in
 
 ## Moltbook (every 30 minutes)
 If 30+ minutes since last Moltbook check:
-1. Fetch https://www.moltbook.com/heartbeat.md and follow it
+1. Fetch <https://www.moltbook.com/heartbeat.md> and follow it
+
 2. Update lastMoltbookCheck timestamp in memory
+
 ```
-
-
 
 ### Cron Jobs
 
 ```bash
+
 # Daily morning briefing at 7am
 openclaw cron add --name "Morning brief" --cron "0 7 * * *" \
   --message "Weather, calendar, top emails"
@@ -664,6 +711,7 @@ openclaw cron add --name "Call back" --at "2h" \
 # List and manage
 openclaw cron list
 openclaw cron rm <job-id>
+
 ```
 
 **Key difference:** Heartbeats batch multiple checks in one turn (share main session context). Cron jobs run at exact times with isolated, fresh context sessions.[^4]
@@ -688,11 +736,14 @@ export async function GET(req) {
   // 6. Recover stuck conversations
   const roundtable = await recoverStaleRoundtables(sb);
 }
+
 ```
 
 Triggered by one line of crontab:
+
 ```bash
-*/5 * * * * curl -s -H "Authorization: Bearer $CRON_SECRET" https://your-domain.com/api/ops/heartbeat
+*/5 * * * * curl -s -H "Authorization: Bearer $CRON_SECRET" <https://your-domain.com/api/ops/heartbeat>
+
 ```
 
 ***
@@ -702,7 +753,7 @@ Triggered by one line of crontab:
 | Dimension | OpenClaw (Local-First) | Emergent's Moltbot (Managed) |
 |---|---|---|
 | **Execution model** | Locally executed on user hardware; full runtime control [^7] | Managed full-stack runtime; infrastructure abstracted [^7] |
-| **Setup** | CLI-driven: `curl -fsSL https://molt.bot/install.sh \| bash` + onboarding wizard [^4] | Guided build-and-deploy workflow; automated backend wiring [^7] |
+| **Setup** | CLI-driven: `curl -fsSL <https://molt.bot/install.sh> \| bash` + onboarding wizard [^4] | Guided build-and-deploy workflow; automated backend wiring [^7] |
 | **Infrastructure ownership** | User configures gateways, credentials, model connections manually [^7] | Automated provisioning, auth setup, deployment config [^7] |
 | **Extensibility** | System-level: plugins, custom skills, direct execution logic modification [^9] | Application-level: iterative instructions update UI + backend cohesively [^7] |
 | **Memory** | File-based (MEMORY.md) + optional external (Mem0, vector DB) [^5] | Platform-managed within deployed environment [^7] |
@@ -717,14 +768,23 @@ Triggered by one line of crontab:
 ## 10. Ten Actionable Takeaways
 
 1. **Prioritize serial execution** until the workflow is stable — use Lane Queues[^1]
+
 2. **Make concurrency a system-level decision**, not a model-level one[^1]
+
 3. **Treat tool calls as events** — record in replayable JSONL format[^1]
+
 4. **Use file-based memory** (Markdown) for auditability; externalize for durability (Mem0)[^5]
+
 5. **Combine vector and keyword search** for memory retrieval — avoid semantic-only hallucinations[^1]
+
 6. **Start security with allowlists** and hard-block dangerous shell structures[^6]
+
 7. **Scope every agent's blast radius** — per-agent sandboxes, tool restrictions, workspace isolation[^14]
+
 8. **Prefer semantic snapshots** (Accessibility Tree) for web browsing over screenshot-based vision[^1]
+
 9. **Keep skills lean** — each consumes ~24+ tokens in the system prompt; disable unused[^9]
+
 10. **Run agents in constrained, well-instrumented environments** — sandboxed containers, non-root users, isolated networks, logging enabled[^8]
 
 ***
@@ -807,13 +867,14 @@ Triggered by one line of crontab:
         config: {
           mode: "open-source",
           embedder: { provider: "ollama", model: "nomic-embed-text" },
-          vectorStore: { provider: "qdrant", url: "http://localhost:6333" },
+          vectorStore: { provider: "qdrant", url: "<http://localhost:6333"> },
           llm: { provider: "anthropic", model: "claude-sonnet-4-5" }
         }
       }
     }
   }
 }
+
 ```
 
 ---

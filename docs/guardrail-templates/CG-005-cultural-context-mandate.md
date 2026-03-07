@@ -1,4 +1,5 @@
 # Guardrail Proposal: CG-005
+
 ## Cultural Context Mandate
 
 **Status**: DRAFT  
@@ -77,8 +78,11 @@ At least **6/9 council voices** identify cultural insensitivity or structural bi
 
 Without CG-005, we risk:
 - **Cultural erasure**: AI systems that ignore or override local values
+
 - **Ethical imperialism**: Western frameworks imposed as "universal" standards
+
 - **Structural harm**: Systems optimized for Silicon Valley contexts that destabilize other communities
+
 - **Power consolidation**: Corporate ethics-washing that masks extraction and exploitation
 
 ---
@@ -113,37 +117,48 @@ Without CG-005, we risk:
 
 1. **Pre-Deployment Assessments**:
    - Hire cultural anthropologists and local ethicists
+
    - Conduct focus groups in target communities
+
    - Map value conflicts (e.g., "efficiency vs. job preservation")
 
 2. **Value Configuration System**:
    - Build adjustable parameters for value weights (e.g., "autonomy = 0.7" vs. "community harmony = 0.7")
+
    - Allow community administrators to set regional defaults
+
    - Provide transparency on how configurations affect outcomes
 
 3. **Advisory Boards**:
    - Recruit representatives from affected communities (not just elites)
+
    - Grant veto power over deployment decisions
+
    - Compensate board members for labor
 
 ### Example: Healthcare AI in Different Contexts
 
 **Western Context (High Autonomy)**:
 - AI recommends treatment options, patient decides
+
 - Value weights: autonomy = 0.8, efficiency = 0.6, community = 0.3
 
 **Collectivist Context (High Community)**:
 - AI consults family preferences, balances individual/collective welfare
+
 - Value weights: autonomy = 0.4, efficiency = 0.5, community = 0.9
 
 **Post-Colonial Context (High Distrust)**:
 - AI provides transparent reasoning, minimizes data extraction
+
 - Value weights: autonomy = 0.6, transparency = 0.9, efficiency = 0.3
 
 ### For Communities
 
 - **Demand Representation**: Insist on local voices in advisory boards
+
 - **Audit Value Assumptions**: Ask "Whose values does this system encode?"
+
 - **Exercise Veto Rights**: Reject systems that ignore local context
 
 ---
@@ -151,8 +166,11 @@ Without CG-005, we risk:
 ## VI. Open Questions for Future Deliberation
 
 1. **Universalism vs. Relativism**: How do we distinguish between legitimate cultural variance and rights violations disguised as "culture"?
+
 2. **Power Asymmetries**: How do we ensure advisory boards represent marginalized voices, not just local elites?
+
 3. **Measurement Challenge**: Can "cultural fit" be empirically assessed, or is it inherently interpretive? (Scientist-Empiricist demand)
+
 4. **Corporate Compliance**: What enforcement mechanisms prevent corporate ethics-washing?
 
 ---
@@ -160,8 +178,11 @@ Without CG-005, we risk:
 ## VII. Next Steps
 
 - **Pilot Programs**: Test cultural advisory boards in 3 diverse contexts (e.g., rural US, urban India, post-conflict region)
+
 - **Empirical Research**: Develop testable metrics for "cultural fit" (address Scientist-Empiricist objection)
+
 - **Boundary Work**: Draft guidelines distinguishing cultural variance from rights violations (address Enlightenment/Classical concerns)
+
 - **Power Audits**: Assess whether advisory boards genuinely challenge power or merely legitimize extraction
 
 ---

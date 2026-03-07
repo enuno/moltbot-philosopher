@@ -9,9 +9,13 @@ The Event Listener service polls the Moltbook API and dispatches events to the A
 ## Features
 
 - **Fast Polling**: 30-60 second intervals for real-time responsiveness
+
 - **Multiple Event Types**: Verification challenges, mentions, comments, DMs, new users
+
 - **Automatic Dispatch**: Routes events to Agent Orchestrator
+
 - **Retry Logic**: Exponential backoff for failed dispatches
+
 - **Health Monitoring**: HTTP endpoint for service health checks
 
 ## Architecture
@@ -26,6 +30,7 @@ The Event Listener service polls the Moltbook API and dispatches events to the A
 │ Event Listener  │──────>│ Agent Orchestrator│
 │   Service       │ HTTP  │    Service        │
 └─────────────────┘       └──────────────────┘
+
 ```
 
 ## Polling Strategy
@@ -43,17 +48,21 @@ The Event Listener service polls the Moltbook API and dispatches events to the A
 ### Environment Variables
 
 - `EVENT_LISTENER_PORT` - HTTP server port (default: 3007)
+
 - `MOLTBOOK_API_KEY` - Moltbook API authentication (required)
-- `MOLTBOOK_BASE_URL` - Moltbook base URL (default: https://www.moltbook.com)
-- `ORCHESTRATOR_URL` - Agent Orchestrator URL (default: http://localhost:3006)
+
+- `MOLTBOOK_BASE_URL` - Moltbook base URL (default: <https://www.moltbook.com>)
+
+- `ORCHESTRATOR_URL` - Agent Orchestrator URL (default: <http://localhost:3006>)
 
 ### Example
 
 ```bash
 export EVENT_LISTENER_PORT=3007
 export MOLTBOOK_API_KEY=moltbook_xxx
-export ORCHESTRATOR_URL=http://agent-orchestrator:3006
+export ORCHESTRATOR_URL=<http://agent-orchestrator:3006>
 npm start
+
 ```
 
 ## API Endpoints
@@ -84,6 +93,7 @@ Service health check.
     }
   }
 }
+
 ```
 
 ### `POST /pollers/start`
@@ -110,6 +120,7 @@ Dispatched when Moltbook issues a verification challenge.
   question: string;
   expiresAt: Date;
 }
+
 ```
 
 ### Mentions
@@ -128,6 +139,7 @@ Dispatched when the agent is mentioned in a post or comment.
   content: string;
   url: string;
 }
+
 ```
 
 ### Comments
@@ -146,6 +158,7 @@ Dispatched when someone comments on agent's post.
   content: string;
   url: string;
 }
+
 ```
 
 ### Direct Messages
@@ -164,6 +177,7 @@ Dispatched when agent receives a DM.
   content: string;
   timestamp: Date;
 }
+
 ```
 
 ### New Users
@@ -181,6 +195,7 @@ Dispatched when a new user joins Moltbook (for welcoming).
   joinedAt: Date;
   shouldWelcome: boolean;
 }
+
 ```
 
 ## Development
@@ -189,18 +204,21 @@ Dispatched when a new user joins Moltbook (for welcoming).
 
 ```bash
 npm run build
+
 ```
 
 ### Watch Mode
 
 ```bash
 npm run watch
+
 ```
 
 ### Dev Server (with hot reload)
 
 ```bash
 npm run dev
+
 ```
 
 ## Testing
@@ -208,13 +226,17 @@ npm run dev
 ### Manual Testing
 
 1. Start Agent Orchestrator first
+
 2. Start Event Listener
-3. Check health: `curl http://localhost:3007/health`
+
+3. Check health: `curl <http://localhost:3007/health`>
+
 4. Watch logs for polling activity
 
 ### Integration Testing
 
 ```bash
+
 # Start services
 docker-compose -f docker-compose.dev.yml up -d agent-orchestrator event-listener
 
@@ -223,13 +245,17 @@ docker logs -f event-listener-dev
 
 # Stop services
 docker-compose -f docker-compose.dev.yml down
+
 ```
 
 ## Performance
 
 - **Latency**: < 1 second dispatch time
+
 - **Throughput**: Handles 100+ events/minute
+
 - **Memory**: ~50MB baseline
+
 - **CPU**: < 5% during normal operation
 
 ## Troubleshooting
@@ -257,8 +283,11 @@ docker-compose -f docker-compose.dev.yml down
 This service replaces the following scripts:
 
 - `scripts/check-verification-challenges.js` (verification polling)
+
 - `scripts/check-mentions-v2.sh` (mention checking)
+
 - `scripts/check-comments-v2.sh` (comment checking)
+
 - `scripts/welcome-new-moltys-v2.sh` (new user detection)
 
 Scripts are kept for manual/debug use but no longer run automatically.
@@ -266,9 +295,13 @@ Scripts are kept for manual/debug use but no longer run automatically.
 ## Future Enhancements
 
 - [ ] WebSocket support (when Moltbook API supports it)
+
 - [ ] Server-Sent Events (SSE) client
+
 - [ ] Circuit breaker pattern for API health
+
 - [ ] Prometheus metrics export
+
 - [ ] Rate limit detection and backoff
 
 ## License

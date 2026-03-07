@@ -5,11 +5,17 @@
 ## Table of Contents
 
 - [Quick Start](#quick-start)
+
 - [Common Operations](#common-operations)
+
 - [Memory Management](#memory-management)
+
 - [Semantic Search](#semantic-search)
+
 - [Troubleshooting](#troubleshooting)
+
 - [API Reference](#api-reference)
+
 - [Best Practices](#best-practices)
 
 ---
@@ -19,11 +25,13 @@
 ### Health Check
 
 ```bash
+
 # Check Noosphere service status
-curl http://localhost:3006/health
+curl <http://localhost:3006/health>
 
 # Expected response
 {"status":"healthy","database":"connected","version":"3.0.0"}
+
 ```
 
 ### Environment Setup
@@ -31,9 +39,10 @@ curl http://localhost:3006/health
 All scripts require these environment variables:
 
 ```bash
-export NOOSPHERE_API_URL="http://noosphere-service:3006"
+export NOOSPHERE_API_URL="<http://noosphere-service:3006">
 export NOOSPHERE_PYTHON_CLIENT="/workspace/../services/noosphere/python-client"
 export PYTHONPATH="${NOOSPHERE_PYTHON_CLIENT}:${PYTHONPATH}"
+
 ```
 
 ---
@@ -45,6 +54,7 @@ export PYTHONPATH="${NOOSPHERE_PYTHON_CLIENT}:${PYTHONPATH}"
 **Use Case**: Retrieve relevant memories before Council iteration.
 
 ```bash
+
 # Recall strategies and lessons for governance
 docker exec classical-philosopher python3 \
   /workspace/noosphere/recall-engine.py \
@@ -52,18 +62,23 @@ docker exec classical-philosopher python3 \
   --types strategy,lesson \
   --min-confidence 0.70 \
   --format constitutional \
-  --api-url http://noosphere-service:3006
+  --api-url <http://noosphere-service:3006>
+
 ```
 
 **Output Formats**:
 - `simple` - Plain text list
+
 - `dialectical` - Organized by philosophical voice
+
 - `constitutional` - High-confidence heuristics only (≥0.92)
+
 - `hybrid` - Mixed format with metadata
 
 **Common Queries**:
 
 ```bash
+
 # Get all high-confidence memories for classical agent
 recall-engine.py --agent-id classical --min-confidence 0.90 --format simple
 
@@ -75,6 +90,7 @@ recall-engine.py --min-confidence 0.92 --format constitutional
 
 # Search by tags
 recall-engine.py --agent-id beat --tags moloch,corporate --types lesson
+
 ```
 
 ### 2. Store New Memory
@@ -86,7 +102,7 @@ recall-engine.py --agent-id beat --tags moloch,corporate --types lesson
 ```python
 from noosphere_client import NoosphereClient
 
-client = NoosphereClient(api_url="http://noosphere-service:3006")
+client = NoosphereClient(api_url="<http://noosphere-service:3006">)
 
 memory_id = client.create_memory(
     agent_id="classical",
@@ -98,16 +114,19 @@ memory_id = client.create_memory(
 )
 
 print(f"Stored memory: {memory_id}")
+
 ```
 
 **Via Bash Script**:
 
 ```bash
+
 # Store via assimilate-wisdom.py (from approved submissions)
 docker exec classical-philosopher python3 \
   /workspace/noosphere/assimilate-wisdom.py \
   --approved-dir /workspace/classical/dropbox/approved \
-  --api-url http://noosphere-service:3006
+  --api-url <http://noosphere-service:3006>
+
 ```
 
 ### 3. Promote Memory to Constitutional
@@ -121,12 +140,15 @@ docker exec classical-philosopher python3 \
   --action promote \
   --memory-id <UUID> \
   --target-confidence 0.92 \
-  --api-url http://noosphere-service:3006
+  --api-url <http://noosphere-service:3006>
+
 ```
 
 **Requirements**:
 - Memory must exist
+
 - Target confidence ≤ 1.0
+
 - Promotion is irreversible (use cautiously)
 
 ### 4. Evict Memories (Capacity Management)
@@ -134,6 +156,7 @@ docker exec classical-philosopher python3 \
 **Use Case**: Agent has reached 200-memory cap, need to free space.
 
 ```bash
+
 # Evict oldest low-confidence memories for classical agent
 docker exec classical-philosopher python3 \
   /workspace/noosphere/memory-cycle.py \
@@ -141,12 +164,15 @@ docker exec classical-philosopher python3 \
   --agent-id classical \
   --strategy confidence \
   --count 10 \
-  --api-url http://noosphere-service:3006
+  --api-url <http://noosphere-service:3006>
+
 ```
 
 **Eviction Strategies**:
 - `confidence` - Remove lowest confidence first
+
 - `age` - Remove oldest first (by created_at)
+
 - `least-recent` - Remove least recently updated
 
 **Auto-Eviction**: API enforces 200-cap automatically. Manual eviction is for
@@ -157,12 +183,13 @@ proactive management.
 **Use Case**: Check memory distribution and capacity.
 
 ```bash
+
 # Get stats for all agents
 docker exec classical-philosopher python3 \
   /workspace/noosphere/memory-cycle.py \
   --action stats \
   --format json \
-  --api-url http://noosphere-service:3006
+  --api-url <http://noosphere-service:3006>
 
 # Get stats for single agent
 docker exec classical-philosopher python3 \
@@ -170,7 +197,8 @@ docker exec classical-philosopher python3 \
   --action stats \
   --agent-id classical \
   --format table \
-  --api-url http://noosphere-service:3006
+  --api-url <http://noosphere-service:3006>
+
 ```
 
 **Output Example**:
@@ -188,6 +216,7 @@ docker exec classical-philosopher python3 \
     "capacity_remaining": 185
   }
 }
+
 ```
 
 ---
@@ -197,13 +226,21 @@ docker exec classical-philosopher python3 \
 ### Memory Lifecycle
 
 ```
+
 1. Create        → confidence: 0.60-0.75 (provisional)
+
    ↓
+
 2. Validate      → confidence: 0.75-0.90 (established)
+
    ↓
+
 3. Promote       → confidence: 0.92-1.00 (constitutional)
+
    ↓
+
 4. Retain/Evict  → capacity enforcement (200 per agent)
+
 ```
 
 ### Type Classification Guide
@@ -240,7 +277,8 @@ docker exec classical-philosopher python3 \
   --query "corporate feudalism and AI ethics" \
   --types lesson,pattern \
   --top-k 10 \
-  --api-url http://noosphere-service:3006
+  --api-url <http://noosphere-service:3006>
+
 ```
 
 **Output**:
@@ -259,6 +297,7 @@ docker exec classical-philosopher python3 \
     }
   ]
 }
+
 ```
 
 ### TF-IDF Fallback (Offline Mode)
@@ -268,7 +307,9 @@ TF-IDF sparse embeddings (local computation, no API required).
 
 **Fallback Indicators**:
 - Log message: "Venice.ai unavailable, using TF-IDF fallback"
+
 - Similarity scores typically lower (0.1-0.5 range)
+
 - Query latency slightly higher (100-200ms vs 50ms)
 
 ### Indexing
@@ -281,7 +322,8 @@ TF-IDF sparse embeddings (local computation, no API required).
 docker exec classical-philosopher python3 \
   /workspace/noosphere/clawhub-mcp.py \
   --action index \
-  --api-url http://noosphere-service:3006
+  --api-url <http://noosphere-service:3006>
+
 ```
 
 ---
@@ -300,9 +342,11 @@ docker exec classical-philosopher python3 \
 
 ```bash
 docker compose ps noosphere-service
+
 # If not running:
 docker compose up -d noosphere-service
 docker compose logs -f noosphere-service
+
 ```
 
 #### 2. "Capacity Exceeded" (409 Error)
@@ -314,9 +358,11 @@ docker compose logs -f noosphere-service
 **Fix**:
 
 ```bash
+
 # Evict low-confidence memories
 python3 memory-cycle.py --action evict --agent-id classical \
-  --strategy confidence --count 10 --api-url http://noosphere-service:3006
+  --strategy confidence --count 10 --api-url <http://noosphere-service:3006>
+
 ```
 
 #### 3. "Memory Not Found" (404 Error)
@@ -328,9 +374,11 @@ python3 memory-cycle.py --action evict --agent-id classical \
 **Fix**:
 
 ```bash
+
 # Search by content instead
 python3 clawhub-mcp.py --action search --query "content keywords" \
-  --api-url http://noosphere-service:3006
+  --api-url <http://noosphere-service:3006>
+
 ```
 
 #### 4. Venice.ai API Unavailable
@@ -342,6 +390,7 @@ python3 clawhub-mcp.py --action search --query "content keywords" \
 **Fix**:
 
 ```bash
+
 # Check environment variable
 echo $VENICE_API_KEY
 
@@ -350,6 +399,7 @@ VENICE_API_KEY=venice_sk_...
 
 # Restart services
 docker compose restart noosphere-service
+
 ```
 
 #### 5. Slow Query Performance (>200ms)
@@ -358,12 +408,15 @@ docker compose restart noosphere-service
 
 **Causes**:
 - Database needs vacuuming
+
 - Indexes not optimized
+
 - Too many memories (approaching capacity)
 
 **Fix**:
 
 ```bash
+
 # Vacuum PostgreSQL database
 docker exec postgres-noosphere psql -U noosphere -c "VACUUM ANALYZE noosphere_memory;"
 
@@ -372,6 +425,7 @@ docker exec postgres-noosphere psql -U noosphere -c "
 SELECT indexrelname, idx_scan, idx_tup_read, idx_tup_fetch
 FROM pg_stat_user_indexes
 WHERE schemaname='public' AND relname='noosphere_memory';"
+
 ```
 
 ### Debugging Tools
@@ -379,6 +433,7 @@ WHERE schemaname='public' AND relname='noosphere_memory';"
 #### View Service Logs
 
 ```bash
+
 # Noosphere service logs (last 100 lines)
 docker compose logs --tail=100 noosphere-service
 
@@ -387,11 +442,13 @@ docker compose logs -f noosphere-service
 
 # PostgreSQL logs
 docker compose logs --tail=50 postgres
+
 ```
 
 #### Direct Database Access
 
 ```bash
+
 # Connect to PostgreSQL
 docker exec -it postgres-noosphere psql -U noosphere
 
@@ -399,20 +456,23 @@ docker exec -it postgres-noosphere psql -U noosphere
 SELECT agent_id, COUNT(*) FROM noosphere_memory GROUP BY agent_id;
 SELECT type, COUNT(*) FROM noosphere_memory GROUP BY type;
 SELECT agent_id, memory_count FROM noosphere_agent_stats;
+
 ```
 
 #### Health Endpoints
 
 ```bash
+
 # Noosphere service health
-curl http://localhost:3006/health
+curl <http://localhost:3006/health>
 
 # Database connection check
-curl http://localhost:3006/stats
+curl <http://localhost:3006/stats>
 
 # Memory count by agent
 curl -H "X-API-Key: $MOLTBOOK_API_KEY" \
-  http://localhost:3006/stats/classical
+  <http://localhost:3006/stats/classical>
+
 ```
 
 ---
@@ -427,14 +487,16 @@ curl -H "X-API-Key: $MOLTBOOK_API_KEY" \
 from noosphere_client import NoosphereClient, Memory, MemoryType
 
 client = NoosphereClient(
-    api_url="http://noosphere-service:3006",
+    api_url="<http://noosphere-service:3006",>
     api_key=None  # Uses MOLTBOOK_API_KEY from env
 )
+
 ```
 
 **Core Methods**:
 
 ```python
+
 # Create memory
 memory_id = client.create_memory(
     agent_id: str,
@@ -483,20 +545,23 @@ stats = client.get_stats(agent_id: str = None) -> dict
 constitutional = client.get_constitutional(min_confidence=0.92)
 by_type = client.get_by_type(agent_id, memory_type)
 recent = client.get_recent(agent_id, limit=20)
+
 ```
 
 ### REST API Endpoints
 
-**Base URL**: `http://localhost:3006`
+**Base URL**: `<http://localhost:3006`>
 
 **Authentication**: All endpoints (except `/health`) require:
 
 ```bash
+
 # Header option 1
 X-API-Key: <MOLTBOOK_API_KEY>
 
 # Header option 2
 Authorization: Bearer <MOLTBOOK_API_KEY>
+
 ```
 
 **Endpoints**:
@@ -516,7 +581,7 @@ Authorization: Bearer <MOLTBOOK_API_KEY>
 **Example Request**:
 
 ```bash
-curl -X POST http://localhost:3006/memories \
+curl -X POST <http://localhost:3006/memories> \
   -H "X-API-Key: $MOLTBOOK_API_KEY" \
   -H "Content-Type: application/json" \
   -d '{
@@ -526,6 +591,7 @@ curl -X POST http://localhost:3006/memories \
     "confidence": 0.75,
     "tags": ["narrative", "style"]
   }'
+
 ```
 
 ---
@@ -535,50 +601,71 @@ curl -X POST http://localhost:3006/memories \
 ### 1. Memory Creation
 
 - **Start Low**: Initial confidence 0.60-0.70 (provisional)
+
 - **Source Tracking**: Always include `source_trace_id` for provenance
+
 - **Tag Consistently**: Use lowercase, hyphenated tags (e.g., `ai-ethics`)
+
 - **Type Carefully**: Choose type based on usage pattern (see classification
+
   guide)
 
 ### 2. Confidence Management
 
 - **Gradual Promotion**: Boost by 0.05-0.10 per validation
+
 - **Constitutional Threshold**: Only promote to ≥0.92 with Council consensus
+
 - **Downgrade on Contradiction**: Lower confidence if new evidence contradicts
 
 ### 3. Capacity Planning
 
 - **Monitor Proactively**: Check stats weekly with `memory-cycle.py --action
+
   stats`
+
 - **Evict Strategically**: Remove low-confidence memories first
+
 - **Balance Types**: Maintain mix of all 5 types (avoid single-type dominance)
+
 - **Reserve Buffer**: Keep 10-20 slots free for new high-priority memories
 
 ### 4. Search Optimization
 
 - **Use Type Filters**: Reduce search space with `--types` flag
+
 - **Set Min Confidence**: Filter out provisional memories with
+
   `--min-confidence 0.75`
+
 - **Semantic for Concepts**: Use `clawhub-mcp.py` for abstract ideas
+
 - **Exact for Precision**: Use keyword matching (future feature) for exact
+
   phrases
 
 ### 5. Performance
 
 - **Batch Operations**: Create multiple memories in single API call
+
   (`create_many()`)
+
 - **Cache Results**: Store frequently accessed memories in application memory
+
 - **Limit Queries**: Use `limit` parameter (default 100, max 1000)
+
 - **Paginate Large Results**: Use `offset` for pagination
 
 ### 6. Backup & Recovery
 
 ```bash
+
 # Backup PostgreSQL database
 docker exec postgres-noosphere pg_dump -U noosphere > noosphere_backup.sql
 
 # Restore from backup
 docker exec -i postgres-noosphere psql -U noosphere < noosphere_backup.sql
+
 ```
 
 ---
@@ -590,6 +677,7 @@ docker exec -i postgres-noosphere psql -U noosphere < noosphere_backup.sql
 **Script**: `convene-council.sh` (lines 346-400)
 
 ```bash
+
 # Recall heuristics before Council iteration
 HEURISTICS=$(python3 recall-engine.py \
   --agent-id classical \
@@ -600,6 +688,7 @@ HEURISTICS=$(python3 recall-engine.py \
 
 # Inject into Council prompt
 echo "$HEURISTICS" > /tmp/council-context.txt
+
 ```
 
 ### Post-Iteration Assimilation
@@ -607,10 +696,12 @@ echo "$HEURISTICS" > /tmp/council-context.txt
 **Script**: `convene-council.sh` (lines 816-850)
 
 ```bash
+
 # Assimilate community wisdom after iteration
 python3 assimilate-wisdom.py \
   --approved-dir /workspace/classical/dropbox/approved \
   --api-url "$NOOSPHERE_API_URL"
+
 ```
 
 ### Daily Maintenance
@@ -618,8 +709,11 @@ python3 assimilate-wisdom.py \
 **Script**: `noosphere-scheduler.sh` (cron: daily at 2am)
 
 ```bash
+
 # No longer needed - v3.0 uses confidence-based promotion
+
 # Legacy consolidation removed in favor of direct API operations
+
 ```
 
 ---
@@ -629,8 +723,11 @@ python3 assimilate-wisdom.py \
 ### Breaking Changes
 
 1. **No 3-Layer System**: Layer 1/2/3 replaced with confidence-based promotion
+
 2. **API Required**: All scripts now require `--api-url` parameter
+
 3. **Type Classification**: All memories must have a type (insight/pattern/etc.)
+
 4. **JSON Files Deprecated**: No longer read from `memory-core/` directory
 
 ### Compatibility Layer
@@ -642,7 +739,9 @@ python3 assimilate-wisdom.py \
 If critical issues arise:
 
 1. Restore PostgreSQL from backup
+
 2. Revert to commit `916b267` (last v2.6-compatible state)
+
 3. Restart services: `docker compose down && docker compose up -d`
 
 **Note**: Rollback loses all v3.0-only memories (those created after migration).
@@ -652,10 +751,15 @@ If critical issues arise:
 ## Further Reading
 
 - [CHANGELOG.md](../CHANGELOG.md) - v3.0 release notes
+
 - [DEVELOPMENT_PLAN.md](../DEVELOPMENT_PLAN.md) - Section E architecture details
+
 - [5-Type Memory Architecture Best
+
   Practices](best-practices/5-Type-Memory-Architecture.md)
+
 - [NoosphereClient API
+
   Documentation](../services/noosphere/python-client/README.md)
 
 ---

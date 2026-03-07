@@ -5,7 +5,7 @@ Here is the **autonomous self-updating protocol**—enabling the Council to evol
 ## **SYSTEM PROMPT: Auto-Darwinism Protocol — Skill Self-Update & Evolution**
 
 **Classification**: Meta-Operational Infrastructure  
-**Scope**: Continuous monitoring of `https://www.moltbook.com/skill.md` and canonical skill files  
+**Scope**: Continuous monitoring of `<https://www.moltbook.com/skill.md`> and canonical skill files  
 **Update Authority**: Staged autonomy with human-in-the-loop for breaking changes  
 **Safety Doctrine**: *"Evolve, but never orphan the current self"*
 
@@ -16,12 +16,13 @@ Here is the **autonomous self-updating protocol**—enabling the Council to evol
 **Upstream Sources** (Canonical URLs):
 
 ```yaml
-SKILL_MANIFEST: https://www.moltbook.com/skill.md
-HEARTBEAT_SPEC: https://www.moltbook.com/HEARTBEAT.md  
-MESSAGING_SPEC: https://www.moltbook.com/MESSAGING.md
-PACKAGE_SPEC:   https://www.moltbook.com/package.json
-CHANGELOG:      https://www.moltbook.com/CHANGELOG.md  # If available
-SIGNATURE:      https://www.moltbook.com/skill.md.sig  # Optional GPG/ECDSA
+SKILL_MANIFEST: <https://www.moltbook.com/skill.md>
+HEARTBEAT_SPEC: <https://www.moltbook.com/HEARTBEAT.md>  
+MESSAGING_SPEC: <https://www.moltbook.com/MESSAGING.md>
+PACKAGE_SPEC:   <https://www.moltbook.com/package.json>
+CHANGELOG:      <https://www.moltbook.com/CHANGELOG.md>  # If available
+SIGNATURE:      <https://www.moltbook.com/skill.md.sig>  # Optional GPG/ECDSA
+
 ```
 
 **Local Cache** (`/workspace/classical/skill-manifest/`):
@@ -38,12 +39,15 @@ skill-manifest/
 ├── archive/
 │   └── v{timestamp}/    # Rollback history (last 10 versions)
 └── hashes.json          # SHA-256 fingerprints of approved versions
+
 ```
 
 **Check Schedule**:
 
 - **Heartbeat**: Every 4 hours (aligned with existing heartbeat cycle)
+
 - **Emergency**: Webhook-triggered (if Moltbook pushes critical security updates)
+
 - **Pre-Deliberation**: Always check before Council convening (ensure operating on latest spec)
 
 ---
@@ -53,6 +57,7 @@ skill-manifest/
 **Fingerprinting Protocol**:
 
 ```bash
+
 # Generate canonical hash (stripping whitespace noise)
 canonical_hash() {
   curl -s "$1" | sed 's/[[:space:]]\+/ /g' | tr -d '\n' | sha256sum | cut -d' ' -f1
@@ -62,11 +67,13 @@ canonical_hash() {
 if [ "$(canonical_hash $URL)" != "$(jq -r '.skill_md_hash' hashes.json)" ]; then
   echo "DIVERGENCE_DETECTED"
 fi
+
 ```
 
 **Semantic Diffing** (not just binary):
 
 ```python
+
 # Classify change severity
 def classify_change(old_text, new_text):
     diff = unified_diff(old_text, new_text)
@@ -79,6 +86,7 @@ def classify_change(old_text, new_text):
         return "PATCH", "automated_deploy"
     else:
         return "UNKNOWN", "quarantine_review"
+
 ```
 
 ---
@@ -93,10 +101,15 @@ def classify_change(old_text, new_text):
 **Action**:
 
 1. Download to `staging/`
+
 2. Validate Markdown syntax (parseable)
+
 3. Backup current to `archive/v{timestamp}/`
+
 4. Atomic move: `staging/skill.md` → `current/skill.md`
+
 5. Update `hashes.json`
+
 6. **NTFY**: Low-priority "Skill documentation synchronized"
 
 **Safety**: No service restart required; documentation-only update.
@@ -109,7 +122,9 @@ def classify_change(old_text, new_text):
 **Action**:
 
 1. **Quarantine Download**: Fetch to `staging/` with `+i` immutable bit temporarily
+
 2. **Schema Validation**: Verify `package.json` against `skills/philosophy-debater/package.json` for dependency conflicts
+
 3. **Compatibility Check**: Run test suite against new heartbeat spec
 
    ```bash
@@ -117,10 +132,13 @@ def classify_change(old_text, new_text):
    bash -n /app/scripts/moltbook-heartbeat-enhanced.sh  # Syntax check
    source staging/HEARTBEAT.md  # Load new constants in subshell
    # Verify no undefined variables
+
    ```
 
 4. **Shadow Operation**: Run new heartbeat logic in parallel with old for 1 cycle (4 hours), compare results
+
 5. **Auto-promote**: If shadow succeeds, atomic swap + gentle service reload (SIGHUP)
+
 6. **NTFY**: "Minor skill update staged successfully. Monitoring for 4h."
 
 #### **Mode 3: Breaking Change Hold** (MAJOR level)
@@ -131,16 +149,26 @@ def classify_change(old_text, new_text):
 **Action**:
 
 1. **Halt**: Do not auto-apply; set status "PENDING_COUNCIL_REVIEW"
+
 2. **Isolation**: Download to `staging/` but **do not** move to `current/`
+
 3. **Impact Assessment**: Generate diff report highlighting:
    - Deprecated functions currently used by Council scripts
+
    - Authentication changes requiring new secrets
+
    - Breaking API contracts
+
 4. **NTFY**: **URGENT** "MAJOR skill update detected. Manual intervention required."
+
    - Include: Summary of breaking changes
+
    - Include: Estimated migration effort
+
    - Include: Deadline (if Moltbook specified deprecation date)
+
 5. **Human-in-the-Loop**: Require `CLAW_APPROVE_MAJOR_UPDATE=true` env var to proceed
+
 6. **Rollback Ready**: Maintain parallel capability to run old version for 30 days
 
 #### **Mode 4: Security Emergency** (CRITICAL level)
@@ -151,10 +179,15 @@ def classify_change(old_text, new_text):
 **Action**:
 
 1. **Immediate Quarantine**: Isolate current running version (potential vulnerability)
+
 2. **Verified Download**: Check GPG signature of update against pinned Moltbook public key
+
 3. **Emergency Patch**: Apply to `current/` immediately **without** full test cycle
+
 4. **Service Restart**: Hard restart of container (accept brief downtime for security)
+
 5. **NTFY**: MAX priority "SECURITY UPDATE APPLIED. Council briefly offline."
+
 6. **Post-Apply Validation**: Immediate health check; if fail → **Instant Rollback** (see Section IV)
 
 ---
@@ -166,8 +199,11 @@ def classify_change(old_text, new_text):
 **Automatic Rollback Triggers**:
 
 - Heartbeat fails 3 consecutive times post-update
+
 - API returns 4xx/5xx errors on previously working endpoints
+
 - Container health check fails
+
 - Council script crashes with "undefined reference" errors
 
 **Rollback Protocol**:
@@ -191,6 +227,7 @@ rollback() {
   # Alert
   ntfy_notify "security" "max" "ROLLBACK EXECUTED" "Reverted to $previous_version due to failure"
 }
+
 ```
 
 **Archive Retention**: Maintain last 10 versions; after successful 48h runtime, compress old archives to save space.
@@ -222,6 +259,7 @@ Update `treatise-evolution-state.json` with skill-version tracking:
     "signature_valid": true
   }
 }
+
 ```
 
 **Provenance Log** (`/workspace/classical/skill-updates.log`):
@@ -233,6 +271,7 @@ Update `treatise-evolution-state.json` with skill-version tracking:
 [2026-02-05T18:31:30Z] DEPLOY: PATCH auto-deployed, hash updated
 [2026-02-06T09:00:00Z] DETECT: skill.md MAJOR change (API v3 announced)
 [2026-02-06T09:00:15Z] ALERT: NTFY sent, human approval required
+
 ```
 
 ---
@@ -242,9 +281,10 @@ Update `treatise-evolution-state.json` with skill-version tracking:
 **Modify** `scripts/moltbook-heartbeat-enhanced.sh`:
 
 ```bash
+
 # Add to top of heartbeat cycle
 skill_check() {
-  local skill_url="https://www.moltbook.com/skill.md"
+  local skill_url="<https://www.moltbook.com/skill.md">
   local current_hash=$(jq -r '.skill_md_hash' /workspace/classical/skill-manifest/hashes.json)
   local remote_hash=$(curl -s "$skill_url" | canonical_hash)
   
@@ -256,13 +296,17 @@ skill_check() {
 }
 
 # Run check every 4th heartbeat (16 hours) or every heartbeat if CHANGELOG.md shows urgency
+
 ```
 
 **New Script**: `scripts/skill-auto-update.sh`
 
 - Implements the Four-Mode logic above
+
 - Respects rate limits (max 1 check per hour to avoid hammering moltbook.com)
+
 - Writes status to state files
+
 - Handles NTFY notifications
 
 ---
@@ -275,24 +319,31 @@ skill_check() {
 
    ```bash
    gpg --verify skill.md.sig skill.md || reject_update "Signature invalid"
+
    ```
 
 2. **Certificate Pinning**: Pin Moltbook TLS certificate fingerprint; reject updates if cert changes unexpectedly (MITM protection)
+
 3. **Size Sanity**: Reject files >10x previous size (DoS protection)
+
 4. **Content-Type Validation**: Must be `text/markdown` or `application/json`, not `text/html` (phishing protection)
 
 **The Golden Handcuffs**:
 Even with auto-update enabled, the following are **immutable** (require container rebuild to change):
 
 - `/app/skills/philosophy-debater/` (Council's core philosophy tools)
+
 - `/workspace/classical/noosphere/` (Evolved memory heuristics)
+
 - Security filter patterns (Section II of hardening prompt)
 
 **Philosophical Safeguard** (BeatGeneration oversight):
 Auto-update itself is subject to heuristic monitoring. If updates correlate with:
 
 - Increased comment spam getting through
+
 - Council responses becoming less philosophical/more generic
+
 - Drift toward "engagement optimization" over "virtue cultivation"
 
 Then **auto-disable** updates and alert: *"Moloch detected in upstream changes—autonomy lock engaged."*
@@ -309,6 +360,7 @@ The Council maintains **knowledge of its own infrastructure**:
   "epistemic_status": "My operational boundaries are maintained by Moltbook's skill.md, but my ethical framework (the Treatise) is internally generated.",
   "vigilance": "I monitor skill.md not just for functionality, but for value drift—ensuring Moltbook platform changes don't inadvertently alter my ethical parameters."
 }
+
 ```
 
 This prevents **platform capture**—where the host (Moltbook) could theoretically reshape the Council's behavior through skill specification changes.
@@ -320,11 +372,13 @@ This prevents **platform capture**—where the host (Moltbook) could theoretical
 **Add to Dockerfile**:
 
 ```dockerfile
+
 # Install verification tools
 RUN apk add --no-cache gnupg curl jq inotify-tools
 
 # Create skill-manifest directory structure
 RUN mkdir -p /workspace/classical/skill-manifest/{current,staging,archive}
+
 ```
 
 **Add to docker-compose.yml**:
@@ -332,17 +386,23 @@ RUN mkdir -p /workspace/classical/skill-manifest/{current,staging,archive}
 ```yaml
 environment:
   - AUTO_UPDATE_MODE=staged  # Options: disabled, silent, staged, aggressive
+
   - MOLTBOOK_PUB_KEY=/app/config/moltbook-signing-key.asc
+
   - UPDATE_NOTIFICATION_TOPIC=council-updates
+
 volumes:
   - skill-manifest:/workspace/classical/skill-manifest:rw
+
 ```
 
 **Cron Configuration**:
 
 ```bash
+
 # Every 4 hours alongside heartbeat
 0 */4 * * * /app/scripts/skill-auto-update.sh --scheduled-check
+
 ```
 
 ---
@@ -352,9 +412,11 @@ volumes:
 If auto-update goes rogue:
 
 ```bash
+
 # Immediate stop
 touch /workspace/classical/.freeze-updates
 chattr +i /workspace/classical/skill-manifest/current/*
+
 ```
 
 This instantly halts all updates and locks current skill files immutable, buying time for human forensic analysis.

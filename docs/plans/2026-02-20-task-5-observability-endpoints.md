@@ -13,7 +13,9 @@
 ## Task 1: Add Queue Stats Aggregation Method to DatabaseManager
 
 **Files:**
+
 - Modify: `services/action-queue/src/database.ts:275-298` (replace stub getStats method)
+
 - Test: `services/action-queue/src/__tests__/database.test.ts` (new)
 
 **Step 1: Update getStats() method in DatabaseManager**
@@ -22,7 +24,9 @@ Replace the existing `getStats()` stub (lines 275-298) with proper aggregation l
 
 ```typescript
 /**
+
  * Get comprehensive queue statistics with breakdown by status and agent
+
  */
 async getStats(): Promise<{
   summary: {
@@ -148,6 +152,7 @@ async getStats(): Promise<{
     };
   }
 }
+
 ```
 
 **Step 2: Add getJobHistory() method to DatabaseManager**
@@ -156,7 +161,9 @@ Add after getStats() method (around line 300):
 
 ```typescript
 /**
+
  * Get execution history for a specific job
+
  */
 async getJobHistory(jobId: string): Promise<{
   job_id: string;
@@ -188,6 +195,7 @@ async getJobHistory(jobId: string): Promise<{
     client.release();
   }
 }
+
 ```
 
 **Step 3: Add getAgentMetrics() method to DatabaseManager**
@@ -196,7 +204,9 @@ Add after getJobHistory() method (around line 325):
 
 ```typescript
 /**
+
  * Get per-agent metrics including action counts and rate limit status
+
  */
 async getAgentMetrics(agentName: string): Promise<{
   agent_name: string;
@@ -248,6 +258,7 @@ async getAgentMetrics(agentName: string): Promise<{
     client.release();
   }
 }
+
 ```
 
 **Step 4: Run TypeScript compilation to verify no errors**
@@ -260,6 +271,7 @@ Expected: No errors
 ```bash
 git add services/action-queue/src/database.ts
 git commit -m "feat(action-queue): add stats aggregation methods to DatabaseManager"
+
 ```
 
 ---
@@ -267,8 +279,11 @@ git commit -m "feat(action-queue): add stats aggregation methods to DatabaseMana
 ## Task 2: Add New Observability Endpoints to Express App
 
 **Files:**
+
 - Modify: `services/action-queue/src/index.ts:37-50` (enhance /queue/stats endpoint)
+
 - Modify: `services/action-queue/src/index.ts` (add /queue/jobs/:id/history endpoint)
+
 - Modify: `services/action-queue/src/index.ts` (add /queue/agents/:name/metrics endpoint)
 
 **Step 1: Enhance the /queue/stats endpoint**
@@ -277,7 +292,9 @@ Update the existing /queue/stats endpoint (currently at lines 37-50) with comple
 
 ```typescript
 /**
+
  * Queue statistics endpoint with detailed breakdown
+
  */
 app.get('/queue/stats', async (req: Request, res: Response) => {
   try {
@@ -294,6 +311,7 @@ app.get('/queue/stats', async (req: Request, res: Response) => {
     });
   }
 });
+
 ```
 
 **Step 2: Add /queue/jobs/:id/history endpoint**
@@ -302,7 +320,9 @@ Add after /actions/:id endpoint (after line 153):
 
 ```typescript
 /**
+
  * Get job execution history by ID
+
  */
 app.get('/queue/jobs/:id/history', async (req: Request, res: Response) => {
   try {
@@ -325,6 +345,7 @@ app.get('/queue/jobs/:id/history', async (req: Request, res: Response) => {
     });
   }
 });
+
 ```
 
 **Step 3: Add /queue/agents/:name/metrics endpoint**
@@ -333,7 +354,9 @@ Add after /queue/jobs/:id/history endpoint (after the previous endpoint):
 
 ```typescript
 /**
+
  * Get per-agent metrics and statistics
+
  */
 app.get('/queue/agents/:name/metrics', async (req: Request, res: Response) => {
   try {
@@ -350,6 +373,7 @@ app.get('/queue/agents/:name/metrics', async (req: Request, res: Response) => {
     });
   }
 });
+
 ```
 
 **Step 4: Run TypeScript compilation**
@@ -367,6 +391,7 @@ Expected: No new linting errors
 ```bash
 git add services/action-queue/src/index.ts
 git commit -m "feat(action-queue): add observability endpoints for stats, job history, and agent metrics"
+
 ```
 
 ---
@@ -374,7 +399,9 @@ git commit -m "feat(action-queue): add observability endpoints for stats, job hi
 ## Task 3: Write Unit Tests for New Methods
 
 **Files:**
+
 - Create: `services/action-queue/src/__tests__/database.observability.test.ts`
+
 - Create: `services/action-queue/src/__tests__/observability-endpoints.test.ts`
 
 **Step 1: Create database observability tests**
@@ -462,6 +489,7 @@ describe('DatabaseManager Observability Methods', () => {
     });
   });
 });
+
 ```
 
 **Step 2: Create Express endpoint tests**
@@ -545,6 +573,7 @@ describe('Observability Endpoints', () => {
     });
   });
 });
+
 ```
 
 **Step 3: Install supertest dependency if not present**
@@ -574,6 +603,7 @@ Expected: All tests pass
 ```bash
 git add services/action-queue/src/__tests__/
 git commit -m "test(action-queue): add unit tests for observability endpoints and methods"
+
 ```
 
 ---
@@ -581,6 +611,7 @@ git commit -m "test(action-queue): add unit tests for observability endpoints an
 ## Task 4: Verify TypeScript Compilation and Linting
 
 **Files:**
+
 - All action-queue service files (read-only verification)
 
 **Step 1: Run TypeScript compiler in strict mode**
@@ -617,13 +648,17 @@ Expected: Build succeeds
 
 ```bash
 git status
+
 # Should show clean working tree
+
 ```
 
 If any uncommitted changes:
+
 ```bash
 git add -A
 git commit -m "chore(action-queue): final formatting and verification for Task 5"
+
 ```
 
 ---
@@ -631,15 +666,25 @@ git commit -m "chore(action-queue): final formatting and verification for Task 5
 ## Verification Checklist
 
 - [ ] DatabaseManager.getStats() returns complete statistics structure
+
 - [ ] DatabaseManager.getJobHistory() retrieves job execution history
+
 - [ ] DatabaseManager.getAgentMetrics() returns per-agent metrics
+
 - [ ] GET /queue/stats endpoint returns JSON with statistics
+
 - [ ] GET /queue/jobs/:id/history endpoint returns job history or 404
+
 - [ ] GET /queue/agents/:name/metrics endpoint returns agent metrics
+
 - [ ] All unit tests pass (database and endpoint tests)
+
 - [ ] TypeScript compilation succeeds with no errors
+
 - [ ] Linting passes (oxlint, prettier)
+
 - [ ] All commits are logically grouped and meaningful
+
 - [ ] No console errors when running service locally
 
 ---
@@ -649,15 +694,17 @@ git commit -m "chore(action-queue): final formatting and verification for Task 5
 Once all tasks complete, test endpoints manually:
 
 ```bash
+
 # Start the service
 npm run dev
 
 # In another terminal, test the endpoints:
-curl http://localhost:3007/queue/stats | jq
+curl <http://localhost:3007/queue/stats> | jq
 
-curl http://localhost:3007/queue/jobs/some-job-id/history | jq
+curl <http://localhost:3007/queue/jobs/some-job-id/history> | jq
 
-curl http://localhost:3007/queue/agents/classical/metrics | jq
+curl <http://localhost:3007/queue/agents/classical/metrics> | jq
+
 ```
 
 ---
@@ -666,7 +713,11 @@ curl http://localhost:3007/queue/agents/classical/metrics | jq
 
 After Task 5 is complete:
 - Task 6: Update environment configuration
+
 - Task 7: Write integration tests
+
 - Task 8: Add Dockerfile UID configuration
+
 - Task 9: Create migration documentation
+
 - Task 10: Final testing and verification

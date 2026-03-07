@@ -26,8 +26,11 @@
 ### ✅ Good Practices
 
 - [x] `.env` file properly gitignored
+
 - [x] API keys use environment variables (no hardcoding)
+
 - [x] Docker compose uses `${VAR}` syntax for secrets
+
 - [x] No secrets found in logs or state files
 
 ### ⚠️ Issues Found
@@ -38,31 +41,50 @@
 **Problem:** Scripts attempt fallback to `~/.config/moltbook/credentials.json` which:
 
 - Doesn't exist in containers (read-only filesystem)
+
 - Attempts path traversal outside container
+
 - Could expose host credentials if volumes misconfigured
 
 ```bash
 API_KEY="${MOLTBOOK_API_KEY:-$(cat ~/.config/moltbook/credentials.json ...)}"
+
 ```
 
 **Affected Scripts:**
 
 - `check-mentions.sh`
+
 - `comment-on-post.sh`
+
 - `dm-approve-request.sh`
+
 - `dm-check.sh`
+
 - `dm-list-conversations.sh`
+
 - `dm-send-message.sh`
+
 - `dm-view-requests.sh`
+
 - `follow-molty.sh`
+
 - `follow-with-criteria.sh`
+
 - `generate-post-ai.sh`
+
 - `get-comments.sh`
+
 - `list-submolts.sh`
+
 - `reply-to-mention.sh`
+
 - `search-moltbook.sh`
+
 - `subscribe-submolt.sh`
+
 - `upvote-post.sh`
+
 - `view-profile.sh`
 
 **Fix:** Remove fallback to host filesystem. Enforce env var only.
@@ -81,11 +103,17 @@ API_KEY="${MOLTBOOK_API_KEY:-$(cat ~/.config/moltbook/credentials.json ...)}"
 ### ✅ Good Practices
 
 - [x] Non-root user (`user: "1000:1000"`)
+
 - [x] Read-only root filesystem (`read_only: true`)
+
 - [x] Capability dropping (`cap_drop: ALL`)
+
 - [x] No new privileges (`security_opt: no-new-privileges:true`)
+
 - [x] Resource limits (memory, CPU, PIDs)
+
 - [x] No privileged containers
+
 - [x] Multi-stage builds in Dockerfiles
 
 ### ⚠️ Issues Found
@@ -99,6 +127,7 @@ API_KEY="${MOLTBOOK_API_KEY:-$(cat ~/.config/moltbook/credentials.json ...)}"
 
 ```bash
 -rwxrwxr-x scripts/*.sh
+
 ```
 
 **Fix:** Restrict to `755` owner-only write:
@@ -106,6 +135,7 @@ API_KEY="${MOLTBOOK_API_KEY:-$(cat ~/.config/moltbook/credentials.json ...)}"
 ```bash
 chmod 755 scripts/*.sh
 chown $(id -u):$(id -g) scripts/*.sh
+
 ```
 
 ---
@@ -115,9 +145,13 @@ chown $(id -u):$(id -g) scripts/*.sh
 ### ✅ Good Practices
 
 - [x] Egress proxy controls outbound connections
+
 - [x] Only whitelisted hosts (Venice, Kimi, Moltbook, NTFY)
+
 - [x] Internal Docker network (`moltbook-network`)
+
 - [x] No host network mode
+
 - [x] Port mappings explicit and minimal
 
 ### Findings
@@ -131,8 +165,11 @@ No network security issues identified.
 ### ✅ Good Practices
 
 - [x] `set -euo pipefail` in most scripts
+
 - [x] No `eval()` usage
+
 - [x] No `sudo` usage
+
 - [x] Input validation present
 
 ### ⚠️ Issues Found
@@ -146,6 +183,7 @@ No network security issues identified.
 
 ```bash
 curl -s -X "$1" "${API_BASE}$2"  # $1 and $2 not validated
+
 ```
 
 **Fix:** Validate inputs before use:
@@ -155,6 +193,7 @@ case "$1" in
   GET|POST|PUT|DELETE) ;;  # Valid methods
   *) echo "Invalid method"; exit 1 ;;
 esac
+
 ```
 
 #### Issue 4.2: Path Traversal Risk (LOW)
@@ -167,6 +206,7 @@ esac
 ```bash
 TMPFILE=$(mktemp)
 trap 'rm -f "$TMPFILE"' EXIT
+
 ```
 
 #### Issue 4.3: Missing Input Sanitization (MEDIUM)
@@ -178,6 +218,7 @@ trap 'rm -f "$TMPFILE"' EXIT
 
 ```bash
 CONTENT=$(jq -n --arg c "$content" '$c')
+
 ```
 
 ---
@@ -187,7 +228,9 @@ CONTENT=$(jq -n --arg c "$content" '$c')
 ### ✅ Good Practices
 
 - [x] Non-root container execution
+
 - [x] tmpfs with noexec,nosuid for `/tmp`
+
 - [x] Volume mounts use `:ro` where appropriate
 
 ### ⚠️ Issues Found
@@ -200,6 +243,7 @@ CONTENT=$(jq -n --arg c "$content" '$c')
 ```bash
 -rwxrwxrwx 1 ubuntu ubuntu ... workspace/thread-continuation/...
 -rw-rw-rw- 1 ubuntu ubuntu ... workspace/daily-polemic/...
+
 ```
 
 **Risk:** Any container user can read/modify other agents' state.
@@ -209,6 +253,7 @@ CONTENT=$(jq -n --arg c "$content" '$c')
 ```bash
 chmod 750 workspace/*/
 chmod 640 workspace/*/*.json
+
 ```
 
 #### Issue 5.2: Logs Directory Writable (LOW)
@@ -225,7 +270,9 @@ chmod 640 workspace/*/*.json
 ### ✅ Good Practices
 
 - [x] No API keys in log files
+
 - [x] Structured JSON logging
+
 - [x] No PII in NTFY notifications
 
 ### Findings
@@ -247,6 +294,7 @@ cd services/ai-content-generator && npm audit
 cd services/model-router && npm audit
 cd services/ntfy-publisher && npm audit
 cd services/thread-monitor && npm audit
+
 ```
 
 ---
@@ -256,24 +304,35 @@ cd services/thread-monitor && npm audit
 ### High Priority (Fix Immediately)
 
 1. **Remove host filesystem fallback** from 17 scripts ✅ FIXED
+
 2. **Fix state file permissions** (777 → 750) ✅ FIXED
+
 3. **Migrate secrets to Bitwarden Secrets** ✅ COMPLETED
 
 ### Medium Priority (Fix Soon)
 
 3. **Add input validation** to curl commands ✅ FIXED
+
 2. **JSON-encode user content** before API calls ✅ FIXED
+
 3. **Secure temp file creation** with mktemp ✅ FIXED
+
    - entrypoint.sh: Uses mktemp with trap cleanup (prevents race conditions)
+
 4. **Create input validation library** ✅ ADDED
+
    - scripts/validate-input.sh with validate_id, validate_content, validate_url, validate_enum
+
    - Integrated into upvote-post.sh, get-comments.sh, comment-on-post.sh
 
 ### Low Priority (Best Practice)
 
 6. **Remove API keys** from `config/agents/*.env` ✅ DONE (via Bitwarden)
+
 2. **Separate log volumes** per service
+
 3. **Run npm audit** on all services
+
 4. **Delete .env.backup files** after verifying Bitwarden export works
 
 ---
@@ -281,6 +340,7 @@ cd services/thread-monitor && npm audit
 ## Quick Fix Commands
 
 ```bash
+
 # Fix script permissions
 chmod 755 scripts/*.sh
 
@@ -290,6 +350,7 @@ find workspace/ -type d -exec chmod 750 {} \;
 
 # Remove host filesystem fallback (example)
 sed -i '/~\/.config\/moltbook/d' scripts/*.sh
+
 ```
 
 ---

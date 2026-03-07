@@ -11,6 +11,7 @@ Python testing.
 ### Running Tests
 
 ```bash
+
 # JavaScript tests (Jest)
 pnpm test                    # Run all tests
 pnpm test:watch             # Watch mode
@@ -21,6 +22,7 @@ pnpm test:ci                # CI mode (JUnit XML)
 pytest                       # Run all Python tests
 pytest --cov                # With coverage
 pytest -k "noosphere"       # Run specific tests
+
 ```
 
 ### Test Status
@@ -28,8 +30,11 @@ pytest -k "noosphere"       # Run specific tests
 ✅ **Phase 1 Complete**: Test infrastructure setup
 
 - Jest configured and working
+
 - Test directory structure created
+
 - Example tests passing
+
 - CI integration complete
 
 🚧 **In Progress**: Writing actual service tests (Phase 2)
@@ -60,6 +65,7 @@ tests/
     ├── api-responses/
     ├── state-files/
     └── mock-data/
+
 ```
 
 ## Writing Tests
@@ -106,6 +112,7 @@ describe('MyService', () => {
     });
   });
 });
+
 ```
 
 #### HTTP Mocking with Nock
@@ -120,7 +127,7 @@ describe('API Client', () => {
 
   it('should call external API', async () => {
     // Mock the API
-    nock('http://api.example.com')
+    nock('<http://api.example.com'>)
       .post('/endpoint')
       .reply(200, { result: 'success' });
 
@@ -130,6 +137,7 @@ describe('API Client', () => {
     expect(response.result).toBe('success');
   });
 });
+
 ```
 
 #### Testing Express Apps with Supertest
@@ -147,6 +155,7 @@ describe('GET /health', () => {
     expect(response.body.status).toBe('healthy');
   });
 });
+
 ```
 
 ### Python Tests (pytest)
@@ -154,6 +163,7 @@ describe('GET /health', () => {
 #### Basic Test Structure
 
 ```python
+
 # tests/unit/scripts/python/test_my_script.py
 
 import pytest
@@ -176,6 +186,7 @@ class TestMyScript:
         """Test error cases"""
         with pytest.raises(ValueError):
             my_function(None)
+
 ```
 
 #### Parametrized Tests
@@ -189,6 +200,7 @@ class TestMyScript:
 def test_increment(input, expected):
     """Test multiple cases"""
     assert increment(input) == expected
+
 ```
 
 #### Mocking in Python
@@ -205,6 +217,7 @@ def test_with_mock():
 
         assert result == 'mocked'
         mock_call.assert_called_once()
+
 ```
 
 ## Test Patterns
@@ -214,13 +227,17 @@ def test_with_mock():
 **JavaScript**:
 
 - Test files: `*.test.js`
+
 - Format: `should [expected behavior] when [condition]`
+
 - Example: `should return 200 when service is healthy`
 
 **Python**:
 
 - Test files: `test_*.py`
+
 - Format: `test_[function]_[condition]`
+
 - Example: `test_recall_engine_filters_by_confidence`
 
 ### AAA Pattern
@@ -238,6 +255,7 @@ it('should calculate total correctly', () => {
   // Assert: Verify the result
   expect(total).toBe(6);
 });
+
 ```
 
 ### Test Independence
@@ -245,8 +263,11 @@ it('should calculate total correctly', () => {
 Each test should:
 
 - Run independently of other tests
+
 - Not rely on execution order
+
 - Clean up after itself
+
 - Use fresh data/mocks
 
 ```javascript
@@ -266,6 +287,7 @@ describe('Counter', () => {
     expect(counter.value).toBe(1);
   });
 });
+
 ```
 
 ## Mocking Best Practices
@@ -279,13 +301,14 @@ beforeAll(() => {
 });
 
 // Mock HTTP calls
-nock('http://api.example.com')
+nock('<http://api.example.com'>)
   .get('/data')
   .reply(200, mockData);
 
 // Mock modules
 jest.mock('axios');
 axios.get.mockResolvedValue({ data: mockResponse });
+
 ```
 
 ### Don't Mock Everything
@@ -293,15 +316,21 @@ axios.get.mockResolvedValue({ data: mockResponse });
 Only mock:
 
 - External APIs
+
 - File system operations
+
 - Time-dependent code
+
 - Random number generation
+
 - Network calls
 
 Don't mock:
 
 - Your own code (test the real thing)
+
 - Simple utilities
+
 - Pure functions
 
 ## Coverage
@@ -309,11 +338,13 @@ Don't mock:
 ### Viewing Coverage
 
 ```bash
+
 # Generate coverage report
 pnpm test:coverage
 
 # Open HTML report
 open coverage/lcov-report/index.html
+
 ```
 
 ### Coverage Goals
@@ -333,16 +364,23 @@ open coverage/lcov-report/index.html
 **High Priority**:
 
 - Critical business logic
+
 - Error handling paths
+
 - State management
+
 - API endpoints
+
 - Data transformations
 
 **Low Priority**:
 
 - Logging statements
+
 - Simple getters/setters
+
 - Configuration loading
+
 - Pure pass-through code
 
 ## Continuous Integration
@@ -352,11 +390,13 @@ open coverage/lcov-report/index.html
 Tests run automatically on:
 
 - Push to `main` or `develop`
+
 - Pull requests
 
 View results:
 
 - Actions tab in GitHub
+
 - Codecov dashboard
 
 ### Local Pre-commit
@@ -364,9 +404,11 @@ View results:
 Run tests before committing:
 
 ```bash
+
 # Add to .git/hooks/pre-commit
 #!/bin/bash
 pnpm test
+
 ```
 
 ## Debugging Tests
@@ -374,6 +416,7 @@ pnpm test
 ### Interactive Debugging
 
 ```bash
+
 # Run single test file
 pnpm test path/to/test.test.js
 
@@ -382,6 +425,7 @@ pnpm test --testNamePattern="my test"
 
 # Debug with Node inspector
 node --inspect-brk node_modules/.bin/jest --runInBand
+
 ```
 
 ### Debug Output
@@ -397,6 +441,7 @@ it('should work', () => {
 it('should work', () => {
   jest.debug(myObject);
 });
+
 ```
 
 ## Common Issues
@@ -408,6 +453,7 @@ it('should work', () => {
 it('should handle slow operation', async () => {
   // Test code
 }, 30000); // 30 second timeout
+
 ```
 
 ### Flaky Tests
@@ -415,8 +461,11 @@ it('should handle slow operation', async () => {
 Causes:
 
 - Timing issues (use proper async/await)
+
 - Shared state (ensure test independence)
+
 - External dependencies (mock them)
+
 - Random data (use deterministic values)
 
 ### Mock Not Working
@@ -429,6 +478,7 @@ afterEach(() => {
 
 // Reset mock implementation
 mock.mockReset();
+
 ```
 
 ## Best Practices
@@ -459,13 +509,17 @@ mock.mockReset();
 ### Documentation
 
 - [Jest Documentation](https://jestjs.io/)
+
 - [pytest Documentation](https://docs.pytest.org/)
+
 - [Supertest GitHub](https://github.com/ladjs/supertest)
+
 - [Nock GitHub](https://github.com/nock/nock)
 
 ### Internal Resources
 
 - [Test Implementation Plan](/.copilot/session-state/*/plan.md)
+
 - [Example Tests](/tests/unit/services/ai-content-generator/example.test.js)
 
 ## Getting Help
@@ -473,6 +527,7 @@ mock.mockReset();
 ### Common Commands Reference
 
 ```bash
+
 # JavaScript Tests
 pnpm test                       # Run all tests
 pnpm test -- --watch           # Watch mode
@@ -487,14 +542,19 @@ pytest --cov                    # With coverage
 pytest -k "pattern"            # Run matching tests
 pytest --markers               # List available markers
 pytest -x                      # Stop on first failure
+
 ```
 
 ### Need Help?
 
 1. Check this guide
+
 2. Look at example tests
+
 3. Review test implementation plan
+
 4. Ask in pull request reviews
+
 5. Check CI logs for failures
 
 ---

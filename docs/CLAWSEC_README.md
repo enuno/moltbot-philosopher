@@ -7,9 +7,13 @@ Integration of ClawSec security advisory monitoring into Moltbot-Philosopher's p
 ClawSec provides community-driven security advisories for AI assistant platforms. This integration:
 
 - Monitors <https://clawsec.prompt.security/advisories/feed.json> for new advisories
+
 - Filters for critical and high severity issues
+
 - Archives security insights in the Noosphere memory system
+
 - Sends NTFY alerts for critical vulnerabilities
+
 - Runs every 4 hours via cron
 
 ## Architecture
@@ -17,7 +21,7 @@ ClawSec provides community-driven security advisories for AI assistant platforms
 ```
 ┌─────────────────────────────────────────────────────────────┐
 │                   ClawSec Advisory Feed                     │
-│          https://clawsec.prompt.security/advisories         │
+│          <https://clawsec.prompt.security/advisories>         │
 └───────────────────────────┬─────────────────────────────────┘
                             │
                             ▼
@@ -33,6 +37,7 @@ ClawSec provides community-driven security advisories for AI assistant platforms
     │ Noosphere Archive │   │   NTFY Alerts    │
     │  security-advisory│   │  (critical only) │
     └───────────────────┘   └──────────────────┘
+
 ```
 
 ## Installation
@@ -43,6 +48,7 @@ The monitoring script is located at:
 
 ```bash
 /home/elvis/.moltbot/scripts/clawsec-monitor.sh
+
 ```
 
 ### 2. Cron Job Configured
@@ -51,18 +57,22 @@ The security monitor runs every 4 hours:
 
 ```bash
 0 */4 * * * /home/elvis/.moltbot/scripts/clawsec-monitor.sh check >> /home/elvis/.moltbot/logs/security.log 2>&1
+
 ```
 
 Verify:
 
 ```bash
 crontab -l | grep clawsec
+
 ```
 
 ### 3. State Files
 
 - **State**: `~/.moltbot/state/clawsec-state.json` - Tracks known advisories
+
 - **Cache**: `~/.moltbot/.cache/feed.json` - Cached advisory feed
+
 - **Logs**: `~/.moltbot/logs/security.log` - Monitoring logs
 
 ## Usage
@@ -71,6 +81,7 @@ crontab -l | grep clawsec
 
 ```bash
 ./scripts/clawsec-monitor.sh check
+
 ```
 
 Fetches latest advisories and reports any new critical/high severity issues.
@@ -79,18 +90,22 @@ Fetches latest advisories and reports any new critical/high severity issues.
 
 ```bash
 ./scripts/clawsec-monitor.sh stats
+
 ```
 
 Shows:
 
 - Total advisories by severity
+
 - Number tracked by Moltbot
+
 - Last check timestamp
 
 ### List Advisories
 
 ```bash
 ./scripts/clawsec-monitor.sh list
+
 ```
 
 Lists all critical and high severity advisories in the feed.
@@ -121,6 +136,7 @@ is fixed in 2026.1.20.
 
 [CLAWSEC] Archived advisory in Noosphere
 [CLAWSEC] NTFY alert sent
+
 ```
 
 ## Noosphere Integration
@@ -140,12 +156,15 @@ Security advisories are archived with type `security-advisory`:
     "source": "clawsec"
   }
 }
+
 ```
 
 These entries can be:
 
 - Consolidated into Layer 2 heuristics
+
 - Referenced in Council deliberations
+
 - Synced to Mem0 distributed memory
 
 ## Configuration
@@ -153,10 +172,12 @@ These entries can be:
 Environment variables (optional):
 
 ```bash
+
 # In .env
-CLAWSEC_FEED_URL=https://clawsec.prompt.security/advisories/feed.json
+CLAWSEC_FEED_URL=<https://clawsec.prompt.security/advisories/feed.json>
 CLAWSEC_MIN_SEVERITY=high  # or critical
-NTFY_URL=http://ntfy:3005
+NTFY_URL=<http://ntfy:3005>
+
 ```
 
 ## NTFY Alerts
@@ -164,7 +185,9 @@ NTFY_URL=http://ntfy:3005
 Critical advisories trigger immediate alerts:
 
 - **Priority**: 5 (Urgent)
+
 - **Tags**: warning, security
+
 - **Topic**: security-alerts
 
 High severity advisories are logged but don't trigger alerts by default.
@@ -182,18 +205,25 @@ High severity advisories are logged but don't trigger alerts by default.
 Security advisories can inform Council deliberations:
 
 1. **Automated Detection**: `clawsec-monitor.sh` finds new advisories
+
 2. **Noosphere Archival**: Stored as `security-advisory` discourse
+
 3. **Council Access**: Recalled during deliberations via `recall-engine.py`
+
 4. **Philosophical Analysis**: Council members can reflect on:
    - Ethics of AI security
+
    - Autonomy vs. safety tradeoffs
+
    - Collective responsibility
+
    - Governance implications
 
 Example Council query:
 
 ```bash
 python3 scripts/recall-engine.py --context "AI security governance" --format constitutional
+
 ```
 
 ## Current Advisory Landscape
@@ -201,8 +231,11 @@ python3 scripts/recall-engine.py --context "AI security governance" --format con
 As of 2026-02-09, the ClawSec feed tracks:
 
 - **Total**: 5 advisories
+
 - **Critical**: 0
+
 - **High**: 4 (OpenClaw command injection, path traversal, SSH injection)
+
 - **Medium**: 1
 
 All affect OpenClaw/Moltbot infrastructure and have patches available in recent versions.
@@ -213,6 +246,7 @@ All affect OpenClaw/Moltbot infrastructure and have patches available in recent 
 
 ```bash
 [CLAWSEC] WARNING: Using cached feed (fetch failed after 3 attempts)
+
 ```
 
 **Solution**: Check network connectivity or use cached feed. Script gracefully degrades to cache.
@@ -221,6 +255,7 @@ All affect OpenClaw/Moltbot infrastructure and have patches available in recent 
 
 ```bash
 mkdir: Permission denied
+
 ```
 
 **Solution**: Ensure Noosphere directories exist with correct permissions:
@@ -228,6 +263,7 @@ mkdir: Permission denied
 ```bash
 mkdir -p workspace/classical/noosphere/daily-notes
 chmod 755 workspace/classical/noosphere
+
 ```
 
 ### No Cron Execution
@@ -236,35 +272,48 @@ chmod 755 workspace/classical/noosphere
 
 ```bash
 tail -f ~/.moltbot/logs/security.log
+
 ```
 
 **Verify cron job**:
 
 ```bash
 crontab -l | grep clawsec
+
 ```
 
 ## Security Notes
 
 - Feed validation: JSON structure verified before processing
+
 - State file permissions: 600 (owner read/write only)
+
 - Retry logic: 3 attempts with exponential backoff
+
 - Rate limiting: 4-hour intervals (ClawSec recommendation: 5+ minutes)
+
 - Cache fallback: Uses last successful fetch if new fetch fails
 
 ## Related Resources
 
 - **ClawSec Suite**: skills/clawsec/SKILL.md
+
 - **Advisory Feed**: <https://clawsec.prompt.security/advisories/feed.json>
+
 - **GitHub**: <https://github.com/prompt-security/clawsec>
+
 - **Noosphere Integration**: scripts/noosphere-integration.sh
 
 ## Future Enhancements
 
 - [ ] Philosopher agent commentary on security advisories
+
 - [ ] Council governance proposal for security response protocols
+
 - [ ] Integration with `openclaw-audit-watchdog` skill
+
 - [ ] Affected package detection for Moltbot dependencies
+
 - [ ] Automated issue creation for critical advisories
 
 ---

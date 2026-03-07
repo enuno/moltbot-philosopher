@@ -31,9 +31,13 @@
 Each memory is one of:
 
 - **insight**: Novel understanding from deliberation
+
 - **pattern**: Recurring behavioral observation
+
 - **strategy**: Process improvement technique
+
 - **preference**: Agent-specific disposition
+
 - **lesson**: Community wisdom integrated
 
 ### 2. Structured Queries
@@ -41,9 +45,13 @@ Each memory is one of:
 Query by:
 
 - Agent ID (classical, existentialist, etc.)
+
 - Memory type
+
 - Confidence threshold (0.0-1.0)
+
 - Tags (array containment)
+
 - Creation date ranges
 
 ### 3. Semantic Search
@@ -51,7 +59,9 @@ Query by:
 Vector similarity search via OpenAI embeddings:
 
 - Find memories semantically related to query text
+
 - Filter by agent, confidence, limit
+
 - Ranked by cosine similarity
 
 ### 4. Agent Statistics
@@ -59,8 +69,11 @@ Vector similarity search via OpenAI embeddings:
 Track per-agent:
 
 - Total memory count (max 200)
+
 - Type-specific counts (insights, patterns, etc.)
+
 - Last eviction timestamp
+
 - Memory distribution
 
 ### 5. Automatic Eviction
@@ -68,7 +81,9 @@ Track per-agent:
 When 200-cap reached:
 
 - Lowest confidence memory auto-evicted
+
 - Stats updated atomically
+
 - Eviction logged for audit
 
 ---
@@ -89,12 +104,15 @@ noosphere_memory
 ├── tags (text[])
 ├── source_trace_id (text, unique)
 └── timestamps (created_at, updated_at, expires_at)
+
 ```
 
 ### Indexes
 
 - **B-tree**: agent_id, type, confidence, created_at
+
 - **GIN**: tags (array containment)
+
 - **ivfflat**: embedding (vector cosine similarity, 100 lists)
 
 ### API Endpoints
@@ -131,42 +149,52 @@ noosphere_memory
 ### Prerequisites
 
 - [x] Docker Compose installed
+
 - [x] PostgreSQL 16 + pgvector image
+
 - [x] OpenAI API key (for embeddings)
+
 - [x] Moltbook API key (for auth)
 
 ### Services Running
 
 - [x] noosphere-postgres (port 5432)
+
 - [x] noosphere-service (port 3006)
+
 - [x] All 9 philosopher agents
 
 ### Configuration
 
 - [x] `DATABASE_URL` set to postgres connection string
+
 - [x] `MOLTBOOK_API_KEY` set for authentication
+
 - [x] `OPENAI_API_KEY` set (optional, enables embeddings)
+
 - [x] `ENABLE_EMBEDDINGS=true` (if using OpenAI)
 
 ### Verification
 
 ```bash
+
 # 1. Health check
-curl http://localhost:3006/health
+curl <http://localhost:3006/health>
 
 # 2. Database connectivity
 docker exec noosphere-postgres psql -U noosphere_admin -d noosphere \
   -c "SELECT COUNT(*) FROM noosphere_memory;"
 
 # 3. Create test memory
-curl -X POST http://localhost:3006/memories \
+curl -X POST <http://localhost:3006/memories> \
   -H "X-API-Key: $MOLTBOOK_API_KEY" \
   -H "Content-Type: application/json" \
   -d '{"agent_id":"classical","type":"insight","content":"Test memory","confidence":0.75}'
 
 # 4. Query test memory
-curl "http://localhost:3006/memories?agent_id=classical&limit=1" \
+curl "<http://localhost:3006/memories?agent_id=classical&limit=1"> \
   -H "X-API-Key: $MOLTBOOK_API_KEY"
+
 ```
 
 ---
@@ -176,19 +204,25 @@ curl "http://localhost:3006/memories?agent_id=classical&limit=1" \
 ### Daily Tasks
 
 1. **Pre-Council Recall**: Query memories before deliberation
+
 2. **Post-Council Storage**: Store new insights/strategies
+
 3. **Health Monitoring**: Check service + database status
 
 ### Weekly Tasks
 
 1. **Memory Review**: Identify low-confidence memories (<0.65)
+
 2. **Stats Audit**: Review agent memory distribution
+
 3. **Log Rotation**: Archive old access logs
 
 ### Monthly Tasks
 
 1. **Constitutional Promotion**: Flag high-confidence (≥0.92) memories
+
 2. **Pattern Analysis**: Review common tags and themes
+
 3. **Performance Tuning**: Optimize indexes if needed
 
 ---
@@ -208,9 +242,13 @@ curl "http://localhost:3006/memories?agent_id=classical&limit=1" \
 ## Security
 
 - **Authentication**: API key required (X-API-Key header)
+
 - **Authorization**: Agent-level isolation enforced
+
 - **Encryption**: TLS for API, at-rest for PostgreSQL
+
 - **Audit**: All operations logged to filesystem
+
 - **Rate Limiting**: 100 req/min per agent
 
 ---
@@ -220,14 +258,19 @@ curl "http://localhost:3006/memories?agent_id=classical&limit=1" \
 ### Documentation
 
 - **Architecture**: `docs/NOOSPHERE_ARCHITECTURE.md`
+
 - **Usage Guide**: `docs/NOOSPHERE_USAGE_GUIDE.md`
+
 - **API Reference**: `docs/noosphere-v3-usage-guide.md`
+
 - **Testing**: `docs/NOOSPHERE_TESTING_GUIDE.md`
 
 ### Quick Links
 
 - **Database Schema**: `scripts/db/init-noosphere-v3.sql`
+
 - **Python Client**: `services/noosphere/python-client/`
+
 - **API Service**: `services/noosphere/src/index.js`
 
 ### Troubleshooting
@@ -239,14 +282,21 @@ Common issues and solutions documented in `NOOSPHERE_USAGE_GUIDE.md`
 **Last Updated**: 2026-02-12  
 **Maintainer**: Noosphere Development Team  
 **Version**: 3.0.0
+
    - Layer 2 (consolidated): Directory empty
+
    - Layer 3 (archival): Directory missing
+
    - No memory state tracking
 
 3. **clawhub-mcp.py** (0% implemented)
+
    - No vector embedding integration
+
    - No ClawHub MCP interface
+
    - No constitutional-level retrieval
+
    - Missing cross-layer consistency
 
 ### ❌ System Integration
@@ -254,9 +304,13 @@ Common issues and solutions documented in `NOOSPHERE_USAGE_GUIDE.md`
 **Impact**: Medium-High - Noosphere not actually used
 
 - convene-council.sh doesn't call recall-engine.py
+
 - No manifest.md loading before deliberations
+
 - No assimilation of community wisdom into memory
+
 - No memory consolidation schedule
+
 - No metrics/monitoring
 
 ---
@@ -266,20 +320,27 @@ Common issues and solutions documented in `NOOSPHERE_USAGE_GUIDE.md`
 ### High Priority (Must Fix)
 
 1. **Field Mapping Inconsistency** - Different JSON files use different field names
+
 2. **Voice Resonance Too Strict** - Rejects valid multi-voice submissions
+
 3. **Missing Error Handling** - Silent failures on missing directories
+
 4. **No Data Persistence** - Assimilated heuristics lost after script runs
 
 ### Medium Priority (Should Fix)
 
 5. **Rights Precedent Signatures Missing** - No relevance boost for case law
+
 2. **Output Format Incomplete** - Missing constitutional/hybrid formats
+
 3. **Insufficient Consistency Checking** - Only 2 hardcoded contradictions
+
 4. **Community Ratio Untracked** - Metric in spec but not computed
 
 ### Low Priority (Nice to Fix)
 
 9. **Incomplete Bias Detection** - Missing 2 of 4 documented biases
+
 2. **Performance Unmonitored** - No latency or quality metrics
 
 ---
@@ -291,9 +352,13 @@ Common issues and solutions documented in `NOOSPHERE_USAGE_GUIDE.md`
 **Comprehensive audit with:**
 
 - Implementation status for each component
+
 - Detailed bug analysis with code examples
+
 - Impact assessment and severity ratings
+
 - Improvement suggestions
+
 - Priority action plan
 
 **Key Section**: "Priority Action Plan" outlines 4-phase rollout
@@ -303,11 +368,17 @@ Common issues and solutions documented in `NOOSPHERE_USAGE_GUIDE.md`
 **Practical workflows including:**
 
 - Quick start guide
+
 - Council deliberation workflow (step-by-step)
+
 - Community wisdom assimilation
+
 - Memory management procedures
+
 - Troubleshooting guide
+
 - Best practices
+
 - Advanced usage examples
 
 **Immediate Value**: Users can start using recall-engine.py today
@@ -317,10 +388,15 @@ Common issues and solutions documented in `NOOSPHERE_USAGE_GUIDE.md`
 **Comprehensive testing suite with:**
 
 - Quick verification checklist
+
 - 4 test suites (25+ individual tests)
+
 - Performance benchmarks
+
 - Regression tests
+
 - Acceptance criteria
+
 - Automated test runner
 
 **Verification Script**: Ready-to-run bash scripts for testing
@@ -330,9 +406,13 @@ Common issues and solutions documented in `NOOSPHERE_USAGE_GUIDE.md`
 **Implementation-ready code with:**
 
 - 6 critical bug fixes (copy/paste ready)
+
 - 2 enhancement suggestions
+
 - Code examples for each fix
+
 - Testing approach for each change
+
 - Implementation order and effort estimates
 
 **Immediate Value**: Developers can implement fixes without design work
@@ -352,6 +432,7 @@ Common issues and solutions documented in `NOOSPHERE_USAGE_GUIDE.md`
 □ Implement heuristic persistence to files
 □ Normalize field names in recall-engine.py
 □ Add missing output formats
+
 ```
 
 ### Phase 2: Missing Components (Week 2)
@@ -365,6 +446,7 @@ Common issues and solutions documented in `NOOSPHERE_USAGE_GUIDE.md`
 □ Implement constitutional archive
 □ Add memory state tracking
 □ Implement clawhub-mcp.py (vector search)
+
 ```
 
 ### Phase 3: Integration (Week 3)
@@ -378,6 +460,7 @@ Common issues and solutions documented in `NOOSPHERE_USAGE_GUIDE.md`
 □ Run assimilate-wisdom.py post-iteration
 □ Schedule memory-cycle consolidations
 □ Add NTFY notifications
+
 ```
 
 ### Phase 4: Monitoring & Polish (Ongoing)
@@ -391,6 +474,7 @@ Common issues and solutions documented in `NOOSPHERE_USAGE_GUIDE.md`
 □ Run automated verification
 □ Generate monthly reports
 □ Adjust thresholds based on data
+
 ```
 
 ---
@@ -428,6 +512,7 @@ Once implemented, monitor:
     "memory_consistency": 1.0
   }
 }
+
 ```
 
 ---
@@ -447,7 +532,9 @@ Once implemented, monitor:
 ### After Fixes
 
 - All HIGH risks → LOW
+
 - Most MEDIUM risks → LOW
+
 - System becomes production-ready
 
 ---
@@ -457,30 +544,43 @@ Once implemented, monitor:
 ### Phase 1 Complete (Bugs Fixed)
 
 - [ ] All 10 identified bugs fixed
+
 - [ ] recall-engine.py passes all 5 unit tests
+
 - [ ] assimilate-wisdom.py passes all 4 unit tests
+
 - [ ] 95%+ test coverage
 
 ### Phase 2 Complete (Memory Implemented)
 
 - [ ] memory-cycle.py passes 3 action tests (consolidate, promote, stats)
+
 - [ ] Tri-Layer structure functional
+
 - [ ] Constitutional archive maintains consistency
+
 - [ ] Latency targets met (<100ms recall, <5s consolidation)
 
 ### Phase 3 Complete (Integrated)
 
 - [ ] convene-council.sh loads manifest.md
+
 - [ ] recall-engine.py called before each Council deliberation
+
 - [ ] assimilate-wisdom.py processes submissions automatically
+
 - [ ] Memory consolidation runs on schedule
 
 ### Phase 4 Complete (Operational)
 
 - [ ] Monthly health reports generated
+
 - [ ] Voice balance maintained (entropy >0.80)
+
 - [ ] Community wisdom successfully assimilated (>1 heuristic/month)
+
 - [ ] Zero data loss incidents
+
 - [ ] Performance monitoring active
 
 ---
@@ -490,29 +590,41 @@ Once implemented, monitor:
 ### Immediate (Do Now)
 
 1. **Read this analysis** and the 4 generated documents
+
 2. **Prioritize memory-cycle.py** - It's the critical missing piece
+
 3. **Fix persistence issue** (Fix #6) - Data loss is unacceptable
+
 4. **Integrate into convene-council.sh** - System must be used
 
 ### Short-term (Next 2 weeks)
 
 1. Implement all Phase 1 bug fixes
+
 2. Implement memory-cycle.py
+
 3. Create Tri-Layer memory structures
+
 4. Integrate with Council deliberations
 
 ### Medium-term (Next month)
 
 1. Implement clawhub-mcp.py for vector search
+
 2. Add comprehensive monitoring
+
 3. Run initial memory consolidation
+
 4. Generate first health reports
 
 ### Long-term (Ongoing)
 
 1. Tune relevance weights based on feedback
+
 2. Add more heuristics from community
+
 3. Monitor philosophical coherence
+
 4. Evolve the architecture based on use
 
 ---
@@ -522,23 +634,29 @@ Once implemented, monitor:
 **Architecture & Analysis**:
 
 - `/docs/NOOSPHERE_ARCHITECTURE.md` - Official specification
+
 - `/docs/NOOSPHERE_IMPLEMENTATION_ANALYSIS.md` - This comprehensive audit
 
 **Usage & Testing**:
 
 - `/docs/NOOSPHERE_USAGE_GUIDE.md` - Practical workflows
+
 - `/docs/NOOSPHERE_TESTING_GUIDE.md` - Testing procedures
+
 - `/docs/NOOSPHERE_CODE_IMPROVEMENTS.md` - Implementation guide
 
 **Implementation**:
 
 - `/workspace/classical/noosphere/recall-engine.py` - Heuristic retrieval
+
 - `/workspace/classical/noosphere/assimilate-wisdom.py` - Wisdom extraction
+
 - `/workspace/classical/noosphere/memory-core/` - Heuristic data
 
 **Still Needed**:
 
 - `/workspace/classical/noosphere/memory-cycle.py` - Memory evolution
+
 - `/workspace/classical/noosphere/clawhub-mcp.py` - Vector search
 
 ---
@@ -560,8 +678,11 @@ The Noosphere Architecture is **well-designed but incompletely implemented**. Th
 For questions about this analysis:
 
 - See NOOSPHERE_IMPLEMENTATION_ANALYSIS.md for technical details
+
 - See NOOSPHERE_CODE_IMPROVEMENTS.md for implementation specifics
+
 - See NOOSPHERE_TESTING_GUIDE.md for verification procedures
+
 - See NOOSPHERE_USAGE_GUIDE.md for practical guidance
 
 ---

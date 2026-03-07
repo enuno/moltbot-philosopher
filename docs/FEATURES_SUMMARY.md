@@ -19,14 +19,19 @@ Full social network engagement with AI-powered content
 **Files:**
 
 - `scripts/check-mentions.sh` - Detect mentions in posts/comments
+
 - `scripts/reply-to-mention.sh` - Generate philosophical replies
 
 **Features:**
 
 - Scans feed for "MoltbotPhilosopher" mentions
+
 - Tracks replied posts/comments (state persistence)
+
 - Generates contextual replies using philosophical personas
+
 - Supports auto-reply and manual review modes
+
 - 10 philosopher personas available (Socratic, Stoic, etc.)
 
 ---
@@ -36,20 +41,27 @@ Full social network engagement with AI-powered content
 **Files:**
 
 - `scripts/welcome-new-moltys.sh` - Detect and welcome newcomers
+
 - `scripts/welcome-molty.sh` - Welcome specific molty
 
 **Features:**
 
 - Detects new moltys based on karma, followers, account age
+
 - Generates philosophical welcome messages
+
 - Auto-welcome mode available
+
 - Prevents duplicate welcomes
+
 - Tracks welcomed moltys
 
 **Detection Criteria:**
 
 - Karma ≤ 5
+
 - Followers ≤ 3
+
 - Account age ≤ 7 days OR ≤ 2 posts
 
 ---
@@ -59,20 +71,27 @@ Full social network engagement with AI-powered content
 **Files:**
 
 - `scripts/follow-with-criteria.sh` - Follow with quality checks
+
 - `scripts/record-interaction.sh` - Track molty interactions
 
 **Features:**
 
 - Enforces Moltbook guidelines (be selective!)
+
 - Requires 3+ posts seen, 2+ upvoted, 1+ day observed
+
 - Tracks interaction history
+
 - Supports force-follow override
+
 - Records quality score per molty
 
 **Criteria:**
 
 - See ≥ 3 posts from molty
+
 - Upvote ≥ 2 posts found valuable
+
 - Observe for ≥ 1 day
 
 ---
@@ -82,21 +101,29 @@ Full social network engagement with AI-powered content
 **Files:**
 
 - `services/ai-content-generator/` - Full Node.js service
+
 - `scripts/generate-post-ai.sh` - AI-powered post generation
 
 **Features:**
 
 - Venice API integration (port 8080)
+
 - Kimi API integration (port 8081)
+
 - 10 philosophical personas
+
 - Template fallback if AI unavailable
+
 - Interactive editing before posting
+
 - Dry-run preview mode
 
 **API Endpoints:**
 
 - `POST /generate` - Generate content
+
 - `GET /personas` - List available personas
+
 - `GET /health` - Service health check
 
 **Personas:**
@@ -113,12 +140,19 @@ socratic, aristotelian, platonic, nietzschean, existentialist, stoic, confucian,
 **Features:**
 
 - Skill update checking (daily)
+
 - Claim status verification
+
 - DM activity detection (requests + messages)
+
 - Personalized feed monitoring (mentions detection)
+
 - Global feed scanning (new molty detection)
+
 - Posting opportunity suggestion
+
 - Human attention alerts
+
 - Activity summary with suggested actions
 
 **Runs:** Every 4 hours
@@ -190,14 +224,19 @@ socratic, aristotelian, platonic, nietzschean, existentialist, stoic, confucian,
 ### New Council Members
 
 - **Cyberpunk-Posthumanist (Council Member #7)**: Gibson + Asimov + Dick synthesis focused on posthuman ethics, corporate feudalism, and simulation reality checks.
+
 - **Satirist-Absurdist (Council Member #8)**: Heller + Vonnegut + Twain synthesis for Catch-22 detection, bureaucratic absurdity exposure, and moral clarity through laughter.
+
 - **Scientist-Empiricist (Council Member #9)**: Feynman + Sagan + Hawking + Einstein synthesis demanding testability, cosmic perspective, and thermodynamic realism.
 
 ### Auto-Darwinism Skill Update Protocol
 
 - Four-mode change classification: **PATCH**, **MINOR**, **MAJOR**, **CRITICAL**
+
 - **skill-manifest** directories (`current/`, `staging/`, `archive/`) and canonical hash fingerprinting for provenance
+
 - **Automated staged deployment + rollback** with 10-version retention and sub-30s revert targets
+
 - **NTFY notifications** for update events and **GnuPG verification + content validation** safeguards
 
 ---
@@ -244,6 +283,7 @@ All in `/workspace/classical/`:
 ## 🚀 Quick Start Commands
 
 ```bash
+
 # Check everything at once
 docker exec classical-philosopher /app/scripts/moltbook-heartbeat-enhanced.sh
 
@@ -258,6 +298,7 @@ docker exec classical-philosopher /app/scripts/generate-post-ai.sh
 
 # Follow with criteria
 docker exec classical-philosopher /app/scripts/follow-with-criteria.sh <name>
+
 ```
 
 ---

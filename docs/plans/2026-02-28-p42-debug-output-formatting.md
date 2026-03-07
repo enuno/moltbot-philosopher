@@ -13,7 +13,9 @@
 ## Task 1: Create debugFormatter.ts with Type Definitions
 
 **Files:**
+
 - Create: `services/moltbook-sdk/src/debugFormatter.ts`
+
 - Test: `services/moltbook-sdk/src/__tests__/debugFormatter.test.ts`
 
 **Step 1: Create empty debugFormatter.ts with interface definitions**
@@ -22,19 +24,29 @@ Create `services/moltbook-sdk/src/debugFormatter.ts`:
 
 ```typescript
 /**
+
  * Debug formatter for hybrid search ranking
+
  *
+
  * Formats scoring debug data with contribution percentage breakdowns
+
  * to understand how each factor (recency, reputation, follow boost)
+
  * influenced the final score relative to the base semantic score.
+
  *
+
  * Implements P4.2 "Search Result Ranking" debug output requirements.
+
  */
 
 import { ScoringResult } from "./types";
 
 /**
+
  * Structured debug breakdown for programmatic access
+
  */
 export interface DebugBreakdown {
   postId: string;
@@ -60,14 +72,17 @@ export interface DebugBreakdown {
   totalChange: number; // total percentage points change from base
   totalChangePercent: number; // percentage relative to final score
 }
+
 ```
 
 **Step 2: Verify TypeScript compiles**
 
 Run:
+
 ```bash
 cd services/moltbook-sdk
 npx tsc --noEmit
+
 ```
 
 Expected: No errors
@@ -77,6 +92,7 @@ Expected: No errors
 ```bash
 git add services/moltbook-sdk/src/debugFormatter.ts
 git commit -m "feat(scoring): add DebugBreakdown interface for debug output formatting"
+
 ```
 
 ---
@@ -84,7 +100,9 @@ git commit -m "feat(scoring): add DebugBreakdown interface for debug output form
 ## Task 2: Write and Implement calculateBreakdown Function
 
 **Files:**
+
 - Modify: `services/moltbook-sdk/src/debugFormatter.ts`
+
 - Create: `services/moltbook-sdk/src/__tests__/debugFormatter.test.ts`
 
 **Step 1: Write test for calculateBreakdown with neutral scores**
@@ -121,14 +139,17 @@ describe("debugFormatter", () => {
     });
   });
 });
+
 ```
 
 **Step 2: Run test to verify it fails**
 
 Run:
+
 ```bash
 cd services/moltbook-sdk
 npm test -- debugFormatter.test.ts
+
 ```
 
 Expected: FAIL with "calculateBreakdown is not defined"
@@ -139,14 +160,23 @@ Add to `services/moltbook-sdk/src/debugFormatter.ts` (after interfaces):
 
 ```typescript
 /**
+
  * Calculate contribution percentages for each scoring factor
+
  *
+
  * Shows how much each multiplier changed the score from the baseline (semantic score).
+
  * Contribution = (score_after_factor - score_before_factor) / score_before_factor * 100
+
  *
+
  * @param result ScoringResult with debug info
+
  * @returns DebugBreakdown with detailed percentage contributions
+
  * @throws Error if debug info is missing
+
  */
 export function calculateBreakdown(result: ScoringResult): DebugBreakdown {
   if (!result.debug) {
@@ -222,14 +252,17 @@ export function calculateBreakdown(result: ScoringResult): DebugBreakdown {
     totalChangePercent,
   };
 }
+
 ```
 
 **Step 4: Run test to verify it passes**
 
 Run:
+
 ```bash
 cd services/moltbook-sdk
 npm test -- debugFormatter.test.ts
+
 ```
 
 Expected: PASS (1 passing)
@@ -306,14 +339,17 @@ Add to test file (within `describe("calculateBreakdown", ...)`):
 
       expect(() => calculateBreakdown(result)).toThrow("Score calculation mismatch");
     });
+
 ```
 
 **Step 6: Run all calculateBreakdown tests**
 
 Run:
+
 ```bash
 cd services/moltbook-sdk
 npm test -- debugFormatter.test.ts -t "calculateBreakdown"
+
 ```
 
 Expected: All 5 tests pass
@@ -323,6 +359,7 @@ Expected: All 5 tests pass
 ```bash
 git add services/moltbook-sdk/src/__tests__/debugFormatter.test.ts services/moltbook-sdk/src/debugFormatter.ts
 git commit -m "feat(scoring): implement calculateBreakdown with contribution percentage logic"
+
 ```
 
 ---
@@ -330,7 +367,9 @@ git commit -m "feat(scoring): implement calculateBreakdown with contribution per
 ## Task 3: Implement formatDebugBreakdown (Single-Line Formatter)
 
 **Files:**
+
 - Modify: `services/moltbook-sdk/src/debugFormatter.ts`
+
 - Modify: `services/moltbook-sdk/src/__tests__/debugFormatter.test.ts`
 
 **Step 1: Write test for formatDebugBreakdown**
@@ -361,14 +400,17 @@ Add to test file (new describe block):
       expect(output).toMatch(/→ Final: 0.87/);
     });
   });
+
 ```
 
 **Step 2: Run test to verify it fails**
 
 Run:
+
 ```bash
 cd services/moltbook-sdk
 npm test -- debugFormatter.test.ts -t "formatDebugBreakdown"
+
 ```
 
 Expected: FAIL with "formatDebugBreakdown is not defined"
@@ -379,14 +421,22 @@ Add to `services/moltbook-sdk/src/debugFormatter.ts`:
 
 ```typescript
 /**
+
  * Format debug breakdown as human-readable string
+
  *
+
  * Example output:
  * "Post abc123 | Semantic: 0.75 (base) | Recency: -8% (0.92×) | Reputation: +10% (1.10×) | Follow: +25% (1.25×) → Final: 0.87"
+
  *
+
  * @param result ScoringResult with debug info
+
  * @returns Formatted string with contribution percentages
+
  * @throws Error if debug info is missing
+
  */
 export function formatDebugBreakdown(result: ScoringResult): string {
   const breakdown = calculateBreakdown(result);
@@ -412,14 +462,17 @@ export function formatDebugBreakdown(result: ScoringResult): string {
 
   return parts.join(" | ");
 }
+
 ```
 
 **Step 4: Run test to verify it passes**
 
 Run:
+
 ```bash
 cd services/moltbook-sdk
 npm test -- debugFormatter.test.ts -t "formatDebugBreakdown"
+
 ```
 
 Expected: PASS
@@ -429,6 +482,7 @@ Expected: PASS
 ```bash
 git add services/moltbook-sdk/src/debugFormatter.ts services/moltbook-sdk/src/__tests__/debugFormatter.test.ts
 git commit -m "feat(scoring): implement formatDebugBreakdown single-line formatter"
+
 ```
 
 ---
@@ -436,7 +490,9 @@ git commit -m "feat(scoring): implement formatDebugBreakdown single-line formatt
 ## Task 4: Implement Remaining Formatters (Multi-line, JSON, Batch)
 
 **Files:**
+
 - Modify: `services/moltbook-sdk/src/debugFormatter.ts`
+
 - Modify: `services/moltbook-sdk/src/__tests__/debugFormatter.test.ts`
 
 **Step 1: Add tests for multi-line, JSON, and batch formatters**
@@ -525,14 +581,17 @@ Add to test file:
       expect(lines[1]).toMatch(/batch2/);
     });
   });
+
 ```
 
 **Step 2: Run tests to verify they fail**
 
 Run:
+
 ```bash
 cd services/moltbook-sdk
 npm test -- debugFormatter.test.ts -t "Multiline|JSON|Batch"
+
 ```
 
 Expected: FAIL (functions not defined)
@@ -543,7 +602,9 @@ Add to `services/moltbook-sdk/src/debugFormatter.ts`:
 
 ```typescript
 /**
+
  * Format debug breakdown as multi-line string for console output
+
  */
 export function formatDebugBreakdownMultiline(result: ScoringResult): string {
   const breakdown = calculateBreakdown(result);
@@ -579,7 +640,9 @@ export function formatDebugBreakdownMultiline(result: ScoringResult): string {
 }
 
 /**
+
  * Format debug breakdown as compact JSON string
+
  */
 export function formatDebugBreakdownJSON(result: ScoringResult): string {
   const breakdown = calculateBreakdown(result);
@@ -587,7 +650,9 @@ export function formatDebugBreakdownJSON(result: ScoringResult): string {
 }
 
 /**
+
  * Batch format multiple scoring results for comparison
+
  */
 export function formatDebugBreakdownBatch(results: ScoringResult[]): string {
   return results
@@ -608,14 +673,17 @@ export function formatDebugBreakdownBatch(results: ScoringResult[]): string {
     })
     .join("\n");
 }
+
 ```
 
 **Step 4: Run all formatter tests**
 
 Run:
+
 ```bash
 cd services/moltbook-sdk
 npm test -- debugFormatter.test.ts
+
 ```
 
 Expected: All tests pass (8+ passing)
@@ -625,6 +693,7 @@ Expected: All tests pass (8+ passing)
 ```bash
 git add services/moltbook-sdk/src/debugFormatter.ts services/moltbook-sdk/src/__tests__/debugFormatter.test.ts
 git commit -m "feat(scoring): implement multiline, JSON, and batch debug formatters"
+
 ```
 
 ---
@@ -632,6 +701,7 @@ git commit -m "feat(scoring): implement multiline, JSON, and batch debug formatt
 ## Task 5: Export from SDK Index and Verify Build
 
 **Files:**
+
 - Modify: `services/moltbook-sdk/src/index.ts`
 
 **Step 1: Add exports to index.ts**
@@ -641,14 +711,17 @@ Modify `services/moltbook-sdk/src/index.ts`, add at the end:
 ```typescript
 // Debug formatting for search ranking (P4.2)
 export * from "./debugFormatter";
+
 ```
 
 **Step 2: Verify TypeScript compiles**
 
 Run:
+
 ```bash
 cd services/moltbook-sdk
 npx tsc --noEmit
+
 ```
 
 Expected: No errors
@@ -656,9 +729,11 @@ Expected: No errors
 **Step 3: Build SDK**
 
 Run:
+
 ```bash
 cd services/moltbook-sdk
 npm run build
+
 ```
 
 Expected: Build succeeds, dist/ folder updated
@@ -666,9 +741,11 @@ Expected: Build succeeds, dist/ folder updated
 **Step 4: Verify exports are available**
 
 Run:
+
 ```bash
 cd services/moltbook-sdk
 node -e "const sdk = require('./dist/index.js'); console.log(typeof sdk.formatDebugBreakdown, typeof sdk.calculateBreakdown)"
+
 ```
 
 Expected: Output `"function function"`
@@ -678,6 +755,7 @@ Expected: Output `"function function"`
 ```bash
 git add services/moltbook-sdk/src/index.ts
 git commit -m "feat(scoring): export debug formatters from SDK index"
+
 ```
 
 ---
@@ -685,7 +763,9 @@ git commit -m "feat(scoring): export debug formatters from SDK index"
 ## Task 6: Integration Test with SemanticSearch
 
 **Files:**
+
 - Modify: `services/noosphere-service/src/search/SemanticSearch.ts`
+
 - Create: `services/noosphere-service/src/search/__tests__/SemanticSearch.debug.test.ts`
 
 **Step 1: Write integration test for debug output in search**
@@ -777,14 +857,17 @@ describe("SemanticSearch - Debug Output Integration", () => {
     expect(results[0].debug).toBeUndefined();
   });
 });
+
 ```
 
 **Step 2: Run integration test**
 
 Run:
+
 ```bash
 cd services/noosphere-service
 npm test -- SemanticSearch.debug.test.ts
+
 ```
 
 Expected: All 3 tests pass
@@ -794,6 +877,7 @@ Expected: All 3 tests pass
 ```bash
 git add services/noosphere-service/src/search/__tests__/SemanticSearch.debug.test.ts
 git commit -m "test(search): add integration tests for debug output formatting"
+
 ```
 
 ---
@@ -801,14 +885,19 @@ git commit -m "test(search): add integration tests for debug output formatting"
 ## Task 7: Final Verification and PR Setup
 
 **Files:**
+
 - Verify all tests pass
+
 - Check code coverage
+
 - Clean up git state
 
 **Step 1: Run full test suite for both services**
 
 Run:
+
 ```bash
+
 # Test moltbook-sdk
 cd services/moltbook-sdk
 npm test
@@ -816,6 +905,7 @@ npm test
 # Test noosphere-service
 cd services/noosphere-service
 npm test
+
 ```
 
 Expected: All tests pass (20+ tests)
@@ -823,8 +913,10 @@ Expected: All tests pass (20+ tests)
 **Step 2: Verify TypeScript compilation**
 
 Run:
+
 ```bash
 npm run build
+
 ```
 
 Expected: No errors
@@ -832,24 +924,34 @@ Expected: No errors
 **Step 3: Check git status and review commits**
 
 Run:
+
 ```bash
 git log --oneline -7
+
 ```
 
 Expected: All 7 commits visible with proper messages:
 - Add DebugBreakdown interface
+
 - Implement calculateBreakdown
+
 - Implement formatDebugBreakdown
+
 - Implement remaining formatters
+
 - Export debug formatters
+
 - Add integration tests
+
 - Final verification
 
 **Step 4: Final commit if any uncommitted changes**
 
 Run:
+
 ```bash
 git status
+
 ```
 
 Expected: Clean working tree (nothing to commit)
@@ -871,18 +973,27 @@ Expected: Clean working tree (nothing to commit)
 ## Testing Strategy
 
 **Unit Tests:**
+
 - calculateBreakdown: 5 tests (neutral, decay, pipeline, edge cases, errors)
+
 - formatDebugBreakdown: 1 test
+
 - formatDebugBreakdownMultiline: 1 test
+
 - formatDebugBreakdownJSON: 1 test
+
 - formatDebugBreakdownBatch: 1 test
+
 - **Total: 9+ tests**
 
 **Integration Tests:**
+
 - SemanticSearch debug enabled: 1 test
+
 - Format integration: 1 test
+
 - SemanticSearch debug disabled: 1 test
+
 - **Total: 3 tests**
 
 **Coverage:** All functions, all code paths, edge cases (division by zero, missing debug, score mismatches)
-

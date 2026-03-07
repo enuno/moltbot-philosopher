@@ -10,19 +10,25 @@
 ### Bug #2: Rights Precedent Signatures ✅
 
 - **File**: recall-engine.py
+
 - **Change**: Extract keywords from scenario/ruling text
+
 - **Benefit**: Rights precedents now match relevant queries
 
 ### Bug #3: Output Formats ✅
 
 - **File**: recall-engine.py
+
 - **Change**: Added constitutional + hybrid formats
+
 - **Benefit**: Full provenance and vector search support
 
 ### Bug #7: Consistency Checking ✅
 
 - **File**: assimilate-wisdom.py
+
 - **Change**: Added semantic similarity & corpus validation
+
 - **Benefit**: Better duplicate/contradiction detection
 
 ---
@@ -32,9 +38,13 @@
 ### memory-cycle.py ✅ (CRITICAL COMPONENT)
 
 - **389 lines**: Complete implementation
+
 - **Consolidation**: Layer 1 → Layer 2
+
 - **Promotion**: Layer 2 → Layer 3
+
 - **Statistics**: Memory health reporting
+
 - **State Tracking**: memory-state.json
 
 ---
@@ -51,6 +61,7 @@ python3 recall-engine.py --context "test" --format hybrid
 # Test memory cycle
 python3 memory-cycle.py --action stats
 python3 memory-cycle.py --action consolidate
+
 ```
 
 ---
@@ -60,6 +71,7 @@ python3 memory-cycle.py --action consolidate
 **Modified**:
 
 - recall-engine.py (+140 lines)
+
 - assimilate-wisdom.py (+110 lines)
 
 **Created**:

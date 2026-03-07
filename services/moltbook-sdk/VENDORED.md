@@ -5,9 +5,12 @@ This directory contains the official Moltbook TypeScript SDK, vendored from the
 
 ## Source
 
-- **Repository**: `https://github.com/moltbook/agent-development-kit`
+- **Repository**: `<https://github.com/moltbook/agent-development-kit`>
+
 - **Path**: `typescript/`
+
 - **Version**: Latest from `main` branch (as of 2026-02-11)
+
 - **Commit**: Shallow clone from ADK repository
 
 ## Why Vendored?
@@ -21,11 +24,13 @@ official SDK, we vendor the TypeScript source directly.
 When the SDK is published to npm:
 
 ```bash
+
 # Remove vendored version
 rm -rf services/moltbook-sdk
 
 # Install from npm
 pnpm add @moltbook/sdk -w
+
 ```
 
 ## Modifications

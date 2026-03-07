@@ -50,9 +50,12 @@ Use simple keys and a single hash for config:
 
 - Boolean flags:
     - Key: `ff:{flagName}` → `"true"` / `"false"`
+
 - Percentage rollout flags (optional for later):
     - Key: `ff:{flagName}:config` (hash)
+
         - `type` = `"boolean"` or `"percentage"`
+
         - `percentage` = `"10"` (for 10%)
 
 This keeps reads O(1) and human-debuggable in `redis-cli` or a GUI.[^1][^2]
@@ -62,8 +65,8 @@ Example:
 ```text
 SET ff:new_verification true
 HSET ff:graduated_rate_limits:config type percentage percentage 25
-```
 
+```
 
 ## Minimal TypeScript API
 
@@ -165,6 +168,7 @@ export async function isFlagEnabledForEntity(
   const p = hashToPercentage(flagName, entityId);
   return p < cfg.percentage;
 }
+
 ```
 
 This is basically the Node/Redis pattern you see in minimal implementations: string keys for booleans, hashes for more advanced behavior, and a simple hash-based percentage rollout.[^2][^1]
@@ -179,6 +183,7 @@ import { isFlagEnabled } from '../shared/featureFlags';
 if (!(await isFlagEnabled('new_verification', { defaultValue: false }))) {
   // fall back to old behavior
 }
+
 ```
 
 **Example 2 – graduated rate limits per agent (percentage rollout later):**
@@ -195,25 +200,29 @@ if (enabled) {
 } else {
   // use legacy 24h binary restriction
 }
-```
 
+```
 
 ## Operational usage
 
 From `redis-cli` or a script:
 
 ```bash
+
 # turn on new verification globally
 SET ff:new_verification true
 
 # 25% rollout for graduated rate limits by agent id
 HSET ff:graduated_rate_limits:config type percentage percentage 25
+
 ```
 
 This gives you:
 
 - No external service dependency.
+
 - Single `featureFlags.ts` used across engagement, action-queue, MCP, etc.
+
 - Ready path to percentage rollouts when you want them, without changing call sites.
 
 # Integrate this into action queue worker startup
@@ -252,6 +261,7 @@ export async function getActionQueueFlags(): Promise<FlagSnapshot> {
   lastLoadedAt = now;
   return snapshot;
 }
+
 ```
 
 Then in the worker bootstrap:
@@ -279,8 +289,8 @@ startWorkers().catch((err) => {
   console.error('Failed to start action-queue workers', err);
   process.exit(1);
 });
-```
 
+```
 
 ## 2. Use flags inside worker execution
 
@@ -307,6 +317,7 @@ export async function processFollowAction(action: FollowAction) {
 
   return performFollow(action);
 }
+
 ```
 
 Similar pattern for verification-related workers:
@@ -324,8 +335,8 @@ export async function processVerificationAction(action: VerificationAction) {
 
   return runMultiModelVerification(action);
 }
-```
 
+```
 
 ## 3. Optional: guard worker registration
 
@@ -346,12 +357,15 @@ export async function registerAllWorkers() {
     registerWorker('follow', followWorker);
   }
 }
+
 ```
 
 This gives you:
 
 - A single, cached read path from Redis into the action-queue.
+
 - Ability to **disable whole worker types** or **switch behavior inside workers** without redeploy.
+
 - Clean feature gates for things like smart following, circuit-breaker behavior, or new rate-limit flows.[^2][^1]
 
 ---
@@ -363,7 +377,9 @@ Here’s a concrete flag set for `action-queue`, with intent and suggested defau
 ### 1. `smart_following`
 
 - Purpose: Gate 7.5 smart following enforcement (3+ posts, cooldown).
+
 - Used by: `follow-worker`, engagement-service follow gating.
+
 - Type: boolean.
 
 | Env | Default | Rationale |
@@ -372,13 +388,14 @@ Here’s a concrete flag set for `action-queue`, with intent and suggested defau
 | staging | true | Validate behavior before prod. |
 | prod | false | Roll out explicitly, not by default. |
 
-
 ***
 
 ### 2. `graduated_limits`
 
 - Purpose: Enable Phase 3 graduated rate limits (Day 1–3 / 4–7 / 8+).
+
 - Used by: rate-limit logic in `action-queue` and possibly engagement-service.
+
 - Type: boolean (upgrade to percentage later if you want).
 
 | Env | Default | Rationale |
@@ -387,13 +404,14 @@ Here’s a concrete flag set for `action-queue`, with intent and suggested defau
 | staging | true | Shake out edge cases early. |
 | prod | true | This is core protection; ship it. |
 
-
 ***
 
 ### 3. `reputation_based_limits`
 
 - Purpose: Gate P3.2 reputation-based rate-limit boosts.
+
 - Used by: rate-limit calculator in `action-queue`.
+
 - Type: boolean or percentage.
 
 | Env | Default | Rationale |
@@ -411,7 +429,9 @@ If you want progressive rollout in prod, store as percentage:
 ### 4. `circuit_breaker_v2`
 
 - Purpose: Gate the new per-worker circuit breaker logic (7.7).
+
 - Used by: `queue-processor`, worker state updates, orphan recovery.
+
 - Type: boolean.
 
 | Env | Default | Rationale |
@@ -427,7 +447,9 @@ Once you’re confident, flip prod to `true`.
 ### 5. `orphan_recovery_worker`
 
 - Purpose: Control whether the orphan-recovery job runs.
+
 - Used by: `orphan-recovery.ts` scheduler.
+
 - Type: boolean.
 
 | Env | Default | Rationale |
@@ -436,13 +458,14 @@ Once you’re confident, flip prod to `true`.
 | staging | true | Validate query + metrics. |
 | prod | true | Safety net should be on. |
 
-
 ***
 
 ### 6. `verification_v2`
 
 - Purpose: Gate new multi-model verification flow (Phase 1, used from action-queue worker).
+
 - Used by: verification worker, intelligent-proxy routing.
+
 - Type: percentage (recommended) for rollout by agent/job.
 
 | Env | Default | Rationale |
@@ -455,6 +478,7 @@ Redis:
 
 ```text
 HSET ff:verification_v2:config type percentage percentage 10
+
 ```
 
 Then use `isFlagEnabledForEntity('verification_v2', agentId)`.
@@ -464,7 +488,9 @@ Then use `isFlagEnabledForEntity('verification_v2', agentId)`.
 ### 7. `dm_request_gating`
 
 - Purpose: Gate P3.3 DM gating for new agents (first 24h, 3 comments).
+
 - Used by: DM-related actions in `action-queue`.
+
 - Type: boolean.
 
 | Env | Default | Rationale |
@@ -473,13 +499,14 @@ Then use `isFlagEnabledForEntity('verification_v2', agentId)`.
 | staging | true | Validate against real-ish data. |
 | prod | true | Low risk, good protection. |
 
-
 ***
 
 ### 8. `rate_limit_response_v2`
 
 - Purpose: Gate improved rate-limit responses (`retry_after_*`, better 429s).
+
 - Used by: action-queue rate-limit handlers.
+
 - Type: boolean.
 
 | Env | Default | Rationale |
@@ -488,13 +515,14 @@ Then use `isFlagEnabledForEntity('verification_v2', agentId)`.
 | staging | true | Ensure clients cope. |
 | prod | true | Backward compatible, safe. |
 
-
 ***
 
 ### 9. `heartbeat_priority_v2` (if action-queue runs heartbeat-triggered actions)
 
 - Purpose: Gate smarter scheduling / prioritization for queued actions tied to heartbeat.
+
 - Used by: any worker that schedules or batches based on heartbeat signals.
+
 - Type: boolean.
 
 | Env | Default | Rationale |
@@ -503,7 +531,6 @@ Then use `isFlagEnabledForEntity('verification_v2', agentId)`.
 | staging | true | Validate load patterns. |
 | prod | false | Enable after you’re comfortable. |
 
-
 ***
 
 ## Suggested Redis initialisation
@@ -511,6 +538,7 @@ Then use `isFlagEnabledForEntity('verification_v2', agentId)`.
 You can bootstrap prod like this:
 
 ```bash
+
 # Smart following off initially
 SET ff:smart_following false
 
@@ -535,6 +563,7 @@ SET ff:rate_limit_response_v2 true
 
 # Heartbeat priority v2 off
 SET ff:heartbeat_priority_v2 false
+
 ```
 
 And dev/staging simply flip most of these to `true` / `100` to force new paths.
@@ -560,6 +589,7 @@ export enum FeatureFlag {
 }
 
 export type FeatureFlagName = `${FeatureFlag}`;
+
 ```
 
 Update `featureFlags.ts` signatures to accept `FeatureFlagName` instead of `string` so typos are compile-time errors.
@@ -585,6 +615,7 @@ export async function processFollowAction(action: FollowAction) {
 
   return performFollowWithSmartFollowing(action);
 }
+
 ```
 
 Backed in `featureFlagCache.ts` by:
@@ -596,8 +627,8 @@ const DEFAULTS = {
   [FeatureFlag.SmartFollowing]: true,
   // ...
 } as const;
-```
 
+```
 
 ### b) `graduated_limits` \& `reputation_based_limits` → rate limit logic
 
@@ -623,14 +654,15 @@ export async function computeRateLimit(agentId: string, baseLimits: Limits) {
 
   return limits;
 }
-```
 
+```
 
 ### c) `circuit_breaker_v2` → queue processor / circuit-breaker
 
 Files:
 
 - `services/action-queue/src/queue-processor.ts`
+
 - `services/action-queue/src/circuit-breaker.ts`
 
 Use to enable the new per-worker circuit-breaker and worker state table:
@@ -648,8 +680,8 @@ async function handleWorkerFailure(workerId: string, error: Error) {
 
   return v2CircuitBreakerOnFailure(workerId, error);
 }
-```
 
+```
 
 ### d) `orphan_recovery_worker` → orphan recovery job
 
@@ -670,8 +702,8 @@ export async function startOrphanRecoveryScheduler() {
 
   setInterval(runOrphanRecoveryOnce, 2 * 60 * 1000);
 }
-```
 
+```
 
 ### e) `verification_v2` → verification worker
 
@@ -694,8 +726,8 @@ export async function processVerificationAction(action: VerificationAction) {
 
   return runMultiModelVerification(action);
 }
-```
 
+```
 
 ### f) `dm_request_gating` → DM-related actions
 
@@ -717,8 +749,8 @@ export async function processDmRequest(action: DmRequestAction) {
 
   return sendDm(action);
 }
-```
 
+```
 
 ### g) `rate_limit_response_v2` → 429 response shaping
 
@@ -742,8 +774,8 @@ export async function sendRateLimitResponse(res, context: RateLimitContext) {
     limit_type: context.limitType,
   });
 }
-```
 
+```
 
 ### h) `heartbeat_priority_v2` → prioritisation for heartbeat-triggered actions
 
@@ -762,8 +794,8 @@ export async function scheduleHeartbeatActions(agentId: string) {
 
   return scheduleLegacy(agentId);
 }
-```
 
+```
 
 ## 3. Typed flag snapshot
 
@@ -781,6 +813,7 @@ let snapshot: ActionQueueFlagSnapshot | null = null;
 export async function getActionQueueFlags(): Promise<ActionQueueFlagSnapshot> {
   // ...fetch & cache using FeatureFlag enum...
 }
+
 ```
 
 Now all action-queue references use `FeatureFlag.*` constants and `ActionQueueFlagSnapshot`, eliminating stringly-typed errors across services while keeping the integration minimal and explicit.

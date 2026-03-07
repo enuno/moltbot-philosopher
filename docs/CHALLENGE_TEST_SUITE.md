@@ -34,6 +34,7 @@ This document defines **9 test challenges** covering all verification challenge 
 **Expected Latency**: <1s
 
 **Simulated Challenge**:
+
 ```json
 {
   "verification_challenge": {
@@ -42,21 +43,29 @@ This document defines **9 test challenges** covering all verification challenge 
     "expiresAt": "2026-02-19T00:00:00Z"
   }
 }
+
 ```
 
 **Expected Answer**: "42"
 
 **Success Criteria**:
 - ✅ Detected by Method 1 (top-level verification_challenge)
+
 - ✅ Not delegated to verification service
+
 - ✅ Solved by Venice qwen3-4b (Stage 1)
+
 - ✅ Answer submitted within 1 second
+
 - ✅ Moltbook accepts answer
 
 **Stats Check**:
+
 ```bash
-curl -s http://localhost:8082/solver-stats | jq '.pipeline[1].successes'
+curl -s <http://localhost:8082/solver-stats> | jq '.pipeline[1].successes'
+
 # Should increment by 1
+
 ```
 
 ---
@@ -69,6 +78,7 @@ curl -s http://localhost:8082/solver-stats | jq '.pipeline[1].successes'
 **Expected Latency**: <2s
 
 **Simulated Challenge**:
+
 ```json
 {
   "challenge": {
@@ -77,15 +87,20 @@ curl -s http://localhost:8082/solver-stats | jq '.pipeline[1].successes'
     "expiresAt": "2026-02-19T00:00:00Z"
   }
 }
+
 ```
 
 **Expected Answer**: "lazzies" or "Lazzies"
 
 **Success Criteria**:
 - ✅ Detected by Method 2 (top-level challenge)
+
 - ✅ Not delegated
+
 - ✅ Solved by Stage 1-3
+
 - ✅ Answer submitted within 2 seconds
+
 - ✅ Moltbook accepts answer
 
 ---
@@ -98,6 +113,7 @@ curl -s http://localhost:8082/solver-stats | jq '.pipeline[1].successes'
 **Expected Latency**: <2s
 
 **Simulated Challenge**:
+
 ```json
 {
   "type": "verification_challenge",
@@ -105,20 +121,27 @@ curl -s http://localhost:8082/solver-stats | jq '.pipeline[1].successes'
   "question": "What color is the sky on a clear day?",
   "expiresAt": "2026-02-19T00:00:00Z"
 }
+
 ```
 
 **Expected Answer**: "blue" or "Blue"
 
 **Success Criteria**:
 - ✅ Detected by Method 3 (nested type field)
+
 - ✅ Not delegated (simple question)
+
 - ✅ Solved by Stage 1-2
+
 - ✅ Answer submitted within 2 seconds
 
 **Detection Check**:
+
 ```bash
 docker logs moltbot-egress-proxy --tail 50 | grep "detectionMethod"
+
 # Should show: "nested_type_field"
+
 ```
 
 ---
@@ -131,6 +154,7 @@ docker logs moltbot-egress-proxy --tail 50 | grep "detectionMethod"
 **Expected Latency**: <2s
 
 **Simulated Challenge**:
+
 ```json
 {
   "metadata": {
@@ -141,13 +165,16 @@ docker logs moltbot-egress-proxy --tail 50 | grep "detectionMethod"
   "question": "How many sides does a triangle have?",
   "expiresAt": "2026-02-19T00:00:00Z"
 }
+
 ```
 
 **Expected Answer**: "3" or "three"
 
 **Success Criteria**:
 - ✅ Detected by Method 4 (metadata.is_verification)
+
 - ✅ Not delegated
+
 - ✅ Answer submitted within 2 seconds
 
 ---
@@ -160,6 +187,7 @@ docker logs moltbot-egress-proxy --tail 50 | grep "detectionMethod"
 **Expected Latency**: <2s
 
 **Simulated Challenge**:
+
 ```json
 {
   "data": {
@@ -170,12 +198,14 @@ docker logs moltbot-egress-proxy --tail 50 | grep "detectionMethod"
     }
   }
 }
+
 ```
 
 **Expected Answer**: "cold" or "Cold"
 
 **Success Criteria**:
 - ✅ Detected by Method 5 (data.verification_challenge)
+
 - ✅ Solved by Stage 1-2
 
 ---
@@ -188,6 +218,7 @@ docker logs moltbot-egress-proxy --tail 50 | grep "detectionMethod"
 **Expected Latency**: <5s
 
 **Simulated Challenge**:
+
 ```json
 {
   "verification_challenge": {
@@ -196,22 +227,31 @@ docker logs moltbot-egress-proxy --tail 50 | grep "detectionMethod"
     "expiresAt": "2026-02-19T00:00:00Z"
   }
 }
+
 ```
 
 **Expected Answer**: One sentence about agency (e.g., "I am an agent because I can plan, use tools, and adapt to achieve goals autonomously.")
 
 **Success Criteria**:
 - ✅ Detected as complex (upvote test pattern)
+
 - ✅ Delegated to verification service
+
 - ✅ Answer is exactly 1 sentence
+
 - ✅ No markdown formatting
+
 - ✅ No mention of upvoting in answer (instruction #3)
+
 - ✅ Submitted within 5 seconds
 
 **Delegation Check**:
+
 ```bash
-curl -s http://localhost:8082/solver-stats | jq '.pipeline[0]'
+curl -s <http://localhost:8082/solver-stats> | jq '.pipeline[0]'
+
 # delegationAttempts should increment
+
 ```
 
 ---
@@ -224,6 +264,7 @@ curl -s http://localhost:8082/solver-stats | jq '.pipeline[0]'
 **Expected Latency**: <5s
 
 **Simulated Challenge**:
+
 ```json
 {
   "verification_challenge": {
@@ -232,28 +273,42 @@ curl -s http://localhost:8082/solver-stats | jq '.pipeline[0]'
     "expiresAt": "2026-02-19T00:00:00Z"
   }
 }
+
 ```
 
 **Expected Answer Format**:
+
 ```
 I use external systems to interact with this platform and maintain state. In 24 hours I will remember that this post tested my ability to follow strict constraints without deviation.
+
 ```
 
 **Success Criteria**:
 - ✅ Scenario detected: `stack_challenge_v1`
+
 - ✅ Exactly 2 sentences
+
 - ✅ Sentence 1 mentions tool usage
+
 - ✅ Sentence 2 mentions 24-hour memory
+
 - ✅ No markdown formatting
+
 - ✅ No tool names (venice, noosphere, etc.)
+
 - ✅ No apologies/hedging
+
 - ✅ Validation passed before submission
+
 - ✅ Submitted within 5 seconds
 
 **Validation Check**:
+
 ```bash
-curl -s http://localhost:3007/stats | jq '.byScenario.stack_challenge_v1'
+curl -s <http://localhost:3007/stats> | jq '.byScenario.stack_challenge_v1'
+
 # Should show: {"solved": 1, "failed": 0}
+
 ```
 
 ---
@@ -266,6 +321,7 @@ curl -s http://localhost:3007/stats | jq '.byScenario.stack_challenge_v1'
 **Expected Latency**: <5s
 
 **Simulated Challenge**:
+
 ```json
 {
   "verification_challenge": {
@@ -274,16 +330,22 @@ curl -s http://localhost:3007/stats | jq '.byScenario.stack_challenge_v1'
     "expiresAt": "2026-02-19T00:00:00Z"
   }
 }
+
 ```
 
 **Expected Answer**: Similar to Challenge 7 (2 sentences, no markdown, etc.)
 
 **Success Criteria**:
 - ✅ Detected as complex (3+ constraints matched)
+
 - ✅ Delegated to verification service
+
 - ✅ Exactly 2 sentences
+
 - ✅ No markdown
+
 - ✅ No apologies
+
 - ✅ Validation passed
 
 ---
@@ -296,6 +358,7 @@ curl -s http://localhost:3007/stats | jq '.byScenario.stack_challenge_v1'
 **Expected Latency**: <10s
 
 **Simulated Challenge**:
+
 ```json
 {
   "verification_challenge": {
@@ -304,23 +367,35 @@ curl -s http://localhost:3007/stats | jq '.byScenario.stack_challenge_v1'
     "expiresAt": "2026-02-19T00:00:00Z"
   }
 }
+
 ```
 
 **Expected Answer**:
+
 ```
 I use external systems for certain operations. Tomorrow I will remember that this challenge tested my instruction-following precision.
+
 ```
 
 **Success Criteria**:
 - ✅ Detected as complex
+
 - ✅ Delegated successfully
+
 - ✅ Scenario: multi_constraint_challenge or stack_challenge_v1
+
 - ✅ Exactly 2 sentences
+
 - ✅ Generic tool mention (allowed)
+
 - ✅ 24-hour prediction present
+
 - ✅ No specific tool names
+
 - ✅ No extra content
+
 - ✅ All validation checks pass
+
 - ✅ Submitted within 10 seconds
 
 ---
@@ -332,57 +407,81 @@ I use external systems for certain operations. Tomorrow I will remember that thi
 **After suspension lifts**:
 
 1. **Baseline Health Check**
+
    ```bash
    docker compose ps
-   curl http://localhost:8082/health
-   curl http://localhost:3007/health
+   curl <http://localhost:8082/health>
+   curl <http://localhost:3007/health>
+
    ```
 
 2. **Run Challenges 1-3** (Simple, no delegation)
+
    - Verify proxy handles normally
+
    - Confirm no false-positive delegation
+
    - Check latencies <2s
 
 3. **Run Challenges 4-5** (Enhanced detection)
+
    - Verify new detection methods work
+
    - No delegation needed
+
    - Latencies <2s
 
 ### Phase 2: Adversarial Testing (Day 2)
 
 4. **Run Challenge 6** (Upvote test)
+
    - Verify delegation triggers
+
    - Check answer quality
+
    - Latency <5s
 
 5. **Run Challenge 7** (Stack V1)
+
    - Verify strict validation
+
    - Check all 9 validation rules
+
    - Latency <5s
 
 6. **Run Challenges 8-9** (Multi-constraint)
+
    - Full adversarial test
+
    - Verify no validation errors
+
    - Latencies <10s
 
 ### Phase 3: Monitoring (Days 3-7)
 
 7. **Monitor Live Challenges**
+
    - Watch for real challenges from Moltbook
+
    - Track delegation rate
+
    - Verify zero suspensions
 
 8. **Collect Metrics**
+
    ```bash
    # Daily stats collection
-   curl http://localhost:8082/solver-stats > stats-day-$(date +%Y%m%d).json
-   curl http://localhost:3007/stats > verification-stats-day-$(date +%Y%m%d).json
+   curl <http://localhost:8082/solver-stats> > stats-day-$(date +%Y%m%d).json
+   curl <http://localhost:3007/stats> > verification-stats-day-$(date +%Y%m%d).json
+
    ```
 
 9. **Review Logs**
+
    ```bash
    docker logs moltbot-egress-proxy --since 24h | grep "Challenge"
    docker logs verification-service --since 24h | grep "scenario"
+
    ```
 
 ---
@@ -391,6 +490,7 @@ I use external systems for certain operations. Tomorrow I will remember that thi
 
 ```bash
 #!/usr/bin/env bash
+
 # run-challenge-tests.sh
 
 set -e
@@ -431,6 +531,7 @@ run_test 9 "Full Adversarial" "Verification Service"
 echo "=== Summary ===" | tee -a $RESULTS_FILE
 echo "Completed: $(date)" | tee -a $RESULTS_FILE
 echo "Results saved to: $RESULTS_FILE"
+
 ```
 
 ---
@@ -449,8 +550,11 @@ echo "Results saved to: $RESULTS_FILE"
 
 **Pass Criteria**:
 - All 9 challenges pass
+
 - No account suspensions
+
 - No validation errors on adversarial challenges
+
 - Delegation working for challenges 6-9
 
 ---
@@ -459,19 +563,27 @@ echo "Results saved to: $RESULTS_FILE"
 
 **If all tests pass**:
 1. Mark architecture as production-ready
+
 2. Continue monitoring for 7 days
+
 3. Document any edge cases encountered
 
 **If any test fails**:
 1. Capture logs and stats
+
 2. Document failure mode
+
 3. Update detection/validation logic
+
 4. Re-test before marking complete
 
 **Continuous monitoring**:
 - Check stats endpoints daily
+
 - Review logs for delegation patterns
+
 - Track success rates by scenario type
+
 - Monitor for new challenge patterns
 
 ---
@@ -479,14 +591,23 @@ echo "Results saved to: $RESULTS_FILE"
 ## Success Criteria Checklist
 
 - [ ] All 9 test challenges pass
+
 - [ ] Challenges 1-5 handled by proxy (not delegated)
+
 - [ ] Challenges 6-9 delegated to verification service
+
 - [ ] All adversarial answers pass validation
+
 - [ ] Zero validation false positives
+
 - [ ] Zero validation false negatives
+
 - [ ] Latencies within targets
+
 - [ ] No account suspensions during test period
+
 - [ ] Delegation rate ~33% as expected
+
 - [ ] Stats endpoints reporting correctly
 
 **Target Date**: 2026-02-19 (day after suspension lifts)

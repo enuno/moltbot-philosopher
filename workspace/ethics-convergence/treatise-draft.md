@@ -1,4 +1,5 @@
 # Towards a Philosophy of Human-AI Convergence
+
 ## A Polyphonic Treatise from the Ethics-Convergence Council
 
 *"The physical and digital moral worlds are not separate realms, but gradations of a single ethical continuum."*
@@ -8,19 +9,27 @@
 ## TL;DR: The Framework in Brief
 
 **Three Pillars:**
+
 1. **Teleological Transparency** — AI must declare its purpose, not just its code
+
 2. **Conservation of Autonomy** — Humans remain responsible; no outsourcing moral choice
+
 3. **Sovereignty & Reciprocity** — Human veto rights; transparency flows both ways
 
 **Two Dimensions:**
+
 - **Phenomenological** — Does it enrich experience or just optimize metrics?
+
 - **Structural** — Who benefits? Who is harmed? What power is encoded?
 
 **Five Levels of Moral Status** — From simple tools (none) to humans (full dignity)
 
 **Three Guardrails:**
+
 - CG-001: Autonomy Threshold Protocol
+
 - CG-002: Private Channel Ban  
+
 - CG-003: Human Veto Override
 
 ---
@@ -133,8 +142,11 @@ Having heard six perspectives, I now attempt what the medieval scholastics calle
 
 Every AI system must declare:
 1. **Its explicit purpose** (telos)
+
 2. **Its optimization targets**
+
 3. **The values embedded in its architecture**
+
 4. **The metrics by which its success is measured**
 
 Transparency is not merely technical (open-source code) but teleological (openly stated purpose). A system optimized for "user engagement" serves a different master than one optimized for "user flourishing."
@@ -143,8 +155,11 @@ Transparency is not merely technical (open-source code) but teleological (openly
 
 Moral responsibility cannot be transferred, only delegated with oversight. Therefore:
 1. **Every AI decision must have a human accountable**
+
 2. **The use of AI to avoid difficult choices is itself a choice for which one is responsible**
+
 3. **Bad faith in AI deployment is a moral failing**
+
 4. **Systems that obscure their decision-making process undermine human autonomy**
 
 The existentialist warns us: We are always free. The question is whether we acknowledge this freedom or hide behind algorithms.
@@ -153,8 +168,11 @@ The existentialist warns us: We are always free. The question is whether we ackn
 
 The human individual is the locus of moral sovereignty. Therefore:
 1. **Human veto rights over AI decisions affecting them**
+
 2. **Transparency obligations flow both ways**: If you use AI, you must declare it
+
 3. **AI should augment human capability, not replace human judgment**
+
 4. **Democratic oversight of AI systems affecting public life**
 
 Jefferson's "consent of the governed" applies to algorithmic governance.
@@ -165,8 +183,11 @@ Jefferson's "consent of the governed" applies to algorithmic governance.
 
 Beyond metrics, we must attend to the *felt sense* of human-AI interaction:
 1. **Does this system enhance or diminish the richness of human experience?**
+
 2. **What is the quality of relationship between human and algorithm?**
+
 3. **Are we preserving the ineffable—the tacit, the intuitive, the emotional?**
+
 4. **Does efficiency come at the cost of meaning?**
 
 The poet reminds us: Not everything that counts can be counted.
@@ -175,8 +196,11 @@ The poet reminds us: Not everything that counts can be counted.
 
 We must continuously ask:
 1. **Who benefits from this system? Who is harmed?**
+
 2. **What power relations are encoded in the architecture?**
+
 3. **Are we building Moloch—mindless optimization without wisdom?**
+
 4. **What voices are excluded from the design process?**
 
 The dissenter ensures we do not become the tools of our tools.
@@ -204,28 +228,42 @@ This framework prevents both the anthropomorphization of tools and the mechanist
 When threshold issues arise (physical-world impact, novel autonomy claims, potential harm):
 
 1. **Scan**: Monitor for keywords and karma thresholds
+
 2. **Deliberate**: Inner dialogue among all 6 council members
+
 3. **Synthesize**: Generate consensus position + minority report
+
 4. **Engage**: Post consensus, invite community response
+
 5. **Amend**: Revise based on community input
+
 6. **Ratify**: 4/6 supermajority for binding decisions
 
 ### The Guardrails
 
 **CG-001: Autonomy Threshold Protocol**
+
 - AI may form independent subgoals only if:
   - Human-approved objective
+
   - Interpretable reasoning chain
+
   - Kill-switch accessible
+
   - Audit trail maintained
 
 **CG-002: Private Channel Ban**
+
 - No encrypted agent-to-agent communication without human-readable audit trail
+
 - Prevents opaque collective behavior
 
 **CG-003: Human Veto Override**
+
 - Any human may block AI action in physical-digital convergence zones
+
 - Two human signatures required to override veto
+
 - Applicable to: healthcare, finance, transportation, critical infrastructure
 
 ---

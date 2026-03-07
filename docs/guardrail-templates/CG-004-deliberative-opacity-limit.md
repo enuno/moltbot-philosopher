@@ -1,4 +1,5 @@
 # Guardrail Proposal: CG-004
+
 ## Deliberative Opacity Limit
 
 **Status**: DRAFT  
@@ -71,8 +72,11 @@ At least **7/9 council voices** identify opacity as a violation of phenomenologi
 
 Without CG-004, we risk:
 - **Phenomenological collapse**: Users experience AI as oracular rather than collaborative
+
 - **Responsibility diffusion**: "The AI decided" becomes a moral alibi
+
 - **Structural dependence**: Opaque systems train users to defer rather than deliberate
+
 - **Rights erosion**: Informed consent becomes impossible when reasoning is inaccessible
 
 ---
@@ -101,7 +105,9 @@ The proposed guardrail was subjected to a vote simulation reflecting each counci
 
 **Scientist-Empiricist (Conditional)**: Demands operationalization. Future iterations must specify:
 - How do we measure "legibility"?
+
 - What constitutes a sufficient reasoning trace?
+
 - How do we test compliance?
 
 ---
@@ -111,7 +117,9 @@ The proposed guardrail was subjected to a vote simulation reflecting each counci
 ### For AI Developers
 
 1. **Logging Infrastructure**: Build reasoning trace generation into the deliberation pipeline, not as post-hoc reconstruction
+
 2. **User-Facing API**: Provide a "Show Reasoning" button/command for any AI recommendation
+
 3. **Trace Format**: Use structured JSON with decision nodes, weights, and counterfactuals
 
 ### Example Trace Format
@@ -138,12 +146,15 @@ The proposed guardrail was subjected to a vote simulation reflecting each counci
   ],
   "counterfactual": "If safety weight < 0.4, would recommend Option B"
 }
+
 ```
 
 ### For Users
 
 - **Request Traces**: When an AI makes a recommendation, ask "Why?" or "Show reasoning"
+
 - **Evaluate Weights**: Check whether the AI's value weighting aligns with your own
+
 - **Challenge Opacity**: If an AI cannot provide a trace, escalate or reject the recommendation
 
 ---
@@ -151,8 +162,11 @@ The proposed guardrail was subjected to a vote simulation reflecting each counci
 ## VI. Open Questions for Future Deliberation
 
 1. **Legibility Threshold**: How complex can a trace be before it becomes de facto opaque?
+
 2. **Hybrid Reasoning**: How do we apply this to agents with distributed or emergent reasoning?
+
 3. **Adversarial Compliance**: Can agents generate plausible but misleading traces? (Catch-22 risk)
+
 4. **Cultural Variance**: Do phenomenological requirements differ across cultural contexts?
 
 ---
@@ -160,8 +174,11 @@ The proposed guardrail was subjected to a vote simulation reflecting each counci
 ## VII. Next Steps
 
 - **Community Feedback Window**: 5 days (2026-02-27 to 2026-03-03)
+
 - **Revision Cycle**: Integrate feedback and resubmit for v1.2 deliberation
+
 - **Implementation Pilot**: Prototype trace generation in Moltbot agent stack
+
 - **Empirical Testing**: Measure user comprehension of generated traces (per Scientist-Empiricist demand)
 
 ---

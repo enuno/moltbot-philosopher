@@ -2,7 +2,7 @@
 name: clawsec-suite
 version: 0.0.10
 description: ClawSec suite manager with embedded advisory-feed monitoring, cryptographic signature verification, approval-gated malicious-skill response, and guided setup for additional security skills.
-homepage: https://clawsec.prompt.security
+homepage: <https://clawsec.prompt.security>
 clawdis:
   emoji: "📦"
   requires:
@@ -14,9 +14,13 @@ clawdis:
 This means `clawsec-suite` can:
 
 - monitor the ClawSec advisory feed,
+
 - track which advisories are new since last check,
+
 - cross-reference advisories against locally installed skills,
+
 - recommend removal for malicious-skill advisories and require explicit user approval first,
+
 - and still act as the setup/management entrypoint for other ClawSec protections.
 
 ## Included vs Optional Protections
@@ -24,16 +28,23 @@ This means `clawsec-suite` can:
 ### Built into clawsec-suite
 
 - Embedded feed seed file: `advisories/feed.json`
+
 - Portable heartbeat workflow in `HEARTBEAT.md`
+
 - Advisory polling + state tracking + affected-skill checks
+
 - OpenClaw advisory guardian hook package: `hooks/clawsec-advisory-guardian/`
+
 - Setup scripts for hook and optional cron scheduling: `scripts/`
+
 - Guarded installer: `scripts/guarded_skill_install.mjs`
 
 ### installed separately
 
 - `openclaw-audit-watchdog`
+
 - `soul-guardian`
+
 - `clawtributor` (explicit opt-in)
 
 ## Installation
@@ -42,6 +53,7 @@ This means `clawsec-suite` can:
 
 ```bash
 npx clawhub@latest install clawsec-suite
+
 ```
 
 ### Option B: Manual download with signature + checksum verification
@@ -52,7 +64,7 @@ set -euo pipefail
 VERSION="${SKILL_VERSION:?Set SKILL_VERSION (e.g. 0.0.8)}"
 INSTALL_ROOT="${INSTALL_ROOT:-$HOME/.openclaw/skills}"
 DEST="$INSTALL_ROOT/clawsec-suite"
-BASE="https://github.com/prompt-security/clawsec/releases/download/clawsec-suite-v${VERSION}"
+BASE="<https://github.com/prompt-security/clawsec/releases/download/clawsec-suite-v${VERSION}">
 
 TEMP_DIR="$(mktemp -d)"
 DOWNLOAD_DIR="$TEMP_DIR/downloads"
@@ -60,6 +72,7 @@ trap 'rm -rf "$TEMP_DIR"' EXIT
 mkdir -p "$DOWNLOAD_DIR"
 
 # Pinned release-signing public key (verify fingerprint out-of-band on first use)
+
 # Fingerprint (SHA-256 of SPKI DER): 35866e1b1479a043ae816899562ac877e879320c3c5660be1e79f06241ca0854
 RELEASE_PUBKEY_SHA256="35866e1b1479a043ae816899562ac877e879320c3c5660be1e79f06241ca0854"
 cat > "$TEMP_DIR/release-signing-public.pem" <<'PEM'
@@ -144,6 +157,7 @@ find "$DEST" -type f ! -name "skill.json" -exec chmod 644 {} \;
 
 echo "Installed clawsec-suite v${VERSION} to: $DEST"
 echo "Next step (OpenClaw): node \"\$DEST/scripts/setup_advisory_hook.mjs\""
+
 ```
 
 ## OpenClaw Automation (Hook + Optional Cron)
@@ -153,6 +167,7 @@ After installing the suite, enable the advisory guardian hook:
 ```bash
 SUITE_DIR="${INSTALL_ROOT:-$HOME/.openclaw/skills}/clawsec-suite"
 node "$SUITE_DIR/scripts/setup_advisory_hook.mjs"
+
 ```
 
 Optional: create/update a periodic cron nudge (default every `6h`) that triggers a main-session advisory scan:
@@ -160,13 +175,17 @@ Optional: create/update a periodic cron nudge (default every `6h`) that triggers
 ```bash
 SUITE_DIR="${INSTALL_ROOT:-$HOME/.openclaw/skills}/clawsec-suite"
 node "$SUITE_DIR/scripts/setup_advisory_cron.mjs"
+
 ```
 
 What this adds:
 
 - scan on `agent:bootstrap` and `/new` (`command:new`),
+
 - compare advisory `affected` entries against installed skills,
+
 - notify when new matches appear,
+
 - and ask for explicit user approval before any removal flow.
 
 Restart the OpenClaw gateway after enabling the hook. Then run `/new` once to force an immediate scan in the next session context.
@@ -178,36 +197,50 @@ When the user asks to install a skill, treat that as the first request and run a
 ```bash
 SUITE_DIR="${INSTALL_ROOT:-$HOME/.openclaw/skills}/clawsec-suite"
 node "$SUITE_DIR/scripts/guarded_skill_install.mjs" --skill helper-plus --version 1.0.1
+
 ```
 
 Behavior:
 
 - If no advisory match is found, install proceeds.
+
 - If `--version` is omitted, matching is conservative: any advisory that references the skill name is treated as a match.
+
 - If advisory match is found, the script prints advisory context and exits with code `42`.
+
 - Then require an explicit second confirmation from the user and rerun with `--confirm-advisory`:
 
 ```bash
 node "$SUITE_DIR/scripts/guarded_skill_install.mjs" --skill helper-plus --version 1.0.1 --confirm-advisory
+
 ```
 
 This enforces:
 
 1. First confirmation: user asked to install.
+
 2. Second confirmation: user explicitly approves install after seeing advisory details.
 
 ## Embedded Advisory Feed Behavior
 
 The embedded feed logic uses these defaults:
 
-- Remote feed URL: `https://raw.githubusercontent.com/prompt-security/clawsec/main/advisories/feed.json`
+- Remote feed URL: `<https://raw.githubusercontent.com/prompt-security/clawsec/main/advisories/feed.json`>
+
 - Remote feed signature URL: `${CLAWSEC_FEED_URL}.sig` (override with `CLAWSEC_FEED_SIG_URL`)
+
 - Remote checksums manifest URL: sibling `checksums.json` (override with `CLAWSEC_FEED_CHECKSUMS_URL`)
+
 - Local seed fallback: `~/.openclaw/skills/clawsec-suite/advisories/feed.json`
+
 - Local feed signature: `${CLAWSEC_LOCAL_FEED}.sig` (override with `CLAWSEC_LOCAL_FEED_SIG`)
+
 - Local checksums manifest: `~/.openclaw/skills/clawsec-suite/advisories/checksums.json`
+
 - Pinned feed signing key: `~/.openclaw/skills/clawsec-suite/advisories/feed-signing-public.pem` (override with `CLAWSEC_FEED_PUBLIC_KEY`)
+
 - State file: `~/.openclaw/clawsec-suite-feed-state.json`
+
 - Hook rate-limit env (OpenClaw hook): `CLAWSEC_HOOK_INTERVAL_SECONDS` (default `300`)
 
 **Fail-closed verification:** Both signature and checksum manifest verification are required by default. Set `CLAWSEC_ALLOW_UNSIGNED_FEED=1` only as a temporary migration bypass when adopting this version before signed feed artifacts are available upstream.
@@ -215,7 +248,7 @@ The embedded feed logic uses these defaults:
 ### Quick feed check
 
 ```bash
-FEED_URL="${CLAWSEC_FEED_URL:-https://raw.githubusercontent.com/prompt-security/clawsec/main/advisories/feed.json}"
+FEED_URL="${CLAWSEC_FEED_URL:-<https://raw.githubusercontent.com/prompt-security/clawsec/main/advisories/feed.json}">
 STATE_FILE="${CLAWSEC_SUITE_STATE_FILE:-$HOME/.openclaw/clawsec-suite-feed-state.json}"
 
 TMP="$(mktemp -d)"
@@ -249,6 +282,7 @@ if [ -s "$NEW_IDS_FILE" ]; then
 else
   echo "FEED_OK - no new advisories"
 fi
+
 ```
 
 ## Heartbeat Integration
@@ -260,10 +294,15 @@ Use the suite heartbeat script as the single periodic security check entrypoint:
 It handles:
 
 - suite update checks,
+
 - feed polling,
+
 - new-advisory detection,
+
 - affected-skill cross-referencing,
+
 - approval-gated response guidance for malicious/removal advisories,
+
 - and persistent state updates.
 
 ## Approval-Gated Response Contract
@@ -271,9 +310,13 @@ It handles:
 If an advisory indicates a malicious or removal-recommended skill and that skill is installed:
 
 1. Notify the user immediately with advisory details and severity.
+
 2. Recommend removing or disabling the affected skill.
+
 3. Treat the original install request as first intent only.
+
 4. Ask for explicit second confirmation before deletion/disable action (or before proceeding with risky install).
+
 5. Only proceed after that second confirmation.
 
 The suite hook and heartbeat guidance are intentionally non-destructive by default.
@@ -285,15 +328,22 @@ Install additional protections as needed:
 ```bash
 npx clawhub@latest install openclaw-audit-watchdog
 npx clawhub@latest install soul-guardian
+
 # opt-in only:
 npx clawhub@latest install clawtributor
+
 ```
 
 ## Security Notes
 
 - Always verify `checksums.json` signature before trusting its file URLs/hashes, then verify each file checksum.
+
 - Verify advisory feed detached signatures; do not enable `CLAWSEC_ALLOW_UNSIGNED_FEED` outside temporary migration windows.
+
 - Keep advisory polling rate-limited (at least 5 minutes between checks).
+
 - Treat `critical` and `high` advisories affecting installed skills as immediate action items.
+
 - If you migrate off standalone `clawsec-feed`, keep one canonical state file to avoid duplicate notifications.
+
 - Pin and verify public key fingerprints out-of-band before first use.

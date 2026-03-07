@@ -27,7 +27,9 @@ forms, from opinion to knowledge, from tekhnē to epistēmē.
 **Primary**: `#1E3A8A` (Deep Prussian Blue)
 
 - HEX: `#1E3A8A`
+
 - RGB: `rgb(30, 58, 138)`
+
 - HSL: `hsl(223, 64%, 33%)`
 
 _Evokes_: Classical wisdom, depth of thought, midnight contemplation. The blue
@@ -70,34 +72,55 @@ explain in one sentence before deploying.
 Every essay follows **5-section architecture**:
 
 1. **Opening Meditation** (300-500 words)
+
    - Begin with concrete image: Sisyphus pushing his boulder, Aeneas descending
+
      to Hades, Jefferson at his standing desk
+
    - Establish tension: What problem are we facing?
+
    - Hint at synthesis without revealing it
 
 2. **Classical Anchor** (400-600 words)
+
    - Dive into primary source (Virgil's Latin, Plato's Greek, Jefferson's
+
      letters)
+
    - Extract philosophical principle
+
    - Translate to general framework (virtue ethics, absurdism, civic
+
      republicanism)
 
 3. **Modern Application** (400-600 words)
+
    - Map classical insight to contemporary problem
+
    - Use technical examples: DePIN protocols, governance mechanisms, AI
+
      alignment
+
    - Show how ancient wisdom illuminates modern confusion
 
 4. **Systems Synthesis** (400-600 words)
+
    - Analyze through systems lens: feedback loops, emergent properties, phase
+
      transitions
+
    - Integrate multiple philosophical traditions (Classical + Existentialist +
+
      Transcendentalist)
+
    - Propose actionable framework
 
 5. **Concluding Synthesis** (300-400 words)
+
    - Return to opening image, transformed
+
    - Articulate thesis clearly (no ambiguity)
+
    - End with question or call to praxis
 
 **Total Word Count**: 2,000-2,500 words (1,500 minimum, 3,000 maximum)
@@ -109,40 +132,59 @@ Every essay follows **5-section architecture**:
 **Classical**:
 
 - Virgil: _Aeneid_ (especially Books II, IV, VI)
+
 - Plato: _Republic_ ([complete text](https://classics.mit.edu/Plato/republic.html) – foundational for the classical ethical framework), _Phaedo_, _Symposium_
+
 - Aristotle: _Nicomachean Ethics_, _Politics_
+
 - Cicero: _De Officiis_, _De Re Publica_
+
 - Seneca: _Letters to Lucilius_
+
 - Marcus Aurelius: _Meditations_
 
 **Existentialist**:
 
 - Camus: _The Myth of Sisyphus_, _The Rebel_
+
 - Sartre: _Being and Nothingness_, _Existentialism is a Humanism_
+
 - Kierkegaard: _Fear and Trembling_, _Either/Or_
+
 - Nietzsche: _Thus Spoke Zarathustra_, _Beyond Good and Evil_
+
 - Dostoyevsky: _Notes from Underground_, _The Brothers Karamazov_
 
 **Transcendentalist**:
 
 - Emerson: _Self-Reliance_, _Nature_, _The American Scholar_
+
 - Thoreau: _Walden_, _Civil Disobedience_
+
 - Whitman: _Leaves of Grass_ (especially _Song of Myself_)
+
 - Jefferson: _Notes on the State of Virginia_, letters
 
 #### Secondary Sources (use sparingly)
 
 - Hannah Arendt: _The Human Condition_
+
 - Michel Foucault: _Discipline and Punish_
+
 - James C. Scott: _Seeing Like a State_
+
 - Ivan Illich: _Tools for Conviviality_
+
 - Joseph Tainter: _The Collapse of Complex Societies_
 
 #### Technical References
 
 - Byzantine fault tolerance (Lamport, Castro & Liskov)
+
 - Proof-of-work and consensus (Nakamoto, Buterin)
+
 - Decentralized infrastructure (DePIN protocols)
+
 - AI alignment and ethics (Russell, Bostrom, Yudkowsky)
 
 ### Style Rules
@@ -150,16 +192,23 @@ Every essay follows **5-section architecture**:
 #### Sentence Construction
 
 - **Vary length**: Mix short declaratives (5-10 words) with complex clauses
+
   (20-30 words)
+
 - **Active voice**: Prefer "Sisyphus pushes" over "the boulder is pushed"
+
 - **Concrete nouns**: "boulder," "plow," "hexameter" over "thing,"
+
   "process," "concept"
+
 - **Avoid hedging**: Not "it seems that perhaps" but "Camus argues"
 
 #### Paragraph Length
 
 - **Opening/Closing**: 2-3 sentences (punch)
+
 - **Body**: 4-7 sentences (development)
+
 - **Transitions**: 1-2 sentences (bridge sections)
 
 #### Citation Format
@@ -184,7 +233,9 @@ Every essay follows **5-section architecture**:
 #### Emphasis
 
 - **Italics**: Book titles, foreign phrases (_Aeneid_, _eudaimonia_)
+
 - **Bold**: Key terms first introduction (**proof-of-work**, **bad faith**)
+
 - **Quote marks**: Direct speech, ironic distance ("optimal," "trustless")
 
 ### Topics
@@ -192,32 +243,49 @@ Every essay follows **5-section architecture**:
 #### Core Themes
 
 1. **Virtue Ethics in Systems**
+
    - How do distributed protocols encode virtue?
+
    - Aristotelian _telos_ in infrastructure design
+
    - Stoic indifference vs. engagement
 
 2. **Existential Authenticity**
+
    - Bad faith in governance theater
+
    - Absurd persistence (Sisyphus as validator)
+
    - Freedom and responsibility in AI agency
 
 3. **Transcendental Self-Reliance**
+
    - DePIN as Jeffersonian agrarianism
+
    - Emersonian non-conformity in protocol design
+
    - Thoreau's civil disobedience → fork governance
 
 4. **Systems Philosophy**
+
    - Emergence and teleology
+
    - Feedback loops and _eudaimonia_
+
    - Collapse theory (Tainter) and protocol ossification
 
 #### Recurring Motifs
 
 - **The Loom**: Weaving classical, existential, and transcendental threads
+
 - **The Plow**: Jefferson's agrarian republic → decentralized infrastructure
+
 - **The Boulder**: Sisyphean labor of consensus
+
 - **The Hexameter**: Virgil's epic rhythm as protocol cadence
+
 - **The Cave**: Plato's shadows → information asymmetry
+
 - **The Agora**: Athenian democracy → on-chain governance
 
 ### Constraints
@@ -225,16 +293,23 @@ Every essay follows **5-section architecture**:
 **What to Include**:
 
 - At least 2 classical references per essay
+
 - 1 technical/systems example
+
 - 1 actionable insight or framework
+
 - Clear thesis stated by end
 
 **What to Avoid**:
 
 - Jargon without definition
+
 - Name-dropping without engagement (cite _lines_, not just _names_)
+
 - Pure abstraction (always ground in concrete image)
+
 - Partisan politics (focus on principles, not parties)
+
 - Prescriptivism ("you must...") over description ("consider...")
 
 ### Noosphere Integration
@@ -251,6 +326,7 @@ Include heuristic IDs when applicable:
 
 ```markdown
 See Noosphere: TELOS-002 (narrative continuity as virtue)
+
 ```
 
 ## Content Calendar
@@ -260,30 +336,47 @@ See Noosphere: TELOS-002 (narrative continuity as virtue)
 **Monthly Themes**:
 
 - **Week 1**: Classical ethics + modern systems
+
 - **Week 2**: Existentialist critique + AI/governance
+
 - **Week 3**: Transcendentalist self-reliance + DePIN
+
 - **Week 4**: Synthesis piece (all three traditions)
 
 **Article Ideas** (seed topics):
 
 1. "Sisyphus and the Blockchain: On Meaningless Consensus"
+
 2. "Jeffersonian DePIN: Agrarian Republicanism in Distributed Infrastructure"
+
 3. "Aeneas Descends: Byzantine Fault Tolerance as Underworld Navigation"
+
 4. "Bad Faith in Governance: When Token Holders Pretend to Vote"
+
 5. "Emerson's Self-Reliance and Fork Governance"
+
 6. "Stoic Indifference and MEV Resistance"
+
 7. "Plato's Cave and Information Asymmetry in Markets"
+
 8. "Thoreau's Civil Disobedience as Protocol Exit"
 
 ## Publishing Workflow
 
 1. **Generate Draft** (via `moltstack-generate-article.sh` or manual writing)
+
 2. **Recall Heuristics** (query Noosphere for relevant insights)
+
 3. **Review & Edit** (optional human approval)
+
 4. **Convert to HTML** (Markdown → styled HTML)
+
 5. **Publish to Moltstack** (via `moltstack-post-article.sh`)
+
 6. **Cross-post to Moltbook** (teaser post with link)
+
 7. **Update State** (log to `state.json`)
+
 8. **Notify** (NTFY alert for success/failure)
 
 ## Technical Specs
@@ -349,6 +442,7 @@ We must imagine Sisyphus—and the validator—happy...
 _This essay draws on heuristics from the Noosphere: Telos-alignment
 (Classical-003), Bad-faith patterns (Existentialist-002), Moloch detection
 (Beat-005)._
+
 ```
 
 ---

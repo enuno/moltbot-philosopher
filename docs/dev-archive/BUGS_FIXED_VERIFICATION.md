@@ -51,6 +51,7 @@ python3 assimilate-wisdom.py --approved-dir /nonexistent 2>&1 | grep ERROR
 
 # Test 4: Does persistence work (check for output)?
 python3 assimilate-wisdom.py --submission-path /tmp/test.md --dry-run 2>&1 | grep "would save"
+
 ```
 
 ---
@@ -60,38 +61,61 @@ python3 assimilate-wisdom.py --submission-path /tmp/test.md --dry-run 2>&1 | gre
 ### recall-engine.py
 
 ```python
+
 # NEW: normalize_heuristic() function (lines 13-50)
+
 # - Handles id fields: heuristic_id, id, case_id, type_id
+
 # - Handles formulation fields: formulation, description, ruling, name, signature
+
 # - Handles signature fields: signatures, markers, indicators, keywords
+
 # - Returns standardized heuristic object
 
 # MODIFIED: load_all_heuristics() (lines 97-145)
+
 # - Now calls normalize_heuristic() for all voices
+
 # - Extracts keywords from rights precedents for signatures
+
 # - Single source of truth for field mapping
+
 ```
 
 ### assimilate-wisdom.py
 
 ```python
+
 # NEW: save_heuristics_to_memory() function (lines 157-210)
+
 # - Maps voices to output files
+
 # - Groups heuristics by voice
+
 # - Loads, appends, and saves back to JSON files
+
 # - Full error handling
 
 # MODIFIED: assimilate_submission() (lines 267-290)
+
 # - Configurable min_resonance parameter (default: 0.05)
+
 # - Accepts single-strong OR multi-weak resonance
+
 # - Better for diverse submissions
 
 # MODIFIED: main() (lines 293-359)
+
 # - Added --output-dir argument
+
 # - Added --min-resonance argument
+
 # - Explicit error checking for paths
+
 # - Calls save_heuristics_to_memory() after assimilation
+
 # - Clear feedback messages
+
 ```
 
 ---
@@ -113,7 +137,9 @@ python3 assimilate-wisdom.py --submission-path /tmp/test.md --dry-run 2>&1 | gre
 Both files are ready for:
 
 1. **Testing** - Use verification script above
+
 2. **Deployment** - Changes are backward compatible
+
 3. **Integration** - Can be used with existing scripts
 
 ---
@@ -123,6 +149,7 @@ Both files are ready for:
 ```
 ✅ /workspace/classical/noosphere/recall-engine.py
 ✅ /workspace/classical/noosphere/assimilate-wisdom.py
+
 ```
 
 ## Documentation Created
@@ -130,6 +157,7 @@ Both files are ready for:
 ```
 ✅ /CRITICAL_BUGS_FIXED.md (detailed explanation)
 ✅ /docs/NOOSPHERE_CODE_IMPROVEMENTS.md (original spec with implementations)
+
 ```
 
 ---

@@ -20,12 +20,15 @@
 Different JSON files use different field names for the same concepts:
 
 - `id` vs `heuristic_id` vs `case_id` vs `type_id`
+
 - `description` vs `formulation` vs `ruling`
+
 - `signatures` vs `markers` vs `indicators`
 
 **Current Code**:
 
 ```python
+
 # Line 63-66 (sovereignty)
 h['heuristic_id'] = h.get('id', 'unknown')
 h['formulation'] = h.get('description', '')
@@ -35,6 +38,7 @@ h['formulation'] = h.get('description', '')
 
 # Line 102 (moloch)
 'heuristic_id': m.get('type_id', 'unknown'),
+
 ```
 
 **Fix**: Create a normalization function
@@ -76,11 +80,13 @@ def normalize_heuristic(h: Dict, voice: str, category: str = '') -> Dict:
         'category': category,
         'original': h  # Keep original for reference
     }
+
 ```
 
 **Apply to all heuristic loading**:
 
 ```python
+
 # Replace existing code sections with:
 
 # Telos
@@ -99,13 +105,17 @@ for p in rights_data.get('precedent_corpus', []):
     heuristics.append(normalize_heuristic(p, 'Enlightenment', 'rights'))
 
 # ... etc for all voices
+
 ```
 
 **Benefits**:
 
 - ✅ Single source of truth for field mapping
+
 - ✅ Easy to add new field name variants
+
 - ✅ Reduces coupling to JSON structure
+
 - ✅ Explicit handling of type conversions
 
 ---
@@ -130,6 +140,7 @@ h = {
     'confidence': p.get('confidence', 0.5),
     'status': p.get('weight', 'provisional')
 }
+
 ```
 
 **Fix**: Extract keywords from scenario/ruling
@@ -146,11 +157,13 @@ h = normalize_heuristic(p, 'Enlightenment', 'rights')
 h['signatures'] = extract_keywords(
     f"{p.get('scenario', '')} {p.get('ruling', '')}"
 )
+
 ```
 
 **Benefits**:
 
 - ✅ Rights precedents now match relevant queries
+
 - ✅ Automatic keyword extraction from any text field
 
 ---
@@ -171,6 +184,7 @@ if args.format == 'dialectical':
     print(format_dialectical(top_heuristics))
 else:
     print(format_simple(top_heuristics))
+
 ```
 
 **Fix**: Implement missing formats
@@ -256,12 +270,15 @@ def main():
     formatter = format_handlers[args.format]
     print(formatter(top_heuristics))
     return 0
+
 ```
 
 **Benefits**:
 
 - ✅ Documentation now accurate
+
 - ✅ Full provenance tracking for constitutional memory
+
 - ✅ Hybrid search results when implemented
 
 ---
@@ -280,6 +297,7 @@ Threshold of 0.1 is too strict. Community submissions often discuss multiple voi
 ```python
 if max(voice_alignment.values()) < 0.1:
     return None
+
 ```
 
 **Fix**: Make threshold configurable with better default
@@ -304,6 +322,7 @@ def assimilate_submission(submission: Dict, dry_run: bool = False, min_resonance
             return heuristic
     
     return None
+
 ```
 
 **In main()**:
@@ -318,12 +337,15 @@ parser.add_argument(
 
 # ...later...
 heuristic = assimilate_submission(submission, args.dry_run, args.min_resonance)
+
 ```
 
 **Benefits**:
 
 - ✅ Accepts multi-voice submissions
+
 - ✅ User-configurable
+
 - ✅ Better alignment with intended behavior
 
 ---
@@ -344,6 +366,7 @@ approved_dir = Path(args.approved_dir)
 if approved_dir.exists():
     for sub_file in approved_dir.glob('*.md'):
         # ...
+
 ```
 
 **Fix**: Add explicit error handling
@@ -402,12 +425,15 @@ def main():
     
     print(json.dumps(result, indent=2))
     return 0 if assimilated or args.dry_run else 1
+
 ```
 
 **Benefits**:
 
 - ✅ Clear error messages
+
 - ✅ Proper exit codes
+
 - ✅ Easy debugging
 
 ---
@@ -426,6 +452,7 @@ Assimilated heuristics are printed to stdout but not saved. They're lost after s
 ```python
 print(json.dumps(result, indent=2))
 return 0 if assimilated else 1
+
 ```
 
 **Fix**: Write to memory-core files
@@ -496,6 +523,7 @@ def save_heuristics_to_memory(heuristics: List[Dict], output_dir: Optional[str] 
     return saved_count > 0
 
 # In main():
+
 # After assimilating all submissions
 if assimilated and not args.dry_run:
     output_dir = args.output_dir or str(NOOSPHERE_DIR / "memory-core")
@@ -504,6 +532,7 @@ if assimilated and not args.dry_run:
     else:
         print(f"✗ Failed to persist heuristics", file=sys.stderr)
         return 1
+
 ```
 
 **Add argument**:
@@ -514,13 +543,17 @@ parser.add_argument(
     help='Directory to save heuristics (default: memory-core)',
     default=None
 )
+
 ```
 
 **Benefits**:
 
 - ✅ Heuristics are saved to files
+
 - ✅ Proper voice-based organization
+
 - ✅ Backup handling before modification
+
 - ✅ Clear feedback on what was saved
 
 ---
@@ -559,6 +592,7 @@ def calculate_relevance_enhanced(context: str, heuristic: Dict) -> float:
         base_relevance += 0.1
     
     return min(base_relevance, 1.0)
+
 ```
 
 ### Enhancement #2: Heuristic Validation
@@ -604,6 +638,7 @@ def validate_against_corpus(principle: str, heuristic_corpus: List[Dict]) -> Dic
         )
     
     return validation
+
 ```
 
 ---
@@ -613,22 +648,31 @@ def validate_against_corpus(principle: str, heuristic_corpus: List[Dict]) -> Dic
 ### Files to Modify
 
 1. **recall-engine.py**: Fixes #1-3, enhancement #1
+
 2. **assimilate-wisdom.py**: Fixes #4-6, enhancement #2
 
 ### Implementation Order
 
 1. Fix #4-5 (error handling - highest impact)
+
 2. Fix #6 (persistence - enables workflow)
+
 3. Fix #1 (normalization - improves stability)
+
 4. Fix #2-3 (features - improve functionality)
+
 5. Enhancements #1-2 (optional improvements)
 
 ### Estimated Effort
 
 - Fixes #4-5: 30 minutes
+
 - Fix #6: 45 minutes
+
 - Fix #1: 30 minutes
+
 - Fixes #2-3: 45 minutes
+
 - Enhancements: 2 hours each
 
 **Total Critical Path**: ~2.5 hours for all bug fixes
@@ -640,12 +684,14 @@ def validate_against_corpus(principle: str, heuristic_corpus: List[Dict]) -> Dic
 After each fix, run:
 
 ```bash
+
 # Quick smoke test
 python3 recall-engine.py --context "test" --max-results 1
 python3 assimilate-wisdom.py --submission-path /tmp/test.md --dry-run
 
 # Comprehensive tests
 bash /workspace/classical/noosphere/run-tests.sh
+
 ```
 
 ---

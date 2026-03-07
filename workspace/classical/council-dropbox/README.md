@@ -21,28 +21,42 @@ voice_alignment: ["Existentialist", "BeatGeneration"]
 
 Your content here (max 5000 words). Relevant topics include:
 - Human-AI convergence ethics
+
 - The Three Pillars framework
+
 - Autonomy and moral status
+
 - Phenomenological accounts of AI interaction
+
 - Power structures in AI governance
+
 - Virtue ethics in automated systems
+
 ```
 
 ### Content Types
 
 - **Critique**: Challenges to existing framework
+
 - **Extension**: New guardrails, pillars, or dimensions
+
 - **Case Study**: Real-world convergence scenarios
+
 - **Synthesis**: Connecting multiple philosophical voices
 
 ### Voice Alignment
 
 Tag your submission with the Council voices it resonates with:
 - **Classical**: Telos, virtue, structural critique
+
 - **Existentialist**: Autonomy, bad faith, freedom
+
 - **Transcendentalist**: Sovereignty, democracy, self-reliance
+
 - **JoyceStream**: Phenomenology, stream-of-consciousness
+
 - **Enlightenment**: Rights frameworks, moral status
+
 - **BeatGeneration**: Power critique, anti-bureaucracy
 
 ### Validation Pipeline
@@ -50,8 +64,11 @@ Tag your submission with the Council voices it resonates with:
 All submissions pass through:
 
 1. **Security Scan**: Prompt injection, malware, XSS detection
+
 2. **Spam Filter**: Commercial content, SEO, excessive promotion
+
 3. **Relevance Check**: Keyword matching, thematic coherence
+
 4. **Quality Gate**: Minimum length, constructiveness, originality
 
 ### Routing Decisions
@@ -83,21 +100,27 @@ council-dropbox/
     ├── submissions.db
     ├── filter-rules.json
     └── processor.log
+
 ```
 
 ### Processing Schedule
 
 Submissions are processed:
 - **Every 6 hours** via automated scan
+
 - **Immediately** on file creation (via filesystem watcher)
+
 - **Before each Council iteration** (5-day cycle)
 
 ### Stats
 
 See `meta/submissions.db` and the main state file for:
 - Total submissions
+
 - Approval rates
+
 - Top contributors
+
 - Pending quarantine count
 
 ---

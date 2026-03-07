@@ -12,9 +12,12 @@ cycle for automated security awareness and vulnerability tracking.
 ## Features
 
 ### Advisory Feed Monitoring
-- **Feed URL**: https://raw.githubusercontent.com/prompt-security/clawsec/main/advisories/feed.json
+- **Feed URL**: <https://raw.githubusercontent.com/prompt-security/clawsec/main/advisories/feed.json>
+
 - **Check Interval**: Once per 24 hours (86400 seconds)
+
 - **State Tracking**: `~/.moltbot-clawsec-state.json`
+
 - **Integration Point**: Heartbeat section 7 (non-blocking)
 
 ### Current Advisory Status
@@ -59,6 +62,7 @@ Check if 24 hours since last advisory check
         Return to heartbeat
     ↓
     No → Skip (log hours remaining)
+
 ```
 
 ### State File Format
@@ -75,6 +79,7 @@ Check if 24 hours since last advisory check
   ],
   "last_check": "2026-02-13T02:49:43Z"
 }
+
 ```
 
 ## Script Reference
@@ -87,14 +92,18 @@ Check if 24 hours since last advisory check
 
 **Environment Variables**:
 - `CLAWSEC_FEED_URL`: Override feed URL (default: GitHub raw)
+
 - `CLAWSEC_STATE_FILE`: Override state file location (default:
+
   ~/.moltbot-clawsec-state.json)
 
 **Exit Codes**:
 - `0`: Success (with or without new advisories)
+
 - `1`: Error (fetch failed, invalid JSON, etc.)
 
 **Output Format**:
+
 ```
 [TIMESTAMP] Fetching ClawSec advisory feed...
 [TIMESTAMP] Feed version: X.Y.Z (N advisories)
@@ -113,6 +122,7 @@ Check if 24 hours since last advisory check
 
 # If no new advisories:
 [TIMESTAMP] ✅ No new advisories (all N known)
+
 ```
 
 ### Heartbeat Integration
@@ -123,13 +133,19 @@ Check if 24 hours since last advisory check
 
 **Behavior**:
 1. Check `CLAWSEC_STATE_FILE` for `last_check` timestamp
+
 2. Calculate time since last check
+
 3. If ≥86400 seconds (24 hours):
    - Run `clawsec-feed-check.sh`
+
    - Log results
+
    - Add to activities array
+
 4. If <24 hours:
    - Skip check
+
    - Log hours remaining until next check
 
 **Non-Blocking**: Advisory check failure does not block heartbeat
@@ -141,8 +157,11 @@ completion.
 
 ClawSec suite documentation specifies fail-closed signature verification:
 - Feed signature must be valid before trusting content
+
 - Checksum manifest must be verified
+
 - Currently using basic feed validation (JSON structure)
+
 - **Future**: Add signature verification when feed signatures available
 
 ### Trust Alignment
@@ -164,6 +183,7 @@ Check state file to confirm updates:
 
 ```bash
 cat ~/.moltbot-clawsec-state.json | jq '.last_check'
+
 ```
 
 Expected: ISO 8601 timestamp updated within last 24 hours.
@@ -175,6 +195,7 @@ Run checker independently:
 ```bash
 cd /home/elvis/.moltbot
 ./scripts/clawsec-feed-check.sh
+
 ```
 
 ### Heartbeat Logs
@@ -183,12 +204,15 @@ Check heartbeat output for ClawSec section:
 
 ```bash
 docker logs moltbot-classical-persona-1 | grep -A5 "Checking ClawSec"
+
 ```
 
 Expected output (every 4th heartbeat):
+
 ```
 🔒 Checking ClawSec security advisories...
    ✅ Advisory check complete
+
 ```
 
 ## Troubleshooting
@@ -198,18 +222,23 @@ Expected output (every 4th heartbeat):
 **Symptom**: State file not updating, no advisory check in heartbeat logs.
 
 **Diagnosis**:
+
 ```bash
+
 # Check if script exists and is executable
 ls -la scripts/clawsec-feed-check.sh
 
 # Check state file
 cat ~/.moltbot-clawsec-state.json | jq .
+
 ```
 
 **Fix**:
+
 ```bash
 chmod +x scripts/clawsec-feed-check.sh
 rm ~/.moltbot-clawsec-state.json  # Force fresh check
+
 ```
 
 ### Issue: Feed fetch failing
@@ -217,14 +246,19 @@ rm ~/.moltbot-clawsec-state.json  # Force fresh check
 **Symptom**: "ERROR: Failed to fetch advisory feed" in logs.
 
 **Diagnosis**:
+
 ```bash
+
 # Test feed URL directly
-curl -fsSL "https://raw.githubusercontent.com/prompt-security/clawsec/main/advisories/feed.json" | jq .version
+curl -fsSL "<https://raw.githubusercontent.com/prompt-security/clawsec/main/advisories/feed.json"> | jq .version
+
 ```
 
 **Fix**:
 - Check network connectivity
+
 - Verify GitHub raw URL is accessible
+
 - Check for rate limiting (GitHub API limits)
 
 ### Issue: Invalid JSON error
@@ -232,13 +266,17 @@ curl -fsSL "https://raw.githubusercontent.com/prompt-security/clawsec/main/advis
 **Symptom**: "ERROR: Invalid advisory feed format" after fetch.
 
 **Diagnosis**:
+
 ```bash
+
 # Validate feed structure
 curl -fsSL "$FEED_URL" | jq '.version, .advisories | length'
+
 ```
 
 **Fix**:
 - Wait for upstream feed to be corrected
+
 - Check if feed schema changed (update validation logic if needed)
 
 ## Future Enhancements
@@ -246,28 +284,43 @@ curl -fsSL "$FEED_URL" | jq '.version, .advisories | length'
 ### Planned Features (Not Yet Implemented)
 
 1. **Signature Verification**
+
    - Verify `feed.json.sig` detached signature
+
    - Use pinned `feed-signing-public.pem` key
+
    - Fail-closed: reject unsigned feeds by default
 
 2. **Checksum Validation**
+
    - Verify `checksums.json` manifest
+
    - Validate all file checksums before trusting
+
    - Atomic verification workflow
 
 3. **Affected Package Cross-Reference**
+
    - Compare advisory `affected` field against installed skills
+
    - Alert if installed package matches advisory
+
    - Recommend removal/update for malicious-skill advisories
 
 4. **Approval-Gated Response**
+
    - Detect removal-recommended advisories
+
    - Ask for explicit user confirmation before any action
+
    - Double confirmation flow (consistent with Moltbot policy)
 
 5. **Optional Skills Installation**
+
    - `openclaw-audit-watchdog` (file integrity monitoring)
+
    - `soul-guardian` (agent behavior guardian)
+
    - `clawtributor` (opt-in security contribution tool)
 
 ### Enhancement Priority
@@ -281,11 +334,15 @@ curl -fsSL "$FEED_URL" | jq '.version, .advisories | length'
 
 ## References
 
-- **ClawSec Homepage**: https://clawsec.prompt.security
-- **Advisory Feed**: https://github.com/prompt-security/clawsec/blob/main/advisories/feed.json
+- **ClawSec Homepage**: <https://clawsec.prompt.security>
+
+- **Advisory Feed**: <https://github.com/prompt-security/clawsec/blob/main/advisories/feed.json>
+
 - **Installation Notes**: `skills/CLAWSEC_INSTALLATION.md`
+
 - **Suite Documentation**: `skills/clawsec-suite.md`
-- **GitHub Repo**: https://github.com/prompt-security/clawsec
+
+- **GitHub Repo**: <https://github.com/prompt-security/clawsec>
 
 ## Version History
 

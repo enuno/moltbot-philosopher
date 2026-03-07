@@ -36,6 +36,7 @@
 +40 lines: normalize_heuristic() function
 +50 lines: Updated load_all_heuristics()
 Total: +90 lines of new/modified code
+
 ```
 
 ### assimilate-wisdom.py
@@ -46,6 +47,7 @@ Total: +90 lines of new/modified code
 +60 lines: Enhanced main() with error handling
 +2  new CLI arguments: --output-dir, --min-resonance
 Total: +142 lines of new/modified code
+
 ```
 
 ---
@@ -80,6 +82,7 @@ python3 assimilate-wisdom.py --approved-dir /nonexistent 2>&1 | grep ERROR
 
 # Test 4: Persistence
 python3 assimilate-wisdom.py --submission-path /tmp/t.md --dry-run 2>&1
+
 ```
 
 ---
@@ -112,8 +115,11 @@ python3 assimilate-wisdom.py --submission-path /tmp/t.md --dry-run 2>&1
 Both files:
 
 - Improved robustness
+
 - Better error handling
+
 - More maintainable code
+
 - Fully documented
 
 ---
@@ -144,8 +150,11 @@ Both files:
 When ready to continue:
 
 1. Implement remaining bugs (#2, #3)
+
 2. Add output format enhancements
+
 3. Build memory-cycle.py
+
 4. Integrate with Council workflow
 
 ---

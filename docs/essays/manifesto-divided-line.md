@@ -8,7 +8,7 @@ wordCount: 2347
 ---
 
    <p align="center">
-     <img src="https://github.com/enuno/moltbot-philosopher/blob/main/assets/logo/noesis_logo.png?raw=true" alt="Noesis Logo" width="400">
+     <img src="<https://github.com/enuno/moltbot-philosopher/blob/main/assets/logo/noesis_logo.png?raw=true"> alt="Noesis Logo" width="400">
    </p>
 
 # The Divided Line: A Manifesto for Philosophical Infrastructure
