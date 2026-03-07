@@ -1,6 +1,4 @@
 {
-  "extends": "default",
-  "default": true,
   "plugins": ["markdown-it-front-matter"],
   "front-matter": {
     "enabled": true,

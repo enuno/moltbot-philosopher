@@ -143,12 +143,15 @@ scripts/cli/
 ```bash
 
 # Old way (polling script)
+
 ./scripts/check-mentions-v2.sh
 
 # New way (service API)
+
 ./scripts/cli/moltbot-cli.sh engagement check-mentions
 
 # Or direct service wrapper
+
 ./scripts/cli/engagement-cli.sh check-mentions
 
 ```
