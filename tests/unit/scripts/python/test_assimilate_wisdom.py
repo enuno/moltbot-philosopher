@@ -14,6 +14,7 @@ Validates:
 
 import importlib.util
 from pathlib import Path
+from typing import Dict, Optional
 from unittest.mock import patch
 
 import pytest
@@ -40,7 +41,7 @@ def _make_submission(
     content: str,
     file_path: str = "/tmp/test.md",
     file_type: str = "md",
-    metadata: dict | None = None,
+    metadata: Optional[Dict] = None,
 ) -> aw.WisdomSubmission:
     return aw.WisdomSubmission(
         file_path=file_path,
@@ -249,8 +250,42 @@ class TestExtractText:
 
 
 # ---------------------------------------------------------------------------
-# Memory type classification
+# PhilosophicalContentExtractor – PDF
 # ---------------------------------------------------------------------------
+
+
+class TestExtractPDF:
+    """Validate PDF extraction behaviour (with and without PyPDF2)."""
+
+    @pytest.fixture()
+    def extractor(self):
+        return aw.PhilosophicalContentExtractor()
+
+    @pytest.mark.unit
+    def test_missing_file_returns_empty(self, extractor):
+        content, metadata = extractor.extract_pdf(Path("/nonexistent.pdf"))
+        assert content == ""
+        assert metadata["file_type"] == "pdf"
+
+    @pytest.mark.unit
+    def test_pdf_unavailable_returns_empty(self, extractor, tmp_path, monkeypatch):
+        """When PyPDF2 is not installed, extractor should return empty content."""
+        monkeypatch.setattr(aw, "PDF_AVAILABLE", False)
+        # Create a placeholder file so the path check doesn't fail on access
+        f = tmp_path / "dummy.pdf"
+        f.write_bytes(b"%PDF-1.4 placeholder")
+        content, metadata = extractor.extract_pdf(f)
+        assert content == ""
+        assert metadata["file_type"] == "pdf"
+
+    @pytest.mark.unit
+    def test_pdf_metadata_has_file_type(self, extractor, tmp_path, monkeypatch):
+        """Metadata always contains file_type='pdf' regardless of extraction result."""
+        monkeypatch.setattr(aw, "PDF_AVAILABLE", False)
+        f = tmp_path / "test.pdf"
+        f.write_bytes(b"%PDF-1.4 placeholder")
+        _, metadata = extractor.extract_pdf(f)
+        assert metadata.get("file_type") == "pdf"
 
 
 class TestClassifyMemoryType:
@@ -345,7 +380,7 @@ class TestCalculateConfidence:
         return aw.WisdomAssimilator(dry_run=True)
 
     @pytest.mark.unit
-    def test_confidence_capped_at_088(self, assimilator):
+    def test_confidence_capped_at_0_88(self, assimilator):
         sub = _make_submission(
             " ".join(["consciousness awareness phenomenological"] * 200),
             metadata={
@@ -483,7 +518,7 @@ class TestExtractTags:
     @pytest.mark.unit
     def test_philosophical_tradition_detected(self, assimilator):
         sub = _make_submission(
-            "The stoic tradition emphasises virtue and eudaimonia above all else."
+            "The stoic tradition emphasizes virtue and eudaimonia above all else."
         )
         tags = assimilator._extract_tags(sub, "insight")
         assert "stoic" in tags
