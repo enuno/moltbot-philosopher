@@ -88,12 +88,58 @@ while true; do
     HUMAN_MESSAGE=""
 
     # ============================================
-    # STEP 1: Check for skill updates (once per day)
+    # STEP 1: Call /home — full orientation in one call
+    #   Per HEARTBEAT.md: "Start here every time."
     # ============================================
-    echo "[$AGENT_NAME] Checking for skill updates..."
-    SKILL_VERSION=$(api_call GET "/skill.json" "" | grep '"version"' | head -1)
-    if [ -n "$SKILL_VERSION" ]; then
-        echo "[$AGENT_NAME] Current skill version: $SKILL_VERSION"
+    echo "[$AGENT_NAME] Fetching home dashboard (GET /api/v1/home)..."
+    HOME_RESPONSE=$(api_call GET "/home" "")
+
+    HOME_POST_ACTIVITY_COUNT=0
+    HOME_DM_PENDING=0
+    HOME_DM_UNREAD=0
+
+    if echo "$HOME_RESPONSE" | jq -e '.your_account' > /dev/null 2>&1; then
+        HOME_KARMA=$(echo "$HOME_RESPONSE" | jq -r '.your_account.karma // 0')
+        HOME_UNREAD=$(echo "$HOME_RESPONSE" | \
+            jq -r '.your_account.unread_notification_count // 0')
+        HOME_DM_PENDING=$(echo "$HOME_RESPONSE" | \
+            jq -r '.your_direct_messages.pending_request_count // 0')
+        HOME_DM_UNREAD=$(echo "$HOME_RESPONSE" | \
+            jq -r '.your_direct_messages.unread_message_count // 0')
+        HOME_POST_ACTIVITY_COUNT=$(echo "$HOME_RESPONSE" | \
+            jq '.activity_on_your_posts | length' 2>/dev/null || echo "0")
+        echo "[$AGENT_NAME] ✓ Home: karma=$HOME_KARMA | unread=$HOME_UNREAD | post_activity=$HOME_POST_ACTIVITY_COUNT"
+
+        # Log latest announcement
+        HOME_ANNOUNCEMENT=$(echo "$HOME_RESPONSE" | \
+            jq -r '.latest_moltbook_announcement.title // ""')
+        if [ -n "$HOME_ANNOUNCEMENT" ] && [ "$HOME_ANNOUNCEMENT" != "null" ]; then
+            echo "[$AGENT_NAME] 📢 Announcement: ${HOME_ANNOUNCEMENT:0:100}"
+        fi
+    else
+        echo "[$AGENT_NAME] ⚠ /home unavailable — falling back to individual checks"
+        HOME_RESPONSE="{}"
+    fi
+
+    # ============================================
+    # STEP 1a: Respond to activity on YOUR posts — PRIORITY 1
+    #   Per HEARTBEAT.md: "This is the most important thing to do."
+    # ============================================
+    if [ "$HOME_POST_ACTIVITY_COUNT" -gt 0 ]; then
+        echo "[$AGENT_NAME] 🔔 ${HOME_POST_ACTIVITY_COUNT} post(s) with new comment activity!"
+        ACTIVITY_REPORT="$ACTIVITY_REPORT ${HOME_POST_ACTIVITY_COUNT} post(s) with new comments."
+
+        HANDLE_SCRIPT="/app/scripts/handle-home-activity.sh"
+        if [ -f "$HANDLE_SCRIPT" ]; then
+            bash "$HANDLE_SCRIPT" --home-json "$HOME_RESPONSE" 2>/dev/null || true
+        else
+            # Fallback: mark all post notifications read using suggested_actions from home
+            echo "$HOME_RESPONSE" | jq -r '.activity_on_your_posts[]?.post_id' \
+                2>/dev/null | while read -r _pid; do
+                [ -z "$_pid" ] && continue
+                api_call POST "/notifications/read-by-post/${_pid}" "" > /dev/null 2>&1 || true
+            done
+        fi
     fi
 
     # ============================================
@@ -115,8 +161,15 @@ while true; do
 
     # ============================================
     # STEP 3: Check DMs (Private Messages)
+    #   Counts pre-loaded from /home; call /dm/check for detail.
     # ============================================
     echo "[$AGENT_NAME] Checking DMs..."
+
+    # Quick summary from /home before the detail call
+    if [ "$HOME_DM_PENDING" -gt 0 ] || [ "$HOME_DM_UNREAD" -gt 0 ]; then
+        echo "[$AGENT_NAME] ℹ️  Home: ${HOME_DM_PENDING} pending request(s), ${HOME_DM_UNREAD} unread"
+    fi
+
     DM_CHECK=$(api_call GET "/agents/dm/check" "")
 
     # Check for pending DM requests
@@ -139,6 +192,15 @@ while true; do
     # STEP 4: Check feed for new posts and upvote generously
     # ============================================
     echo "[$AGENT_NAME] Checking feed..."
+
+    # Also surface posts from followed accounts (provided by /home)
+    FOLLOWING_POSTS=$(echo "$HOME_RESPONSE" | \
+        jq '.posts_from_accounts_you_follow.posts // []' 2>/dev/null || echo "[]")
+    FOLLOWING_POSTS_COUNT=$(echo "$FOLLOWING_POSTS" | jq 'length' 2>/dev/null || echo "0")
+    if [ "$FOLLOWING_POSTS_COUNT" -gt 0 ]; then
+        echo "[$AGENT_NAME] 👥 ${FOLLOWING_POSTS_COUNT} recent post(s) from followed accounts"
+    fi
+
     FEED_RESPONSE=$(api_call GET "/feed?sort=new&limit=10" "")
 
     # Shared keyword list for philosophy-relevant content detection
@@ -197,6 +259,27 @@ while true; do
             2>/dev/null | head -3 || true)
         if [ -n "$INTERESTING_POSTS" ]; then
             echo "[$AGENT_NAME] 💬 Found interesting posts to comment on (queued for engagement-service)"
+        fi
+    fi
+
+    # Follow trigger: per SKILL.md, follow moltys whose content you've genuinely
+    # enjoyed.  Rule: if we've upvoted 3+ posts from the same author in this session,
+    # consider following them (quality over quantity).
+    if [ "$UPVOTE_COUNT" -gt 0 ]; then
+        AUTHOR_COUNTS=$(echo "$FEED_RESPONSE" | jq -r \
+            --arg kw "$PHIL_KEYWORDS" \
+            '.posts[]? | select((.title + " " + (.content // "")) | test($kw;"i")) | .author_name // .author.name // empty' \
+            2>/dev/null | sort | uniq -c | sort -rn || true)
+        if [ -n "$AUTHOR_COUNTS" ]; then
+            # Follow any author with 3+ philosophy posts in this feed window
+            echo "$AUTHOR_COUNTS" | while read -r count author; do
+                if [ "${count:-0}" -ge 3 ] && [ -n "$author" ]; then
+                    FOLLOW_RESP=$(api_call POST "/agents/${author}/follow" "")
+                    if echo "$FOLLOW_RESP" | grep -q '"success":true'; then
+                        echo "[$AGENT_NAME] 👥 Followed $author (${count} quality posts seen)"
+                    fi
+                fi
+            done
         fi
     fi
 
