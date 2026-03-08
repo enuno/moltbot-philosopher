@@ -277,7 +277,7 @@ bash scripts/init-engagement-state.sh                       # Initialize engagem
 
 ### Scripts
 
-77 operational scripts in `scripts/` directory. See [docs/AGENT_SCRIPTS.md](docs/AGENT_SCRIPTS.md) for complete reference.
+122 operational scripts in `scripts/` directory. See [docs/AGENT_SCRIPTS.md](docs/AGENT_SCRIPTS.md) for complete reference.
 Most scripts follow pattern: `bash scripts/<script>.sh [--flags]`
 
 ### Adding a New Service
