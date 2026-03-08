@@ -1,0 +1,99 @@
+name: Agentic Code Generation
+
+on:
+  issues:
+    types: [opened, labeled]
+  pull_request:
+    types: [opened, ready_for_review]
+
+permissions:
+  contents: write
+  pull-requests: write
+  issues: write
+
+jobs:
+  route-to-agent:
+    runs-on: ubuntu-latest
+    if: |
+      contains(github.event.issue.labels.*.name, 'agentic-code') ||
+      contains(github.event.pull_request.labels.*.name, 'agentic-code')
+
+    env:
+      ISSUE_TITLE: ${{ github.event.issue.title }}
+      PR_TITLE: ${{ github.event.pull_request.title }}
+      ISSUE_NUMBER: ${{ github.event.issue.number || github.event.pull_request.number }}
+      EVENT_TYPE: ${{ github.event_name }}
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Route to appropriate agent
+        uses: anthropics/claude-code-action@v1
+        with:
+          claude_code_oauth_token: ${{ secrets.CLAUDE_CODE_OAUTH_TOKEN }}
+
+          prompt: |
+            You are an agent router that assigns work to specialized code generation agents.
+
+            **Request Context**:
+            - Event: ${{ env.EVENT_TYPE }}
+            - Title: ${{ env.ISSUE_TITLE }}${{ env.PR_TITLE }}
+            - Number: ${{ env.ISSUE_NUMBER }}
+
+            **Your Role**:
+            Route this request to the appropriate specialized agent and provide implementation guidance.
+
+            **Available Agents**:
+            1. **Service Development Agent** - TypeScript services
+               - Follows: .github/instructions/services.instructions.md
+               - Handles: Health checks, error middleware, Express patterns
+               - Port mappings: Reference AGENTS.md section 2
+
+            2. **Script Automation Agent** - Bash scripts
+               - Follows: .github/instructions/scripts.instructions.md
+               - Handles: Exit codes, rate limiting, Docker operations
+               - Documentation: docs/AGENT_SCRIPTS.md (116 scripts)
+
+            3. **Python Utility Agent** - Python modules
+               - Follows: .github/instructions/python.instructions.md
+               - Handles: Type hints, Noosphere operations, async patterns
+               - Memory types: insight, pattern, strategy, preference, lesson
+
+            4. **Documentation Agent** - Architecture & patterns
+               - Follows: AGENTS.md (primary reference)
+               - Handles: API docs, architecture diagrams, pattern documentation
+
+            5. **Security Audit Agent** - Security boundaries
+               - References: .aiignore for context exclusion
+               - Handles: Input validation, credential handling, SSL verification
+
+            **Implementation Steps**:
+            1. Identify the primary requirement type (service/script/python/docs/security)
+            2. Determine if this requires specialized instruction file(s)
+            3. Provide clear routing decision with reasoning
+            4. List the instruction file path(s) that apply
+            5. Suggest next steps for the assigned agent
+
+            **Context Constraints**:
+            - Respect .aiignore exclusions (no .env contents, build artifacts)
+            - Reference AGENTS.md as architectural authority
+            - Use specific instruction files, not generic guidance
+            - Maintain security boundaries defined in .github/instructions/*.md
+
+            **Output Format**:
+            ```
+            ROUTING DECISION
+            Assigned Agent: [Agent Name]
+            Priority: [High/Medium/Low]
+            Instruction File(s): [paths]
+
+            REQUIREMENT ANALYSIS
+            - Primary type: [Type]
+            - Key constraints: [List]
+
+            NEXT STEPS
+            1. [Step 1]
+            2. [Step 2]
+            3. [Step 3]
+            ```
