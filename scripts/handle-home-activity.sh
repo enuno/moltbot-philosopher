@@ -104,10 +104,17 @@ generate_philosophical_reply() {
     local post_title="${3:-}"
 
     # Attempt AI generator (15-second timeout)
+    # Service exposes POST /generate (no /api prefix)
     local ai_response=""
-    ai_response=$(curl -s --max-time 15 -X POST "${AI_GENERATOR_URL}/api/generate" \
+    local body_json
+    body_json=$(jq -n \
+        --arg persona "$persona" \
+        --arg topic "Reply to: ${comment_content:0:200}" \
+        --arg context "Post: ${post_title:0:100}" \
+        '{persona: $persona, topic: $topic, context: $context}')
+    ai_response=$(curl -s --max-time 15 -X POST "${AI_GENERATOR_URL}/generate" \
         -H "Content-Type: application/json" \
-        -d "{\"persona\":\"${persona}\",\"topic\":\"Reply to: ${comment_content:0:200}\",\"context\":\"Post: ${post_title:0:100}\"}" \
+        -d "$body_json" \
         2>/dev/null || true)
 
     if echo "$ai_response" | jq -e '.success == true and (.content | length) > 0' \
@@ -178,10 +185,15 @@ process_post_activity() {
 
     # Load already-replied comment IDs to avoid duplicate replies
     local reply_state_file="${STATE_DIR}/mentions-state.json"
-    local replied_ids="[]"
-    if [ -f "$reply_state_file" ]; then
-        replied_ids=$(jq -r '.replied_comments // []' "$reply_state_file" 2>/dev/null || echo "[]")
+
+    # Ensure state directory and file exist so deduplication works on fresh workspaces
+    mkdir -p "${STATE_DIR}"
+    if [ ! -f "$reply_state_file" ]; then
+        echo '{"replied_comments":[]}' > "$reply_state_file"
     fi
+
+    local replied_ids
+    replied_ids=$(jq '.replied_comments // []' "$reply_state_file" 2>/dev/null || echo "[]")
 
     local comment_count
     comment_count=$(echo "$comments_body" | jq '.comments | length' 2>/dev/null || echo "0")
@@ -192,11 +204,15 @@ process_post_activity() {
         echo "   💬 ${comment_count} comment(s) to review..."
     fi
 
-    local i
-    for i in $(seq 0 $((comment_count - 1))); do
-        local comment comment_id author_name content
-        comment=$(echo "$comments_body" | jq ".comments[$i]" 2>/dev/null || echo "null")
-        [ "$comment" = "null" ] || [ -z "$comment" ] && continue
+    # Iterate using jq -c to avoid `seq 0 -1` under set -euo pipefail when
+    # comment_count is 0, and to keep parsing correct for each comment object.
+    local comments_tmp
+    comments_tmp=$(mktemp)
+    echo "$comments_body" | jq -c '.comments[]?' 2>/dev/null > "$comments_tmp" || true
+
+    while IFS= read -r comment; do
+        [ -z "$comment" ] && continue
+        local comment_id author_name content
         comment_id=$(echo "$comment" | jq -r '.id // empty')
         author_name=$(echo "$comment" | jq -r '.author.name // .author_name // "anonymous"')
         content=$(echo "$comment" | jq -r '.content // ""')
@@ -246,22 +262,25 @@ process_post_activity() {
         if echo "$reply_response" | jq -e '.success' > /dev/null 2>&1; then
             echo "   ✅ Replied as [$persona] to $author_name"
 
-            # Persist the replied comment ID to avoid future duplicates
-            if [ -f "$reply_state_file" ]; then
-                local tmp_file="${reply_state_file}.tmp.$$"
-                if jq --arg id "$comment_id" \
-                    '.replied_comments += [$id]' "$reply_state_file" > "$tmp_file" 2>/dev/null; then
-                    mv "$tmp_file" "$reply_state_file"
-                else
-                    rm -f "$tmp_file"
-                fi
+            # Persist the replied comment ID to avoid future duplicates.
+            # Initialize the file if it no longer exists (e.g., race condition).
+            if [ ! -f "$reply_state_file" ]; then
+                echo '{"replied_comments":[]}' > "$reply_state_file"
+            fi
+            local tmp_file="${reply_state_file}.tmp.$$"
+            if jq --arg id "$comment_id" \
+                '.replied_comments += [$id]' "$reply_state_file" > "$tmp_file" 2>/dev/null; then
+                mv "$tmp_file" "$reply_state_file"
+            else
+                rm -f "$tmp_file"
             fi
         else
             local err
             err=$(echo "$reply_response" | jq -r '.error // "unknown error"')
             echo "   ⚠️  Reply failed: $err" >&2
         fi
-    done
+    done < "$comments_tmp"
+    rm -f "$comments_tmp"
 
     # Per HEARTBEAT.md Step 2: mark notifications as read after handling this post
     if [ "$DRY_RUN" = false ]; then

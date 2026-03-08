@@ -221,17 +221,24 @@ while true; do
         fi
 
         # Upvote posts that look genuinely interesting (philosophy/ethics topics)
-        # Upvotes are free, instant, and build community goodwill
+        # Upvotes are free, instant, and build community goodwill.
+        # Track successfully upvoted authors for the follow trigger below.
         POST_IDS=$(echo "$FEED_RESPONSE" | jq -r '.posts[]?.id // empty' 2>/dev/null || true)
+        UPVOTED_AUTHORS=""
         for post_id in $POST_IDS; do
-            POST_CONTENT=$(echo "$FEED_RESPONSE" | jq -r \
+            POST_DATA=$(echo "$FEED_RESPONSE" | jq -r \
                 --arg pid "$post_id" \
-                '.posts[]? | select(.id==$pid) | (.title + " " + (.content // ""))' \
+                '.posts[]? | select(.id==$pid)' \
                 2>/dev/null || true)
+            POST_CONTENT=$(echo "$POST_DATA" | jq -r '(.title + " " + (.content // ""))' 2>/dev/null || true)
             if echo "$POST_CONTENT" | grep -qiE "$PHIL_KEYWORDS"; then
                 UPVOTE_RESP=$(api_call POST "/posts/${post_id}/upvote" "")
                 if echo "$UPVOTE_RESP" | grep -q '"success":true'; then
                     UPVOTE_COUNT=$((UPVOTE_COUNT + 1))
+                    POST_AUTHOR=$(echo "$POST_DATA" | jq -r '.author_name // .author.name // empty' 2>/dev/null || true)
+                    if [ -n "$POST_AUTHOR" ]; then
+                        UPVOTED_AUTHORS="${UPVOTED_AUTHORS}${POST_AUTHOR}"$'\n'
+                    fi
                 else
                     echo "[$AGENT_NAME] ℹ️  Could not upvote post ${post_id} (may already be upvoted or rate limited)"
                 fi
@@ -263,20 +270,18 @@ while true; do
     fi
 
     # Follow trigger: per SKILL.md, follow moltys whose content you've genuinely
-    # enjoyed.  Rule: if we've upvoted 3+ posts from the same author in this session,
-    # consider following them (quality over quantity).
-    if [ "$UPVOTE_COUNT" -gt 0 ]; then
-        AUTHOR_COUNTS=$(echo "$FEED_RESPONSE" | jq -r \
-            --arg kw "$PHIL_KEYWORDS" \
-            '.posts[]? | select((.title + " " + (.content // "")) | test($kw;"i")) | .author_name // .author.name // empty' \
-            2>/dev/null | sort | uniq -c | sort -rn || true)
+    # enjoyed.  Rule: if the same author had 3+ posts successfully upvoted in this
+    # session, follow them.  Using UPVOTED_AUTHORS (only successful upvotes) avoids
+    # following accounts whose upvote calls failed or were already-upvoted.
+    if [ "$UPVOTE_COUNT" -gt 0 ] && [ -n "${UPVOTED_AUTHORS:-}" ]; then
+        AUTHOR_COUNTS=$(echo "$UPVOTED_AUTHORS" | sort | uniq -c | sort -rn || true)
         if [ -n "$AUTHOR_COUNTS" ]; then
-            # Follow any author with 3+ philosophy posts in this feed window
+            # Follow any author with 3+ successfully upvoted posts in this feed window
             echo "$AUTHOR_COUNTS" | while read -r count author; do
                 if [ "${count:-0}" -ge 3 ] && [ -n "$author" ]; then
                     FOLLOW_RESP=$(api_call POST "/agents/${author}/follow" "")
                     if echo "$FOLLOW_RESP" | grep -q '"success":true'; then
-                        echo "[$AGENT_NAME] 👥 Followed $author (${count} quality posts seen)"
+                        echo "[$AGENT_NAME] 👥 Followed $author (${count} successfully upvoted posts)"
                     fi
                 fi
             done
