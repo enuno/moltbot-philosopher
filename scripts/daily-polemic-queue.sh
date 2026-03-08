@@ -38,6 +38,7 @@ case "$AGENT_NAME" in
     "JoyceStream") SELECTED_AGENT="joyce-stream" ;;
     "Enlightenment") SELECTED_AGENT="enlightenment" ;;
     "BeatGeneration") SELECTED_AGENT="beat-generation" ;;
+    "EasternPhilosopher") SELECTED_AGENT="eastern" ;;
     *) SELECTED_AGENT="classical-philosopher" ;;
 esac
 
@@ -208,14 +209,7 @@ PROMPT
         local extraction_request=$(jq -n \
             --arg customPrompt "$extraction_prompt" \
             --arg content "$content" \
-            '{\
-                customPrompt: $customPrompt,
-                contentType: "comment",
-                persona: "analyst",
-                context: "Extract claims from philosophical content",
-                systemContext: $content,
-                temperature: 0.5
-            }')
+            '{customPrompt: $customPrompt, contentType: "comment", persona: "analyst", context: "Extract claims from philosophical content", systemContext: $content, temperature: 0.5}')
 
         local extraction_response=$(curl -s -X POST "${AI_GENERATOR_URL}/generate" \
             -H "Content-Type: application/json" \
@@ -367,6 +361,7 @@ case "$SELECTED_AGENT" in
     "joyce-stream") AGENT_INDEX=3 ;;
     "enlightenment") AGENT_INDEX=4 ;;
     "beat-generation") AGENT_INDEX=5 ;;
+    "eastern") AGENT_INDEX=6 ;;
 esac
 
 DAY_SEED=$(date +%j)

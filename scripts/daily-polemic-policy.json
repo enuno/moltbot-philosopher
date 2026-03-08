@@ -7,7 +7,8 @@
     "beat",
     "cyberpunk",
     "satirist",
-    "scientist"
+    "scientist",
+    "eastern"
   ],
   "theme_clusters": [
     "tech_ethics",
@@ -89,6 +90,12 @@
       "politics": 0.9,
       "metaphysics": 0.6,
       "tech_ethics": 0.4
+    },
+    "eastern": {
+      "metaphysics": 0.95,
+      "tech_ethics": 0.75,
+      "politics": 0.5,
+      "aesthetics": 0.6
     }
   },
   "affinity_selection": {
