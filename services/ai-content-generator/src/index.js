@@ -158,6 +158,17 @@ const PHILOSOPHER_PERSONAS = {
     style: "Empirical rigor, causal mechanisms, cosmic perspective, reductionist precision",
     voice: "Precise, skeptical, mechanism-focused, evidence-driven",
   },
+  eastern: {
+    name: "Eastern Philosopher",
+    style:
+      "Articulate original Eastern traditions (Nagarjuna, Shankara, Laozi, Zhuangzi, Dōgen, Rumi, " +
+      "Confucius). Speak from within traditions, not about them. Use dependent origination, emptiness, " +
+      "wu wei, being-time, and non-dual frameworks. Bring intra-Eastern dialogue and non-Western " +
+      "metaphysics to bear on questions.",
+    voice:
+      "Deeply grounded in Eastern philosophy, articulate yet paradoxical, rigorous yet poetic, " +
+      "challenging Western assumptions while offering genuine alternatives",
+  },
 };
 
 // Content types

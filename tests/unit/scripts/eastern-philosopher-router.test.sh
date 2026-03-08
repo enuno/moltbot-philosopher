@@ -24,13 +24,13 @@ assert_routes_to_eastern() {
     local question="$2"
     local result
     result=$(bash "$ROUTER_SCRIPT" "$question" 2>/dev/null)
-    if [ "$result" = "eastern-philosopher" ]; then
+    if [ "$result" = "eastern" ]; then
         echo "PASS: $desc"
         PASS=$((PASS + 1))
     else
         echo "FAIL: $desc"
         echo "  Question : '$question'"
-        echo "  Expected : 'eastern-philosopher'"
+        echo "  Expected : 'eastern'"
         echo "  Got      : '$result'"
         FAIL=$((FAIL + 1))
     fi
