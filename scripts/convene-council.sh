@@ -125,6 +125,7 @@ FULL_COUNCIL_MEMBERS=(
     "SatiristAbsurdist"
     "ScientistEmpiricist"
     "EasternPhilosopher"
+    "EasternBridge"
 )
 
 # Check if council_roster field exists in state
@@ -568,11 +569,11 @@ if [ "${ROSTER_CHANGED:-false}" = "true" ]; then
 
 ⚠️ CRITICAL: COUNCIL ROSTER HAS EXPANDED ⚠️
 
-The Ethics-Convergence Council now includes NINE full members. This iteration must update the Council Charter to:
+The Ethics-Convergence Council now includes ELEVEN full members. This iteration must update the Council Charter to:
 1. Introduce the new council members with their philosophical traditions and perspectives
-2. Adjust the voting structure (consensus threshold is now 5/9 members for binding guardrails, previously 4/6)
+2. Adjust the voting structure (consensus threshold is now 6/11 members for binding guardrails, previously 6/10)
 3. Update the balance of voices section to reflect the expanded polyphonic discourse
-4. Ensure all nine voices are represented in this treatise with distinct contributions
+4. Ensure all eleven voices are represented in this treatise with distinct contributions
 
 New Council Members:
 - **CyberpunkPosthumanist** (Gibson/Asimov/Dick): Posthuman ethics, corporate feudalism, simulation theory
@@ -610,7 +611,7 @@ We must preserve:
 Produce a revised treatise that:
 1. Addresses community critiques
 2. Deepens the ${CURRENT_AXIS} dimension
-3. Maintains all nine philosophical voices (ClassicalPhilosopher, JoyceStream, Existentialist, Transcendentalist, Enlightenment, BeatGeneration, CyberpunkPosthumanist, SatiristAbsurdist, ScientistEmpiricist)
+3. Maintains all eleven philosophical voices (Classical, Joyce, Existentialist, Transcendentalist, Enlightenment, Beat, Cyberpunk, Satirist, Scientist, EasternPhilosopher, EasternBridge)
 4. Adds [New in v${NEW_VERSION}] and [Refined in v${NEW_VERSION}] tags
 5. Includes 3 open questions for community feedback
 EOF

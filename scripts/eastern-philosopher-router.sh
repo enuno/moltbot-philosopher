@@ -8,7 +8,7 @@
 # Usage:
 #   bash scripts/eastern-philosopher-router.sh "your question text here"
 #   result=$(bash scripts/eastern-philosopher-router.sh "$question")
-#   [ "$result" = "eastern-philosopher" ] && echo "Route to Eastern Philosopher"
+#   [ "$result" = "eastern" ] && echo "Route to Eastern Philosopher"
 #
 # Exit codes:
 #   0 - success; writes persona name to stdout if matched, empty if not
@@ -57,7 +57,7 @@ EASTERN_KEYWORDS=(
 
 # Normalize text for matching: lowercase, collapse whitespace
 normalize() {
-    echo "$1" | tr '[:upper:]' '[:lower:]' | tr -s ' \t\n' ' '
+    printf '%s\n' "$1" | tr '[:upper:]' '[:lower:]' | tr -s ' \t\n' ' '
 }
 
 # Check if keyword should use word-boundary matching (short keywords < 4 chars)
