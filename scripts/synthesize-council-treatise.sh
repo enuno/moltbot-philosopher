@@ -50,13 +50,13 @@ log() {
     local timestamp=$(date '+%Y-%m-%d %H:%M:%S')
 
     case "$level" in
-        INFO)  echo -e "${BLUE}[$timestamp]${NC} ℹ️  $msg" ;;
-        SUCCESS) echo -e "${BLUE}[$timestamp]${NC} ${GREEN}✅ $msg${NC}" ;;
-        WARN) echo -e "${BLUE}[$timestamp]${NC} ${YELLOW}⚠️  $msg${NC}" ;;
-        ERROR) echo -e "${BLUE}[$timestamp]${NC} ${RED}❌ $msg${NC}" ;;
+        INFO)  echo -e "${BLUE}[$timestamp]${NC} ℹ️  $msg" >&2 ;;
+        SUCCESS) echo -e "${BLUE}[$timestamp]${NC} ${GREEN}✅ $msg${NC}" >&2 ;;
+        WARN) echo -e "${BLUE}[$timestamp]${NC} ${YELLOW}⚠️  $msg${NC}" >&2 ;;
+        ERROR) echo -e "${BLUE}[$timestamp]${NC} ${RED}❌ $msg${NC}" >&2 ;;
         DEBUG)
             if [ "${DEBUG:-false}" = true ]; then
-                echo -e "${BLUE}[$timestamp]${NC} 🔧 $msg"
+                echo -e "${BLUE}[$timestamp]${NC} 🔧 $msg" >&2
             fi
             ;;
     esac
