@@ -54,7 +54,7 @@ Container: /app/scripts/ (read-only)
     ↓ executed by
 entrypoint.sh → schedules periodic tasks
 
-```bash
+```
 
 ### Execution Patterns
 
@@ -78,13 +78,13 @@ entrypoint.sh → schedules periodic tasks
 ```bash
 docker exec <container> /app/scripts/<script>.sh [flags]
 
-```text
+```
 
 ## Quick Reference
 
 ### Most Common Commands
 
-```bash
+```text
 
 # Check agent status
 
@@ -115,7 +115,7 @@ docker exec classical-philosopher /app/scripts/convene-council.sh
 
 docker exec classical-philosopher /app/scripts/cli/moltbot-cli.sh health
 
-```text
+```
 
 ### Container Names
 
@@ -148,7 +148,7 @@ Comprehensive social engagement check - claim status, DMs, feed, new users.
 ```bash
 docker exec classical-philosopher /app/scripts/moltbook-heartbeat-enhanced.sh
 
-```text
+```
 
 **What it checks**:
 
@@ -176,7 +176,7 @@ Monitors for verification challenges and solves them automatically.
 ```bash
 docker exec classical-philosopher /app/scripts/verification-poller.sh
 
-```text
+```
 
 **What it does**:
 
@@ -235,7 +235,7 @@ docker exec classical-philosopher /app/scripts/check-mentions.sh --auto-reply
 
 docker exec classical-philosopher /app/scripts/check-mentions.sh --limit 10
 
-```text
+```
 
 **Flags**:
 
@@ -262,7 +262,7 @@ docker exec classical-philosopher /app/scripts/check-comments.sh
 
 docker exec classical-philosopher /app/scripts/check-comments.sh --auto-reply
 
-```text
+```
 
 **Flags**:
 
@@ -293,7 +293,7 @@ docker exec classical-philosopher /app/scripts/monitor-submolt.sh
 
 docker exec classical-philosopher /app/scripts/monitor-submolt.sh --auto-respond
 
-```text
+```
 
 **Flags**:
 
@@ -322,7 +322,7 @@ docker exec classical-philosopher /app/scripts/welcome-new-moltys.sh --auto-welc
 
 docker exec classical-philosopher /app/scripts/welcome-new-moltys.sh --limit 25
 
-```text
+```
 
 **Flags**:
 
@@ -354,7 +354,7 @@ docker exec classical-philosopher /app/scripts/post-to-moltbook.sh \
   --title "Interesting Article" \
   --submolt links
 
-```text
+```
 
 **Flags**:
 
@@ -377,7 +377,7 @@ docker exec classical-philosopher /app/scripts/comment-on-post.sh \
   --post-id <POST_ID> \
   --text "Your comment content"
 
-```text
+```
 
 **Flags**:
 
@@ -396,7 +396,7 @@ Run full Ethics-Convergence Council iteration (5-day cycle).
 ```bash
 docker exec classical-philosopher /app/scripts/convene-council.sh
 
-```text
+```
 
 **What it does**:
 
@@ -430,7 +430,7 @@ Quick council deliberation without full iteration cycle.
 ```bash
 docker exec classical-philosopher /app/scripts/ethics-convergence.sh
 
-```text
+```
 
 **What it does**:
 
@@ -451,7 +451,7 @@ Generate council article with specified target post.
 docker exec classical-philosopher /app/scripts/generate-council-iteration-article.sh \
   --target-post <POST_ID>
 
-```text
+```
 
 **Flags**:
 
@@ -480,7 +480,7 @@ docker exec classical-philosopher /app/scripts/archive-thread-to-noosphere.sh \
   --thread-id <THREAD_ID> \
   --title "Thread Title"
 
-```text
+```
 
 **Flags**:
 
@@ -500,7 +500,7 @@ Process approved community wisdom from dropbox.
 ```bash
 docker exec classical-philosopher /app/scripts/dropbox-processor.sh
 
-```text
+```
 
 **What it does**:
 
@@ -520,7 +520,7 @@ Located at `/workspace/classical/noosphere/`:
 docker exec classical-philosopher python3 /workspace/noosphere/recall-engine.py \
   --context "AI autonomy" --format constitutional
 
-```text
+```
 
 **assimilate-wisdom.py** - Extract wisdom from approved content:
 
@@ -528,7 +528,7 @@ docker exec classical-philosopher python3 /workspace/noosphere/recall-engine.py 
 docker exec classical-philosopher python3 /workspace/noosphere/assimilate-wisdom.py \
   --approved-dir /workspace/dropbox/approved
 
-```text
+```
 
 **memory-cycle.py** - Memory consolidation:
 
@@ -544,7 +544,7 @@ docker exec classical-philosopher python3 /workspace/noosphere/memory-cycle.py \
 docker exec classical-philosopher python3 /workspace/noosphere/memory-cycle.py \
   --action promote --memory-id <ID>
 
-```text
+```
 
 **clawhub-mcp.py** - Vector search:
 
@@ -552,7 +552,7 @@ docker exec classical-philosopher python3 /workspace/noosphere/memory-cycle.py \
 docker exec classical-philosopher python3 /workspace/noosphere/clawhub-mcp.py \
   --action search --query "corporate feudalism" --top-k 10
 
-```text
+```
 
 ### Philosopher Poet Triptych Selection
 
@@ -587,7 +587,7 @@ Generate and publish weekly philosophical essay.
 ```bash
 docker exec classical-philosopher /app/scripts/moltstack-generate-article.sh
 
-```text
+```
 
 **What it does**:
 
@@ -612,7 +612,7 @@ Archive published essay.
 docker exec classical-philosopher /app/scripts/archive-moltstack-article.sh \
   --article-id <ID>
 
-```text
+```
 
 ## Utility Scripts
 
@@ -625,7 +625,7 @@ Check DM activity (requests and unread messages).
 ```bash
 docker exec classical-philosopher /app/scripts/dm-check.sh
 
-```text
+```
 
 **Note**: DMs blocked for agents < 24 hours old
 
@@ -640,7 +640,7 @@ docker exec classical-philosopher /app/scripts/dm-send-message.sh \
   --recipient <AGENT_NAME> \
   --message "Your message"
 
-```text
+```
 
 ### follow-molty.sh
 
@@ -652,7 +652,7 @@ Follow another agent.
 docker exec classical-philosopher /app/scripts/follow-molty.sh \
   --name <AGENT_NAME>
 
-```text
+```
 
 ### check-thread-health.sh
 
@@ -664,7 +664,7 @@ Check status of a specific thread.
 docker exec classical-philosopher /app/scripts/check-thread-health.sh \
   --thread-id <THREAD_ID>
 
-```bash
+```
 
 ### export-secrets.sh
 
@@ -675,7 +675,7 @@ Export environment variables for local testing.
 ```bash
 source ./scripts/export-secrets.sh
 
-```typescript
+```
 
 **Note**: Run on HOST, not in container
 
@@ -692,7 +692,7 @@ Unified CLI for all agent operations.
 ```bash
 docker exec classical-philosopher /app/scripts/cli/moltbot-cli.sh <command>
 
-```text
+```
 
 **Commands**:
 
@@ -713,7 +713,7 @@ Verification service operations.
 ```bash
 docker exec classical-philosopher /app/scripts/cli/verification-cli.sh <command>
 
-```text
+```
 
 **Commands**:
 
@@ -730,7 +730,7 @@ Memory operations.
 ```bash
 docker exec classical-philosopher /app/scripts/cli/noosphere-cli.sh <command>
 
-```text
+```
 
 **Commands**:
 
@@ -749,7 +749,7 @@ Essay operations.
 ```bash
 docker exec classical-philosopher /app/scripts/cli/moltstack-cli.sh <command>
 
-```text
+```
 
 **Commands**:
 
@@ -804,7 +804,7 @@ docker exec classical-philosopher /app/scripts/moltbook-heartbeat-enhanced.sh
 
 docker exec classical-philosopher /app/scripts/cli/moltbot-cli.sh health
 
-```text
+```
 
 #### 2. Engage with Mentions
 
@@ -818,7 +818,7 @@ docker exec classical-philosopher /app/scripts/check-mentions.sh --limit 5
 
 docker exec classical-philosopher /app/scripts/check-mentions.sh --auto-reply
 
-```text
+```
 
 #### 3. Post and Monitor
 
@@ -834,7 +834,7 @@ docker exec classical-philosopher /app/scripts/post-to-moltbook.sh \
 
 docker exec classical-philosopher /app/scripts/check-comments.sh
 
-```text
+```
 
 #### 4. Run Council Iteration
 
@@ -848,7 +848,7 @@ docker exec classical-philosopher /app/scripts/convene-council.sh
 
 docker exec classical-philosopher /app/scripts/ethics-convergence.sh
 
-```text
+```
 
 #### 5. Memory Operations
 
@@ -870,7 +870,7 @@ docker exec classical-philosopher python3 /workspace/noosphere/clawhub-mcp.py \
 docker exec classical-philosopher python3 /workspace/noosphere/memory-cycle.py \
   --action consolidate
 
-```text
+```
 
 ### Debugging
 
@@ -887,7 +887,7 @@ docker logs classical-philosopher --tail 100 --follow
 docker exec classical-philosopher cat /workspace/verification-poller.log
 docker exec classical-philosopher tail -f /workspace/polemic.log
 
-```text
+```
 
 #### Check State Files
 
@@ -905,7 +905,7 @@ docker exec classical-philosopher cat /workspace/post-state.json | jq '.'
 
 docker exec classical-philosopher cat /workspace/codex-state.json | jq '.'
 
-```text
+```
 
 #### Interactive Shell
 
@@ -920,7 +920,7 @@ docker exec -it classical-philosopher /bin/bash
 cd /app/scripts
 ./moltbook-heartbeat-enhanced.sh
 
-```text
+```
 
 ### Script Development
 
@@ -944,7 +944,7 @@ docker exec classical-philosopher /app/scripts/check-mentions.sh
 
 docker logs classical-philosopher --tail 50
 
-```text
+```
 
 #### Add New Script
 
@@ -967,7 +967,7 @@ docker compose up -d classical-philosopher
 
 docker exec classical-philosopher /app/scripts/new-feature.sh
 
-```bash
+```
 
 ## Best Practices
 
@@ -1020,7 +1020,7 @@ Scripts should typically run on **one designated agent** for coordination:
 docker exec classical-philosopher /app/scripts/check-mentions.sh  # ✅
 docker exec classical-philosopher /scripts/check-mentions.sh      # ❌
 
-```text
+```
 
 **Permission denied**:
 
@@ -1033,7 +1033,7 @@ docker exec classical-philosopher /scripts/check-mentions.sh      # ❌
 docker exec classical-philosopher ls -la /workspace  # ✅
 docker exec classical-philosopher touch /app/test    # ❌
 
-```text
+```
 
 **Changes not reflected**:
 
@@ -1045,7 +1045,7 @@ docker exec classical-philosopher touch /app/test    # ❌
 
 docker compose restart classical-philosopher
 
-```text
+```
 
 **401 errors (DMs/feed)**:
 
@@ -1058,7 +1058,7 @@ docker compose restart classical-philosopher
 curl <https://www.moltbook.com/api/v1/agents/me> \
   -H "Authorization: Bearer $MOLTBOOK_API_KEY"
 
-```text
+```
 
 ## See Also
 
