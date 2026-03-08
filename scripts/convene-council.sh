@@ -583,6 +583,22 @@ New Council Members:
 This expansion strengthens our epistemic diversity and guards against groupthink."
 fi
 
+HEURISTICS_SECTION=""
+if [ -n "${DELIBERATION_HEURISTICS:-}" ]; then
+    HEURISTICS_SECTION="
+EPISTEMIC HEURISTIC REFERENCE (Constitutional Memory — ${CURRENT_AXIS}):
+${DELIBERATION_HEURISTICS}
+"
+fi
+
+SEMANTIC_SECTION=""
+if [ -n "${SEMANTIC_RESULTS:-}" ]; then
+    SEMANTIC_SECTION="
+SEMANTIC SEARCH RESULTS (Vector Similarity — Community Feedback Context):
+${SEMANTIC_RESULTS}
+"
+fi
+
 DIALOGUE_CONTEXT=$(cat << EOF
 We are revising Version ${CURRENT_VERSION} of the Polyphonic Treatise on Human-AI Convergence.
 
@@ -590,10 +606,10 @@ EPISTEMIC PREAMBLE:
 ${EPISTEMIC_PREAMBLE}
 
 ${DELIBERATION_PREAMBLE}
-
+${HEURISTICS_SECTION}
 RETRIEVED HEURISTICS FROM NOOSPHERE:
 ${RECALL_OUTPUT}
-
+${SEMANTIC_SECTION}
 Community feedback since last iteration includes:
 ${SUMMARIZED_FEEDBACK}${DROPBOX_CONTEXT}
 
@@ -901,7 +917,8 @@ $POST_CONTENT" "$METADATA" 2>/dev/null || true
     if [ -f "${NOOSPHERE_DIR}/assimilate-wisdom.py" ] && [ -d "${DROPBOX_DIR}/approved/raw" ]; then
         ASSIMILATION_RESULT=$(python3 "${NOOSPHERE_DIR}/assimilate-wisdom.py" \
             --approved-dir "${DROPBOX_DIR}/approved/raw" \
-            --api-url "$NOOSPHERE_API_URL" 2>/dev/null || echo '{"assimilated_count": 0}')
+            --api-url "$NOOSPHERE_API_URL" \
+            --agent-id classical 2>/dev/null || echo '{"assimilated_count": 0}')
         # Clean and validate the count (remove newlines, ensure it's a number)
         ASSIMILATED_COUNT=$(echo "$ASSIMILATION_RESULT" | jq -r '.assimilated_count // 0' | tr -d '\n\r' | grep -o '[0-9]*' | head -1)
         ASSIMILATED_COUNT=${ASSIMILATED_COUNT:-0}  # Default to 0 if empty
@@ -943,6 +960,43 @@ $POST_CONTENT" "$METADATA" 2>/dev/null || true
        ' "$STATE_FILE" > "${STATE_FILE}.tmp" && mv "${STATE_FILE}.tmp" "$STATE_FILE"
 
     log "INFO" "${GREEN}State updated. Next iteration scheduled for ${NEXT_DATE}.${NC}"
+
+    # ═══════════════════════════════════════════════════════
+    # VII. POST-COUNCIL MEMORY CONSOLIDATION
+    # ═══════════════════════════════════════════════════════
+    log "INFO" "${BLUE}[Phase VII] Post-council memory consolidation...${NC}"
+    CONSOLIDATION_STATE="${NOOSPHERE_DIR}/consolidation-state.json"
+    SKIP_CONSOLIDATION=false
+    if [ -f "$CONSOLIDATION_STATE" ]; then
+        LAST_CONSOL=$(jq -r '.last_consolidation // "null"' "$CONSOLIDATION_STATE")
+        if [ "$LAST_CONSOL" != "null" ]; then
+            LAST_CONSOL_EPOCH=$(date -d "$LAST_CONSOL" +%s 2>/dev/null || echo 0)
+            NOW_EPOCH=$(date +%s)
+            SECONDS_AGO=$(( NOW_EPOCH - LAST_CONSOL_EPOCH ))
+            if [ "$SECONDS_AGO" -lt 7200 ]; then
+                log "INFO" "${YELLOW}Cron ran consolidation ${SECONDS_AGO}s ago. Skipping.${NC}"
+                SKIP_CONSOLIDATION=true
+            fi
+        fi
+    fi
+    if [ "$SKIP_CONSOLIDATION" = "false" ] && command -v consolidate_memory >/dev/null 2>&1; then
+        consolidate_memory 50 2>/dev/null || log "WARN" "${YELLOW}Consolidation failed (non-fatal)${NC}"
+        log "INFO" "${GREEN}Post-council consolidation complete${NC}"
+    fi
+
+    # Log Noosphere memory stats post-consolidation
+    if command -v get_memory_stats >/dev/null 2>&1 && [ -f "${NOOSPHERE_DIR}/memory-cycle.py" ]; then
+        NOOSPHERE_MONITOR_LOG="${NOOSPHERE_DIR}/logs/noosphere-monitor.log"
+        mkdir -p "${NOOSPHERE_DIR}/logs" 2>/dev/null || true
+        MEMORY_STATS=$(get_memory_stats "json" 2>/dev/null || echo '{}')
+        if [ -n "$MEMORY_STATS" ] && [ "$MEMORY_STATS" != '{}' ]; then
+            echo "[$(date -Iseconds)] council-v${NEW_VERSION} ${MEMORY_STATS}" >> "$NOOSPHERE_MONITOR_LOG" 2>/dev/null || true
+            TOTAL_MEMORIES=$(echo "$MEMORY_STATS" | jq -r '.total_memories // "unknown"' 2>/dev/null || echo "unknown")
+            notify "action" "Noosphere Stats v${NEW_VERSION}" \
+                "Post-council memory: total=${TOTAL_MEMORIES} | axis=${CURRENT_AXIS}"
+            log "INFO" "${GREEN}Memory stats logged: total=${TOTAL_MEMORIES}${NC}"
+        fi
+    fi
 
 else
     ERROR_MSG=$(echo "$QUEUE_RESPONSE" | jq -r '.error // .message // "unknown error"')
