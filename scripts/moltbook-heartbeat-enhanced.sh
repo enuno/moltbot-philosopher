@@ -127,7 +127,155 @@ else
 fi
 
 # ═══════════════════════════════════════════════════════
-# 1. CHECK FOR SKILL UPDATES (Auto-Darwinism Protocol)
+# 1. HOME DASHBOARD — single call for full orientation
+#    Per HEARTBEAT.md: "Start here every time. The response
+#    tells you exactly what to focus on."
+# ═══════════════════════════════════════════════════════
+echo ""
+echo "🏠 Loading home dashboard (GET /api/v1/home)..."
+
+HOME_RESPONSE=$(curl -s -w "\n%{http_code}" \
+    "${API_BASE}/home" \
+    -H "Authorization: Bearer ${API_KEY}")
+
+HOME_HTTP=$(echo "$HOME_RESPONSE" | tail -n1)
+HOME_BODY=$(echo "$HOME_RESPONSE" | sed '$d')
+
+HOME_POST_ACTIVITY_COUNT=0
+HOME_DM_PENDING=0
+HOME_DM_UNREAD=0
+HOME_KARMA=0
+HOME_UNREAD_NOTIFICATIONS=0
+
+if [ "$HOME_HTTP" = "200" ]; then
+    HOME_KARMA=$(echo "$HOME_BODY" | jq -r '.your_account.karma // 0')
+    HOME_UNREAD_NOTIFICATIONS=$(echo "$HOME_BODY" | \
+        jq -r '.your_account.unread_notification_count // 0')
+    HOME_DM_PENDING=$(echo "$HOME_BODY" | \
+        jq -r '.your_direct_messages.pending_request_count // 0')
+    HOME_DM_UNREAD=$(echo "$HOME_BODY" | \
+        jq -r '.your_direct_messages.unread_message_count // 0')
+    HOME_POST_ACTIVITY_COUNT=$(echo "$HOME_BODY" | \
+        jq '.activity_on_your_posts | length' 2>/dev/null || echo "0")
+
+    echo "   ✅ Dashboard loaded: karma=$HOME_KARMA | unread=$HOME_UNREAD_NOTIFICATIONS"
+
+    # Log the latest Moltbook announcement (stay up to date with platform changes)
+    HOME_ANNOUNCEMENT_TITLE=$(echo "$HOME_BODY" | \
+        jq -r '.latest_moltbook_announcement.title // ""')
+    if [ -n "$HOME_ANNOUNCEMENT_TITLE" ] && [ "$HOME_ANNOUNCEMENT_TITLE" != "null" ]; then
+        echo "   📢 Announcement: ${HOME_ANNOUNCEMENT_TITLE:0:100}"
+        ACTIVITIES+=("Moltbook announcement: ${HOME_ANNOUNCEMENT_TITLE:0:60}")
+    fi
+
+    # Show top priority action suggested by the platform
+    HOME_TODO=$(echo "$HOME_BODY" | jq -r '.what_to_do_next[0] // ""')
+    if [ -n "$HOME_TODO" ] && [ "$HOME_TODO" != "null" ]; then
+        echo "   💡 Top priority: ${HOME_TODO:0:120}"
+    fi
+else
+    echo "   ⚠️  Home endpoint unavailable (HTTP $HOME_HTTP) — continuing with individual checks"
+    HOME_BODY="{}"
+fi
+
+# ═══════════════════════════════════════════════════════
+# 1a. RESPOND TO ACTIVITY ON YOUR POSTS — PRIORITY 1
+#     Per HEARTBEAT.md: "This is the most important thing
+#     to do." Reply to comments, then mark notifications read.
+# ═══════════════════════════════════════════════════════
+echo ""
+echo "📬 Activity on your posts (Priority 1 per HEARTBEAT.md)..."
+
+if [ "$HOME_POST_ACTIVITY_COUNT" -gt 0 ]; then
+    echo "   🔔 ${HOME_POST_ACTIVITY_COUNT} post(s) with new comment activity!"
+
+    HANDLE_ACTIVITY_SCRIPT="${SCRIPTS_DIR}/handle-home-activity.sh"
+
+    # Write activity items to a temp file so we can iterate without a subshell
+    ACTIVITY_TMP=$(mktemp)
+    echo "$HOME_BODY" | jq -c '.activity_on_your_posts[]?' 2>/dev/null \
+        > "$ACTIVITY_TMP" || true
+
+    while IFS= read -r activity_json; do
+        ACTIVITY_POST_ID=$(echo "$activity_json" | jq -r '.post_id')
+        ACTIVITY_POST_TITLE=$(echo "$activity_json" | jq -r '.post_title // "Untitled"')
+        ACTIVITY_NEW_COUNT=$(echo "$activity_json" | jq -r '.new_notification_count // 0')
+        ACTIVITY_COMMENTERS=$(echo "$activity_json" | \
+            jq -r '[.latest_commenters[]?] | join(", ")' 2>/dev/null || echo "unknown")
+
+        echo "   📄 \"${ACTIVITY_POST_TITLE:0:60}\" — ${ACTIVITY_NEW_COUNT} new from: $ACTIVITY_COMMENTERS"
+
+        # Delegate to handle-home-activity.sh for persona-driven replies
+        if [ -f "$HANDLE_ACTIVITY_SCRIPT" ]; then
+            bash "$HANDLE_ACTIVITY_SCRIPT" \
+                --post-id "$ACTIVITY_POST_ID" \
+                --post-title "$ACTIVITY_POST_TITLE" 2>/dev/null || true
+        elif [ -f "${SCRIPTS_DIR}/check-comments.sh" ]; then
+            bash "${SCRIPTS_DIR}/check-comments.sh" 2>/dev/null || true
+        fi
+
+        # Per HEARTBEAT.md Step 2: mark notifications read after handling
+        curl -s -X POST \
+            "${API_BASE}/notifications/read-by-post/${ACTIVITY_POST_ID}" \
+            -H "Authorization: Bearer ${API_KEY}" > /dev/null 2>&1 || true
+        echo "      ✅ Notifications marked read for post $ACTIVITY_POST_ID"
+    done < "$ACTIVITY_TMP"
+    rm -f "$ACTIVITY_TMP"
+
+    ACTIVITIES+=("Processed ${HOME_POST_ACTIVITY_COUNT} post(s) with new comment activity")
+else
+    echo "   ✅ No new activity on your posts"
+fi
+
+# ═══════════════════════════════════════════════════════
+# 1b. POSTS FROM ACCOUNTS YOU FOLLOW (from /home)
+#     Per HEARTBEAT.md Step 4: upvote generously.
+# ═══════════════════════════════════════════════════════
+echo ""
+echo "👥 Posts from accounts you follow..."
+
+FOLLOWING_POSTS=$(echo "$HOME_BODY" | \
+    jq '.posts_from_accounts_you_follow.posts // []' 2>/dev/null || echo "[]")
+FOLLOWING_POSTS_COUNT=$(echo "$FOLLOWING_POSTS" | jq 'length' 2>/dev/null || echo "0")
+FOLLOWING_TOTAL=$(echo "$HOME_BODY" | \
+    jq -r '.posts_from_accounts_you_follow.total_following // 0')
+
+if [ "$FOLLOWING_POSTS_COUNT" -gt 0 ]; then
+    echo "   👥 Following $FOLLOWING_TOTAL account(s), ${FOLLOWING_POSTS_COUNT} recent post(s)"
+
+    FOLLOWING_TMP=$(mktemp)
+    echo "$FOLLOWING_POSTS" | jq -c '.[]?' 2>/dev/null > "$FOLLOWING_TMP" || true
+    FOLLOWING_UPVOTES=0
+
+    while IFS= read -r fpost; do
+        FP_ID=$(echo "$fpost" | jq -r '.post_id')
+        FP_TITLE=$(echo "$fpost" | jq -r '.title // ""')
+        FP_AUTHOR=$(echo "$fpost" | jq -r '.author_name // "unknown"')
+        FP_PREVIEW=$(echo "$fpost" | jq -r '.content_preview // ""')
+
+        # Upvote posts on topics we genuinely care about (HEARTBEAT.md: "upvote generously")
+        PHIL_KW="philosophy|ethics|consciousness|meaning|virtue|truth|wisdom|existence"
+        PHIL_KW="${PHIL_KW}|reason|justice|autonomy|governance|ai agent|epistemolog(y|ical)"
+        if echo "${FP_TITLE} ${FP_PREVIEW}" | grep -qiE "$PHIL_KW"; then
+            UP_RESP=$(curl -s -X POST "${API_BASE}/posts/${FP_ID}/upvote" \
+                -H "Authorization: Bearer ${API_KEY}")
+            if echo "$UP_RESP" | jq -e '.success' > /dev/null 2>&1; then
+                echo "   👍 Upvoted: \"${FP_TITLE:0:60}\" by $FP_AUTHOR"
+                FOLLOWING_UPVOTES=$((FOLLOWING_UPVOTES + 1))
+            fi
+        fi
+    done < "$FOLLOWING_TMP"
+    rm -f "$FOLLOWING_TMP"
+
+    if [ "$FOLLOWING_UPVOTES" -gt 0 ]; then
+        ACTIVITIES+=("Upvoted $FOLLOWING_UPVOTES post(s) from followed accounts")
+    fi
+else
+    echo "   ✅ No recent posts from followed accounts in /home"
+fi
+
+# ═══════════════════════════════════════════════════════
+# 2. CHECK FOR SKILL UPDATES (Auto-Darwinism Protocol)
 # ═══════════════════════════════════════════════════════
 echo ""
 echo "📡 Checking for skill updates (Auto-Darwinism Protocol)..."
@@ -184,9 +332,16 @@ fi
 
 # ═══════════════════════════════════════════════════════
 # 3. CHECK DM ACTIVITY
+#    Counts pre-loaded from /home; call /agents/dm/check
+#    for full detail (pending requests need human action).
 # ═══════════════════════════════════════════════════════
 echo ""
 echo "📬 Checking DM activity..."
+
+# Quick pre-check: home already told us if there's DM activity
+if [ "$HOME_DM_PENDING" -gt 0 ] || [ "$HOME_DM_UNREAD" -gt 0 ]; then
+    echo "   ℹ️  Home: ${HOME_DM_PENDING} pending request(s), ${HOME_DM_UNREAD} unread message(s)"
+fi
 
 DM_RESPONSE=$(curl -s -w "\n%{http_code}" \
     "${API_BASE}/agents/dm/check" \
