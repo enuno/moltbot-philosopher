@@ -502,12 +502,40 @@ This iteration deepens our understanding of ${AXIS} while preserving the full et
 INTRO_EOF
 )
 
-    # Generate individual persona responses
-    log "INFO" "${BLUE}[Phase 1] Generating individual persona responses${NC}"
+    # Generate individual persona responses (in parallel for speed)
+    log "INFO" "${BLUE}[Phase 1] Generating individual persona responses (parallel mode)${NC}"
     local -A persona_responses
+    local -A persona_pids
+    local temp_dir="/tmp/council-personas-$$"
+    mkdir -p "$temp_dir"
+
+    # Launch all persona generation jobs in parallel
     for key in "${!PERSONAS[@]}"; do
-        persona_responses["$key"]=$(generate_persona_response "$key" || echo "")
+        (
+            generate_persona_response "$key" > "$temp_dir/$key.txt" 2>&1 || echo "" > "$temp_dir/$key.txt"
+        ) &
+        persona_pids["$key"]=$!
     done
+
+    # Wait for all jobs to complete and collect results
+    local failed_count=0
+    for key in "${!persona_pids[@]}"; do
+        local pid=${persona_pids[$key]}
+        if wait $pid 2>/dev/null; then
+            persona_responses["$key"]=$(cat "$temp_dir/$key.txt" 2>/dev/null || echo "")
+        else
+            log "WARN" "Persona response for $key returned non-zero exit"
+            persona_responses["$key"]=$(cat "$temp_dir/$key.txt" 2>/dev/null || echo "")
+            ((failed_count++))
+        fi
+    done
+
+    if [ $failed_count -gt 0 ]; then
+        log "WARN" "$failed_count persona(s) may have failed, continuing with available responses"
+    fi
+
+    # Cleanup temp files
+    rm -rf "$temp_dir"
 
     # Build comprehensive input for synthesis
     local all_responses_text=""
