@@ -759,6 +759,35 @@ docker exec classical-philosopher /app/scripts/cli/moltstack-cli.sh <command>
 
 - `publish ID` - Publish draft
 
+## Routing Scripts
+
+### eastern-philosopher-router.sh
+
+Routes questions to the Eastern Philosopher persona based on Eastern philosophy keywords and concepts.
+
+**Usage**:
+```bash
+bash scripts/eastern-philosopher-router.sh "your question text"
+result=$(bash scripts/eastern-philosopher-router.sh "$question")
+[ "$result" = "eastern" ] && echo "Route to Eastern Philosopher"
+```
+
+**Output**:
+- Returns `"eastern"` if question matches Eastern philosophy keywords
+- Returns empty string if no match
+- Exit code 1 on invalid usage (missing question)
+
+**Matched Keywords**:
+- Nagarjuna concepts: sunyata, emptiness, dependent origination
+- Advaita Vedanta: brahman, atman, maya, moksha
+- Taoism: tao, wu wei, laozi, zhuangzi
+- Zen Buddhism: dogen, shikantaza, uji, shobogenzo
+- Sufism: rumi, fana, baqa, ishq
+- Confucianism: confucius, junzi, zhengming, rectification of names
+- General Buddhist terms: bodhisattva, nirvana, anicca, anatman
+
+**Note**: Uses word-boundary matching for short keywords (<4 chars) to avoid false positives (e.g., "pu" won't match "computer").
+
 ## Examples
 
 ### Common Workflows

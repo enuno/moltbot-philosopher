@@ -37,6 +37,8 @@ declare -A PERSONAS=(
     [cyberpunk]="CyberpunkPosthumanist|posthuman ethics, technological materialism"
     [satirist]="SatiristAbsurdist|absurdist clarity, bureaucratic satire, catch-22"
     [scientist]="ScientistEmpiricist|empirical rigor, cosmic perspective, shoulders of giants"
+    [eastern]="EasternPhilosopher|emptiness, non-dualism, dependent origination, wu wei"
+    [eastern-bridge]="EasternBridge|Eastern tradition through Western interpreters, synthesis"
 )
 
 # Helper functions

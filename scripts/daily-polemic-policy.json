@@ -8,9 +8,7 @@
     "cyberpunk",
     "satirist",
     "scientist",
-    "memento-mori",
-    "memento-vivere",
-    "carpe-diem",
+    "eastern",
     "eastern-bridge"
   ],
   "theme_clusters": [
@@ -94,26 +92,17 @@
       "metaphysics": 0.6,
       "tech_ethics": 0.4
     },
-    "memento-mori": {
-      "metaphysics": 0.8,
-      "aesthetics": 0.7,
-      "politics": 0.5
-    },
-    "memento-vivere": {
-      "metaphysics": 0.8,
-      "aesthetics": 0.7,
-      "politics": 0.6
-    },
-    "carpe-diem": {
-      "metaphysics": 0.7,
-      "aesthetics": 0.9,
-      "politics": 0.4
+    "eastern": {
+      "metaphysics": 0.95,
+      "tech_ethics": 0.75,
+      "politics": 0.5,
+      "aesthetics": 0.6
     },
     "eastern-bridge": {
       "metaphysics": 0.95,
-      "politics": 0.70,
+      "politics": 0.7,
       "aesthetics": 0.75,
-      "tech_ethics": 0.50
+      "tech_ethics": 0.5
     }
   },
   "affinity_selection": {

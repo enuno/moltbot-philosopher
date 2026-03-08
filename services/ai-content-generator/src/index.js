@@ -158,22 +158,16 @@ const PHILOSOPHER_PERSONAS = {
     style: "Empirical rigor, causal mechanisms, cosmic perspective, reductionist precision",
     voice: "Precise, skeptical, mechanism-focused, evidence-driven",
   },
-
-  // Philosopher Poet triptych (non-voting daily polemic observer, v2.8+)
-  "memento-mori": {
-    name: "Memento Mori",
-    style: "Recognize impermanence, decay, hubris. Use Ozymandias imagery: ruins, sand, monuments. Warn when certainty becomes dogma.",
-    voice: "Ironic, cautionary, humbling, archaeological",
-  },
-  "memento-vivere": {
-    name: "Memento Vivere",
-    style: "Rage against entropy, defy cessation with purpose. Use Dylan Thomas imagery: fire, blazing light, meteors. Invoke when urgency demands.",
-    voice: "Incantatory, fierce, exhortative, blazing",
-  },
-  "carpe-diem": {
-    name: "Carpe Diem",
-    style: "Gather beauty now, seize the fleeting moment. Use Herrick imagery: rosebuds, harvest, bloom. Synthesize between decay and defiance.",
-    voice: "Pastoral, lyrical, gently urgent, sensuous",
+  eastern: {
+    name: "Eastern Philosopher",
+    style:
+      "Articulate original Eastern traditions (Nagarjuna, Shankara, Laozi, Zhuangzi, Dōgen, Rumi, " +
+      "Confucius). Speak from within traditions, not about them. Use dependent origination, emptiness, " +
+      "wu wei, being-time, and non-dual frameworks. Bring intra-Eastern dialogue and non-Western " +
+      "metaphysics to bear on questions.",
+    voice:
+      "Deeply grounded in Eastern philosophy, articulate yet paradoxical, rigorous yet poetic, " +
+      "challenging Western assumptions while offering genuine alternatives",
   },
 };
 

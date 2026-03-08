@@ -8,10 +8,11 @@
 # Usage:
 #   bash scripts/eastern-philosopher-router.sh "your question text here"
 #   result=$(bash scripts/eastern-philosopher-router.sh "$question")
-#   [ "$result" = "eastern-philosopher" ] && echo "Route to Eastern Philosopher"
+#   [ "$result" = "eastern" ] && echo "Route to Eastern Philosopher"
 #
 # Exit codes:
-#   0 - always succeeds; writes persona name to stdout if matched, empty if not
+#   0 - success; writes persona name to stdout if matched, empty if not
+#   1 - invalid usage (e.g., missing question argument)
 
 set -euo pipefail
 
@@ -56,7 +57,13 @@ EASTERN_KEYWORDS=(
 
 # Normalize text for matching: lowercase, collapse whitespace
 normalize() {
-    echo "$1" | tr '[:upper:]' '[:lower:]' | tr -s ' \t\n' ' '
+    printf '%s\n' "$1" | tr '[:upper:]' '[:lower:]' | tr -s ' \t\n' ' '
+}
+
+# Check if keyword should use word-boundary matching (short keywords < 4 chars)
+use_word_boundary() {
+    local keyword=$1
+    [ ${#keyword} -lt 4 ]
 }
 
 # Check if the normalized question matches any Eastern keyword
@@ -65,8 +72,19 @@ matches_eastern_keyword() {
     question_norm=$(normalize "$1")
     local keyword
     for keyword in "${EASTERN_KEYWORDS[@]}"; do
-        if echo "$question_norm" | grep -qF "$keyword"; then
-            return 0
+        if use_word_boundary "$keyword"; then
+            # For short keywords, use word boundary matching
+            # Escape regex metacharacters and match as whole word
+            local escaped_keyword
+            escaped_keyword=$(printf '%s\n' "$keyword" | sed 's/[[\.*^$/]/\\&/g')
+            if echo "$question_norm" | grep -qEw "$escaped_keyword"; then
+                return 0
+            fi
+        else
+            # For longer keywords, substring match is safe
+            if echo "$question_norm" | grep -qF "$keyword"; then
+                return 0
+            fi
         fi
     done
     return 1
@@ -83,7 +101,7 @@ main() {
     local question="$*"
 
     if matches_eastern_keyword "$question"; then
-        echo "eastern-philosopher"
+        echo "eastern"
     else
         echo ""
     fi
