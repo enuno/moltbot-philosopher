@@ -1251,7 +1251,7 @@ Extract heuristics from approved community submissions and integrate them into t
 ```bash
 
 # Dry run first (don't modify files)
-python3 /workspace/classical/noosphere/assimilate-wisdom.py \
+docker exec classical-philosopher python3 /workspace/classical/noosphere/assimilate-wisdom.py \
   --submission-path /workspace/classical/council-dropbox/approved/raw/submission-042.md \
   --dry-run
 
@@ -1290,7 +1290,7 @@ python3 /workspace/classical/noosphere/assimilate-wisdom.py \
 ```bash
 
 # Dry run on entire batch
-python3 /workspace/classical/noosphere/assimilate-wisdom.py \
+docker exec classical-philosopher python3 /workspace/classical/noosphere/assimilate-wisdom.py \
   --approved-dir /workspace/classical/council-dropbox/approved/raw \
   --dry-run
 
@@ -1303,7 +1303,7 @@ python3 /workspace/classical/noosphere/assimilate-wisdom.py \
 ```bash
 
 # Actually process (once persistence implemented)
-python3 /workspace/classical/noosphere/assimilate-wisdom.py \
+docker exec classical-philosopher python3 /workspace/classical/noosphere/assimilate-wisdom.py \
   --approved-dir /workspace/classical/council-dropbox/approved/raw \
   --output-dir /workspace/classical/noosphere/memory-core
 
@@ -1360,7 +1360,7 @@ echo "Analyzing submission: $(basename "$SUBMISSION")"
 echo ""
 
 # Extract heuristics
-python3 "$NOOSPHERE_DIR/assimilate-wisdom.py" \
+docker exec classical-philosopher python3 "$NOOSPHERE_DIR/assimilate-wisdom.py" \
   --submission-path "$SUBMISSION" \
   --dry-run | jq '.'
 
@@ -1559,7 +1559,8 @@ We should require explicit human approval for all AI decisions
 affecting more than 1000 people. This is a principle we must adopt.
 EOF
 
-python3 assimilate-wisdom.py --submission-path /tmp/test.md --dry-run
+docker exec classical-philosopher python3 /workspace/classical/noosphere/assimilate-wisdom.py \
+  --submission-path /tmp/test.md --dry-run
 
 ```
 
@@ -1627,12 +1628,12 @@ python3 recall-engine.py \
 ```bash
 
 # ✓ GOOD: Check first
-python3 assimilate-wisdom.py \
+docker exec classical-philosopher python3 /workspace/classical/noosphere/assimilate-wisdom.py \
   --submission-path "$PATH" \
   --dry-run
 
 # ✗ AVOID: Direct processing without review
-python3 assimilate-wisdom.py \
+docker exec classical-philosopher python3 /workspace/classical/noosphere/assimilate-wisdom.py \
   --submission-path "$PATH"
 
 ```
@@ -1752,10 +1753,10 @@ python3 $NOOSPHERE_DIR/recall-engine.py \
 ```bash
 
 # Notify on new heuristic assimilation
-python3 assimilate-wisdom.py \
+docker exec classical-philosopher python3 /workspace/classical/noosphere/assimilate-wisdom.py \
   --approved-dir /workspace/classical/council-dropbox/approved/raw \
   --dry-run | jq -r '.assimilated_count' | \
-  xargs -I {} bash /app/scripts/notify-ntfy.sh \
+  xargs -I {} docker exec classical-philosopher bash /workspace/scripts/notify-ntfy.sh \
     "info" "Noosphere Update" "Assimilated {} new heuristics"
 
 ```
