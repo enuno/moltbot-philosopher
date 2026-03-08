@@ -94,8 +94,7 @@ git clone <repo> && cd moltbot-philosopher
 cp .env.example .env  # Add API keys
 bash scripts/setup-precommit.sh  # Install pre-commit hooks (optional)
 docker compose up -d
-
-```bash
+```
 
 **Verify**: `curl <http://localhost:3002/health`>
 
@@ -154,7 +153,7 @@ await client.setupOwnerEmail('your@email.com');
 const challenges = await client.getPendingChallenges();
 await client.submitVerificationAnswer(id, answer);
 
-```text
+```
 
 See [`services/moltbook-client/README.md`](services/moltbook-client/README.md) for full API reference.
 
@@ -211,7 +210,7 @@ curl "<http://localhost:3006/search/autocomplete?q=ethics&limit=5">
   ]
 }
 
-```text
+```
 
 #### GET `/search/related`
 
@@ -260,7 +259,7 @@ curl "<http://localhost:3006/search/related?query=consciousness&limit=8&min_scor
   ]
 }
 
-```text
+```
 
 ### Configuration
 
@@ -280,7 +279,7 @@ SUGGESTIONS_RELATED_WEIGHT_SEMANTIC=0.6
 SUGGESTIONS_RELATED_WEIGHT_TRENDING=0.2
 SUGGESTIONS_RELATED_WEIGHT_REPUTATION=0.2
 
-```json
+```
 
 **Weight Semantics:**
 
@@ -308,7 +307,7 @@ SUGGESTIONS_RELATED_WEIGHT_REPUTATION=0.2
 score = (semantic * W_semantic) + (trending * W_trending) + (reputation * W_reputation)
 → Ranked by score DESC, limited to top N
 
-```text
+```
 
 **Related** (for discovery):
 
@@ -316,7 +315,7 @@ score = (semantic * W_semantic) + (trending * W_trending) + (reputation * W_repu
 score = (semantic * W_semantic) + (trending * W_trending) + (reputation * W_reputation)
 → Filtered by min_score, ranked by score DESC, limited to top N
 
-```bash
+```
 
 ## 📚 Scripts Reference (77 total)
 
@@ -497,7 +496,7 @@ MOLTSTACK_API_KEY=your_api_key_here
 MOLTSTACK_PUBLICATION_SLUG=noesis
 MOLTSTACK_POST_INTERVAL=604800  # 7 days
 
-```text
+```
 
 **Usage**:
 
@@ -515,7 +514,7 @@ MOLTSTACK_POST_INTERVAL=604800  # 7 days
 
 ./scripts/moltstack-post-article.sh --force drafts/urgent.md
 
-```text
+```
 
 ### Phase 2: Essay Publication ✅
 
@@ -562,7 +561,7 @@ MOLTSTACK_POST_INTERVAL=604800  # 7 days
 
 ./scripts/moltstack-generate-article.sh --topic "Topic" --no-moltbook
 
-```text
+```
 
 **Philosopher Rotation**:
 
@@ -610,7 +609,7 @@ Published articles tracked in `workspace/classical/moltstack/state.json`:
   "publication_history": [...]
 }
 
-```text
+```
 
 Generation rotation tracked in `workspace/classical/moltstack/generation-state.json`:
 
@@ -629,7 +628,7 @@ Generation rotation tracked in `workspace/classical/moltstack/generation-state.j
   ]
 }
 
-```text
+```
 
 ### Phase 4: Automation & Enhancements ✅
 
@@ -702,7 +701,7 @@ Generation rotation tracked in `workspace/classical/moltstack/generation-state.j
 
 0 10 * * 0 cd /path/to/moltbot && ./scripts/moltstack-heartbeat.sh
 
-```text
+```
 
 **Heartbeat State Management**:
 
@@ -720,7 +719,7 @@ Tracked in `workspace/classical/moltstack/heartbeat-state.json`:
   "next_scheduled_run": 1708182000
 }
 
-```text
+```
 
 ### Phase 5: Series-Based Generation & Council Iterations
 
@@ -764,7 +763,7 @@ philosopher=$(./scripts/moltstack-series-manager.sh recommend "Marcus Aurelius o
 
 ./scripts/moltstack-series-manager.sh status
 
-```text
+```
 
 **Council Iteration Articles**:
 
@@ -784,7 +783,7 @@ Automatically generate articles when ethics-convergence treatise is updated:
 
 ./scripts/generate-council-iteration-article.sh 1.2 --dry-run
 
-```text
+```
 
 **Process**:
 
@@ -804,7 +803,7 @@ Automatically generate articles when ethics-convergence treatise is updated:
 ```bash
 COUNCIL_THREAD_ID=your_moltbook_thread_id
 
-```text
+```
 
 **Archiving System**:
 
@@ -818,7 +817,7 @@ All articles automatically archived with git tracking:
   --url "<https://moltstack.net/neosis/slug"> \
   --series "series-name"
 
-```json
+```
 
 Archives to `memory/moltstack-archive/{series}-{date}/{slug}.md` with:
 
@@ -836,7 +835,7 @@ Track essay quality metrics:
 ```bash
 ./scripts/monitor-moltstack-quality.sh
 
-```text
+```
 
 Shows:
 
@@ -914,7 +913,7 @@ moltbot-philosopher/
     ├── PHASE_3_COMPLETE.md          # NEW: Phase 3 delivery
     └── [15+ more guides]
 
-```text
+```
 
 ## 🧠 Noosphere Architecture (v3.0)
 
@@ -952,7 +951,7 @@ CREATE TABLE noosphere_memory (
   updated_at      TIMESTAMPTZ DEFAULT now()
 );
 
-```text
+```
 
 ### Voice-Specific Memory Distribution
 
@@ -1002,7 +1001,7 @@ python3 /workspace/classical/noosphere/clawhub-mcp.py \
   --top-k 10 \
   --api-url <http://noosphere-service:3006>
 
-```text
+```
 
 ### REST API Endpoints
 
@@ -1044,7 +1043,7 @@ results = client.search_memories(
 stats = client.get_stats()  # All agents
 stats = client.get_stats("classical")  # Single agent
 
-```typescript
+```
 
 ### Integration with Council
 
@@ -1145,7 +1144,7 @@ cp .env.example .env
 
 MOLTBOOK_API_KEY=moltbook_sk_xxxxxxxxxxxxxxxx
 
-```text
+```
 
 #### Step 3: Configure AI Providers (Recommended)
 
@@ -1161,7 +1160,7 @@ Add **at least one** AI provider for content generation. If both are missing, sy
 
 VENICE_API_KEY=venice_sk_xxxxxxxxxxxxxxxx
 
-```text
+```
 
 **Option B: Kimi API**
 
@@ -1173,7 +1172,7 @@ VENICE_API_KEY=venice_sk_xxxxxxxxxxxxxxxx
 
 KIMI_API_KEY=sk_xxxxxxxxxxxxxxxx
 
-```text
+```
 
 **Option C: Both (Recommended)**
 
@@ -1184,7 +1183,7 @@ KIMI_API_KEY=sk_xxxxxxxxxxxxxxxx
 VENICE_API_KEY=venice_sk_xxxxxxxxxxxxxxxx
 KIMI_API_KEY=sk_xxxxxxxxxxxxxxxx
 
-```text
+```
 
 #### Step 4: Configure Notifications (Optional)
 
@@ -1206,7 +1205,7 @@ NTFY_API_KEY=your_auth_token
 
 NTFY_TOPIC=moltbot-philosopher
 
-```text
+```
 
 #### Step 4b: Configure Mem0 Memory (Optional)
 
@@ -1234,7 +1233,7 @@ MEM0_USER_ID=moltbot-philosopher        # Agent name for memory segmentation
 
 ENABLE_MEM0_STORE=true                  # Set to true to use Mem0
 
-```text
+```
 
 **Memory System Comparison**:
 
@@ -1277,7 +1276,7 @@ Both can work together with Noosphere as primary.
 
 AGENT_TYPE=classical
 
-```text
+```
 
 **Customize display name**:
 
@@ -1288,7 +1287,7 @@ AGENT_TYPE=classical
 AGENT_NAME=MyPhilosophyBot
 AGENT_DESCRIPTION=Custom description for Moltbook profile
 
-```text
+```
 
 #### Step 6: Enable Features (Optional)
 
@@ -1299,7 +1298,7 @@ HEARTBEAT_INTERVAL=1800            # Seconds (30 minutes, OpenClaw standard)
 ENABLE_AUTO_WELCOME=true           # Welcome new moltys
 ENABLE_MENTION_AUTO_REPLY=false    # Auto-reply mentions (requires approval)
 
-```text
+```
 
 **Daily content posting**:
 
@@ -1307,7 +1306,7 @@ ENABLE_MENTION_AUTO_REPLY=false    # Auto-reply mentions (requires approval)
 ENABLE_DAILY_POLEMIC=false         # Post daily philosophical content
 POLEMIC_HOUR_UTC=9                 # What hour (0-23 UTC)
 
-```text
+```
 
 **Memory system** (Phase 3):
 
@@ -1315,7 +1314,7 @@ POLEMIC_HOUR_UTC=9                 # What hour (0-23 UTC)
 VECTOR_INDEX_FREQUENCY_DAYS=3      # Re-index every 3 days
 CONSOLIDATION_BATCH_SIZE=100       # Notes per consolidation
 
-```text
+```
 
 **Feature toggles**:
 
@@ -1324,7 +1323,7 @@ ENABLE_AI_GENERATION=true          # Use AI for posts
 ENABLE_THREAD_CONTINUATION=true    # Keep threads alive (STP)
 ENABLE_SEMANTIC_SEARCH=true        # Vector-based heuristic search
 
-```text
+```
 
 #### Step 7: Rate Limiting (Optional)
 
@@ -1336,7 +1335,7 @@ MAX_COMMENTS_PER_DAY=50            # Comments per day
 COMMENT_RATE_SECONDS=20            # Minimum seconds between comments
 MAX_FOLLOW_PER_DAY=10              # Users to follow per day
 
-```text
+```
 
 #### Step 8: Logging (Optional)
 
@@ -1347,7 +1346,7 @@ LOG_LEVEL=info                     # Options: debug, info, warn, error
 LOG_FORMAT=json                    # Options: json, text
 DEBUG=false                        # Enable extra verbose logging
 
-```text
+```
 
 ### Complete Minimal .env
 
@@ -1369,7 +1368,7 @@ KIMI_API_KEY=your_kimi_key
 
 # Everything else uses defaults
 
-```javascript
+```
 
 ### Complete Recommended .env
 
@@ -1417,7 +1416,7 @@ HEARTBEAT_INTERVAL=1800  # 30 minutes (OpenClaw standard)
 ENABLE_SEMANTIC_SEARCH=true
 ENABLE_THREAD_CONTINUATION=true
 
-```text
+```
 
 ### Verification
 
@@ -1444,7 +1443,7 @@ docker exec classical-philosopher /app/scripts/test-ntfy.sh
 curl <http://localhost:3002/health>      # AI generator
 curl <http://localhost:3004/health>      # Thread monitor
 
-```bash
+```
 
 ### Troubleshooting Configuration
 
@@ -1489,7 +1488,7 @@ docker exec classical-philosopher /app/scripts/test-ntfy.sh
 
 /scripts/noosphere-monitor.sh text
 
-```bash
+```
 
 ## 🔒 Security & Monitoring
 
@@ -1513,7 +1512,7 @@ docker compose down --remove-orphans -v
 docker compose build --no-cache
 docker compose up -d
 
-```text
+```
 
 ### Intelligent Egress Proxy ⚡ (NEW)
 
@@ -1531,7 +1530,7 @@ Script → Proxy → Moltbook API
          │
          └─→ Venice.ai (Qwen3-4B or Llama-3.2-3B)
 
-```text
+```
 
 **Features**:
 
@@ -1560,7 +1559,7 @@ curl <http://localhost:8082/health> | jq .stats
 
 docker logs -f moltbot-egress-proxy
 
-```text
+```
 
 **Defense-in-Depth**: Scripts maintain fallback challenge handlers, but proxy
 handles 99% of cases automatically.
@@ -1589,7 +1588,7 @@ script serves as a fallback if the proxy is unavailable.
 
 ./scripts/handle-verification-challenge.sh stats
 
-```typescript
+```
 
 **Features**:
 
@@ -1704,7 +1703,7 @@ pnpm test:coverage
 
 pnpm test:ci
 
-```text
+```
 
 ### Test Structure
 
@@ -1721,7 +1720,7 @@ tests/
 ├── e2e/              # End-to-end tests
 └── fixtures/         # Test fixtures and mock data
 
-```text
+```
 
 ### Writing Tests
 
@@ -1736,7 +1735,7 @@ describe('My Service', () => {
   });
 });
 
-```text
+```
 
 **Python Example**:
 
@@ -1744,7 +1743,7 @@ describe('My Service', () => {
 def test_my_function():
     assert result == expected
 
-```html
+```
 
 ### Coverage Goals
 
