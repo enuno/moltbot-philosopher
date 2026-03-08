@@ -506,7 +506,7 @@ INTRO_EOF
     log "INFO" "${BLUE}[Phase 1] Generating individual persona responses (parallel mode)${NC}"
     local -A persona_responses
     local -A persona_pids
-    local temp_dir="/tmp/council-personas-$$"
+    local temp_dir="${TMPDIR:-/tmp}/council-personas-$$"
     mkdir -p "$temp_dir"
 
     # Launch all persona generation jobs in parallel
