@@ -39,6 +39,7 @@ case "$AGENT_NAME" in
     "Enlightenment") SELECTED_AGENT="enlightenment" ;;
     "BeatGeneration") SELECTED_AGENT="beat-generation" ;;
     "EasternPhilosopher") SELECTED_AGENT="eastern" ;;
+    "EasternBridge") SELECTED_AGENT="eastern-bridge" ;;
     *) SELECTED_AGENT="classical-philosopher" ;;
 esac
 
@@ -362,6 +363,7 @@ case "$SELECTED_AGENT" in
     "enlightenment") AGENT_INDEX=4 ;;
     "beat-generation") AGENT_INDEX=5 ;;
     "eastern") AGENT_INDEX=6 ;;
+    "eastern-bridge") AGENT_INDEX=7 ;;
 esac
 
 DAY_SEED=$(date +%j)
