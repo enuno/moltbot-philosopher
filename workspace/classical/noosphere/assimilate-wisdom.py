@@ -93,6 +93,8 @@ logger = logging.getLogger(__name__)
 # ---------------------------------------------------------------------------
 
 MAX_CONTENT_LENGTH = 2000  # Characters stored per memory
+MAX_FILE_SIZE = 50 * 1024 * 1024  # 50MB - reject files larger than this
+MAX_YAML_SCHEMA_NESTING = 10  # Prevent deeply nested YAML
 
 # 5-type classification heuristics (keywords, regex patterns, thresholds)
 TYPE_CLASSIFICATION_HEURISTICS: Dict[str, Dict] = {
@@ -586,16 +588,25 @@ class WisdomAssimilator:
     # ------------------------------------------------------------------
 
     def _init_client(self) -> bool:
-        """Initialise the Noosphere API client."""
+        """Initialise the Noosphere API client.
+
+        Security: Only pass MOLTBOOK_API_KEY if api_url targets Moltbook.
+        """
         if self.dry_run:
             return True
         if not CLIENT_AVAILABLE:
             logger.error("NoosphereClient not available (python-client missing)")
             return False
         try:
+            # Security: Only pass Moltbook API key to Moltbook endpoints.
+            # Prevents credential exfiltration to untrusted hosts.
+            api_key = None
+            if "moltbook.com" in self.api_url.lower():
+                api_key = os.environ.get("MOLTBOOK_API_KEY")
+
             self.client = NoosphereClient(
                 api_url=self.api_url,
-                api_key=os.environ.get("MOLTBOOK_API_KEY"),
+                api_key=api_key,
             )
             logger.info("Connected to Noosphere API at %s", self.api_url)
             return True
@@ -620,7 +631,25 @@ class WisdomAssimilator:
     # ------------------------------------------------------------------
 
     def parse_submission(self, file_path: Path) -> Optional[WisdomSubmission]:
-        """Parse a validated file into a WisdomSubmission."""
+        """Parse a validated file into a WisdomSubmission.
+
+        Validates file size before parsing to prevent resource exhaustion.
+        """
+        # Input validation: enforce maximum file size
+        try:
+            file_size = file_path.stat().st_size
+            if file_size > MAX_FILE_SIZE:
+                logger.warning(
+                    "File %s exceeds max size (%d > %d bytes), skipping",
+                    file_path.name,
+                    file_size,
+                    MAX_FILE_SIZE,
+                )
+                return None
+        except OSError as exc:
+            logger.warning("Cannot stat file %s: %s", file_path.name, exc)
+            return None
+
         suffix = file_path.suffix.lstrip(".").lower()
         if suffix == "yml":
             suffix = "yaml"
@@ -860,13 +889,33 @@ class WisdomAssimilator:
 
         Community-derived wisdom → shared visibility.
         High-confidence governance/ethics topics → affinity sharing.
+
+        Checks both content substring matches and normalized tag matches
+        to handle variants and avoid missing high-confidence ethics/governance
+        memories due to phrasing differences.
         """
         scope: Dict = {"visibility": "shared", "share_with": []}
 
         content_lower = memory.content.lower()
-        is_high_value = memory.confidence >= 0.75 and any(
-            topic in content_lower for topic in SHARED_TOPICS
-        )
+        content_topic_match = any(topic in content_lower for topic in SHARED_TOPICS)
+
+        # Also match against normalized tags extracted from submission
+        tag_topic_match = False
+        raw_tags = getattr(memory, "tags", []) or []
+        if raw_tags:
+            normalized_tags = {
+                re.sub(r"\s+", "-", str(tag).strip().lower())
+                for tag in raw_tags
+                if str(tag).strip()
+            }
+            normalized_topics = {
+                re.sub(r"\s+", "-", str(topic).strip().lower())
+                for topic in SHARED_TOPICS
+                if str(topic).strip()
+            }
+            tag_topic_match = bool(normalized_tags & normalized_topics)
+
+        is_high_value = memory.confidence >= 0.75 and (content_topic_match or tag_topic_match)
 
         if is_high_value:
             scope["share_with"] = list(AGENT_AFFINITIES.get(self.agent_id, []))
@@ -1137,14 +1186,30 @@ class WisdomAssimilator:
 
 
 def main() -> int:
+    """CLI entry point for Noosphere Wisdom Assimilation Pipeline.
+
+    Supports two modes:
+    1. Single-file mode (backward compatible): --submission-path <file> [--dry-run]
+       Outputs JSON with assimilation results to stdout.
+    2. Batch mode: --approved-dir <dir> [--dry-run] [--notify]
+       Processes all files in directory, logs to stderr, exits with status code.
+
+    Returns:
+        0 on success, 1 on error.
+    """
     parser = argparse.ArgumentParser(
         description="Noosphere Wisdom Assimilation Pipeline (v3.3)",
         formatter_class=argparse.RawDescriptionHelpFormatter,
     )
+    # Batch mode arguments
     parser.add_argument(
         "--approved-dir",
-        required=True,
-        help="Path to approved/raw directory (required)",
+        help="Path to approved/raw directory (batch mode)",
+    )
+    # Single-file mode arguments (backward compatible)
+    parser.add_argument(
+        "--submission-path",
+        help="Path to single submission file (single-file mode, backward compatible)",
     )
     parser.add_argument(
         "--api-url",
@@ -1165,7 +1230,7 @@ def main() -> int:
         "--notify",
         action="store_true",
         default=True,
-        help="Send ntfy notification on completion (default: enabled)",
+        help="Send ntfy notification on completion (batch mode, default: enabled)",
     )
     parser.add_argument(
         "--no-notify",
@@ -1176,11 +1241,46 @@ def main() -> int:
 
     args = parser.parse_args()
 
+    # Validate: must provide either --submission-path or --approved-dir, not both
+    if args.submission_path and args.approved_dir:
+        logger.error("Cannot use both --submission-path and --approved-dir")
+        return 1
+    if not args.submission_path and not args.approved_dir:
+        logger.error("Must provide either --submission-path or --approved-dir")
+        return 1
+
     assimilator = WisdomAssimilator(
         api_url=args.api_url,
         agent_id=args.agent_id,
         dry_run=args.dry_run,
     )
+
+    # Single-file mode: return JSON for backward compatibility
+    if args.submission_path:
+        submission_file = Path(args.submission_path)
+        if not submission_file.exists():
+            print(json.dumps({"assimilated_count": 0, "error": "File not found"}))
+            return 1
+
+        if not assimilator._init_client():
+            print(json.dumps({"assimilated_count": 0, "error": "Failed to initialize Noosphere client"}))
+            return 1
+
+        try:
+            result = assimilator.process_file(submission_file)
+            assimilated_count = assimilator.stats["memories_created"]
+            output = {
+                "assimilated_count": assimilated_count,
+                "heuristics": [{"primary_voice": args.agent_id}] if assimilated_count > 0 else [],
+            }
+            print(json.dumps(output))
+            return 0 if result else 1
+        except Exception as exc:
+            logger.error("Error processing %s: %s", submission_file.name, exc)
+            print(json.dumps({"assimilated_count": 0, "error": str(exc)}))
+            return 1
+
+    # Batch mode: process directory
     return assimilator.run(
         approved_dir=Path(args.approved_dir),
         notify=args.notify,
