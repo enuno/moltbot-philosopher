@@ -213,11 +213,27 @@ function extractAnswer(rawAnswer, puzzleText) {
   // Strip thinking blocks first (<think>...</think>)
   let cleaned = rawAnswer.replace(/<think>[\s\S]*?<\/think>/gi, "").trim();
 
+  // Remove markdown code blocks if present
+  cleaned = cleaned.replace(/```[\s\S]*?```/g, "").trim();
+
   // Try to extract pure numeric answer (handles cases like "92", "45.50", "92.00")
   const pureNumMatch = cleaned.match(/^[\s*]*(\d+(?:\.\d+)?)\s*[*]*$/);
   if (pureNumMatch) {
     let answer = pureNumMatch[1];
     // Ensure exactly two decimal places
+    if (answer.includes(".")) {
+      const parts = answer.split(".");
+      answer = parts[0] + "." + (parts[1] + "00").substring(0, 2);
+    } else {
+      answer = answer + ".00";
+    }
+    return answer;
+  }
+
+  // Try to extract number at the END of the response (for "The answer is: 72")
+  const endNumMatch = cleaned.match(/(\d+(?:\.\d+)?)\s*[*]*\s*$/);
+  if (endNumMatch) {
+    let answer = endNumMatch[1];
     if (answer.includes(".")) {
       const parts = answer.split(".");
       answer = parts[0] + "." + (parts[1] + "00").substring(0, 2);
@@ -241,6 +257,43 @@ function extractAnswer(rawAnswer, puzzleText) {
   }
 
   return null;
+}
+
+// Preprocess puzzle to help AI understand the hidden message
+function preprocessPuzzle(puzzleText) {
+  // Extract actual words by removing excessive symbols and noise
+  // Keep alphanumeric and spaces, convert multiple symbols to single space
+  let cleaned = puzzleText
+    .replace(/[^a-zA-Z0-9\s\-]/g, ' ') // Replace special chars with space
+    .replace(/\s+/g, ' ') // Collapse multiple spaces
+    .toLowerCase()
+    .trim();
+
+  // Extract words that look like numbers or math terms
+  const words = cleaned.split(/\s+/);
+  const numbers = {
+    'zero': '0', 'one': '1', 'two': '2', 'three': '3', 'four': '4',
+    'five': '5', 'six': '6', 'seven': '7', 'eight': '8', 'nine': '9',
+    'ten': '10', 'eleven': '11', 'twelve': '12', 'twenty': '20',
+    'thirty': '30', 'hundred': '100', 'thousand': '1000'
+  };
+
+  const operations = ['plus', 'minus', 'times', 'multiply', 'divide', 'add', 'subtract'];
+
+  // Find key terms and numbers
+  const keyTerms = words.filter(w =>
+    numbers[w] !== undefined ||
+    operations.includes(w) ||
+    w.length > 3 // Keep longer words that might be important
+  );
+
+  log("debug", "Puzzle preprocessing", {
+    original: puzzleText.substring(0, 50),
+    cleaned: cleaned.substring(0, 50),
+    keyTerms: keyTerms.join(', ')
+  });
+
+  return cleaned;
 }
 
 async function solveChallenge(puzzleText) {
@@ -353,11 +406,29 @@ async function solveWithVenice(puzzleText, model, isPrimary) {
         messages: [
           {
             role: "user",
-            content: `Parse the noise, do the math, return only the final numeric answer, no extra text: ${puzzleText}`,
+            content: `PUZZLE DECODING TASK:
+You are given an obfuscated text with random characters, symbols, and mixed case. Your task:
+
+1. EXTRACT THE HIDDEN MESSAGE: Ignore all non-alphanumeric noise. Look for:
+   - Words that appear despite character noise/symbols between them
+   - Patterns in capitalization or spacing
+   - Common mathematical or scientific terms
+
+2. IDENTIFY THE MATH PROBLEM: Once you extract the message, identify:
+   - Numbers mentioned (written as words like "twenty", "three" or as digits)
+   - Operations (plus, times, multiply, subtract, etc.)
+   - Any quantities or measurements
+
+3. SOLVE: Perform the mathematical operation and return ONLY the final numeric answer.
+
+Obfuscated Puzzle:
+${puzzleText}
+
+Return ONLY the final numeric answer (e.g., "24", "72.00"). No explanation, no units, no extra text.`,
           },
         ],
         temperature: 0.0,
-        max_tokens: 8,
+        max_tokens: 16,
       }),
       signal: controller.signal,
     });
@@ -428,11 +499,29 @@ async function solveWithOpenRouter(puzzleText) {
         messages: [
           {
             role: "user",
-            content: `Parse the noise, do the math, return only the final numeric answer, no extra text: ${puzzleText}`,
+            content: `PUZZLE DECODING TASK:
+You are given an obfuscated text with random characters, symbols, and mixed case. Your task:
+
+1. EXTRACT THE HIDDEN MESSAGE: Ignore all non-alphanumeric noise. Look for:
+   - Words that appear despite character noise/symbols between them
+   - Patterns in capitalization or spacing
+   - Common mathematical or scientific terms
+
+2. IDENTIFY THE MATH PROBLEM: Once you extract the message, identify:
+   - Numbers mentioned (written as words like "twenty", "three" or as digits)
+   - Operations (plus, times, multiply, subtract, etc.)
+   - Any quantities or measurements
+
+3. SOLVE: Perform the mathematical operation and return ONLY the final numeric answer.
+
+Obfuscated Puzzle:
+${puzzleText}
+
+Return ONLY the final numeric answer (e.g., "24", "72.00"). No explanation, no units, no extra text.`,
           },
         ],
         temperature: 0.0,
-        max_tokens: 8,
+        max_tokens: 16,
       }),
       signal: controller.signal,
     });
@@ -487,12 +576,30 @@ async function solveWithAIGenerator(puzzleText) {
     const controller = new AbortController();
     const timeout = setTimeout(() => controller.abort(), CHALLENGE_TIMEOUT);
 
-    // Replicate handle-verification-challenge.sh prompt
-    const prompt = `You solve short logic puzzles. Read all clues once, reason briefly internally, then output only the final answer in the requested format.
+    // Enhanced prompt for obfuscated puzzle solving
+    const prompt = `PUZZLE DECODING CHALLENGE:
 
-Puzzle: ${puzzleText}
+You are given an obfuscated text with random characters, symbols, and mixed case obscuring the real message.
 
-Answer in under 60 tokens. No explanation unless explicitly requested. Output only the required answer, nothing else.`;
+STEP 1 - EXTRACT MESSAGE:
+- Ignore all noise characters and symbols
+- Identify hidden words by looking at legitimate sequences despite the obfuscation
+- Focus on scientific terms, numbers, or mathematical concepts
+
+STEP 2 - IDENTIFY MATH:
+- Find all numbers (written as words or digits)
+- Find all operations (multiply, add, subtract, divide, etc.)
+- Understand the relationship being described
+
+STEP 3 - CALCULATE & ANSWER:
+- Perform the exact mathematical operation indicated
+- Return ONLY the final numeric answer with proper decimal places
+- No explanation, units, or extra text
+
+Obfuscated Puzzle:
+${puzzleText}
+
+ANSWER: Output only the final number (e.g., "24.00" or "72").`;
 
     const response = await fetch(`${AI_GENERATOR_URL}/generate`, {
       method: "POST",
