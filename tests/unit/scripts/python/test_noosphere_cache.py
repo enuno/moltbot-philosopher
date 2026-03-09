@@ -76,6 +76,16 @@ class TestGenerateCacheKey:
         assert len(key) == 64
         assert all(c in "0123456789abcdef" for c in key)
 
+    def test_limit_difference_changes_key(self) -> None:
+        k1 = _generate_cache_key("classical", "ctx", None, 0.5, limit=10)
+        k2 = _generate_cache_key("classical", "ctx", None, 0.5, limit=100)
+        assert k1 != k2
+
+    def test_same_limit_same_key(self) -> None:
+        k1 = _generate_cache_key("classical", "ctx", None, 0.5, limit=50)
+        k2 = _generate_cache_key("classical", "ctx", None, 0.5, limit=50)
+        assert k1 == k2
+
     def test_normalisation_lowercase(self) -> None:
         k1 = _generate_cache_key("Classical", "AI Autonomy", ["Insight"], 0.7)
         k2 = _generate_cache_key("classical", "ai autonomy", ["insight"], 0.7)
@@ -297,19 +307,19 @@ class TestInvalidateAndClear:
         cache = NoosphereCacheClient(client=_make_client(), ttl=60)
         await cache.query_cached("classical", "AI")
         key = _generate_cache_key("classical", "AI", None, 0.0)
-        assert cache.invalidate(key) is True
+        assert await cache.invalidate(key) is True
         assert cache.get_stats()["entry_count"] == 0
 
     async def test_invalidate_unknown_key_returns_false(self) -> None:
         cache = NoosphereCacheClient(client=_make_client(), ttl=60)
-        assert cache.invalidate("nonexistent_key") is False
+        assert await cache.invalidate("nonexistent_key") is False
 
     async def test_clear_removes_all_entries(self) -> None:
         client = _make_client()
         cache = NoosphereCacheClient(client=client, ttl=60)
         await cache.query_cached("classical", "ctx1")
         await cache.query_cached("classical", "ctx2")
-        removed = cache.clear()
+        removed = await cache.clear()
         assert removed == 2
         assert cache.get_stats()["entry_count"] == 0
 
@@ -317,7 +327,7 @@ class TestInvalidateAndClear:
         cache = NoosphereCacheClient(client=_make_client(), ttl=60)
         await cache.query_cached("classical", "AI")
         await cache.query_cached("classical", "AI")
-        cache.clear()
+        await cache.clear()
         stats = cache.get_stats()
         assert stats["hits"] == 0
         assert stats["misses"] == 0
@@ -328,7 +338,7 @@ class TestInvalidateAndClear:
         cache = NoosphereCacheClient(client=client, ttl=60)
         for i in range(4):
             await cache.query_cached("classical", f"topic_{i}")
-        assert cache.clear() == 4
+        assert await cache.clear() == 4
 
 
 # ---------------------------------------------------------------------------

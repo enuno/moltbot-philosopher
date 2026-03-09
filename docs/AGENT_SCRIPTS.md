@@ -593,11 +593,34 @@ print(f"Hit rate: {stats['hit_rate']:.2%}")  # Hit rate: 50.00%
 ```bash
 # Query with caching (30-minute TTL)
 docker exec classical-philosopher python3 - <<'EOF'
-import asyncio, sys
+import asyncio
+import os
+import sys
+
 sys.path.insert(0, "/app/scripts")
+
+from noosphere_client import NoosphereClient
 from noosphere_cache import NoosphereCacheClient
-cache = NoosphereCacheClient(ttl=1800)
-# attach your NoosphereClient here
+
+
+async def main() -> None:
+    api_url = os.environ.get("NOOSPHERE_API_URL", "http://noosphere-service:3006")
+    api_key = os.environ["NOOSPHERE_API_KEY"]
+
+    client = NoosphereClient(api_url=api_url, api_key=api_key)
+    cache = NoosphereCacheClient(client=client, ttl=1800)
+
+    results = await cache.query_cached(
+        agent_id="classical",
+        context="AI autonomy",
+        memory_types=["insight", "pattern"],
+        min_confidence=0.7,
+    )
+    print(results)
+    print(cache.get_stats())
+
+
+asyncio.run(main())
 EOF
 ```
 
@@ -605,14 +628,17 @@ EOF
 
 - `query_cached(agent_id, context, memory_types, min_confidence, ttl, limit)`
   – Async query with TTL-based caching.
-- `invalidate(key)` – Remove a single entry by its SHA256 hash key.
-- `clear()` – Wipe all entries and reset hit/miss statistics.
+- `invalidate(key)` – Async: remove a single entry by its SHA256 hash key.
+- `clear()` – Async: wipe all entries and reset hit/miss statistics.
 - `get_stats()` – Return `{hits, misses, hit_rate, entry_count, ttl}` snapshot.
 
 **Design notes**:
 
 - In-memory only (no disk or Redis persistence) – cache is per-process.
-- `asyncio.Lock` prevents cache stampedes under concurrent async tasks.
+- Per-key `asyncio.Lock` objects prevent cache stampedes: concurrent tasks for
+  the **same** key are serialised while tasks for **different** keys fetch
+  concurrently.  `invalidate()` and `clear()` use a separate meta-lock for
+  cache-wide mutations.
 - Per-query TTL override via the `ttl` parameter to `query_cached`.
 - Cache keys are SHA256 of normalised params (sorted types, lowercase strings).
 - Upstream sync clients (e.g. `NoosphereClient` using `requests`) are

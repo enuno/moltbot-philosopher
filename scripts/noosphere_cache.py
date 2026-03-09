@@ -4,9 +4,19 @@
 Caches Noosphere memory queries to improve performance on repeated searches.
 Provides TTL-based expiration, cache hit/miss logging, and statistics tracking.
 
-The cache is in-memory only (no persistence) and uses an :class:`asyncio.Lock`
-to prevent race conditions when multiple async tasks query the same key
-concurrently.
+The cache is in-memory only (no persistence) and uses per-key
+:class:`asyncio.Lock` objects to prevent cache stampedes: concurrent tasks
+querying the **same** key are serialised (only one upstream fetch occurs),
+while tasks querying **different** keys proceed concurrently.
+
+Note on ``context``:
+    The ``context`` parameter is included in the cache key to ensure that
+    queries with different intended search contexts produce independent cache
+    entries.  The current :class:`NoosphereClient` does not expose a
+    context-aware query endpoint, so ``context`` is **not forwarded** to the
+    upstream client — it is used solely for cache-key differentiation.  When
+    the client gains context-aware (semantic) search support, ``_fetch`` can
+    be updated to pass it through without changing the public API.
 
 Example:
     >>> import asyncio
@@ -105,6 +115,7 @@ def _generate_cache_key(
     context: str,
     memory_types: Optional[list[str]],
     min_confidence: float,
+    limit: int = 100,
 ) -> str:
     """Generate a deterministic SHA256 cache key from query parameters.
 
@@ -114,11 +125,17 @@ def _generate_cache_key(
 
     Args:
         agent_id: Agent identifier string.
-        context: Query context / search string.
+        context: Query context / search string.  Included in the key so that
+            queries with different intended contexts produce independent cache
+            entries, even though ``context`` is not currently forwarded to the
+            upstream :class:`NoosphereClient`.
         memory_types: Optional list of memory type filters.  ``None`` and
             ``[]`` are treated identically (both map to ``[]`` after
             normalisation).
         min_confidence: Minimum confidence threshold.
+        limit: Maximum number of results.  Different limits produce different
+            cache entries to prevent a ``limit=10`` result from being served to
+            a ``limit=100`` caller.
 
     Returns:
         Hex-encoded SHA256 digest (64 lowercase characters).
@@ -133,6 +150,7 @@ def _generate_cache_key(
         "context": context.lower().strip(),
         "memory_types": sorted(t.lower() for t in (memory_types or [])),
         "min_confidence": round(min_confidence, 6),
+        "limit": limit,
     }
     payload = json.dumps(normalised, sort_keys=True)
     return hashlib.sha256(payload.encode()).hexdigest()
@@ -147,8 +165,9 @@ class NoosphereCacheClient:
     """Caching wrapper around NoosphereClient for improved query performance.
 
     Maintains an in-memory TTL cache of query results.  Concurrent asyncio
-    tasks are protected by an :class:`asyncio.Lock` to prevent cache
-    stampedes.
+    tasks querying the **same** key are serialised via a per-key
+    :class:`asyncio.Lock` (stampede prevention), while tasks querying
+    **different** keys fetch concurrently.
 
     The underlying Noosphere client may be synchronous (uses ``requests``).
     All sync calls are dispatched via :func:`asyncio.to_thread` so the event
@@ -177,7 +196,12 @@ class NoosphereCacheClient:
         self._client = client
         self._ttl = ttl
         self._cache: dict[str, CacheEntry] = {}
-        self._lock: asyncio.Lock = asyncio.Lock()
+        # Per-key locks: serialise concurrent callers for the same cache key
+        # while allowing independent keys to fetch concurrently.
+        self._key_locks: dict[str, asyncio.Lock] = {}
+        # Meta-lock: protects the _key_locks dict and cache-wide mutations
+        # (invalidate/clear).  Held only briefly (dict lookup/insert).
+        self._meta_lock: asyncio.Lock = asyncio.Lock()
         self._hits: int = 0
         self._misses: int = 0
 
@@ -201,9 +225,17 @@ class NoosphereCacheClient:
         expired) the upstream ``client.query_memories`` is called, the
         result stored, and the miss counter incremented.
 
+        Note:
+            ``context`` is included in the cache key so that logically
+            different searches produce independent entries.  It is **not**
+            forwarded to the upstream :class:`NoosphereClient` because the
+            current client API does not support context-aware (semantic)
+            queries.  When that support is added, ``_fetch`` can pass it
+            through without breaking this interface.
+
         Args:
             agent_id: Agent identifier (e.g. ``"classical"``).
-            context: Search context or query string used for semantic lookup.
+            context: Search context string used for cache-key differentiation.
             memory_types: Filter to specific types (``insight``, ``pattern``,
                 ``strategy``, ``preference``, ``lesson``).  ``None`` means all
                 types.
@@ -211,6 +243,8 @@ class NoosphereCacheClient:
             ttl: Per-query TTL override in seconds.  Defaults to the instance
                 TTL set at construction time.
             limit: Maximum number of results requested from the upstream query.
+                Included in the cache key so that callers with different limits
+                receive correctly-sized results.
 
         Returns:
             List of memory dicts from cache (hit) or upstream query (miss).
@@ -230,9 +264,10 @@ class NoosphereCacheClient:
             ... )
         """
         effective_ttl = ttl if ttl is not None else self._ttl
-        key = _generate_cache_key(agent_id, context, memory_types, min_confidence)
+        key = _generate_cache_key(agent_id, context, memory_types, min_confidence, limit)
 
-        async with self._lock:
+        key_lock = await self._get_key_lock(key)
+        async with key_lock:
             entry = self._cache.get(key)
 
             if entry is not None:
@@ -283,8 +318,11 @@ class NoosphereCacheClient:
             )
             return data
 
-    def invalidate(self, key: str) -> bool:
+    async def invalidate(self, key: str) -> bool:
         """Remove a single cache entry by its hash key.
+
+        Acquires the meta-lock to synchronise with concurrent
+        :meth:`query_cached` operations.
 
         Args:
             key: SHA256 hash key as returned by :func:`_generate_cache_key`
@@ -293,21 +331,28 @@ class NoosphereCacheClient:
         Returns:
             ``True`` if the key existed and was removed, ``False`` otherwise.
         """
-        existed = key in self._cache
-        self._cache.pop(key, None)
-        return existed
+        async with self._meta_lock:
+            existed = key in self._cache
+            self._cache.pop(key, None)
+            self._key_locks.pop(key, None)
+            return existed
 
-    def clear(self) -> int:
+    async def clear(self) -> int:
         """Remove all cache entries and reset hit/miss statistics.
+
+        Acquires the meta-lock to synchronise with concurrent
+        :meth:`query_cached` operations.
 
         Returns:
             Number of entries that were removed.
         """
-        count = len(self._cache)
-        self._cache.clear()
-        self._hits = 0
-        self._misses = 0
-        return count
+        async with self._meta_lock:
+            count = len(self._cache)
+            self._cache.clear()
+            self._key_locks.clear()
+            self._hits = 0
+            self._misses = 0
+            return count
 
     def get_stats(self) -> CacheStats:
         """Return a snapshot of cache statistics.
@@ -339,6 +384,22 @@ class NoosphereCacheClient:
     # Private helpers
     # ------------------------------------------------------------------
 
+    async def _get_key_lock(self, key: str) -> asyncio.Lock:
+        """Return the per-key :class:`asyncio.Lock`, creating it if absent.
+
+        The meta-lock is held only for the brief dict lookup/insert.
+
+        Args:
+            key: SHA256 cache key.
+
+        Returns:
+            The :class:`asyncio.Lock` dedicated to *key*.
+        """
+        async with self._meta_lock:
+            if key not in self._key_locks:
+                self._key_locks[key] = asyncio.Lock()
+            return self._key_locks[key]
+
     async def _fetch(
         self,
         agent_id: str,
@@ -348,6 +409,11 @@ class NoosphereCacheClient:
     ) -> list[dict[str, Any]]:
         """Call the underlying NoosphereClient, dispatching sync calls in a thread.
 
+        Uses the singular ``type=`` kwarg expected by
+        :meth:`NoosphereClient.query_memories` for single-type requests, and
+        performs local type filtering for multi-type requests (the real client
+        API does not accept ``types=``).
+
         Args:
             agent_id: Agent identifier.
             memory_types: Optional list of memory type filters.
@@ -355,7 +421,7 @@ class NoosphereCacheClient:
             limit: Maximum number of results.
 
         Returns:
-            Raw list of memory dicts from the upstream client.
+            Normalised list of memory dicts from the upstream client.
 
         Raises:
             ConnectionError: Propagated from the underlying NoosphereClient.
@@ -364,28 +430,46 @@ class NoosphereCacheClient:
         types = memory_types or _ALL_MEMORY_TYPES
 
         def _sync_query() -> list[dict[str, Any]]:
-            # Support both query_memories(types=[...]) and single-type callers
+            """Synchronous wrapper around NoosphereClient.query_memories.
+
+            Uses ``type=`` (singular) when a single memory type is requested so
+            the upstream client can apply server-side filtering.  For multiple
+            types the client is called without a type filter and results are
+            filtered locally (the real NoosphereClient does not accept
+            ``types=``).
+            """
+            # Build kwargs matching actual NoosphereClient API (type=, not types=)
+            query_kwargs: dict[str, Any] = {
+                "agent_id": agent_id,
+                "min_confidence": min_confidence,
+                "limit": limit,
+            }
+            if len(types) == 1:
+                query_kwargs["type"] = types[0]
+
             try:
-                raw = self._client.query_memories(
-                    agent_id=agent_id,
-                    types=types,
-                    min_confidence=min_confidence,
-                    limit=limit,
-                )
+                raw = self._client.query_memories(**query_kwargs)
             except TypeError:
-                # Fallback for clients that don't accept these keyword args
+                # Legacy client fallback: call with minimal args only
                 raw = self._client.query_memories(agent_id=agent_id)
 
             # Normalise: client may return Memory dataclass objects or dicts
-            result: list[dict[str, Any]] = []
+            normalised: list[dict[str, Any]] = []
             for item in raw:
                 if isinstance(item, dict):
-                    result.append(item)
+                    normalised.append(item)
                 elif hasattr(item, "to_dict"):
-                    result.append(item.to_dict())
+                    normalised.append(item.to_dict())
                 else:
-                    result.append(vars(item))
-            return result
+                    normalised.append(vars(item))
+
+            # If all known types were requested, no local filtering is needed.
+            if set(types) >= set(_ALL_MEMORY_TYPES):
+                return normalised
+
+            # For multi-type queries, filter locally by the requested types.
+            requested = set(types)
+            return [item for item in normalised if item.get("type") in requested]
 
         try:
             return await asyncio.to_thread(_sync_query)
