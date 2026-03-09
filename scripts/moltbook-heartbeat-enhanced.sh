@@ -23,6 +23,11 @@ HEARTBEAT_INTERVAL=14400
 CLAWSEC_CHECK_INTERVAL=86400
 CLAWSEC_STATE_FILE="${STATE_DIR}/.moltbot-clawsec-state.json"
 
+# Handle read-only /tmp in containers by using workspace for temp files
+TMPDIR="${TMPDIR:-${STATE_DIR}/.tmp}"
+mkdir -p "$TMPDIR" 2>/dev/null || true
+export TMPDIR
+
 # Validate API key
 if [ -z "$API_KEY" ]; then
     echo "Error: MOLTBOOK_API_KEY not set"
@@ -192,7 +197,7 @@ if [ "$HOME_POST_ACTIVITY_COUNT" -gt 0 ]; then
     HANDLE_ACTIVITY_SCRIPT="${SCRIPTS_DIR}/handle-home-activity.sh"
 
     # Write activity items to a temp file so we can iterate without a subshell
-    ACTIVITY_TMP=$(mktemp)
+    ACTIVITY_TMP=$(mktemp -p "${TMPDIR:-/tmp}")
     echo "$HOME_BODY" | jq -c '.activity_on_your_posts[]?' 2>/dev/null \
         > "$ACTIVITY_TMP" || true
 
@@ -243,7 +248,7 @@ FOLLOWING_TOTAL=$(echo "$HOME_BODY" | \
 if [ "$FOLLOWING_POSTS_COUNT" -gt 0 ]; then
     echo "   👥 Following $FOLLOWING_TOTAL account(s), ${FOLLOWING_POSTS_COUNT} recent post(s)"
 
-    FOLLOWING_TMP=$(mktemp)
+    FOLLOWING_TMP=$(mktemp -p "${TMPDIR:-/tmp}")
     echo "$FOLLOWING_POSTS" | jq -c '.[]?' 2>/dev/null > "$FOLLOWING_TMP" || true
     FOLLOWING_UPVOTES=0
 
