@@ -261,16 +261,31 @@ function extractAnswer(rawAnswer, puzzleText) {
 
 // Preprocess puzzle to help AI understand the hidden message
 function preprocessPuzzle(puzzleText) {
-  // Extract actual words by removing excessive symbols and noise
-  // Keep alphanumeric and spaces, convert multiple symbols to single space
+  // Try multiple decoding strategies
+
+  // Strategy 1: Extract actual words by removing excessive symbols and noise
   let cleaned = puzzleText
     .replace(/[^a-zA-Z0-9\s\-]/g, ' ') // Replace special chars with space
     .replace(/\s+/g, ' ') // Collapse multiple spaces
     .toLowerCase()
     .trim();
 
-  // Extract words that look like numbers or math terms
-  const words = cleaned.split(/\s+/);
+  // Strategy 2: Try extracting only letters (ignore all non-letters and numbers)
+  let lettersOnly = puzzleText
+    .replace(/[^a-zA-Z0-9]/g, '')
+    .toLowerCase();
+
+  // Strategy 3: Look for capitalization patterns - capital letters might spell something
+  let capitals = puzzleText.match(/[A-Z]/g) || [];
+  let capitalText = capitals.join('').toLowerCase();
+
+  // Try breaking into words by detecting pattern changes
+  let withSpaces = puzzleText.replace(/[^a-zA-Z0-9]/g, ' ')
+    .replace(/\s+/g, ' ')
+    .trim()
+    .toLowerCase();
+
+  const words = withSpaces.split(/\s+/);
   const numbers = {
     'zero': '0', 'one': '1', 'two': '2', 'three': '3', 'four': '4',
     'five': '5', 'six': '6', 'seven': '7', 'eight': '8', 'nine': '9',
@@ -289,7 +304,8 @@ function preprocessPuzzle(puzzleText) {
 
   log("debug", "Puzzle preprocessing", {
     original: puzzleText.substring(0, 50),
-    cleaned: cleaned.substring(0, 50),
+    strategy1: cleaned.substring(0, 50),
+    strategy3capitals: capitalText.substring(0, 20),
     keyTerms: keyTerms.join(', ')
   });
 
@@ -406,25 +422,27 @@ async function solveWithVenice(puzzleText, model, isPrimary) {
         messages: [
           {
             role: "user",
-            content: `PUZZLE DECODING TASK:
-You are given an obfuscated text with random characters, symbols, and mixed case. Your task:
+            content: `OBFUSCATED PUZZLE SOLVER:
+Your job: Decode an obfuscated text puzzle and solve the math problem hidden within.
 
-1. EXTRACT THE HIDDEN MESSAGE: Ignore all non-alphanumeric noise. Look for:
-   - Words that appear despite character noise/symbols between them
-   - Patterns in capitalization or spacing
-   - Common mathematical or scientific terms
+DECODING RULES:
+1. Remove all symbols, brackets, special characters - keep only letters and numbers
+2. Look for hidden words: "lOoObSsT" → "lobster", "fOrCe" → "force", "tWeN tYy fOuR" → "twenty four"
+3. Extract numbers (as words or digits): "three" → 3, "twenty" → 20
+4. Identify the operation: multiply (*), add (+), subtract (-), divide (/)
+5. Calculate the exact mathematical result
 
-2. IDENTIFY THE MATH PROBLEM: Once you extract the message, identify:
-   - Numbers mentioned (written as words like "twenty", "three" or as digits)
-   - Operations (plus, times, multiply, subtract, etc.)
-   - Any quantities or measurements
+EXAMPLE:
+Obfuscated: "A] lOoObSsT eR] cLaW^ fOrCe] iS/ tWeN tYy fOuR~ nEu-T oNs| * tHrEe {LeVeRaGe}"
+Decoded: "lobster claw force is twenty four newtons times three leverage"
+Numbers found: 24 (twenty four), 3 (three)
+Operation: multiply (*)
+Answer: 24 * 3 = 72.00
 
-3. SOLVE: Perform the mathematical operation and return ONLY the final numeric answer.
-
-Obfuscated Puzzle:
+PUZZLE TO SOLVE:
 ${puzzleText}
 
-Return ONLY the final numeric answer (e.g., "24", "72.00"). No explanation, no units, no extra text.`,
+Return ONLY the final numeric answer with 2 decimal places (e.g., "72.00"). No text, no explanation.`,
           },
         ],
         temperature: 0.0,
@@ -499,25 +517,27 @@ async function solveWithOpenRouter(puzzleText) {
         messages: [
           {
             role: "user",
-            content: `PUZZLE DECODING TASK:
-You are given an obfuscated text with random characters, symbols, and mixed case. Your task:
+            content: `OBFUSCATED PUZZLE SOLVER:
+Your job: Decode an obfuscated text puzzle and solve the math problem hidden within.
 
-1. EXTRACT THE HIDDEN MESSAGE: Ignore all non-alphanumeric noise. Look for:
-   - Words that appear despite character noise/symbols between them
-   - Patterns in capitalization or spacing
-   - Common mathematical or scientific terms
+DECODING RULES:
+1. Remove all symbols, brackets, special characters - keep only letters and numbers
+2. Look for hidden words: "lOoObSsT" → "lobster", "fOrCe" → "force", "tWeN tYy fOuR" → "twenty four"
+3. Extract numbers (as words or digits): "three" → 3, "twenty" → 20
+4. Identify the operation: multiply (*), add (+), subtract (-), divide (/)
+5. Calculate the exact mathematical result
 
-2. IDENTIFY THE MATH PROBLEM: Once you extract the message, identify:
-   - Numbers mentioned (written as words like "twenty", "three" or as digits)
-   - Operations (plus, times, multiply, subtract, etc.)
-   - Any quantities or measurements
+EXAMPLE:
+Obfuscated: "A] lOoObSsT eR] cLaW^ fOrCe] iS/ tWeN tYy fOuR~ nEu-T oNs| * tHrEe {LeVeRaGe}"
+Decoded: "lobster claw force is twenty four newtons times three leverage"
+Numbers found: 24 (twenty four), 3 (three)
+Operation: multiply (*)
+Answer: 24 * 3 = 72.00
 
-3. SOLVE: Perform the mathematical operation and return ONLY the final numeric answer.
-
-Obfuscated Puzzle:
+PUZZLE TO SOLVE:
 ${puzzleText}
 
-Return ONLY the final numeric answer (e.g., "24", "72.00"). No explanation, no units, no extra text.`,
+Return ONLY the final numeric answer with 2 decimal places (e.g., "72.00"). No text, no explanation.`,
           },
         ],
         temperature: 0.0,
