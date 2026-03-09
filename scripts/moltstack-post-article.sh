@@ -107,7 +107,7 @@ markdown_to_html() {
   local markdown_file="$1"
   local html_file="$2"
 
-  local converter="$SCRIPT_DIR/markdown-to-html.js"
+  local converter="$SCRIPT_DIR/markdown-to-html.mjs"
 
   if [ -f "$converter" ] && command -v node &> /dev/null; then
     # Use Node.js converter with marked library

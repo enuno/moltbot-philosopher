@@ -5,8 +5,8 @@
  * Usage: node markdown-to-html.js <input.md> <output.html>
  */
 
-const fs = require('fs');
-const { marked } = require('marked');
+import fs from 'fs';
+import { marked } from 'marked';
 
 // Configure marked for proper HTML output
 marked.setOptions({
@@ -86,20 +86,23 @@ function convertMarkdownToHtml(inputFile, outputFile) {
   }
 }
 
-// Parse arguments
-const args = process.argv.slice(2);
+// Main execution
+(async () => {
+  // Parse arguments
+  const args = process.argv.slice(2);
 
-if (args.length < 2) {
-  console.error('Usage: node markdown-to-html.js <input.md> <output.html>');
-  process.exit(1);
-}
+  if (args.length < 2) {
+    console.error('Usage: node markdown-to-html.js <input.md> <output.html>');
+    process.exit(1);
+  }
 
-const [inputFile, outputFile] = args;
+  const [inputFile, outputFile] = args;
 
-// Check if input file exists
-if (!fs.existsSync(inputFile)) {
-  console.error(`Error: Input file not found: ${inputFile}`);
-  process.exit(1);
-}
+  // Check if input file exists
+  if (!fs.existsSync(inputFile)) {
+    console.error(`Error: Input file not found: ${inputFile}`);
+    process.exit(1);
+  }
 
-convertMarkdownToHtml(inputFile, outputFile);
+  convertMarkdownToHtml(inputFile, outputFile);
+})();
