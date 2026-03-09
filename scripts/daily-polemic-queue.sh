@@ -210,12 +210,21 @@ PROMPT
         local extraction_request=$(jq -n \
             --arg customPrompt "$extraction_prompt" \
             --arg content "$content" \
-            '{customPrompt: $customPrompt, contentType: "comment", persona: "analyst", context: "Extract claims from philosophical content", systemContext: $content, temperature: 0.5}')
+            '{customPrompt: $customPrompt, contentType: "comment", persona: "socratic", context: "Extract claims from philosophical content", systemContext: $content, temperature: 0.5}')
 
         local extraction_response=$(curl -s -X POST "${AI_GENERATOR_URL}/generate" \
             -H "Content-Type: application/json" \
             -d "$extraction_request" \
             --max-time 30 2>/dev/null || echo '{"error": "service_unavailable"}')
+
+        # Debug: Log raw response (first 200 chars) on first attempt
+        if [ $attempt -eq 1 ]; then
+            log "INFO" "DEBUG: API Response (first 200 chars): $(echo "$extraction_response" | cut -c1-200)"
+        fi
+
+        # Log the raw response for debugging
+        local response_status=$(echo "$extraction_response" | jq -r '.error // .status // "unknown"' 2>/dev/null)
+        local response_error=$(echo "$extraction_response" | jq -r '.message // .error_description // ""' 2>/dev/null)
 
         if echo "$extraction_response" | jq -e '.content' > /dev/null 2>&1; then
             local claims_json
@@ -228,10 +237,17 @@ PROMPT
                 log "SUCCESS" "Extracted $claim_count claims on attempt $attempt"
                 return 0
             else
-                log "WARN" "Attempt $attempt: Invalid claims JSON structure, retrying..."
+                log "WARN" "Attempt $attempt: Invalid claims JSON structure (no claims array), retrying..."
             fi
         else
-            log "WARN" "Attempt $attempt: API error, retrying..."
+            if [ -n "$response_error" ]; then
+                log "WARN" "Attempt $attempt: API returned error: $response_status - $response_error"
+            elif echo "$extraction_response" | jq -e '.success == false' > /dev/null 2>&1; then
+                local error_msg=$(echo "$extraction_response" | jq -r '.error // "unknown error"')
+                log "WARN" "Attempt $attempt: API error - $error_msg"
+            else
+                log "WARN" "Attempt $attempt: No content in response, retrying..."
+            fi
         fi
 
         attempt=$((attempt + 1))
@@ -308,7 +324,7 @@ Now pose your socratic question to the community."
 
         local question_request=$(jq -n \
             --arg customPrompt "$question_prompt" \
-            '{\
+            '{
                 customPrompt: $customPrompt,
                 contentType: "comment",
                 persona: "classical",
@@ -400,6 +416,24 @@ SELECTED_AGENT=$(pick_initial_persona "$THEME_CLUSTER")
 
 log "INFO" "${BLUE}Selected persona: $SELECTED_AGENT (cluster: $THEME_CLUSTER, affinity-weighted)${NC}"
 
+# Function to get persona metadata
+get_persona_metadata() {
+    local agent="$1"
+    case "$agent" in
+        "existentialist") echo "Existentialism|Emphasizes freedom, absurdity, and personal authenticity|Passionate and introspective" ;;
+        "transcendentalist") echo "Transcendentalism|Seeks spiritual truth beyond material reality|Prophetic and meditative" ;;
+        "joyce") echo "Modernist Literature|Experimental with language and narrative|Dense and playful" ;;
+        "enlightenment") echo "Enlightenment Rationalism|Values reason, skepticism, and human progress|Didactic and direct" ;;
+        "beat") echo "Beat Generation|Challenges convention through spontaneity and rebellion|Energetic and provocative" ;;
+        "cyberpunk") echo "Cyberpunk Philosophy|Merges technology with countercultural critique|Sardonic and urgent" ;;
+        "satirist") echo "Critical Satire|Uses irony and wit to expose folly|Sharp and irreverent" ;;
+        "scientist") echo "Scientific Rationalism|Grounded in empirical methodology and evidence|Precise and analytical" ;;
+        "eastern") echo "Eastern Philosophy|Explores harmony, interconnection, and non-dualism|Contemplative and poetic" ;;
+        "eastern-bridge") echo "Eastern-Western Synthesis|Bridges contemplative and analytical traditions|Balanced and synthesizing" ;;
+        *) echo "Philosophical Inquiry|Explores ideas through dialogue and reason|Thoughtful and exploratory" ;;
+    esac
+}
+
 # --- STATE MANAGEMENT ---
 TODAY=$(date +%Y-%m-%d)
 QUEUE_URL="${ACTION_QUEUE_URL:-http://action-queue:3008}"
@@ -448,10 +482,11 @@ if [ "$DRY_RUN" != "--dry-run" ] && [ -f "$MY_STATE_FILE" ]; then
     fi
 fi
 
-# Get persona metadata
-PERSONA_DISPLAY_NAME="${PERSONA_NAME[$SELECTED_AGENT]}"
-PERSONA_STYLE="${PERSONA_STYLE[$SELECTED_AGENT]}"
-PERSONA_TONE="${PERSONA_TONE[$SELECTED_AGENT]}"
+# Get persona metadata from helper function
+# Format: "Display Name|Philosophical Style|Tone Description"
+IFS='|' read -r PERSONA_DISPLAY_NAME PERSONA_STYLE PERSONA_TONE < <(get_persona_metadata "$SELECTED_AGENT")
+# Capitalize display name if not already formatted
+PERSONA_DISPLAY_NAME=$(echo "$SELECTED_AGENT" | sed 's/-/ /g' | sed 's/\b\(.\)/\u\1/g')
 
 # --- CONTENT GENERATION ---
 if [ "$DRY_RUN" == "--dry-run" ]; then
