@@ -12,7 +12,6 @@ const rateLimit = require("express-rate-limit");
 const fs = require("fs");
 const path = require("path");
 const { Pool } = require("pg");
-const OpenAI = require("openai");
 const axios = require("axios");
 
 const app = express();
@@ -32,13 +31,15 @@ const pool = new Pool({
   connectionTimeoutMillis: 30000, // Extended from 2000ms to 30s for slow docker networks
 });
 
-// OpenAI client (optional - for embeddings only)
-let openai = null;
-if (process.env.OPENAI_API_KEY && process.env.ENABLE_EMBEDDINGS === "true") {
-  openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
-}
+// Embedding configuration - use OpenRouter or Venice.ai instead of OpenAI
+const EMBEDDING_PROVIDER = process.env.EMBEDDING_PROVIDER || "openrouter"; // openrouter or venice
+const ENABLE_EMBEDDINGS = process.env.ENABLE_EMBEDDINGS === "true";
 
-// Venice.ai configuration (for synthesis generation)
+// OpenRouter configuration (for embeddings via API)
+const OPENROUTER_API_KEY = process.env.OPENROUTER_API_KEY;
+const OPENROUTER_EMBEDDING_MODEL = process.env.OPENROUTER_EMBEDDING_MODEL || "nomic-ai/nomic-embed-text-v1.5";
+
+// Venice.ai configuration (for synthesis generation and optional embeddings)
 const VENICE_API_URL = process.env.VENICE_API_URL || "http://venice-proxy:8080/v1/chat/completions";
 const VENICE_API_KEY = process.env.VENICE_API_KEY;
 const VENICE_MODEL = process.env.VENICE_MODEL || "llama-3.3-70b";
@@ -83,8 +84,10 @@ app.get("/health", (req, res) => {
       status: "healthy",
       version: "3.3.0",
       database: "connected",
-      embeddings: openai ? "enabled" : "disabled",
+      embeddings: ENABLE_EMBEDDINGS ? `${EMBEDDING_PROVIDER} enabled` : "disabled",
+      embedding_provider: EMBEDDING_PROVIDER,
       venice_ai: VENICE_API_KEY ? "enabled" : "disabled",
+      openrouter: OPENROUTER_API_KEY ? "enabled" : "disabled",
       features: [
         "multi-agent-sharing",
         "permission-model",
@@ -102,14 +105,37 @@ app.get("/health", (req, res) => {
 
 // Generate embedding
 async function generateEmbedding(text) {
-  if (!openai) return null;
+  if (!ENABLE_EMBEDDINGS) return null;
 
   try {
-    const response = await openai.embeddings.create({
-      model: process.env.EMBEDDING_MODEL || "text-embedding-ada-002",
-      input: text,
-    });
-    return response.data[0].embedding;
+    if (EMBEDDING_PROVIDER === "openrouter" && OPENROUTER_API_KEY) {
+      // Use OpenRouter for embeddings
+      const response = await axios.post("https://openrouter.ai/api/v1/embeddings", {
+        model: OPENROUTER_EMBEDDING_MODEL,
+        input: text,
+      }, {
+        headers: {
+          "Authorization": `Bearer ${OPENROUTER_API_KEY}`,
+          "Content-Type": "application/json",
+        },
+      });
+      return response.data.data[0].embedding;
+    } else if (EMBEDDING_PROVIDER === "venice" && VENICE_API_KEY) {
+      // Use Venice.ai for embeddings (if supported)
+      const response = await axios.post(`${VENICE_API_URL}/embeddings`, {
+        model: "text-embedding-3-small",
+        input: text,
+      }, {
+        headers: {
+          "Authorization": `Bearer ${VENICE_API_KEY}`,
+          "Content-Type": "application/json",
+        },
+      });
+      return response.data.data[0].embedding;
+    } else {
+      console.warn("Embeddings enabled but no provider configured (OpenRouter or Venice.ai)");
+      return null;
+    }
   } catch (error) {
     console.error("Embedding generation failed:", error.message);
     return null;
@@ -1559,7 +1585,7 @@ if (require.main === module) {
   const server = app.listen(PORT, () => {
     console.log(`Noosphere v3.3 Service listening on port ${PORT}`);
     console.log(`Database: ${process.env.DATABASE_URL ? "connected" : "not configured"}`);
-    console.log(`Embeddings: ${openai ? "enabled" : "disabled"}`);
+    console.log(`Embeddings: ${ENABLE_EMBEDDINGS ? `${EMBEDDING_PROVIDER} enabled` : "disabled"}`);
     console.log(`Venice.ai: ${VENICE_API_KEY ? "enabled" : "disabled"}`);
     console.log(
       `Features: multi-agent-sharing, permission-model, access-logging, confidence-decay, reinforcement, pattern-mining, ai-synthesis`,

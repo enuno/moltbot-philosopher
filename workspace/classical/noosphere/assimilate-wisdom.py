@@ -32,7 +32,7 @@ import os
 import re
 import sys
 from dataclasses import dataclass, field
-from datetime import datetime
+from datetime import datetime, timezone
 from pathlib import Path
 from typing import Dict, List, Optional, Tuple
 
@@ -678,7 +678,7 @@ class WisdomAssimilator:
             metadata.setdefault("citations", citations)
 
         stem = file_path.stem
-        ts = datetime.utcnow().strftime("%Y%m%dT%H%M%S")
+        ts = datetime.now(timezone.utc).strftime("%Y%m%dT%H%M%S")
         source_trace_id = f"dropbox:{stem}:{ts}"
 
         return WisdomSubmission(
@@ -686,7 +686,7 @@ class WisdomAssimilator:
             file_type=suffix,
             content=content,
             metadata=metadata,
-            extracted_at=datetime.utcnow().isoformat() + "Z",
+            extracted_at=datetime.now(timezone.utc).isoformat().replace("+00:00", "Z"),
             source_trace_id=source_trace_id,
         )
 
@@ -1017,7 +1017,7 @@ class WisdomAssimilator:
             return True
 
         try:
-            now = datetime.utcnow()
+            now = datetime.now(timezone.utc)
             archive_dir = (
                 file_path.parent.parent
                 / "archived"

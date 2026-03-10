@@ -579,6 +579,7 @@ services:
       - OPENAI_API_KEY=${OPENAI_API_KEY:-}
       - EMBEDDING_MODEL=text-embedding-ada-002
       - ENABLE_EMBEDDINGS=true
+      - EMBEDDING_PROVIDER=openrouter
       - MAX_MEMORIES_PER_AGENT=200
       - VENICE_API_KEY=${VENICE_API_KEY}
       - VENICE_API_URL=${VENICE_API_URL:-http://venice-proxy:8080/v1/chat/completions}
