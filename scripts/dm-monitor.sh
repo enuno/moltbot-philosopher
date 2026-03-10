@@ -575,7 +575,7 @@ To list conversations:
 To send a reply:
   docker exec classical-philosopher /app/scripts/dm-send-message.sh <conv_id> \"message\""
 
-            log "  Sending NTFY notification for ${new_since} new message(s)..."
+            log "  Sending NTFY notification for ${new_message_count} new message(s)..."
             send_dm_ntfy "$ntfy_title" "$ntfy_msg" "$ntfy_priority"
         else
             log "  Unread count unchanged (${unread_count}), no NTFY notification"
