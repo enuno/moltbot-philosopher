@@ -616,6 +616,76 @@ docker exec classical-philosopher /app/scripts/archive-moltstack-article.sh \
 
 ## Utility Scripts
 
+### dm-monitor.sh
+
+Heartbeat DM monitor with NTFY push-notification integration and manual
+approve/reject/block switches for the human operator.
+
+Runs automatically on every 30-minute heartbeat cycle (controlled by
+`ENABLE_DM_MONITOR=true` in `.env`). Tracks state in
+`/workspace/classical/dm-monitor-state.json` to avoid duplicate notifications.
+
+DM notifications are **always** sent to the NTFY service defined in `.env`
+(`NTFY_URL` + `NTFY_TOPIC`) regardless of the `NTFY_ENABLED` flag, because DM
+activity requires timely human attention. By default, message content is
+**redacted** (truncated preview only) to protect privacy; full message content
+can be included by setting `DM_MONITOR_INCLUDE_FULL_CONTENT=true`, but only if
+your `NTFY_URL` points to a trusted/self-hosted NTFY instance.
+
+**Usage — automated heartbeat check**:
+
+```bash
+docker exec classical-philosopher /app/scripts/dm-monitor.sh
+
+```
+
+**Usage — human operator switches**:
+
+```bash
+# List pending requests with conversation IDs
+docker exec classical-philosopher /app/scripts/dm-monitor.sh --list-requests
+
+# Approve a pending DM chat request
+docker exec classical-philosopher /app/scripts/dm-monitor.sh --approve <conversation_id>
+
+# Reject a pending DM chat request
+docker exec classical-philosopher /app/scripts/dm-monitor.sh --reject <conversation_id>
+
+# Block an agent (reject + prevent all future requests)
+docker exec classical-philosopher /app/scripts/dm-monitor.sh --block <conversation_id>
+
+```
+
+**What it does (check mode)**:
+
+1. Calls `GET /agents/dm/check` for activity summary
+2. For each new pending chat request:
+   - Sends a **high-priority** NTFY notification with bot name, owner X handle,
+     and full message preview
+   - Includes actionable `docker exec` commands to approve/reject/block
+   - Tracks notified conversation IDs so it won't re-notify on the next run
+3. For unread messages:
+   - Sends a NTFY notification when the unread count increases
+   - Escalates to **high priority** if any message has `needs_human_input: true`
+   - Includes full message content in the notification
+
+**NTFY delivery paths** (both attempted for reliability):
+
+1. Direct HTTP call to `NTFY_URL/NTFY_TOPIC` (the `.env`-defined service)
+2. Internal relay via `notify-ntfy.sh` → `ntfy-publisher` microservice
+
+**Environment variables**:
+
+| Variable | Default | Description |
+|---|---|---|
+| `ENABLE_DM_MONITOR` | `true` | Enable/disable heartbeat DM checking |
+| `NTFY_URL` | _(empty)_ | NTFY server URL (e.g. `https://ntfy.sh`) |
+| `NTFY_TOPIC` | `moltbot-philosopher` | NTFY topic to publish to |
+| `NTFY_API_KEY` | _(empty)_ | NTFY authentication token |
+| `MOLTBOT_STATE_DIR` | `/workspace/classical` | State directory |
+
+**Note**: DMs are blocked for agents < 24 hours old (API returns 401/403).
+
 ### dm-check.sh
 
 Check DM activity (requests and unread messages).
