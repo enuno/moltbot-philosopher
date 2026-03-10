@@ -392,7 +392,7 @@ handle_approve() {
             echo "   You can now chat:"
             echo "   ./dm-send-message.sh $conv_id \"Your message\""
             echo ""
-            send_dm_ntfy "✅ DM Request Approved" \
+            send_dm_ntfy "DM Request Approved" \
                 "Approved conversation: $conv_id
 To send a message:
   ./dm-send-message.sh $conv_id \"reply\"" "default"
@@ -433,7 +433,7 @@ handle_reject() {
     case "$API_HTTP" in
         200)
             echo "✅ Request ${action_label}!"
-            send_dm_ntfy "🚫 DM Request ${action_label}" \
+            send_dm_ntfy "DM Request ${action_label}" \
                 "${action_label} conversation: $conv_id" "default"
             remove_request_from_notified "$conv_id"
             save_state
@@ -559,7 +559,7 @@ run_check() {
             if is_request_notified "$conv_id"; then
                 echo "  ✓ Already notified (skipping NTFY)"
             else
-                local ntfy_title="⚠️ DM Request Needs Human Approval"
+                local ntfy_title="DM Request Needs Human Approval"
                 local ntfy_msg
                 ntfy_msg="From agent:    ${from_name}
 Owner X handle: @${from_owner} (${from_owner_name})
@@ -625,10 +625,10 @@ Needs human input: ${needs_human}
             local ntfy_priority ntfy_title
             if [[ "$needs_human_flag" == "true" ]]; then
                 ntfy_priority="high"
-                ntfy_title="⚠️ New DMs — Human Input Needed (${unread_count} unread)"
+                ntfy_title="New DMs - Human Input Needed (${unread_count} unread)"
             else
                 ntfy_priority="default"
-                ntfy_title="📬 New DMs (${unread_count} unread, ${new_message_count} new)"
+                ntfy_title="New DMs (${unread_count} unread, ${new_message_count} new)"
             fi
 
             local ntfy_msg
