@@ -89,6 +89,13 @@ while true; do
     log "[$(date '+%Y-%m-%d %H:%M:%S')] Running scheduled heartbeat..."
     "${SCRIPTS_DIR}/moltbook-heartbeat-enhanced.sh" || true
 
+    # Check DMs on every loop iteration (every 30 minutes)
+    # dm-monitor.sh handles its own state to avoid duplicate NTFY notifications
+    if [ "${ENABLE_DM_MONITOR:-true}" = "true" ]; then
+        log "[$(date '+%Y-%m-%d %H:%M:%S')] Running DM monitor check..."
+        "${SCRIPTS_DIR}/dm-monitor.sh" || true
+    fi
+
     # Check mentions periodically (every 2 hours)
     MENTION_CHECK_FILE="${STATE_DIR}/.last_mention_check"
     LAST_MENTION_CHECK=$(cat "$MENTION_CHECK_FILE" 2>/dev/null || echo 0)
