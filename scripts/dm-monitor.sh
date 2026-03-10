@@ -46,6 +46,11 @@ NTFY_URL="${NTFY_URL:-}"
 NTFY_API_KEY="${NTFY_API_KEY:-}"
 NTFY_TOPIC="${NTFY_TOPIC:-moltbot-philosopher}"
 
+# Privacy control for DM content in notifications (default: false = redacted previews only)
+# WARNING: Setting to true will include full DM message content in NTFY notifications.
+# Only enable if NTFY_URL points to a trusted/self-hosted instance.
+DM_MONITOR_INCLUDE_FULL_CONTENT="${DM_MONITOR_INCLUDE_FULL_CONTENT:-false}"
+
 # Internal notify-ntfy.sh path (relay via ntfy-publisher microservice)
 NOTIFY_SCRIPT="${SCRIPT_DIR}/notify-ntfy.sh"
 
@@ -56,6 +61,28 @@ log() {
 
 error() {
     echo "[$(date '+%Y-%m-%d %H:%M:%S')] [$SCRIPT_NAME] ERROR: $*" >&2
+}
+
+# ─── Message redaction (privacy control) ──────────────────────────────────────
+# Redacts or truncates message content based on DM_MONITOR_INCLUDE_FULL_CONTENT flag.
+# If disabled (default), returns a truncated preview without newlines.
+redact_message() {
+    local msg="$1"
+    local max_len=80
+
+    if [[ "$DM_MONITOR_INCLUDE_FULL_CONTENT" == "true" ]]; then
+        # Full content enabled - return as-is
+        printf '%s' "$msg"
+    else
+        # Redacted mode - truncate and strip newlines for privacy
+        local preview
+        preview="${msg//$'\n'/ }"  # Replace newlines with spaces
+        if [[ ${#preview} -gt $max_len ]]; then
+            printf '%s...' "${preview:0:$max_len}"
+        else
+            printf '%s' "$preview"
+        fi
+    fi
 }
 
 # ─── Usage ────────────────────────────────────────────────────────────────────
@@ -180,10 +207,11 @@ mkdir -p "$STATE_DIR"
 if [[ ! -f "$DM_MONITOR_STATE_FILE" ]]; then
     printf '{"notified_request_ids":[],"last_total_unread":0,"last_requests_count":0,"last_check":0}\n' \
         > "$DM_MONITOR_STATE_FILE"
+    chmod 600 "$DM_MONITOR_STATE_FILE"
 fi
 
-# Load state
-NOTIFIED_REQUEST_IDS=$(jq -r '.notified_request_ids // []' "$DM_MONITOR_STATE_FILE")
+# Load state (use -c to preserve JSON array format for later jq operations)
+NOTIFIED_REQUEST_IDS=$(jq -c '.notified_request_ids // []' "$DM_MONITOR_STATE_FILE")
 LAST_TOTAL_UNREAD=$(jq -r '.last_total_unread // 0' "$DM_MONITOR_STATE_FILE")
 
 # ─── Save state helper ────────────────────────────────────────────────────────
@@ -229,7 +257,7 @@ send_dm_ntfy() {
         local ntfy_endpoint
         ntfy_endpoint="${NTFY_URL%/}/${NTFY_TOPIC}"
 
-        local -a curl_args=(-s -o /dev/null -X POST "$ntfy_endpoint"
+        local -a curl_args=(-s --fail -o /dev/null -X POST "$ntfy_endpoint"
             -H "Title: $title"
             -H "Priority: $priority"
             -H "Tags: speech_balloon,robot"
@@ -244,7 +272,7 @@ send_dm_ntfy() {
             log "[NTFY] Sent via NTFY_URL: $title"
             sent=true
         else
-            error "[NTFY] Direct send to NTFY_URL failed (non-fatal)"
+            error "[NTFY] Direct send to NTFY_URL failed (non-fatal, check NTFY_URL and credentials)"
         fi
     fi
 
@@ -577,9 +605,10 @@ ACTION REQUIRED (run on host):
                 local msg
                 msg=$(printf '%s' "$latest_msgs" | jq ".[$i]")
 
-                local from_name msg_content needs_human
+                local from_name msg_content msg_redacted needs_human
                 from_name=$(printf '%s' "$msg" | jq -r '.from.name // "unknown"')
                 msg_content=$(printf '%s' "$msg" | jq -r '.content // ""')
+                msg_redacted=$(redact_message "$msg_content")
                 needs_human=$(printf '%s' "$msg" | jq -r '.needs_human_input // false')
 
                 if [[ "$needs_human" == "true" ]]; then
@@ -588,7 +617,7 @@ ACTION REQUIRED (run on host):
 
                 msgs_text="${msgs_text}
 From: ${from_name}
-Message: \"${msg_content}\"
+Message: \"${msg_redacted}\"
 Needs human input: ${needs_human}
 ---"
             done

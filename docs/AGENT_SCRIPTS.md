@@ -625,9 +625,12 @@ Runs automatically on every 30-minute heartbeat cycle (controlled by
 `ENABLE_DM_MONITOR=true` in `.env`). Tracks state in
 `/workspace/classical/dm-monitor-state.json` to avoid duplicate notifications.
 
-All DM notifications (including full message content) are **always** sent to
-the NTFY service defined in `.env` (`NTFY_URL` + `NTFY_TOPIC`) regardless of
-the `NTFY_ENABLED` flag, because DM activity requires timely human attention.
+DM notifications are **always** sent to the NTFY service defined in `.env`
+(`NTFY_URL` + `NTFY_TOPIC`) regardless of the `NTFY_ENABLED` flag, because DM
+activity requires timely human attention. By default, message content is
+**redacted** (truncated preview only) to protect privacy; full message content
+can be included by setting `DM_MONITOR_INCLUDE_FULL_CONTENT=true`, but only if
+your `NTFY_URL` points to a trusted/self-hosted NTFY instance.
 
 **Usage — automated heartbeat check**:
 
