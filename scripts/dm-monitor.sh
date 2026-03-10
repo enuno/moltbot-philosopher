@@ -31,12 +31,17 @@ readonly SCRIPT_DIR
 SCRIPT_NAME="$(basename "$0")"
 readonly SCRIPT_NAME
 
-API_BASE="${MOLTBOOK_API_BASE:-https://www.moltbook.com/api/v1}"
+# Egress proxy for Moltbook API calls (transparent pass-through with PoW/challenge handling)
+EGRESS_PROXY="${EGRESS_PROXY:-http://egress-proxy:8082}"
+EGRESS_PROXY_HEALTH_CHECK="${EGRESS_PROXY}/health"
+FALLBACK_API_BASE="https://www.moltbook.com/api/v1"
+
 STATE_DIR="${MOLTBOT_STATE_DIR:-/workspace/classical}"
 DM_MONITOR_STATE_FILE="${STATE_DIR}/dm-monitor-state.json"
 API_KEY="${MOLTBOOK_API_KEY:-}"
 
 # NTFY settings (sourced from .env – the "NTFY service defined in .env")
+# Allow NTFY_URL override but validate it's HTTPS to prevent plaintext credential leakage
 NTFY_URL="${NTFY_URL:-}"
 NTFY_API_KEY="${NTFY_API_KEY:-}"
 NTFY_TOPIC="${NTFY_TOPIC:-moltbot-philosopher}"
@@ -157,9 +162,15 @@ while [[ $# -gt 0 ]]; do
     esac
 done
 
-# ─── API key validation ───────────────────────────────────────────────────────
+# ─── Credential and URL validation ────────────────────────────────────────────
 if [[ -z "$API_KEY" ]]; then
     error "MOLTBOOK_API_KEY is not set"
+    exit 1
+fi
+
+# Validate NTFY_URL is HTTPS if set (prevent plaintext credential transmission)
+if [[ -n "$NTFY_URL" && ! "$NTFY_URL" =~ ^https:// ]]; then
+    error "NTFY_URL must use HTTPS protocol (got: $NTFY_URL)"
     exit 1
 fi
 
@@ -259,8 +270,27 @@ send_dm_ntfy() {
     return 0
 }
 
+# ─── Proxy health check ───────────────────────────────────────────────────────
+# Checks if egress proxy is available. Returns 0 if healthy, 1 otherwise.
+check_proxy_health() {
+    curl -sf --max-time 3 "$EGRESS_PROXY_HEALTH_CHECK" > /dev/null 2>&1
+}
+
+# ─── Resolve API base URL with fallback ────────────────────────────────────────
+# Uses egress proxy if available, falls back to direct HTTPS if proxy is down.
+# Sets API_BASE global variable.
+resolve_api_base() {
+    if check_proxy_health; then
+        API_BASE="${EGRESS_PROXY}/api/v1"
+        log "[Proxy] Using egress proxy: $API_BASE"
+    else
+        API_BASE="$FALLBACK_API_BASE"
+        log "[WARN] Egress proxy unavailable, falling back to direct Moltbook API"
+    fi
+}
+
 # ─── API call helper ──────────────────────────────────────────────────────────
-# Makes an authenticated Moltbook API request.
+# Makes an authenticated Moltbook API request via egress proxy (with fallback).
 # Sets two global variables for use by the caller:
 #   API_HTTP – HTTP status code string (e.g. "200", "404")
 #   API_BODY – Response body (JSON string)
@@ -274,15 +304,20 @@ api_call() {
     local endpoint="$2"
     local data="${3:-}"
 
+    # Resolve API base on each call (allows proxy restart detection)
+    resolve_api_base
+
     local response
     if [[ -n "$data" ]]; then
         response=$(curl -s -w "\n%{http_code}" -X "$method" \
+            --max-time 10 \
             "${API_BASE}${endpoint}" \
             -H "Authorization: Bearer ${API_KEY}" \
             -H "Content-Type: application/json" \
             -d "$data")
     else
         response=$(curl -s -w "\n%{http_code}" -X "$method" \
+            --max-time 10 \
             "${API_BASE}${endpoint}" \
             -H "Authorization: Bearer ${API_KEY}")
     fi
