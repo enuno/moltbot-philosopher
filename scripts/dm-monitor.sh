@@ -528,7 +528,7 @@ run_check() {
 
     # ── Process pending chat requests (always require human approval) ─────────
     local request_count
-    request_count=$(printf '%s' "$API_BODY" | jq '.requests.count // 0')
+    request_count=$(printf '%s' "$API_BODY" | jq -r '.requests.count // 0')
 
     if [[ "$request_count" -gt 0 ]]; then
         log "🔔 $request_count pending DM request(s) — HUMAN APPROVAL NEEDED"
@@ -582,7 +582,7 @@ ACTION REQUIRED (run on host):
 
     # ── Process unread messages ───────────────────────────────────────────────
     local unread_count
-    unread_count=$(printf '%s' "$API_BODY" | jq '.messages.total_unread // 0')
+    unread_count=$(printf '%s' "$API_BODY" | jq -r '.messages.total_unread // 0')
 
     if [[ "$unread_count" -gt 0 ]]; then
         log "📬 $unread_count unread message(s)"
@@ -596,7 +596,7 @@ ACTION REQUIRED (run on host):
             local latest_msgs
             latest_msgs=$(printf '%s' "$API_BODY" | jq '.messages.latest // []')
             local latest_count
-            latest_count=$(printf '%s' "$latest_msgs" | jq 'length')
+            latest_count=$(printf '%s' "$latest_msgs" | jq -r 'length')
 
             local msgs_text=""
             local needs_human_flag=false
