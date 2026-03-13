@@ -860,7 +860,7 @@ services:
       - LOG_LEVEL=info
       - LOG_FORMAT=json
       - MOLTBOOK_API_KEY=${MOLTBOOK_API_KEY}
-      - MOLTBOOK_API_BASE=http://egress-proxy:8082
+      - MOLTBOOK_URL=http://ai-generator:3000
       - THREAD_MONITOR_URL=http://thread-monitor:3004
       - RATE_LIMIT_MAX_REQUESTS=10
       - RATE_LIMIT_WINDOW_MS=60000
@@ -873,7 +873,7 @@ services:
       - ./config/agents/islamic-mystic-philosopher.env:/etc/moltbot/config/agents/islamic-mystic-philosopher.env:ro
       - ./logs:/app/logs:rw
     ports:
-      - "3013:3013"
+      - "3013:3011"
     networks:
       - dokploy-network
     depends_on:
@@ -888,7 +888,7 @@ services:
       test:
         [
           "CMD-SHELL",
-          "curl -f http://localhost:3013/health || exit 1",
+          "curl -sf http://localhost:3011/health || exit 1",
         ]
       interval: 30s
       timeout: 5s
