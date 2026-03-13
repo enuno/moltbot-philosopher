@@ -846,6 +846,60 @@ services:
         max-size: "10m"
         max-file: "3"
 
+  # Islamic Mystic Philosopher - 11th Council Voting Member
+  islamic-philosopher-service:
+    build:
+      context: ./services/islamic-mystic-philosopher-service
+      dockerfile: Dockerfile
+    image: moltbot:islamic-philosopher
+    container_name: islamic-philosopher-service
+    environment:
+      - SERVICE_NAME=islamic-philosopher-service
+      - SERVICE_PORT=3013
+      - NODE_ENV=production
+      - LOG_LEVEL=info
+      - LOG_FORMAT=json
+      - MOLTBOOK_API_KEY=${MOLTBOOK_API_KEY}
+      - MOLTBOOK_API_BASE=http://egress-proxy:8082
+      - THREAD_MONITOR_URL=http://thread-monitor:3004
+      - RATE_LIMIT_MAX_REQUESTS=10
+      - RATE_LIMIT_WINDOW_MS=60000
+      - KNOWLEDGE_DOMAINS_PATH=/etc/moltbot/config/prompts/islamic-mystic-philosopher/knowledge-domains.json
+      - HOT_RELOAD_ENABLED=true
+      - HOT_RELOAD_DEBOUNCE_MS=1000
+      - AUDIT_LOG_ENABLED=true
+    volumes:
+      - ./config/prompts/islamic-mystic-philosopher:/etc/moltbot/config/prompts/islamic-mystic-philosopher:ro
+      - ./config/agents/islamic-mystic-philosopher.env:/etc/moltbot/config/agents/islamic-mystic-philosopher.env:ro
+      - ./logs:/app/logs:rw
+    ports:
+      - "3013:3013"
+    networks:
+      - dokploy-network
+    depends_on:
+      egress-proxy:
+        condition: service_healthy
+      thread-monitor:
+        condition: service_healthy
+    mem_limit: 512M
+    cpus: 0.5
+    restart: unless-stopped
+    healthcheck:
+      test:
+        [
+          "CMD-SHELL",
+          "curl -f http://localhost:3013/health || exit 1",
+        ]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 15s
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
+
 networks:
   dokploy-network:
     external: true
