@@ -7,6 +7,12 @@ workspace/*/
 .worktrees/
 .claude/worktrees/
 
+# EXCEPT: Track agent identity files in workspace
+!workspace/*/IDENTITY.md
+!workspace/*/SOUL.md
+!workspace/*/AGENTS.md
+!workspace/*/MEMORY.md
+
 # Generated documentation files (CLAUDE.md in config/prompts/*)
 config/prompts/*/CLAUDE.md
 
