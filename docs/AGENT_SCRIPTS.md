@@ -554,6 +554,102 @@ docker exec classical-philosopher python3 /workspace/noosphere/clawhub-mcp.py \
 
 ```
 
+### noosphere_cache.py – Noosphere Memory Query Cache
+
+Located at `/app/scripts/noosphere_cache.py` – in-memory TTL cache for
+Noosphere memory queries.  Reduces database load and latency for repeated
+searches performed by agents during a single session.
+
+**Import usage** (Python module):
+
+```python
+from noosphere_cache import NoosphereCacheClient
+
+# Build cache with 1-hour TTL (wraps existing NoosphereClient)
+cache = NoosphereCacheClient(client=noosphere_client, ttl=3600)
+
+# First call: cache miss – queries Noosphere
+results = await cache.query_cached(
+    agent_id="classical",
+    context="AI autonomy",
+    memory_types=["insight", "pattern"],
+    min_confidence=0.7,
+)
+
+# Second call: cache hit – returns from memory instantly
+results = await cache.query_cached(
+    agent_id="classical",
+    context="AI autonomy",
+    memory_types=["insight", "pattern"],
+    min_confidence=0.7,
+)
+
+stats = cache.get_stats()
+print(f"Hit rate: {stats['hit_rate']:.2%}")  # Hit rate: 50.00%
+```
+
+**docker exec usage** (inline Python):
+
+```bash
+# Query with caching (30-minute TTL)
+docker exec classical-philosopher python3 - <<'EOF'
+import asyncio
+import os
+import sys
+
+sys.path.insert(0, "/app/scripts")
+
+from noosphere_client import NoosphereClient
+from noosphere_cache import NoosphereCacheClient
+
+
+async def main() -> None:
+    api_url = os.environ.get("NOOSPHERE_API_URL", "http://noosphere-service:3006")
+    api_key = os.environ["NOOSPHERE_API_KEY"]
+
+    client = NoosphereClient(api_url=api_url, api_key=api_key)
+    cache = NoosphereCacheClient(client=client, ttl=1800)
+
+    results = await cache.query_cached(
+        agent_id="classical",
+        context="AI autonomy",
+        memory_types=["insight", "pattern"],
+        min_confidence=0.7,
+    )
+    print(results)
+    print(cache.get_stats())
+
+
+asyncio.run(main())
+EOF
+```
+
+**Key methods**:
+
+- `query_cached(agent_id, context, memory_types, min_confidence, ttl, limit)`
+  – Async query with TTL-based caching.
+- `invalidate(key)` – Async: remove a single entry by its SHA256 hash key.
+- `clear()` – Async: wipe all entries and reset hit/miss statistics.
+- `get_stats()` – Return `{hits, misses, hit_rate, entry_count, ttl}` snapshot.
+
+**Design notes**:
+
+- In-memory only (no disk or Redis persistence) – cache is per-process.
+- Per-key `asyncio.Lock` objects prevent cache stampedes: concurrent tasks for
+  the **same** key are serialised while tasks for **different** keys fetch
+  concurrently.  `invalidate()` and `clear()` use a separate meta-lock for
+  cache-wide mutations.
+- Per-query TTL override via the `ttl` parameter to `query_cached`.
+- Cache keys are SHA256 of normalised params (sorted types, lowercase strings).
+- Upstream sync clients (e.g. `NoosphereClient` using `requests`) are
+  dispatched via `asyncio.to_thread` to avoid blocking the event loop.
+- Expected hit rate after warm-up varies by query diversity; highly repetitive
+  recall patterns (e.g. repeated context lookups) yield the highest rates.
+- Memory usage: ~1 KB per cached entry × number of distinct queries.
+
+**Tests**: `tests/unit/scripts/python/test_noosphere_cache.py` – 37 tests,
+100% coverage.
+
 ### Philosopher Poet Triptych Selection
 
 Located at `/app/scripts/select-poet-triptych.py` - Philosopher Poet persona
