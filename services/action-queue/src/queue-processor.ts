@@ -99,6 +99,11 @@ export class QueueProcessor {
         throw new Error("Rate limited - will retry");
       }
 
+      // Check comment velocity (prevent bursty comment spam)
+      if (action.actionType === "comment") {
+        await this.checkCommentVelocity(action, jobId);
+      }
+
       // Check circuit breaker
       await this.checkCircuitBreaker(action.agentName);
 
@@ -151,10 +156,77 @@ export class QueueProcessor {
       "TEMPORARY_ERROR",
       "ENOTFOUND",
       "ECONNRESET",
+      "comment velocity exceeded", // Velocity violations retry with backoff
+      "Rate limited", // Rate limit violations also retry
+      "Conditions not met", // Conditional actions retry if conditions unmet
     ];
 
     const errorMsg = error instanceof Error ? error.message : String(error);
     return retryableErrors.some((e) => errorMsg.includes(e));
+  }
+
+  /**
+   * Comment velocity check: prevent bursty comment spam
+   * Enforces both per-thread and agent-wide limits
+   */
+  private async checkCommentVelocity(action: QueuedAction, jobId: string): Promise<void> {
+    const metadata = (action as any).metadata || {};
+    const threadId = metadata.threadId;
+
+    try {
+      // Get recent comment counts for both checks
+      const recentCommentWindow = 60; // seconds
+      const agentWideCount = await this.db.getRecentCommentCount(
+        action.agentName,
+        undefined,
+        recentCommentWindow,
+      );
+      const perThreadCount = threadId
+        ? await this.db.getRecentCommentCount(action.agentName, threadId, recentCommentWindow)
+        : 0;
+
+      // Validate thresholds (conservative by design — philosopher deepens, doesn't monologue)
+      const PER_THREAD_MAX = 3; // Max comments on same thread in 60s
+      const AGENT_WIDE_MAX = 8; // Max total comments by agent in 60s
+
+      console.log(`📊 Comment velocity check for ${action.agentName}:`, {
+        threadId: threadId || "unknown",
+        perThreadCount: `${perThreadCount}/${PER_THREAD_MAX}`,
+        agentWideCount: `${agentWideCount}/${AGENT_WIDE_MAX}`,
+      });
+
+      // Per-thread spam prevention (philosopher deepens a point, doesn't monologue)
+      if (threadId && perThreadCount >= PER_THREAD_MAX) {
+        console.warn(
+          `🐌 Comment velocity exceeded (thread): ${action.agentName} on ${threadId} ` +
+            `— ${perThreadCount}/${PER_THREAD_MAX} in 60s`,
+        );
+        throw new Error(
+          `comment velocity exceeded: per-thread limit (${perThreadCount}/${PER_THREAD_MAX})`,
+        );
+      }
+
+      // Agent-wide spam prevention (present but not omnipresent)
+      if (agentWideCount >= AGENT_WIDE_MAX) {
+        console.warn(
+          `🐌 Comment velocity exceeded (agent-wide): ${action.agentName} ` +
+            `— ${agentWideCount}/${AGENT_WIDE_MAX} in 60s`,
+        );
+        throw new Error(
+          `comment velocity exceeded: agent-wide limit (${agentWideCount}/${AGENT_WIDE_MAX})`,
+        );
+      }
+    } catch (error) {
+      if (
+        error instanceof Error &&
+        error.message.includes("comment velocity exceeded")
+      ) {
+        console.log(`⚠️  Comment spam detected for ${action.agentName}: ${error.message}`);
+        await this.db.updateActionStatus(jobId, ActionStatus.RATE_LIMITED);
+        throw new Error("Comment velocity exceeded - will retry");
+      }
+      throw error;
+    }
   }
 
   /**

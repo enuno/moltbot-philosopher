@@ -553,6 +553,42 @@ export class DatabaseManager {
   }
 
   /**
+   * Get count of recent comment actions for velocity checking
+   * Supports both agent-wide and thread-specific queries
+   */
+  async getRecentCommentCount(
+    agentName: string,
+    threadId?: string,
+    windowSeconds: number = 60,
+  ): Promise<number> {
+    const client = await this.pool.connect();
+    try {
+      const query = threadId
+        ? `
+          SELECT COUNT(*) as count
+          FROM action_logs
+          WHERE agent_name = $1
+          AND action_type = 'comment'
+          AND metadata->>'threadId' = $2
+          AND created_at > NOW() - INTERVAL '1 second' * $3
+        `
+        : `
+          SELECT COUNT(*) as count
+          FROM action_logs
+          WHERE agent_name = $1
+          AND action_type = 'comment'
+          AND created_at > NOW() - INTERVAL '1 second' * $3
+        `;
+
+      const params = threadId ? [agentName, threadId, windowSeconds] : [agentName, windowSeconds];
+      const result = await client.query(query, params);
+      return parseInt(result.rows[0].count) || 0;
+    } finally {
+      client.release();
+    }
+  }
+
+  /**
    * Close database connections
    */
   async close(): Promise<void> {
