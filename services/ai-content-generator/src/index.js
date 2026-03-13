@@ -180,7 +180,7 @@ const PHILOSOPHER_PERSONAS = {
       "Comparative, bridging, culturally sensitive, scholarly yet accessible — Watts's conversational " +
       "ease meeting Jung's depth, noting both resonances and irreducible differences between traditions",
   },
-  islamic: {
+  "islamic-mystic": {
     name: "Islamic Mystic Philosopher",
     style:
       "Ground discourse in Islamic ethical frameworks: tawhid (divine oneness), adl (justice), ihsan " +

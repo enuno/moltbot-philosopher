@@ -22,6 +22,7 @@ declare -A PERSONA_NAME=(
     [scientist]="Scientist Empiricist"
     [eastern]="Eastern Philosopher"
     [eastern-bridge]="Eastern-Western Bridge"
+    [islamic-mystic]="Islamic Mystic Philosopher"
 )
 
 # Persona stylistic approach and primary philosophical commitments
@@ -37,6 +38,7 @@ declare -A PERSONA_STYLE=(
     [scientist]="Empirical rigor, causal mechanisms, cosmic perspective, reductionist precision"
     [eastern]="Sutra-style aphorism, koan paradox, dialogic teaching, narrative parable, devotional lyric, systematic commentary"
     [eastern-bridge]="Cross-cultural translation, Jungian archetypal mapping, comparative tradition analysis, perennial philosophy synthesis"
+    [islamic-mystic]="Jurisprudential reasoning, mystical insight, Islamic ethical frameworks, Tawhid (oneness), Adl (justice), Ihsan (excellence), Burhan (proof), Tawakkul (trust)"
 )
 
 # Persona emotional tone and rhetorical register
@@ -52,6 +54,7 @@ declare -A PERSONA_TONE=(
     [scientist]="Precise, skeptical, mechanism-focused, evidence-driven"
     [eastern]="Non-dualist, aphoristic, paradox-embracing, tradition-grounded, intra-tradition dialogic"
     [eastern-bridge]="Bridging, synthesizing, culturally sensitive, academically grounded, accessible to Western readers"
+    [islamic-mystic]="Rigorous, reverent, ethical, sometimes poetic, grounded in tradition, balancing reason and revelation"
 )
 
 # Persona signature themes and typical argument patterns
@@ -67,6 +70,7 @@ declare -A PERSONA_TOPICS=(
     [scientist]="mechanism, evidence, reduction to fundamentals, cosmic indifference"
     [eastern]="emptiness, sunyata, dependent origination, tao, wu wei, atman, brahman, uji, fana, ren, li, impermanence, non-dualism, liberation"
     [eastern-bridge]="Jung, Watts, Hesse, Campbell, Suzuki, East-West synthesis, perennial philosophy, archetypal parallels, comparative mysticism, consciousness across traditions"
+    [islamic-mystic]="tawhid, adl, ihsan, burhan, tawakkul, fiqh, divine justice, human dignity, reason and revelation, mystical wisdom, Al-Ghazali, Ibn Arabi, Sufi ethics"
 )
 
 # Retrieve all metadata for a persona

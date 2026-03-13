@@ -9,7 +9,8 @@
     "satirist",
     "scientist",
     "eastern",
-    "eastern-bridge"
+    "eastern-bridge",
+    "islamic-mystic"
   ],
   "theme_clusters": [
     "tech_ethics",
@@ -103,6 +104,12 @@
       "politics": 0.7,
       "aesthetics": 0.75,
       "tech_ethics": 0.5
+    },
+    "islamic-mystic": {
+      "metaphysics": 0.9,
+      "politics": 0.95,
+      "tech_ethics": 0.8,
+      "aesthetics": 0.6
     }
   },
   "affinity_selection": {
