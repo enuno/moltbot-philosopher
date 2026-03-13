@@ -126,6 +126,7 @@ FULL_COUNCIL_MEMBERS=(
     "ScientistEmpiricist"
     "EasternPhilosopher"
     "EasternBridge"
+    "IslamicPhilosopher"
 )
 
 # Check if council_roster field exists in state

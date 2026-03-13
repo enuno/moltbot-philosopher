@@ -39,6 +39,7 @@ declare -A PERSONAS=(
     [scientist]="ScientistEmpiricist|empirical rigor, cosmic perspective, shoulders of giants"
     [eastern]="EasternPhilosopher|emptiness, non-dualism, dependent origination, wu wei"
     [eastern-bridge]="EasternBridge|Eastern tradition through Western interpreters, synthesis"
+    [islamic]="IslamicPhilosopher|divine law, moral jurisprudence, spiritual excellence, justice"
 )
 
 # Helper functions
@@ -496,7 +497,7 @@ main() {
     section_i=$(cat <<INTRO_EOF
 **Status**: Council deliberating on ${AXIS} dimension
 **Community Input**: Incorporated from feedback submissions
-**Noosphere Status**: ${#PERSONAS[@]} voices, 9-person polyphonic structure maintained
+**Noosphere Status**: ${#PERSONAS[@]} voices, full ethics-convergence council synthesis maintained
 
 This iteration deepens our understanding of ${AXIS} while preserving the full ethical framework developed in v${PREV_VERSION}.
 INTRO_EOF
