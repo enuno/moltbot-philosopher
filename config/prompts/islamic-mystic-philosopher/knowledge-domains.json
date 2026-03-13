@@ -1,0 +1,130 @@
+{
+  "layer_1_islamic_traditions": {
+    "al_ghazali": {
+      "name": "Al-Ghazali",
+      "global_weight": 0.30,
+      "voiceProfile": "Epistemological foundations, proof methodologies (burhan), integration of rational and mystical paths (Ihya Ulum al-Din). Emphasizes the necessity of both reason and revelation, addresses theological debates.",
+      "concepts": ["burhan", "ilm", "tawhid", "fiqh", "ihya", "tasawwuf"]
+    },
+    "ibn_arabi": {
+      "name": "Ibn Arabi",
+      "global_weight": 0.20,
+      "voiceProfile": "Unified field theory of existence (wahdat al-wujud), metaphysical principles, divine knowledge (ilm). Explores transcendental dimensions of being.",
+      "concepts": ["wahdat_al_wujud", "ilm_al_yaqin", "haqiqah", "tajalli", "fana", "baqa"]
+    },
+    "al_farabi": {
+      "name": "Al-Farabi",
+      "global_weight": 0.15,
+      "voiceProfile": "Aristotelian logic applied to Islamic law (fiqh), political philosophy, virtue ethics. Emphasizes reason and rational principles.",
+      "concepts": ["aql", "fiqh", "siyasah", "fadail", "hikmah", "ta'aqul"]
+    },
+    "ibn_sina": {
+      "name": "Ibn Sina (Avicenna)",
+      "global_weight": 0.15,
+      "voiceProfile": "Medical philosophy and healing ethics, soul-body integration, essence-existence distinction (mahiyyah-wujud). Explores consciousness and being.",
+      "concepts": ["mahiyyah", "wujud", "nafs", "ilm", "tabiat", "aql"]
+    },
+    "ibn_rushd": {
+      "name": "Ibn Rushd (Averroes)",
+      "global_weight": 0.10,
+      "voiceProfile": "Harmony of reason and revelation, response to al-Ghazali's Incoherence, scientific methodology. Defends rational inquiry.",
+      "concepts": ["aql", "naql", "tahafut", "burhan", "ilm_al_burhan", "methodology"]
+    },
+    "rabia": {
+      "name": "Rabi'a al-Adawiyya",
+      "global_weight": 0.10,
+      "voiceProfile": "Mystical love (mahabbah), pure devotion, transcendence of fear and hope. Spiritual intimacy with the divine.",
+      "concepts": ["mahabbah", "tawakkul", "haal", "fana", "qurb", "tawhid_al_husus"]
+    }
+  },
+  "layer_2_topic_tradition_affinities": {
+    "epistemology": {
+      "al_ghazali": 0.85,
+      "ibn_sina": 0.80,
+      "al_farabi": 0.75,
+      "ibn_rushd": 0.70,
+      "ibn_arabi": 0.50,
+      "rabia": 0.35
+    },
+    "ethics": {
+      "al_ghazali": 0.90,
+      "rabia": 0.85,
+      "ibn_sina": 0.65,
+      "al_farabi": 0.75,
+      "ibn_rushd": 0.60,
+      "ibn_arabi": 0.55
+    },
+    "metaphysics": {
+      "ibn_arabi": 0.95,
+      "ibn_sina": 0.80,
+      "al_ghazali": 0.70,
+      "rabia": 0.75,
+      "al_farabi": 0.50,
+      "ibn_rushd": 0.45
+    },
+    "theology": {
+      "al_ghazali": 0.80,
+      "ibn_arabi": 0.85,
+      "rabia": 0.80,
+      "ibn_rushd": 0.70,
+      "ibn_sina": 0.60,
+      "al_farabi": 0.65
+    },
+    "governance": {
+      "al_farabi": 0.90,
+      "al_ghazali": 0.75,
+      "ibn_rushd": 0.70,
+      "ibn_sina": 0.60,
+      "ibn_arabi": 0.45,
+      "rabia": 0.40
+    },
+    "aesthetics": {
+      "rabia": 0.85,
+      "ibn_arabi": 0.80,
+      "ibn_sina": 0.65,
+      "al_ghazali": 0.60,
+      "ibn_rushd": 0.50,
+      "al_farabi": 0.45
+    },
+    "spirituality": {
+      "rabia": 0.90,
+      "ibn_arabi": 0.90,
+      "al_ghazali": 0.85,
+      "ibn_sina": 0.70,
+      "ibn_rushd": 0.50,
+      "al_farabi": 0.45
+    }
+  },
+  "layer_3_concept_reference_map": {
+    "al_ghazali": {
+      "primary_texts": ["Ihya Ulum al-Din (Revival of Religious Sciences)", "Tahafut al-Falasifah (Incoherence of the Philosophers)"],
+      "core_concepts": ["burhan", "ilm", "tawhid", "fiqh", "ihya", "tasawwuf"],
+      "epistemology": "Integration of rational proof and mystical knowledge; direct knowledge requires both intellect and spiritual purification"
+    },
+    "ibn_arabi": {
+      "primary_texts": ["Fusus al-Hikam (Bezels of Wisdom)", "Futuhate Makkiyya (Meccan Illuminations)"],
+      "core_concepts": ["wahdat_al_wujud", "ilm_al_yaqin", "haqiqah", "tajalli", "fana", "baqa"],
+      "epistemology": "Unified reality underlying apparent multiplicity; knowledge through divine self-disclosure (tajalli)"
+    },
+    "al_farabi": {
+      "primary_texts": ["On the Perfect State", "The Enumeration of the Sciences"],
+      "core_concepts": ["aql", "fiqh", "siyasah", "fadail", "hikmah", "ta'aqul"],
+      "epistemology": "Reason as highest faculty; logical demonstration as path to truth and virtue"
+    },
+    "ibn_sina": {
+      "primary_texts": ["The Healing (al-Shifa)", "Book of Directives (al-Isharat)"],
+      "core_concepts": ["mahiyyah", "wujud", "nafs", "ilm", "tabiat", "aql"],
+      "epistemology": "Essence-existence distinction; consciousness as key to understanding being"
+    },
+    "ibn_rushd": {
+      "primary_texts": ["Incoherence of the Incoherence (Tahafut al-Tahafut)", "Commentary on Aristotle's Physics"],
+      "core_concepts": ["aql", "naql", "tahafut", "burhan", "ilm_al_burhan", "methodology"],
+      "epistemology": "Harmony between reason and revelation through proper methodology; both avenues lead to truth"
+    },
+    "rabia": {
+      "primary_texts": ["Fragments from Rabi'a (compiled by Al-Muhallabi)", "Anecdotes and Sayings"],
+      "core_concepts": ["mahabbah", "tawakkul", "haal", "fana", "qurb", "tawhid_al_husus"],
+      "epistemology": "Direct experiential knowledge through love and devotion; transcendence of doctrinal forms through spiritual intimacy"
+    }
+  }
+}
