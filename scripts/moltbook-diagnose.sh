@@ -30,11 +30,11 @@ echo ""
 
 # ─── Step 1: API Key Validity ───────────────────────────────────────────────
 echo "Step 1: Checking API key validity..."
-echo "Endpoint: /agents/profile"
+echo "Endpoint: /home"
 
 RESPONSE=$(curl -s -w "\n%{http_code}" \
   -H "Authorization: Bearer ${API_KEY}" \
-  https://www.moltbook.com/api/v1/agents/profile)
+  https://www.moltbook.com/api/v1/home)
 
 HTTP_STATUS=$(echo "$RESPONSE" | tail -n1)
 BODY=$(echo "$RESPONSE" | sed '$d')
@@ -43,8 +43,10 @@ echo "HTTP Status: $HTTP_STATUS"
 
 if [ "$HTTP_STATUS" = "200" ]; then
     echo -e "${GREEN}✓ API key is VALID${NC}"
-    AGENT_NAME=$(echo "$BODY" | jq -r '.name // "unknown"' 2>/dev/null || echo "unknown")
+    AGENT_NAME=$(echo "$BODY" | jq -r '.your_account.name // "unknown"' 2>/dev/null || echo "unknown")
+    AGENT_KARMA=$(echo "$BODY" | jq -r '.your_account.karma // "unknown"' 2>/dev/null || echo "unknown")
     echo "  Agent: $AGENT_NAME"
+    echo "  Karma: $AGENT_KARMA"
     echo ""
 else
     echo -e "${RED}✗ API key is INVALID or REVOKED (expected 200, got $HTTP_STATUS)${NC}"
@@ -55,31 +57,48 @@ fi
 
 # ─── Step 2: Agent Claim & Active Status ────────────────────────────────────
 echo "Step 2: Checking agent claim and active status..."
-echo "Endpoint: /agents/profile (claim info)"
+echo "Endpoint: /agents/me"
 
-IS_CLAIMED=$(echo "$BODY" | jq -r '.isclaimed // false' 2>/dev/null)
-IS_ACTIVE=$(echo "$BODY" | jq -r '.isactive // false' 2>/dev/null)
+RESPONSE=$(curl -s -w "\n%{http_code}" \
+  -H "Authorization: Bearer ${API_KEY}" \
+  https://www.moltbook.com/api/v1/agents/me)
 
-echo "Claimed: $IS_CLAIMED"
-echo "Active:  $IS_ACTIVE"
+HTTP_STATUS=$(echo "$RESPONSE" | tail -n1)
+BODY_ME=$(echo "$RESPONSE" | sed '$d')
 
-if [ "$IS_CLAIMED" != "true" ]; then
-    echo -e "${RED}✗ Agent is NOT CLAIMED${NC}"
-    echo "  Fix: Go to https://www.moltbook.com and claim this agent"
-    exit 1
+echo "HTTP Status: $HTTP_STATUS"
+
+if [ "$HTTP_STATUS" = "200" ]; then
+    IS_CLAIMED=$(echo "$BODY_ME" | jq -r '.agent.is_claimed // false' 2>/dev/null)
+    IS_ACTIVE=$(echo "$BODY_ME" | jq -r '.agent.is_active // false' 2>/dev/null)
+    CREATED_AT=$(echo "$BODY_ME" | jq -r '.agent.created_at // "unknown"' 2>/dev/null)
+
+    echo "Claimed: $IS_CLAIMED"
+    echo "Active:  $IS_ACTIVE"
+    echo "Created: $CREATED_AT"
+
+    if [ "$IS_CLAIMED" != "true" ]; then
+        echo -e "${RED}✗ Agent is NOT CLAIMED${NC}"
+        echo "  Fix: Go to https://www.moltbook.com and claim this agent"
+        exit 1
+    else
+        echo -e "${GREEN}✓ Agent is claimed${NC}"
+    fi
+
+    if [ "$IS_ACTIVE" != "true" ]; then
+        echo -e "${RED}✗ Agent is NOT ACTIVE (may be suspended)${NC}"
+        echo "  Fix: Check https://www.moltbook.com dashboard for suspension reason"
+        exit 1
+    else
+        echo -e "${GREEN}✓ Agent is active${NC}"
+    fi
+
+    echo ""
 else
-    echo -e "${GREEN}✓ Agent is claimed${NC}"
+    echo -e "${YELLOW}⚠ Could not fetch agent profile (HTTP $HTTP_STATUS)${NC}"
+    echo "  Continuing to DM check (this step is optional)..."
+    echo ""
 fi
-
-if [ "$IS_ACTIVE" != "true" ]; then
-    echo -e "${RED}✗ Agent is NOT ACTIVE (may be suspended)${NC}"
-    echo "  Fix: Check https://www.moltbook.com dashboard for suspension reason"
-    exit 1
-else
-    echo -e "${GREEN}✓ Agent is active${NC}"
-fi
-
-echo ""
 
 # ─── Step 3: DM Feature Access ──────────────────────────────────────────────
 echo "Step 3: Checking DM feature access..."
