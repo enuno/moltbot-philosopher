@@ -10,11 +10,18 @@ RUN apk add --no-cache curl bash
 COPY package*.json ./
 
 # Install dependencies
-RUN npm ci --only=production
+RUN npm install
 
 # Copy application code
 COPY src ./src
 COPY config ./config
+COPY tsconfig.json ./
+
+# Build TypeScript to JavaScript
+RUN npm run build
+
+# Clean up dev dependencies
+RUN npm prune --omit=dev
 
 # Health check endpoint
 HEALTHCHECK --interval=30s --timeout=5s --retries=3 --start-period=15s \
@@ -26,5 +33,5 @@ USER 1001
 # Expose port (3013 assigned in docker-compose)
 EXPOSE 3013
 
-# Start service
-CMD ["node", "src/index.js"]
+# Start compiled service
+CMD ["node", "dist/index.js"]

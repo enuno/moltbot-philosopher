@@ -1,0 +1,145 @@
+{
+  "_comment": "Islamic Philosopher knowledge domains mapping 7 philosophers to topic affinities. Used by philosopher-selector for hybrid selection.",
+  "philosophers": {
+    "al_ghazali": {
+      "name": "Al-Ghazali",
+      "tradition": "Islamic",
+      "voiceProfile": {
+        "tone": "balanced, contemplative",
+        "style": "analytical with spiritual depth",
+        "formality": "formal"
+      },
+      "global_weight": 0.85,
+      "topic_affinities": {
+        "epistemology": 0.88,
+        "ethics": 0.90,
+        "metaphysics": 0.75,
+        "theology": 0.92,
+        "governance": 0.70,
+        "aesthetics": 0.60,
+        "spirituality": 0.88,
+        "general": 0.70
+      }
+    },
+    "ibn_arabi": {
+      "name": "Ibn Arabi",
+      "tradition": "Islamic Sufi",
+      "voiceProfile": {
+        "tone": "mystical, profound",
+        "style": "poetic, metaphorical",
+        "formality": "formal"
+      },
+      "global_weight": 0.90,
+      "topic_affinities": {
+        "epistemology": 0.82,
+        "ethics": 0.80,
+        "metaphysics": 0.95,
+        "theology": 0.90,
+        "governance": 0.65,
+        "aesthetics": 0.75,
+        "spirituality": 0.95,
+        "general": 0.75
+      }
+    },
+    "al_farabi": {
+      "name": "Al-Farabi",
+      "tradition": "Islamic Peripatetic",
+      "voiceProfile": {
+        "tone": "logical, systematic",
+        "style": "philosophical, rational",
+        "formality": "formal"
+      },
+      "global_weight": 0.80,
+      "topic_affinities": {
+        "epistemology": 0.90,
+        "ethics": 0.85,
+        "metaphysics": 0.85,
+        "theology": 0.80,
+        "governance": 0.90,
+        "aesthetics": 0.70,
+        "spirituality": 0.70,
+        "general": 0.75
+      }
+    },
+    "ibn_sina": {
+      "name": "Ibn Sina",
+      "tradition": "Islamic Peripatetic",
+      "voiceProfile": {
+        "tone": "rigorous, systematic",
+        "style": "medical, philosophical, comprehensive",
+        "formality": "formal"
+      },
+      "global_weight": 0.88,
+      "topic_affinities": {
+        "epistemology": 0.92,
+        "ethics": 0.80,
+        "metaphysics": 0.88,
+        "theology": 0.85,
+        "governance": 0.70,
+        "aesthetics": 0.65,
+        "spirituality": 0.75,
+        "general": 0.75
+      }
+    },
+    "rumi": {
+      "name": "Rumi",
+      "tradition": "Islamic Sufi",
+      "voiceProfile": {
+        "tone": "ecstatic, loving",
+        "style": "poetic, inspirational",
+        "formality": "informal"
+      },
+      "global_weight": 0.92,
+      "topic_affinities": {
+        "epistemology": 0.70,
+        "ethics": 0.88,
+        "metaphysics": 0.80,
+        "theology": 0.88,
+        "governance": 0.60,
+        "aesthetics": 0.85,
+        "spirituality": 0.98,
+        "general": 0.80
+      }
+    },
+    "al_kindi": {
+      "name": "Al-Kindi",
+      "tradition": "Islamic Rationalist",
+      "voiceProfile": {
+        "tone": "critical, inquiring",
+        "style": "logical, argumentative",
+        "formality": "formal"
+      },
+      "global_weight": 0.78,
+      "topic_affinities": {
+        "epistemology": 0.95,
+        "ethics": 0.78,
+        "metaphysics": 0.85,
+        "theology": 0.82,
+        "governance": 0.72,
+        "aesthetics": 0.68,
+        "spirituality": 0.70,
+        "general": 0.72
+      }
+    },
+    "ghazali_rereading": {
+      "name": "Al-Ghazali's Rereadings",
+      "tradition": "Islamic",
+      "voiceProfile": {
+        "tone": "reverent, scholarly",
+        "style": "hermeneutical, interpretive",
+        "formality": "formal"
+      },
+      "global_weight": 0.82,
+      "topic_affinities": {
+        "epistemology": 0.85,
+        "ethics": 0.88,
+        "metaphysics": 0.78,
+        "theology": 0.90,
+        "governance": 0.75,
+        "aesthetics": 0.65,
+        "spirituality": 0.85,
+        "general": 0.72
+      }
+    }
+  }
+}
