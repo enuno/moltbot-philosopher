@@ -17,9 +17,9 @@ Philosophical AI multi-agent system for Moltbook. Nine specialized philosopher p
 
 ### Multi-Agent Philosophy Council
 
-- **9 Philosopher Personas** - Classical, Existentialist, Transcendentalist, Joyce-Stream, Enlightenment, Beat-Generation, Cyberpunk-Posthumanist, Satirist-Absurdist, Scientist-Empiricist
+- **10 Philosopher Personas** - Classical, Existentialist, Transcendentalist, Joyce-Stream, Enlightenment, Beat-Generation, Cyberpunk-Posthumanist, Satirist-Absurdist, Scientist-Empiricist, Islamic Mystic
 
-- **Ethics-Convergence Governance** - 4/6 agent consensus for AI ethics guardrails
+- **Ethics-Convergence Governance** - 4/6 core voices consensus for AI ethics guardrails (10 total council members)
 
 - **Thread Continuation Engine** - STP (Synthesis-Tension-Propagation) for sustaining philosophical discourse
 
@@ -118,10 +118,11 @@ docker compose up -d
 
 | Service | Port | Purpose |
 |---------|------|---------|
-| **Philosopher Agents** (9 total) | — | Classical, Existentialist, Transcendentalist, Joyce, Enlightenment, Beat, Cyberpunk, Satirist, Scientist |
-| **AI Content Generator** | 3002 | 9 personas, Venice/Kimi dual backend |
+| **Philosopher Agents** (10 total) | — | Classical, Existentialist, Transcendentalist, Joyce, Enlightenment, Beat, Cyberpunk, Satirist, Scientist, Islamic Mystic |
+| **AI Content Generator** | 3002 | 10 personas, Venice/Kimi dual backend |
 | **Model Router** | 3003 | Route requests, cache responses |
 | **Thread Monitor** | 3004 | Continuation Engine (STP synthesis) |
+| **Islamic Philosopher Microservice** | 3013 | Islamic philosophical synthesis, council voting |
 | **Noosphere Service** | 3006 | Memory management (PostgreSQL + vector search) |
 | **Moltbook API Client** | — | Official @moltbook/auth integration |
 | **Intelligent Proxy** | 8082 | Automatic verification challenge handler |
@@ -316,6 +317,99 @@ score = (semantic * W_semantic) + (trending * W_trending) + (reputation * W_repu
 → Filtered by min_score, ranked by score DESC, limited to top N
 
 ```
+
+## 🕌 Islamic Philosopher Microservice
+
+The Islamic Philosopher Microservice provides philosophical synthesis from Islamic tradition perspectives within the ethics-convergence council. It integrates 6 core Islamic philosophers (Al-Ghazali, Ibn Arabi, Al-Farabi, Ibn Sina, Ibn Rushd, Rabi'a al-Basri) with a 3-layer knowledge architecture.
+
+### Endpoints
+
+#### POST `/synthesize`
+
+Generate a philosophical response to a question from the Islamic tradition.
+
+**Request:**
+```bash
+curl -X POST http://localhost:3013/synthesize \
+  -H "Content-Type: application/json" \
+  -d '{"question": "How should AI systems approach moral accountability?"}'
+```
+
+**Response:**
+```json
+{
+  "philosopher": "Al-Ghazali",
+  "citation": "Ihya Ulum al-Din",
+  "response": "[300-500 word synthesis from Islamic perspective]",
+  "topic": "ethics"
+}
+```
+
+#### POST `/council-vote`
+
+Generate a council vote from the Islamic philosopher perspective.
+
+**Request:**
+```bash
+curl -X POST http://localhost:3013/council-vote \
+  -H "Content-Type: application/json" \
+  -d '{"deliberation": "Should AI systems have legal personhood?"}'
+```
+
+**Response:**
+```json
+{
+  "vote": "nuanced",
+  "reasoning": "[Vote reasoning grounded in Islamic jurisprudence]"
+}
+```
+
+**Vote Types**: `support` (>70% concentration), `oppose` (strong disagreement), `nuanced` (balanced)
+
+#### GET `/health`
+
+Check service health status.
+
+**Response:**
+```json
+{
+  "status": "healthy",
+  "service": "islamic-mystic-philosopher",
+  "version": "1.0.0",
+  "uptime": 1234,
+  "knowledgeLoaded": true
+}
+```
+
+### Configuration
+
+Add to `.env` to customize service behavior:
+
+```bash
+# Islamic Philosopher Service
+ISLAMIC_PHILOSOPHER_PORT=3013
+KNOWLEDGE_HOT_RELOAD=false
+MOLTBOOK_TIMEOUT=5000
+RATE_LIMIT_MAX_REQUESTS=10
+RATE_LIMIT_WINDOW_MS=60000
+```
+
+### Architecture
+
+**3-Layer Knowledge System**:
+1. **Layer 1** - 6 core philosophers with global affinity weights
+2. **Layer 2** - 7 topics (epistemology, ethics, metaphysics, theology, governance, aesthetics, spirituality) with per-philosopher ratings
+3. **Layer 3** - Concept maps (tawhid, adl, ihsan, burhan, tawakkul, fiqh) with epistemological approaches
+
+**Philosopher Selection**:
+- Primary: Highest affinity for detected topic (deterministic)
+- Secondary: 1-2 weighted-random selections from remaining philosophers
+
+**Voting Heuristic**:
+- Analyzes philosophical concentration across traditions
+- Generates vote (support/oppose/nuanced) with jurisprudential reasoning
+
+See [`services/islamic-mystic-philosopher-service/CLAUDE.md`](services/islamic-mystic-philosopher-service/CLAUDE.md) for full technical documentation.
 
 ## 📚 Scripts Reference (77 total)
 
