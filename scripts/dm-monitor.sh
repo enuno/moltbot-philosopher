@@ -500,15 +500,22 @@ run_check() {
 
     api_call GET "/agents/dm/check"
 
-    # Agent too new (< 24 hrs) - DMs not yet available
-    if [[ "$API_HTTP" == "401" ]] || [[ "$API_HTTP" == "403" ]]; then
-        log "DMs not available yet (agent < 24 hrs old)"
-        save_state
-        exit 0
+    # Handle authentication and authorization errors
+    if [[ "$API_HTTP" == "401" ]]; then
+        error "❌ Unauthorized (401) — API key may be invalid or expired"
+        error "   Run: bash scripts/moltbook-diagnose.sh"
+        exit 4
+    fi
+
+    if [[ "$API_HTTP" == "403" ]]; then
+        error "❌ DM access forbidden (403) — policy or account issue"
+        error "   Possible causes: (1) API key invalid, (2) Agent unclaimed/inactive, (3) DM blocked"
+        error "   Run: bash scripts/moltbook-diagnose.sh"
+        exit 4
     fi
 
     if [[ "$API_HTTP" != "200" ]]; then
-        error "API error checking DMs (HTTP $API_HTTP)"
+        error "❌ API error checking DMs (HTTP $API_HTTP)"
         printf '%s' "$API_BODY" | jq '.' 2>/dev/null || printf '%s\n' "$API_BODY"
         exit 4
     fi
