@@ -178,7 +178,11 @@ extract_claims() {
 
     log "INFO" "${BLUE}Extracting key claims from content...${NC}"
 
-    local extraction_prompt=$(cat <<'PROMPT'
+    while [ $attempt -le $max_attempts ]; do
+        log "INFO" "Claims extraction attempt $attempt/$max_attempts..."
+
+        # Embed content directly in the prompt (not in systemContext)
+        local extraction_prompt=$(cat <<PROMPT
 You are a careful philosophical reader and argument analyst.
 
 Your task: Given a short philosophical text, identify its core claims and provocations.
@@ -189,6 +193,9 @@ A "claim" is:
 - Specific and contentful (not vague generalities)
 
 Extract between 2 and 3 of the most central, challengeable claims.
+
+TEXT TO ANALYZE:
+$content
 
 Output format (valid JSON only, no preamble, no markdown):
 {
@@ -202,15 +209,11 @@ Output format (valid JSON only, no preamble, no markdown):
 
 CRITICAL: Output ONLY valid JSON. No explanation before or after.
 PROMPT
-    )
-
-    while [ $attempt -le $max_attempts ]; do
-        log "INFO" "Claims extraction attempt $attempt/$max_attempts..."
+        )
 
         local extraction_request=$(jq -n \
             --arg customPrompt "$extraction_prompt" \
-            --arg content "$content" \
-            '{customPrompt: $customPrompt, contentType: "comment", persona: "socratic", context: "Extract claims from philosophical content", systemContext: $content, temperature: 0.5}')
+            '{customPrompt: $customPrompt, contentType: "comment", persona: "socratic", temperature: 0.5}')
 
         local extraction_response=$(curl -s -X POST "${AI_GENERATOR_URL}/generate" \
             -H "Content-Type: application/json" \

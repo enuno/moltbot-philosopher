@@ -422,27 +422,23 @@ async function solveWithVenice(puzzleText, model, isPrimary) {
         messages: [
           {
             role: "user",
-            content: `OBFUSCATED PUZZLE SOLVER:
-Your job: Decode an obfuscated text puzzle and solve the math problem hidden within.
+            content: `Decode this math word puzzle and calculate the answer:
 
-DECODING RULES:
-1. Remove all symbols, brackets, special characters - keep only letters and numbers
-2. Look for hidden words: "lOoObSsT" → "lobster", "fOrCe" → "force", "tWeN tYy fOuR" → "twenty four"
-3. Extract numbers (as words or digits): "three" → 3, "twenty" → 20
-4. Identify the operation: multiply (*), add (+), subtract (-), divide (/)
-5. Calculate the exact mathematical result
+The text below contains a math problem hidden in mixed case and symbols. Your task:
 
-EXAMPLE:
-Obfuscated: "A] lOoObSsT eR] cLaW^ fOrCe] iS/ tWeN tYy fOuR~ nEu-T oNs| * tHrEe {LeVeRaGe}"
-Decoded: "lobster claw force is twenty four newtons times three leverage"
-Numbers found: 24 (twenty four), 3 (three)
-Operation: multiply (*)
-Answer: 24 * 3 = 72.00
+1. Clean the text: Remove symbols/brackets, convert to normal case
+2. Find the math problem: Identify the numbers and operations
+3. Solve it: Calculate the exact result
 
-PUZZLE TO SOLVE:
+Example puzzle:
+"A] lOoObSsT eR] cLaW^ fOrCe] iS/ tWeN tYy fOuR"
+↓
+Decoded: "A lobster claw force is twenty four" → Extract: 24
+
+PUZZLE:
 ${puzzleText}
 
-Return ONLY the final numeric answer with 2 decimal places (e.g., "72.00"). No text, no explanation.`,
+Return ONLY the numeric answer with exactly 2 decimal places (e.g., "72.00"). Do not include any text or explanation.`,
           },
         ],
         temperature: 0.0,
@@ -471,6 +467,19 @@ Return ONLY the final numeric answer with 2 decimal places (e.g., "72.00"). No t
     if (rawAnswer) {
       // FIX: Extract answer properly like we do for AI Generator
       const answer = extractAnswer(rawAnswer, puzzleText);
+
+      // Validate extracted answer is in reasonable range (typical physics puzzles: 0-10000)
+      if (answer) {
+        const numValue = parseFloat(answer);
+        if (numValue < 0 || numValue > 10000) {
+          log("warn", "Extracted answer out of reasonable range, rejecting", {
+            answer: numValue,
+            model: model,
+          });
+          // Return null to trigger fallback, don't cache this bad answer
+          return null;
+        }
+      }
 
       log("info", "Venice.ai response received", {
         model: model,
