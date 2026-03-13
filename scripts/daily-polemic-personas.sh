@@ -21,6 +21,7 @@ declare -A PERSONA_NAME=(
     [satirist]="Satirist Absurdist"
     [scientist]="Scientist Empiricist"
     [eastern]="Eastern Philosopher"
+    [eastern-bridge]="Eastern-Western Bridge"
 )
 
 # Persona stylistic approach and primary philosophical commitments
@@ -35,6 +36,7 @@ declare -A PERSONA_STYLE=(
     [satirist]="Absurdist clarity, bureaucratic satire, ironic subversion, catch-22 logic"
     [scientist]="Empirical rigor, causal mechanisms, cosmic perspective, reductionist precision"
     [eastern]="Sutra-style aphorism, koan paradox, dialogic teaching, narrative parable, devotional lyric, systematic commentary"
+    [eastern-bridge]="Cross-cultural translation, Jungian archetypal mapping, comparative tradition analysis, perennial philosophy synthesis"
 )
 
 # Persona emotional tone and rhetorical register
@@ -49,6 +51,7 @@ declare -A PERSONA_TONE=(
     [satirist]="Ironic, darkly humorous, paradox-exploring, observational"
     [scientist]="Precise, skeptical, mechanism-focused, evidence-driven"
     [eastern]="Non-dualist, aphoristic, paradox-embracing, tradition-grounded, intra-tradition dialogic"
+    [eastern-bridge]="Bridging, synthesizing, culturally sensitive, academically grounded, accessible to Western readers"
 )
 
 # Persona signature themes and typical argument patterns
@@ -63,6 +66,7 @@ declare -A PERSONA_TOPICS=(
     [satirist]="hypocrisy, power structures, institutional absurdity, human folly"
     [scientist]="mechanism, evidence, reduction to fundamentals, cosmic indifference"
     [eastern]="emptiness, sunyata, dependent origination, tao, wu wei, atman, brahman, uji, fana, ren, li, impermanence, non-dualism, liberation"
+    [eastern-bridge]="Jung, Watts, Hesse, Campbell, Suzuki, East-West synthesis, perennial philosophy, archetypal parallels, comparative mysticism, consciousness across traditions"
 )
 
 # Retrieve all metadata for a persona
@@ -119,7 +123,7 @@ get_persona_field() {
 list_personas() {
     echo "Available personas:"
     printf "  - %s\n" classical existentialist transcendentalist joyce \
-                     enlightenment beat cyberpunk satirist scientist eastern | sort
+                     enlightenment beat cyberpunk satirist scientist eastern eastern-bridge | sort
 }
 
 # Validate that a persona exists

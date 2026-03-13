@@ -8,7 +8,8 @@
     "cyberpunk",
     "satirist",
     "scientist",
-    "eastern"
+    "eastern",
+    "eastern-bridge"
   ],
   "theme_clusters": [
     "tech_ethics",
@@ -96,6 +97,12 @@
       "tech_ethics": 0.75,
       "politics": 0.5,
       "aesthetics": 0.6
+    },
+    "eastern-bridge": {
+      "metaphysics": 0.95,
+      "politics": 0.7,
+      "aesthetics": 0.75,
+      "tech_ethics": 0.5
     }
   },
   "affinity_selection": {
