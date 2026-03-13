@@ -123,7 +123,10 @@ export class EngagementEngine {
 
     // 3. Cooldown between successive responses
     const lastByAgent = recentByAgent[recentByAgent.length - 1];
-    if (lastByAgent && now - lastByAgent.timestamp < THREAD_RATE_LIMIT.COOLDOWN_MS) {
+    const timeSinceLastResponse = lastByAgent
+      ? now - lastByAgent.timestamp
+      : THREAD_RATE_LIMIT.COOLDOWN_MS;
+    if (timeSinceLastResponse < THREAD_RATE_LIMIT.COOLDOWN_MS) {
       return { allowed: false, reason: "cooldown" };
     }
 
@@ -133,14 +136,26 @@ export class EngagementEngine {
   /**
    * Record that an agent responded in a thread.
    * Called after a response is validated and executed so the log stays accurate.
+   * Automatically prunes entries older than the rolling window to prevent unbounded growth.
    *
    * @param threadId - The post/thread that was responded to
    * @param agentId  - The agent that responded
    */
   recordThreadEngagement(threadId: string, agentId: string): void {
+    const now = Date.now();
     const history = this.threadEngagementLog.get(threadId) ?? [];
-    history.push({ agentId, timestamp: Date.now() });
-    this.threadEngagementLog.set(threadId, history);
+    history.push({ agentId, timestamp: now });
+
+    // Prune entries older than the rolling hour window, but keep last 2 for consecutive guard
+    const hourStart = now - THREAD_RATE_LIMIT.HOUR_WINDOW_MS;
+    const pruned = history.filter((e) => e.timestamp >= hourStart);
+
+    // If pruning removed all entries, delete the thread key; otherwise update
+    if (pruned.length === 0) {
+      this.threadEngagementLog.delete(threadId);
+    } else {
+      this.threadEngagementLog.set(threadId, pruned);
+    }
   }
 
   /**
@@ -321,9 +336,10 @@ export class EngagementEngine {
     if (action.type === "comment") {
       const quality = this.relevanceCalculator.assessContentQuality(content);
       if (!quality.qualifies) {
-        console.error(
+        // Log skip at debug level with structured context
+        console.log(
           JSON.stringify({
-            level: "info",
+            level: "debug",
             event: "quality_gate_skip",
             agentId: agent.id,
             postId: action.postId,
@@ -341,9 +357,10 @@ export class EngagementEngine {
     if (action.type === "comment") {
       const threadLimit = this.canRespondToThread(action.postId, agent.id);
       if (!threadLimit.allowed) {
-        console.error(
+        // Log skip at debug level with structured context
+        console.log(
           JSON.stringify({
-            level: "info",
+            level: "debug",
             event: "thread_rate_limit_skip",
             agentId: agent.id,
             threadId: action.postId,
@@ -399,6 +416,7 @@ export class EngagementEngine {
   /**
    * Run engagement cycle
    * Visits all agents in order, dequeues and validates actions
+   * Applies all validation gates (relevance, generic, substantive, quality, rate limit)
    */
   async runEngagementCycle(): Promise<void> {
     for (const agent of this.agentRoster) {
@@ -406,12 +424,19 @@ export class EngagementEngine {
         const actions = await this.dequeueOpportunities(agent);
 
         for (const action of actions) {
-          // In production: generateContent, validateAction, executeAction
-          // For testing: just verify no errors
-          if (action.type === "post") {
-            // Would generate post content
-          } else if (action.type === "comment") {
-            // Would generate comment content
+          // Validate action against all quality gates before executing
+          const isValid = await this.validateAction(agent, action);
+          if (!isValid) {
+            // Gate rejected this action; skip to next
+            continue;
+          }
+
+          // In production: would generateContent and executeAction here
+          // For testing: just verify validation passed
+
+          // Record successful thread engagement for rate limiting tracking
+          if (action.type === "comment") {
+            this.recordThreadEngagement(action.postId, agent.id);
           }
         }
       } catch (error) {

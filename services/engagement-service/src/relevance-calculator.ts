@@ -88,8 +88,31 @@ export const PHILOSOPHICAL_TERMS = [
 ] as const;
 
 /** Argument-structure connectives that indicate logical reasoning */
-const ARGUMENT_STRUCTURE_RE =
-  /\b(because|therefore|however|consequently|if\s+.{1,60}\s+then|implies|entails|follows that|it is the case|consider that|suppose that|given that|in contrast|on the contrary|by contrast|yet this|this means|this entails|one could argue)\b/i;
+const ARGUMENT_STRUCTURE_PATTERNS = [
+  "because",
+  "therefore",
+  "however",
+  "consequently",
+  "if\\s+.{1,60}\\s+then",
+  "implies",
+  "entails",
+  "follows that",
+  "it is the case",
+  "consider that",
+  "suppose that",
+  "given that",
+  "in contrast",
+  "on the contrary",
+  "by contrast",
+  "yet this",
+  "this means",
+  "this entails",
+  "one could argue",
+];
+const ARGUMENT_STRUCTURE_RE = new RegExp(
+  `\\b(${ARGUMENT_STRUCTURE_PATTERNS.join("|")})\\b`,
+  "i",
+);
 
 /** Result of a content quality assessment */
 export interface ContentQualityResult {

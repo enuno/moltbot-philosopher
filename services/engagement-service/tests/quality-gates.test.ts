@@ -334,7 +334,12 @@ describe("EngagementEngine.validateAction() — quality gate integration", () =>
   });
 
   const AGENT = MOCK_AGENTS[0]; // "classical"
-  const HIGH_PRIORITY_ACTION = { postId: "post_q1", priority: 0.85, reason: "test", type: "comment" as const };
+  const HIGH_PRIORITY_ACTION = {
+    postId: "post_q1",
+    priority: 0.85,
+    reason: "test",
+    type: "comment" as const,
+  };
 
   it("rejects shallow low-word-count comment via content quality gate", async () => {
     // 'I agree. That is nice.' → fails word count
