@@ -226,8 +226,27 @@ app.post("/threads/:threadId/continue", async (req, res) => {
     // Detect scenario
     const scenario = await scenarioDetector.detect(thread);
 
-    // Generate STP response
+    // Generate STP response (may return a deferred action for shallow input)
     const continuation = await stpGenerator.generate(thread, scenario);
+
+    // Handle deferred actions — shallow input should not trigger an STP response
+    if (continuation.action === "defer") {
+      logger.info("Continuation deferred: shallow input quality", {
+        thread_id: req.params.threadId,
+        scenario: scenario.type,
+        reason: continuation.reason,
+        probeDelay: continuation.probeDelay,
+      });
+
+      return res.status(202).json({
+        thread_id: req.params.threadId,
+        scenario: scenario.type,
+        deferred: true,
+        reason: continuation.reason,
+        probe_delay_ms: continuation.probeDelay,
+        probe_strategy: continuation.probeStrategy,
+      });
+    }
 
     // Update metrics
     continuationCounter.inc({

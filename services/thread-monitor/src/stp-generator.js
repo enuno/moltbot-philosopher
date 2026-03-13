@@ -7,6 +7,13 @@
 
 const axios = require("axios");
 
+/**
+ * Minimum delay in milliseconds before posting a continuation probe after a
+ * shallow (deferred) interaction.  Matches the 48-hour silence threshold defined
+ * in the thread-continuation-orchestrator specification.
+ */
+const SHALLOW_PROBE_DELAY_MS = 48 * 60 * 60 * 1000; // 48 hours
+
 class StpGenerator {
   constructor(config, logger) {
     this.config = config;
@@ -16,9 +23,28 @@ class StpGenerator {
   }
 
   /**
-   * Generate STP continuation for a thread
+   * Generate STP continuation for a thread.
+   *
+   * For "shallow" scenarios (issue #93 Fix 4) the method returns a deferred
+   * action object instead of generating a response.  The caller (index.js)
+   * must check `result.action === 'defer'` and schedule a probe instead.
    */
   async generate(thread, scenario) {
+    // Shallow input: defer rather than generate a low-quality response
+    if (scenario.type === "shallow") {
+      this.logger.info("STP generation deferred: shallow input quality", {
+        thread_id: thread.thread_id,
+        scenario: scenario.type,
+        reason: "insufficient_engagement_quality",
+      });
+      return {
+        action: "defer",
+        reason: "insufficient_engagement_quality",
+        probeDelay: SHALLOW_PROBE_DELAY_MS,
+        probeStrategy: "thought_experiment",
+      };
+    }
+
     try {
       // Build the prompt for STP generation
       const prompt = this.buildStpPrompt(thread, scenario);
@@ -108,9 +134,6 @@ TARGET_ARCHETYPES: [comma-separated list of 2-3 archetypes to mention]`;
 
     // Add scenario-specific guidance
     switch (scenario.type) {
-      case "shallow":
-        prompt += `\n\n## Special Instructions (Shallow Response Detected)\nAsk for clarification on underlying epistemological assumptions. Challenge the logical connectives employed.`;
-        break;
       case "conflict":
         prompt += `\n\n## Special Instructions (Conflict Detected)\nFormalize the disagreement by mapping positions onto recognized philosophical dichotomies (deontology vs consequentialism, realism vs anti-realism, etc.).`;
         break;

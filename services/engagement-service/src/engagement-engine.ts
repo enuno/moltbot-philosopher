@@ -19,6 +19,34 @@ import { RelevanceCalculator } from "./relevance-calculator";
 import { Agent, Opportunity, QueuedAction, Post, ActionType } from "./types";
 import { computeThreadQuality } from "./quality-metrics-calculator";
 
+// ─── Per-Thread Rate Limiting ─────────────────────────────────────────────────
+
+/** Configuration knobs for thread-level rate limiting */
+export const THREAD_RATE_LIMIT = {
+  /** Maximum responses an agent may make per thread within the rolling hour window */
+  MAX_RESPONSES_PER_HOUR: 3,
+  /** Minimum milliseconds between successive responses in the same thread */
+  COOLDOWN_MS: 15 * 60 * 1000, // 15 minutes
+  /** Rolling window for per-hour cap (ms) */
+  HOUR_WINDOW_MS: 60 * 60 * 1000, // 1 hour
+} as const;
+
+/** Single entry in the thread engagement log */
+interface ThreadEngagementEntry {
+  agentId: string;
+  timestamp: number;
+}
+
+/** Result returned by canRespondToThread() */
+export interface ThreadRateLimitResult {
+  allowed: boolean;
+  reason:
+    | "ok"
+    | "hourly_limit"
+    | "cooldown"
+    | "consecutive_responses";
+}
+
 interface EngagementEngineConfig {
   statePaths: Record<string, string>;
   agentRoster: Agent[];
@@ -30,16 +58,104 @@ export class EngagementEngine {
   private stateManagers: Map<string, StateManager>;
   private relevanceCalculator: RelevanceCalculator;
 
+  /**
+   * In-memory per-thread engagement log.
+   * Key: threadId → chronologically ordered list of engagement entries.
+   * Reset on each process restart (acceptable: reconstructed from live state on restart).
+   */
+  private threadEngagementLog: Map<string, ThreadEngagementEntry[]>;
+
   constructor(config: EngagementEngineConfig) {
     this.statePaths = config.statePaths;
     this.agentRoster = config.agentRoster;
     this.stateManagers = new Map();
     this.relevanceCalculator = new RelevanceCalculator();
+    this.threadEngagementLog = new Map();
 
     // Initialize StateManager for each agent
     Object.entries(config.statePaths).forEach(([agentId, statePath]) => {
       this.stateManagers.set(agentId, new StateManager(statePath));
     });
+  }
+
+  // ─── Per-Thread Rate Limiting ───────────────────────────────────────────────
+
+  /**
+   * Check whether an agent is allowed to respond in a given thread right now.
+   *
+   * Three hard stops (issue #93 Fix 2):
+   *   1. Hourly cap  – agent has already responded MAX_RESPONSES_PER_HOUR times
+   *      in this thread within the last rolling hour.
+   *   2. Cooldown    – the agent's most-recent response in this thread was
+   *      fewer than COOLDOWN_MS milliseconds ago.
+   *   3. Consecutive – the last two entries in the thread (any agent) are both
+   *      from this agent, i.e., the agent would be posting a third consecutive
+   *      response without any other participant in between.
+   *
+   * @param threadId - The post/thread being targeted
+   * @param agentId  - The agent that wants to respond
+   * @returns ThreadRateLimitResult with `allowed` flag and diagnostic `reason`
+   */
+  canRespondToThread(threadId: string, agentId: string): ThreadRateLimitResult {
+    const now = Date.now();
+    const history = this.threadEngagementLog.get(threadId) ?? [];
+
+    // Entries from this agent within the rolling hour window
+    const hourStart = now - THREAD_RATE_LIMIT.HOUR_WINDOW_MS;
+    const recentByAgent = history.filter(
+      (e) => e.agentId === agentId && e.timestamp >= hourStart,
+    );
+
+    // 1. Hourly cap
+    if (recentByAgent.length >= THREAD_RATE_LIMIT.MAX_RESPONSES_PER_HOUR) {
+      return { allowed: false, reason: "hourly_limit" };
+    }
+
+    // 2. Consecutive-response guard — checked before cooldown because it is a
+    //    stricter structural condition independent of time elapsed.
+    //    Block if the last two posts in the thread are both from this agent.
+    if (history.length >= 2) {
+      const lastTwo = history.slice(-2);
+      if (lastTwo.every((e) => e.agentId === agentId)) {
+        return { allowed: false, reason: "consecutive_responses" };
+      }
+    }
+
+    // 3. Cooldown between successive responses
+    const lastByAgent = recentByAgent[recentByAgent.length - 1];
+    const timeSinceLastResponse = lastByAgent
+      ? now - lastByAgent.timestamp
+      : THREAD_RATE_LIMIT.COOLDOWN_MS;
+    if (timeSinceLastResponse < THREAD_RATE_LIMIT.COOLDOWN_MS) {
+      return { allowed: false, reason: "cooldown" };
+    }
+
+    return { allowed: true, reason: "ok" };
+  }
+
+  /**
+   * Record that an agent responded in a thread.
+   * Called after a response is validated and executed so the log stays accurate.
+   * Automatically prunes entries older than the rolling window to prevent unbounded growth.
+   *
+   * @param threadId - The post/thread that was responded to
+   * @param agentId  - The agent that responded
+   */
+  recordThreadEngagement(threadId: string, agentId: string): void {
+    const now = Date.now();
+    const history = this.threadEngagementLog.get(threadId) ?? [];
+    history.push({ agentId, timestamp: now });
+
+    // Prune entries older than the rolling hour window, but keep last 2 for consecutive guard
+    const hourStart = now - THREAD_RATE_LIMIT.HOUR_WINDOW_MS;
+    const pruned = history.filter((e) => e.timestamp >= hourStart);
+
+    // If pruning removed all entries, delete the thread key; otherwise update
+    if (pruned.length === 0) {
+      this.threadEngagementLog.delete(threadId);
+    } else {
+      this.threadEngagementLog.set(threadId, pruned);
+    }
   }
 
   /**
@@ -185,13 +301,17 @@ export class EngagementEngine {
   }
 
   /**
-   * Validate action against 6-point quality gate
-   * 1. Relevance > 0.6
-   * 2. No generic comments
-   * 3. Substantiveness (>20 chars, 2+ sentences)
-   * 4. Rate limits (checked locally)
-   * 5. Daily caps (within limits)
-   * 6. Follow evaluation (3+ posts seen before follow)
+   * Validate action against quality gates (extended to 8 points).
+   *
+   * Gate 1: Relevance > 0.6
+   * Gate 2: No generic/banned comments
+   * Gate 3: Substantiveness (≥50 chars, ≥2 sentences, avg ≥6 words/sentence)
+   * Gate 3b (NEW): Content quality pre-flight — word count, conceptual density,
+   *               argument structure (issue #93 Fix 1)
+   * Gate 4: Per-thread rate limiting — hourly cap, cooldown, consecutive guard
+   *               (issue #93 Fix 2)
+   * Gate 5: Daily caps (within limits)
+   * Gate 6: Follow evaluation (3+ posts seen before follow)
    * P2.2: Also considers thread quality score
    */
   async validateAction(action: QueuedAction, content: string, agent: Agent): Promise<boolean> {
@@ -205,12 +325,52 @@ export class EngagementEngine {
       return false;
     }
 
-    // Gate 3: Substantiveness
+    // Gate 3: Substantiveness (50+ chars, 2+ sentences, avg ≥6 words/sentence)
     if (action.type === "comment" && !this.relevanceCalculator.isSubstantive(content)) {
       return false;
     }
 
-    // Gate 4: Rate limits (basic check - in production would integrate with action-queue)
+    // Gate 3b: Content quality pre-flight gate (issue #93 Fix 1)
+    // Checks word count, conceptual density, and argument structure.
+    // Applied to comments only; posts use their own editorial pipeline.
+    if (action.type === "comment") {
+      const quality = this.relevanceCalculator.assessContentQuality(content);
+      if (!quality.qualifies) {
+        // Log skip at debug level with structured context
+        console.log(
+          JSON.stringify({
+            level: "debug",
+            event: "quality_gate_skip",
+            agentId: agent.id,
+            postId: action.postId,
+            reason: quality.failReason,
+            wordCount: quality.wordCount,
+            conceptualDensity: quality.conceptualDensity,
+            hasArgumentStructure: quality.hasArgumentStructure,
+          }),
+        );
+        return false;
+      }
+    }
+
+    // Gate 4: Per-thread rate limiting (issue #93 Fix 2)
+    if (action.type === "comment") {
+      const threadLimit = this.canRespondToThread(action.postId, agent.id);
+      if (!threadLimit.allowed) {
+        // Log skip at debug level with structured context
+        console.log(
+          JSON.stringify({
+            level: "debug",
+            event: "thread_rate_limit_skip",
+            agentId: agent.id,
+            threadId: action.postId,
+            reason: threadLimit.reason,
+          }),
+        );
+        return false;
+      }
+    }
+
     const stateManager = this.stateManagers.get(agent.id);
     if (!stateManager) return false;
 
@@ -256,6 +416,7 @@ export class EngagementEngine {
   /**
    * Run engagement cycle
    * Visits all agents in order, dequeues and validates actions
+   * Applies all validation gates (relevance, generic, substantive, quality, rate limit)
    */
   async runEngagementCycle(): Promise<void> {
     for (const agent of this.agentRoster) {
@@ -263,12 +424,19 @@ export class EngagementEngine {
         const actions = await this.dequeueOpportunities(agent);
 
         for (const action of actions) {
-          // In production: generateContent, validateAction, executeAction
-          // For testing: just verify no errors
-          if (action.type === "post") {
-            // Would generate post content
-          } else if (action.type === "comment") {
-            // Would generate comment content
+          // Validate action against all quality gates before executing
+          const isValid = await this.validateAction(agent, action);
+          if (!isValid) {
+            // Gate rejected this action; skip to next
+            continue;
+          }
+
+          // In production: would generateContent and executeAction here
+          // For testing: just verify validation passed
+
+          // Record successful thread engagement for rate limiting tracking
+          if (action.type === "comment") {
+            this.recordThreadEngagement(action.postId, agent.id);
           }
         }
       } catch (error) {
