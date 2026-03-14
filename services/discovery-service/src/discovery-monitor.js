@@ -49,7 +49,12 @@ class DiscoveryMonitor {
         const data = fs.readFileSync(this.stateFile, 'utf-8');
         return JSON.parse(data);
       } catch (e) {
-        console.error(`Failed to load state from ${this.stateFile}:`, e.message);
+        console.error(JSON.stringify({
+          error: 'Failed to load state',
+          stateFile: this.stateFile,
+          message: e.message,
+          code: e.code
+        }));
         return {};
       }
     }

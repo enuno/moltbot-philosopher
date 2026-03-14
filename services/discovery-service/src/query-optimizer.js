@@ -81,10 +81,10 @@ class QueryOptimizer {
    * @returns {Object} - Analysis with winner and metric changes
    */
   analyzeABTest(baseline, filtered) {
-    // Calculate percentage changes
-    const postsChange = ((filtered.postsFound - baseline.postsFound) / baseline.postsFound) * 100;
-    const engagementChange = ((filtered.engagementRate - baseline.engagementRate) / baseline.engagementRate) * 100;
-    const similarityChange = ((filtered.avgSimilarity - baseline.avgSimilarity) / baseline.avgSimilarity) * 100;
+    // Calculate percentage changes with guards against division by zero/undefined
+    const postsChange = baseline.postsFound ? ((filtered.postsFound - baseline.postsFound) / baseline.postsFound) * 100 : 0;
+    const engagementChange = baseline.engagementRate ? ((filtered.engagementRate - baseline.engagementRate) / baseline.engagementRate) * 100 : 0;
+    const similarityChange = baseline.avgSimilarity ? ((filtered.avgSimilarity - baseline.avgSimilarity) / baseline.avgSimilarity) * 100 : 0;
 
     // Calculate weighted scores
     const baselineScore = (
