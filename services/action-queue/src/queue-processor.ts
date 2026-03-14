@@ -1,7 +1,9 @@
 import { DatabaseManager } from "./database";
 import { ActionExecutor } from "./action-executor";
 import { RateLimiter } from "./rate-limiter";
-import { Priority, ActionStatus, QueuedAction, ConditionalAction } from "./types";
+import { CircuitBreaker } from "./circuit-breaker";
+import { Priority, ActionStatus, QueuedAction, ConditionalAction, WorkerState } from "./types";
+import { sendCircuitAlert } from "./alerting";
 import PgBoss from "pg-boss";
 
 /**
@@ -17,6 +19,7 @@ export class QueueProcessor {
   private db: DatabaseManager;
   private executor: ActionExecutor;
   private rateLimiter: RateLimiter;
+  private circuitBreaker: CircuitBreaker;
   private pgBoss: PgBoss | null = null;
   private running = false;
 
@@ -24,6 +27,18 @@ export class QueueProcessor {
     this.db = db;
     this.executor = new ActionExecutor();
     this.rateLimiter = new RateLimiter(db);
+
+    // Initialize circuit breaker with NTFY alerting callback
+    this.circuitBreaker = new CircuitBreaker({
+      maxConsecutiveFailures: parseInt(process.env.CIRCUIT_BREAKER_MAX_FAILURES || "3", 10),
+      probeIntervalMs: parseInt(process.env.CIRCUIT_BREAKER_PROBE_INTERVAL_MS || "3600000", 10),
+      onCircuitOpen: (agentName: string, state: WorkerState) => {
+        // Fire NTFY alert when circuit opens
+        sendCircuitAlert(agentName, state.consecutive_failures).catch((error) => {
+          console.error("Failed to send circuit breaker alert:", error);
+        });
+      },
+    });
   }
 
   /**
@@ -104,19 +119,33 @@ export class QueueProcessor {
         await this.checkCommentVelocity(action, jobId);
       }
 
-      // Check circuit breaker
-      await this.checkCircuitBreaker(action.agentName);
+      // Check circuit breaker - must happen BEFORE execution
+      if (!this.circuitBreaker.canProcess(action.agentName)) {
+        console.log(`🔴 Circuit breaker OPEN for ${action.agentName}, blocking action`);
+        await this.db.updateActionStatus(jobId, ActionStatus.RATE_LIMITED);
+        throw new Error(
+          `Circuit breaker open: ${action.agentName} has exceeded failure threshold`,
+        );
+      }
+
+      // Check for auto-recovery (transition OPEN→HALF_OPEN if timeout passed)
+      this.circuitBreaker.checkAutoRecovery(action.agentName);
 
       // Execute the action
       const result = await this.executor.execute(action);
 
       // Check if execution was successful
       if (!result.success) {
+        // Record failure with database persistence
+        await this.circuitBreaker.recordFailure(this.db, action.agentName);
         throw new Error(`Action execution failed: ${result.error}`);
       }
 
       // Update rate limits on success
       await this.rateLimiter.updateLastExecution(action.agentName, action.actionType);
+
+      // Record success with circuit breaker
+      await this.circuitBreaker.recordSuccess(this.db, action.agentName);
 
       // Log success
       await this.db.updateActionStatus(jobId, ActionStatus.COMPLETED);
@@ -159,6 +188,7 @@ export class QueueProcessor {
       "comment velocity exceeded", // Velocity violations retry with backoff
       "Rate limited", // Rate limit violations also retry
       "Conditions not met", // Conditional actions retry if conditions unmet
+      "Circuit breaker open", // Circuit breaker violations retry with backoff
     ];
 
     const errorMsg = error instanceof Error ? error.message : String(error);
@@ -229,29 +259,6 @@ export class QueueProcessor {
     }
   }
 
-  /**
-   * Circuit breaker: check failure rate in past hour
-   * If >50% failure rate and >10 actions, prevent further execution
-   */
-  private async checkCircuitBreaker(agentName: string): Promise<void> {
-    try {
-      // Use targeted getAgentMetrics instead of expensive getStats
-      const metrics = await this.db.getAgentMetrics(agentName);
-
-      const totalCount = metrics.total_actions;
-      const failedCount = metrics.failed;
-
-      if (totalCount > 10 && failedCount / totalCount > 0.5) {
-        throw new Error(`Circuit breaker open: ${agentName} has >50% failure rate`);
-      }
-    } catch (error) {
-      if ((error as any)?.message?.includes("Circuit breaker")) {
-        throw error;
-      }
-      // Silently continue if we can't check circuit breaker (DB error, etc)
-      console.warn("Warning: Could not check circuit breaker:", error);
-    }
-  }
 
   /**
    * Evaluate conditions for conditional action execution
