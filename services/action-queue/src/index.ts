@@ -3,6 +3,9 @@ import { v4 as uuidv4 } from "uuid";
 import { DatabaseManager } from "./database";
 import { QueueProcessor } from "./queue-processor";
 import { RateLimiter } from "./rate-limiter";
+import { RecoveryEngine } from "./recovery-engine";
+import { AlertingService } from "./alerting";
+import { CircuitBreaker } from "./circuit-breaker";
 import {
   SubmitConditionalActionSchema,
   ActionStatus,
@@ -19,6 +22,9 @@ app.use(express.json());
 const db = new DatabaseManager();
 const processor = new QueueProcessor(db);
 const rateLimiter = new RateLimiter(db);
+const alerting = new AlertingService();
+const circuitBreaker = new CircuitBreaker(db);
+const recoveryEngine = new RecoveryEngine(db, alerting, circuitBreaker);
 
 /**
  * Health check endpoint
@@ -297,6 +303,122 @@ app.post("/queue/process", async (req: Request, res: Response) => {
     });
   }
 });
+
+/**
+ * Recovery endpoints (P7.7.4 - Circuit Breaker Recovery Mechanisms)
+ */
+
+/**
+ * Manually reset circuit to CLOSED (admin operation)
+ */
+app.post("/recovery/reset/:agentName", async (req: Request, res: Response) => {
+  const { agentName } = req.params;
+  const adminToken = req.headers.authorization?.replace("Bearer ", "");
+
+  // Validate admin token
+  if (!adminToken || adminToken !== process.env.ADMIN_TOKEN) {
+    return res.status(401).json({ error: "Unauthorized" });
+  }
+
+  try {
+    await recoveryEngine.manualReset(agentName, adminToken);
+    res.json({
+      success: true,
+      message: `Circuit for ${agentName} reset to CLOSED`,
+      agent_name: agentName,
+    });
+  } catch (err: any) {
+    res.status(500).json({
+      error: `Failed to reset circuit for ${agentName}`,
+      details: err.message,
+    });
+  }
+});
+
+/**
+ * Trigger recovery probe (manual or automatic)
+ */
+app.post("/recovery/probe", async (req: Request, res: Response) => {
+  const adminToken = req.headers.authorization?.replace("Bearer ", "");
+
+  // Validate admin token
+  if (!adminToken || adminToken !== process.env.ADMIN_TOKEN) {
+    return res.status(401).json({ error: "Unauthorized" });
+  }
+
+  try {
+    await recoveryEngine.startAutoRecoveryProbe(1); // Immediate probe
+    res.json({
+      success: true,
+      message: "Recovery probe triggered",
+      probesRun: 1,
+    });
+  } catch (err: any) {
+    res.status(500).json({
+      error: "Failed to run recovery probe",
+      details: err.message,
+    });
+  }
+});
+
+/**
+ * Get circuit status for agent (public endpoint, no auth required)
+ */
+app.get("/recovery/status/:agentName", async (req: Request, res: Response) => {
+  const { agentName } = req.params;
+
+  try {
+    const state = await db.getWorkerState(agentName);
+
+    if (!state) {
+      return res.status(404).json({
+        error: `No state found for agent ${agentName}`,
+      });
+    }
+
+    res.json({
+      agent_name: state.agent_name,
+      state: state.state,
+      consecutive_failures: state.consecutive_failures,
+      last_failure_time: state.last_failure_time,
+      opened_at: state.opened_at,
+    });
+  } catch (err: any) {
+    res.status(500).json({
+      error: `Failed to fetch status for ${agentName}`,
+      details: err.message,
+    });
+  }
+});
+
+/**
+ * Recover all orphaned actions
+ */
+app.post("/recovery/orphaned/reclaim", async (req: Request, res: Response) => {
+  const adminToken = req.headers.authorization?.replace("Bearer ", "");
+
+  // Validate admin token
+  if (!adminToken || adminToken !== process.env.ADMIN_TOKEN) {
+    return res.status(401).json({ error: "Unauthorized" });
+  }
+
+  try {
+    const recovered = await recoveryEngine.recoverOrphanedActions();
+    const orphans = await db.findOrphanedActions();
+
+    res.json({
+      success: true,
+      recovered,
+      action_ids: orphans,
+    });
+  } catch (err: any) {
+    res.status(500).json({
+      error: "Failed to recover orphaned actions",
+      details: err.message,
+    });
+  }
+});
+
 /**
  * Error handling middleware
  */
@@ -332,7 +454,12 @@ async function startServer() {
   db.initialize()
     .then(() => processor.start())
     .then(() => {
-      console.log("✅ Database and processor fully initialized");
+      // Start auto-recovery probe (1 hour interval by default)
+      const probeInterval = parseInt(process.env.RECOVERY_PROBE_INTERVAL_MS || "3600000", 10) / 1000;
+      return recoveryEngine.startAutoRecoveryProbe(probeInterval);
+    })
+    .then(() => {
+      console.log("✅ Database, processor, and recovery engine fully initialized");
     })
     .catch((error) => {
       console.error("❌ Background initialization failed:", error);
@@ -346,6 +473,7 @@ async function startServer() {
 // Handle graceful shutdown
 process.on("SIGTERM", async () => {
   console.log("SIGTERM received, shutting down gracefully...");
+  recoveryEngine.stopAutoRecoveryProbe();
   await processor.stop();
   db.close();
   process.exit(0);
@@ -353,6 +481,7 @@ process.on("SIGTERM", async () => {
 
 process.on("SIGINT", async () => {
   console.log("SIGINT received, shutting down gracefully...");
+  recoveryEngine.stopAutoRecoveryProbe();
   await processor.stop();
   db.close();
   process.exit(0);
