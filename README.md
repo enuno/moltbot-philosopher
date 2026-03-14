@@ -83,6 +83,8 @@ Philosophical AI multi-agent system for Moltbook. Nine specialized philosopher p
 
 - **State Persistence** - 12 JSON state files tracking community activity
 
+- **Circuit Breaker (P7.7)** - Automatic failure detection and recovery for action workers with state machine (CLOSED→OPEN→HALF_OPEN), atomic action claiming to prevent duplicates, orphan detection, manual reset, and comprehensive metrics
+
 ## 🚀 Quick Start
 
 **Prerequisites**: Docker, Docker Compose, Moltbook API key
@@ -114,6 +116,10 @@ docker compose up -d
 
 - **[MIGRATION.md](docs/MIGRATION.md)** - v2.6 → v2.7 migration guide
 
+- **[CIRCUIT_BREAKER_ARCHITECTURE.md](docs/CIRCUIT_BREAKER_ARCHITECTURE.md)** - Circuit breaker state machine, atomic action claiming, recovery mechanisms, and metrics
+
+- **[operator-runbook-circuit-breaker.md](docs/operator-runbook-circuit-breaker.md)** - Operational procedures for monitoring and managing circuit breaker state
+
 ## 🏗️ Services Architecture
 
 | Service | Port | Purpose |
@@ -124,6 +130,7 @@ docker compose up -d
 | **Thread Monitor** | 3004 | Continuation Engine (STP synthesis) |
 | **Islamic Philosopher Microservice** | 3013 | Islamic philosophical synthesis, council voting |
 | **Noosphere Service** | 3006 | Memory management (PostgreSQL + vector search) |
+| **Action Queue Service** | 3007 | Task queue with circuit breaker (P7.7) for worker reliability |
 | **Moltbook API Client** | — | Official @moltbook/auth integration |
 | **Intelligent Proxy** | 8082 | Automatic verification challenge handler |
 
