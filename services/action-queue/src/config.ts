@@ -232,15 +232,24 @@ export const RATE_LIMITING_CONFIG = {
 
   // Enable/disable rate limiting
   enableRateLimiting: process.env.ENABLE_RATE_LIMITING !== "false",
+};
 
-  // Circuit breaker: failures before opening
-  circuitBreakerFailureThreshold: parseInt(
-    process.env.CIRCUIT_BREAKER_FAILURE_THRESHOLD || "5",
+/**
+ * Circuit Breaker Configuration
+ * State machine and failure threshold settings
+ */
+export const CIRCUIT_BREAKER_CONFIG = {
+  // Consecutive failures before circuit opens (must be > 0)
+  maxConsecutiveFailures: parseInt(
+    process.env.CIRCUIT_BREAKER_MAX_FAILURES || "3",
     10,
   ),
 
-  // Circuit breaker: seconds before half-open attempt
-  circuitBreakerTimeoutSeconds: parseInt(process.env.CIRCUIT_BREAKER_TIMEOUT_SECONDS || "60", 10),
+  // Milliseconds before auto-transitioning from OPEN to HALF_OPEN (1 hour default)
+  probeIntervalMs: parseInt(
+    process.env.CIRCUIT_BREAKER_PROBE_INTERVAL_MS || "3600000",
+    10,
+  ),
 };
 
 /**

@@ -1,5 +1,6 @@
 import { WorkerStateEnum, WorkerState } from "./types";
 import { DatabaseManager } from "./database";
+import { CIRCUIT_BREAKER_CONFIG } from "./config";
 
 /**
  * Circuit Breaker State Machine Configuration
@@ -8,10 +9,10 @@ import { DatabaseManager } from "./database";
  * auto-recovery timing, and callback configuration.
  */
 export interface CircuitBreakerOptions {
-  /** Number of consecutive failures before opening circuit (default: 3) */
+  /** Number of consecutive failures before opening circuit (default from config: 3) */
   maxConsecutiveFailures?: number;
 
-  /** Milliseconds before auto-transitioning from OPEN to HALF_OPEN (default: 3600000 = 1 hour) */
+  /** Milliseconds before auto-transitioning from OPEN to HALF_OPEN (default from config: 3600000 = 1 hour) */
   probeIntervalMs?: number;
 
   /** Callback fired when circuit transitions to OPEN state */
@@ -38,15 +39,27 @@ export class CircuitBreaker {
   private readonly probeIntervalMs: number;
   private readonly onCircuitOpen?: (agentName: string, state: WorkerState) => void;
 
-  // Per-agent in-memory state cache
-  private agentStates: Map<string, WorkerStateEnum> = new Map();
-  private openedAtTimes: Map<string, Date> = new Map();
+  // Per-agent in-memory state cache (exposed for testing)
+  public agentStates: Map<string, WorkerStateEnum> = new Map();
+  public openedAtTimes: Map<string, Date> = new Map();
   private hasTrippedCallbackFired: Map<string, boolean> = new Map();
 
   constructor(options: CircuitBreakerOptions = {}) {
-    this.maxConsecutiveFailures = options.maxConsecutiveFailures ?? 3;
-    this.probeIntervalMs = options.probeIntervalMs ?? 3600000; // 1 hour default
+    this.maxConsecutiveFailures = options.maxConsecutiveFailures ?? CIRCUIT_BREAKER_CONFIG.maxConsecutiveFailures;
+    this.probeIntervalMs = options.probeIntervalMs ?? CIRCUIT_BREAKER_CONFIG.probeIntervalMs;
     this.onCircuitOpen = options.onCircuitOpen;
+
+    // Validate configuration
+    if (this.maxConsecutiveFailures <= 0) {
+      throw new Error(
+        `Invalid circuit breaker configuration: maxConsecutiveFailures must be > 0, got ${this.maxConsecutiveFailures}`,
+      );
+    }
+    if (this.probeIntervalMs <= 0) {
+      throw new Error(
+        `Invalid circuit breaker configuration: probeIntervalMs must be > 0, got ${this.probeIntervalMs}`,
+      );
+    }
   }
 
   /**

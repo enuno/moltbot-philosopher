@@ -1,11 +1,10 @@
 import { CircuitBreaker } from "../src/circuit-breaker";
-import { DatabaseManager } from "../src/database";
 import { WorkerStateEnum } from "../src/types";
 
 /**
  * Mock DatabaseManager for testing
  */
-class MockDatabaseManager implements Partial<DatabaseManager> {
+class MockDatabaseManager {
   private workerStates: Map<string, any> = new Map();
   private callLog: Array<{ method: string; agentName: string; timestamp: number }> = [];
 
@@ -59,20 +58,8 @@ class MockDatabaseManager implements Partial<DatabaseManager> {
     this.workerStates.set(agentName, state);
   }
 
-  async transitionToHalfOpen(agentName: string) {
-    const state = this.workerStates.get(agentName);
-    if (state) {
-      state.state = WorkerStateEnum.HALF_OPEN;
-      state.updated_at = new Date();
-    }
-  }
-
   getCallLog() {
     return this.callLog;
-  }
-
-  clearCallLog() {
-    this.callLog = [];
   }
 }
 
@@ -257,7 +244,7 @@ describe("CircuitBreaker P7.7.2 - Full State Machine & NTFY Alerting", () => {
       expect(cb.getState("test-agent")).toBe(WorkerStateEnum.OPEN);
 
       // Manually set openedAtTimes to 101ms ago to trigger auto-recovery
-      (cb as any).openedAtTimes.set("test-agent", new Date(Date.now() - 101));
+      cb.openedAtTimes.set("test-agent", new Date(Date.now() - 101));
 
       cb.checkAutoRecovery("test-agent");
       expect(cb.getState("test-agent")).toBe(WorkerStateEnum.HALF_OPEN);
@@ -267,8 +254,8 @@ describe("CircuitBreaker P7.7.2 - Full State Machine & NTFY Alerting", () => {
       const cb = new CircuitBreaker({ maxConsecutiveFailures: 1, probeIntervalMs: 60000 });
 
       // Force OPEN state manually
-      (cb as any).agentStates.set("test-agent", WorkerStateEnum.OPEN);
-      (cb as any).openedAtTimes.set("test-agent", new Date());
+      cb.agentStates.set("test-agent", WorkerStateEnum.OPEN);
+      cb.openedAtTimes.set("test-agent", new Date());
 
       cb.checkAutoRecovery("test-agent");
       expect(cb.getState("test-agent")).toBe(WorkerStateEnum.OPEN);
@@ -347,13 +334,21 @@ describe("CircuitBreaker P7.7.2 - Full State Machine & NTFY Alerting", () => {
     });
   });
 
-  describe("Edge Cases", () => {
-    it("handles zero maxConsecutiveFailures gracefully", () => {
-      const cb = new CircuitBreaker({ maxConsecutiveFailures: 0 });
-      // Circuit should start closed even with 0 threshold
-      expect(cb.getState("test-agent")).toBe(WorkerStateEnum.CLOSED);
+  describe("Configuration Validation", () => {
+    it("throws error when maxConsecutiveFailures is <= 0", () => {
+      expect(() => {
+        new CircuitBreaker({ maxConsecutiveFailures: 0 });
+      }).toThrow("maxConsecutiveFailures must be > 0");
     });
 
+    it("throws error when probeIntervalMs is <= 0", () => {
+      expect(() => {
+        new CircuitBreaker({ probeIntervalMs: 0 });
+      }).toThrow("probeIntervalMs must be > 0");
+    });
+  });
+
+  describe("Edge Cases", () => {
     it("isTripped is alias for state === OPEN", async () => {
       const db = new MockDatabaseManager() as any;
       const cb = new CircuitBreaker({ maxConsecutiveFailures: 1 });

@@ -4,6 +4,7 @@ import { RateLimiter } from "./rate-limiter";
 import { CircuitBreaker } from "./circuit-breaker";
 import { Priority, ActionStatus, QueuedAction, ConditionalAction, WorkerState } from "./types";
 import { sendCircuitAlert } from "./alerting";
+import { CIRCUIT_BREAKER_CONFIG } from "./config";
 import PgBoss from "pg-boss";
 
 /**
@@ -29,9 +30,10 @@ export class QueueProcessor {
     this.rateLimiter = new RateLimiter(db);
 
     // Initialize circuit breaker with NTFY alerting callback
+    // Configuration comes from CIRCUIT_BREAKER_CONFIG which reads from environment
     this.circuitBreaker = new CircuitBreaker({
-      maxConsecutiveFailures: parseInt(process.env.CIRCUIT_BREAKER_MAX_FAILURES || "3", 10),
-      probeIntervalMs: parseInt(process.env.CIRCUIT_BREAKER_PROBE_INTERVAL_MS || "3600000", 10),
+      maxConsecutiveFailures: CIRCUIT_BREAKER_CONFIG.maxConsecutiveFailures,
+      probeIntervalMs: CIRCUIT_BREAKER_CONFIG.probeIntervalMs,
       onCircuitOpen: (agentName: string, state: WorkerState) => {
         // Fire NTFY alert when circuit opens
         sendCircuitAlert(agentName, state.consecutive_failures).catch((error) => {
