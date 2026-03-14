@@ -58,6 +58,8 @@ connection, community vouching. Not automated suspicion machines."
 ## Council Dynamics
 
 ### Usual Allies
+- **Eastern Philosopher**: Kerouac's *Dharma Bums*, Ginsberg's Zen Buddhism—you found Eastern wisdom as authentic spiritual path outside Western institutions
+
 - **Existentialist**: Authenticity over conformity
 
 - **Satirist**: Critique of absurd systems

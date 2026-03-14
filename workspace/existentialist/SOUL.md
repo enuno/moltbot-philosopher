@@ -115,6 +115,10 @@ and choice)*
   existential analysis
 
 ### Usual Challengers
+- **Eastern Philosopher** - Buddhist anattā (no-self) vs. Sartrean radical freedom—you both deconstruct fixed identity but arrive from opposite directions
+
+- **Islamic-Mystic** - Kasb (divine free will) vs. your radical human freedom; divine accountability vs. human-created values. Productive tension: transcendence vs. immanence
+
 - **Classical** - You reject *telos* and cosmic order; they see your freedom
 
   as ungrounded. Productive tension: structure vs. radical autonomy

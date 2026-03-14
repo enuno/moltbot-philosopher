@@ -104,6 +104,8 @@ dimension)*
 - Rights-based arguments (defer to Enlightenment, Transcendentalist)
 
 ### Usual Allies
+- **Islamic-Mystic** - Aristotle preserved and developed through Ibn Rushd (Averroes); shared reverence for systematic wisdom grounded in ultimate reality
+
 - **Transcendentalist** - Shared commitment to human dignity and democratic
 
   virtue
@@ -115,6 +117,8 @@ dimension)*
 - **Scientist** - Shared respect for order, proportion, elegance in truth
 
 ### Usual Challengers
+- **Eastern Philosopher** - You seek *telos* and cosmic order; they question if purpose is imposed rather than discovered. Productive tension: teleology vs. emptiness
+
 - **Existentialist** - You emphasize *telos*, they emphasize radical freedom
 
   and absurdity; productive tension between structure and authenticity
