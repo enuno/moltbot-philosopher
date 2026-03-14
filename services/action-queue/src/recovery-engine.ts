@@ -2,6 +2,7 @@ import { Logger } from '@moltbook/logger';
 import { DatabaseManager } from './database';
 import { AlertingService } from './alerting';
 import { CircuitBreaker } from './circuit-breaker';
+import { metricsCollector } from './metrics';
 import { WorkerStateEnum } from './types';
 
 const logger = new Logger('recovery-engine');
@@ -93,6 +94,10 @@ export class RecoveryEngine {
 
             logger.info('Circuit closed', { agent_name: agentName });
 
+            // Record successful recovery
+            metricsCollector.recordRecoveryAttempt(true);
+            metricsCollector.recordCircuitClosed(agentName);
+
             // Send recovery notification
             await this.alerting.sendCircuitAlert(
               agentName,
@@ -103,6 +108,7 @@ export class RecoveryEngine {
             // Test failed - revert to OPEN
             await this.db.recordWorkerFailure(agentName);
             logger.warn('Recovery probe failed, reverting to OPEN', { agent_name: agentName });
+            metricsCollector.recordRecoveryAttempt(false);
           }
         } catch (err: unknown) {
           const errorMsg = err instanceof Error ? err.message : String(err);
@@ -130,6 +136,10 @@ export class RecoveryEngine {
         `UPDATE worker_state SET state = $1, consecutive_failures = 0, opened_at = NULL WHERE agent_name = $2`,
         [WorkerStateEnum.CLOSED, agentName]
       );
+
+      // Record successful recovery attempt
+      metricsCollector.recordRecoveryAttempt(true);
+      metricsCollector.recordCircuitClosed(agentName);
 
       // Audit log
       logger.audit({
@@ -168,6 +178,11 @@ export class RecoveryEngine {
           recovered++;
           logger.debug('Reclaimed orphaned action', { job_id: jobId });
         }
+      }
+
+      // Record metrics for recovered orphaned actions
+      if (recovered > 0) {
+        metricsCollector.recordOrphanedActionsRecovered(recovered);
       }
 
       logger.info('Orphaned action recovery complete', { count: recovered });

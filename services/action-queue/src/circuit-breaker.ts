@@ -1,5 +1,6 @@
 import { WorkerStateEnum, WorkerState } from "./types";
 import { DatabaseManager } from "./database";
+import { metricsCollector } from "./metrics";
 import { CIRCUIT_BREAKER_CONFIG } from "./config";
 
 /**
@@ -105,6 +106,7 @@ export class CircuitBreaker {
     ) {
       this.openedAtTimes.set(agentName, new Date());
       this.hasTrippedCallbackFired.set(agentName, true);
+      metricsCollector.recordCircuitOpened(agentName);
       this.onCircuitOpen?.(agentName, workerState);
     }
   }

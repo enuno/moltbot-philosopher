@@ -6,6 +6,7 @@ import { RateLimiter } from "./rate-limiter";
 import { RecoveryEngine } from "./recovery-engine";
 import { AlertingService } from "./alerting";
 import { CircuitBreaker } from "./circuit-breaker";
+import { metricsCollector } from "./metrics";
 import {
   SubmitConditionalActionSchema,
   ActionStatus,
@@ -27,14 +28,51 @@ const circuitBreaker = new CircuitBreaker(db);
 const recoveryEngine = new RecoveryEngine(db, alerting, circuitBreaker);
 
 /**
- * Health check endpoint
+ * Health check endpoint with circuit breaker state
  */
-app.get("/queue/health", (req: Request, res: Response) => {
-  res.json({
-    status: "healthy",
-    timestamp: new Date().toISOString(),
-    version: "1.0.0",
-  });
+app.get("/queue/health", async (req: Request, res: Response) => {
+  try {
+    // Get all worker states from database
+    const allWorkerStates = await db.query(
+      `SELECT agent_name, state, consecutive_failures, last_failure_time, opened_at
+       FROM worker_state ORDER BY agent_name`
+    );
+
+    // Build circuits object from worker states
+    const circuits: Record<
+      string,
+      {
+        state: string;
+        consecutive_failures: number;
+        last_failure_time: string | null;
+        opened_at: string | null;
+      }
+    > = {};
+
+    for (const row of allWorkerStates.rows) {
+      circuits[row.agent_name] = {
+        state: row.state,
+        consecutive_failures: row.consecutive_failures,
+        last_failure_time: row.last_failure_time ? row.last_failure_time.toISOString() : null,
+        opened_at: row.opened_at ? row.opened_at.toISOString() : null,
+      };
+    }
+
+    res.json({
+      status: "healthy",
+      timestamp: new Date().toISOString(),
+      version: "1.0.0",
+      circuits,
+      metrics: metricsCollector.getMetrics(),
+    });
+  } catch (error: any) {
+    console.error("Health check error:", error);
+    res.status(500).json({
+      status: "unhealthy",
+      timestamp: new Date().toISOString(),
+      error: error.message,
+    });
+  }
 });
 
 /**
@@ -54,6 +92,14 @@ app.get("/queue/stats", async (req: Request, res: Response) => {
       error: error.message,
     });
   }
+});
+
+/**
+ * Metrics endpoint for monitoring (public, no auth required)
+ * Returns circuit breaker lifecycle metrics only
+ */
+app.get("/metrics", (req: Request, res: Response) => {
+  res.json(metricsCollector.getMetrics());
 });
 
 /**
