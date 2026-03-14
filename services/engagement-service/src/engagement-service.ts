@@ -371,8 +371,8 @@ async function start() {
     await initialize();
 
     // Schedule cron jobs
-    scheduleDiscoveryCycle();
-    scheduleFiveMinuteCycle();
+    // DISABLED (Option C bridge): scheduleDiscoveryCycle(); // Discovery cycle disabled until Fix 1+2 are deployed
+    // DISABLED (Option C bridge): scheduleFiveMinuteCycle(); // 5-min engagement cycle disabled until Fix 1+2 are deployed
     schedulePostingCheck();
     scheduleDailyMaintenance();
 
