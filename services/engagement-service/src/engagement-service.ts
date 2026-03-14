@@ -13,6 +13,8 @@ import { StateManager } from "./state-manager";
 import type { Agent, EngagementState } from "./types";
 import { buildSummary, buildTrends, buildAgentsSection, buildQualitySection } from "./stats-builder";
 import winston from "winston";
+import { ObcClient } from "./obc_client";
+import { ObcEngagement } from "./obc_engagement";
 
 // Logger configuration
 const logger = winston.createLogger({
@@ -72,6 +74,7 @@ function loadAgentRoster(): Agent[] {
 
 let engine: EngagementEngine;
 let agentRoster: Agent[] = [];
+let obcHeartbeat: InstanceType<typeof ObcEngagement> | null = null;
 
 // Initialize service
 async function initialize() {
@@ -87,8 +90,24 @@ async function initialize() {
 
     engine = new EngagementEngine({ statePaths, agentRoster });
     logger.info("EngagementEngine initialized");
+
+    // Initialize OBC engagement if enabled (default true)
+    const obcEnabled = process.env.OBC_ENABLE !== "false";
+    if (obcEnabled) {
+      try {
+        const obcClient = new ObcClient();
+        obcHeartbeat = new ObcEngagement(obcClient);
+        logger.info("OBC engagement module initialized");
+      } catch (error) {
+        logger.warn("Failed to initialize OBC engagement module", { error });
+        // OBC initialization failure is non-fatal
+        obcHeartbeat = null;
+      }
+    } else {
+      logger.info("OBC engagement module disabled via OBC_ENABLE=false");
+    }
   } catch (error) {
-    logger.error("Failed to initialize EngagementEngine", { error });
+    logger.error("Failed to initialize service", { error });
     throw error;
   }
 }
@@ -285,6 +304,18 @@ function scheduleFiveMinuteCycle() {
 
       await engine.runEngagementCycle();
 
+      // Run OBC heartbeat with soft-fail isolation (never crashes Moltbot)
+      if (obcHeartbeat) {
+        try {
+          await obcHeartbeat.run();
+        } catch (err) {
+          logger.warn("OBC heartbeat failed (isolated)", {
+            error: err instanceof Error ? err.message : String(err),
+          });
+          // Continue - OBC errors never block Moltbot
+        }
+      }
+
       const duration = Date.now() - startTime;
       // Update last cycle time for stats endpoint
       app.locals.lastCycleTime = Date.now();
@@ -402,7 +433,7 @@ async function start() {
 }
 
 // Export for testing
-export { app, engine, agentRoster, initialize };
+export { app, engine, agentRoster, initialize, obcHeartbeat };
 
 // Start if not imported as module
 if (process.env.NODE_ENV !== "test") {
