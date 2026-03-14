@@ -3,7 +3,13 @@
 import axios from 'axios';
 
 const API_URL = process.env.ACTION_QUEUE_URL || 'http://localhost:3007';
-const ADMIN_TOKEN = process.env.ADMIN_TOKEN || 'test-token';
+const ADMIN_TOKEN = process.env.ADMIN_TOKEN;
+
+if (!ADMIN_TOKEN) {
+  console.error('Error: ADMIN_TOKEN environment variable is not set');
+  console.error('Set it with: export ADMIN_TOKEN="your-token-here"');
+  process.exit(1);
+}
 
 const client = axios.create({
   baseURL: API_URL,

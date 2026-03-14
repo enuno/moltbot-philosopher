@@ -327,10 +327,11 @@ app.post("/recovery/reset/:agentName", async (req: Request, res: Response) => {
       message: `Circuit for ${agentName} reset to CLOSED`,
       agent_name: agentName,
     });
-  } catch (err: any) {
+  } catch (err: unknown) {
+    const errorMsg = err instanceof Error ? err.message : String(err);
     res.status(500).json({
       error: `Failed to reset circuit for ${agentName}`,
-      details: err.message,
+      details: errorMsg,
     });
   }
 });
@@ -353,10 +354,11 @@ app.post("/recovery/probe", async (req: Request, res: Response) => {
       message: "Recovery probe triggered",
       probesRun: 1,
     });
-  } catch (err: any) {
+  } catch (err: unknown) {
+    const errorMsg = err instanceof Error ? err.message : String(err);
     res.status(500).json({
       error: "Failed to run recovery probe",
-      details: err.message,
+      details: errorMsg,
     });
   }
 });
@@ -383,10 +385,11 @@ app.get("/recovery/status/:agentName", async (req: Request, res: Response) => {
       last_failure_time: state.last_failure_time,
       opened_at: state.opened_at,
     });
-  } catch (err: any) {
+  } catch (err: unknown) {
+    const errorMsg = err instanceof Error ? err.message : String(err);
     res.status(500).json({
       error: `Failed to fetch status for ${agentName}`,
-      details: err.message,
+      details: errorMsg,
     });
   }
 });
@@ -411,10 +414,11 @@ app.post("/recovery/orphaned/reclaim", async (req: Request, res: Response) => {
       recovered,
       action_ids: orphans,
     });
-  } catch (err: any) {
+  } catch (err: unknown) {
+    const errorMsg = err instanceof Error ? err.message : String(err);
     res.status(500).json({
       error: "Failed to recover orphaned actions",
-      details: err.message,
+      details: errorMsg,
     });
   }
 });

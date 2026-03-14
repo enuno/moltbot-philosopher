@@ -9,6 +9,7 @@ const logger = new Logger('recovery-engine');
 export class RecoveryEngine {
   private recoveryProbeInterval: NodeJS.Timer | null = null;
   private readonly probeIntervalMs: number;
+  private isProbeRunning = false;
 
   constructor(
     private db: DatabaseManager,
@@ -34,11 +35,22 @@ export class RecoveryEngine {
     // Run probe immediately
     await this.runRecoveryProbe();
 
-    // Schedule recurring probe
-    this.recoveryProbeInterval = setInterval(() => {
-      this.runRecoveryProbe().catch(err => {
+    // Schedule recurring probe with guard to prevent concurrency
+    this.recoveryProbeInterval = setInterval(async () => {
+      // Skip if probe is already running
+      if (this.isProbeRunning) {
+        logger.debug('Recovery probe already running, skipping this interval');
+        return;
+      }
+
+      this.isProbeRunning = true;
+      try {
+        await this.runRecoveryProbe();
+      } catch (err) {
         logger.error('Auto-recovery probe failed', { error: err });
-      });
+      } finally {
+        this.isProbeRunning = false;
+      }
     }, intervalMs);
   }
 
@@ -92,8 +104,9 @@ export class RecoveryEngine {
             await this.db.recordWorkerFailure(agentName);
             logger.warn('Recovery probe failed, reverting to OPEN', { agent_name: agentName });
           }
-        } catch (err) {
-          logger.error('Recovery probe error for agent', { agent_name: agentName, error: err });
+        } catch (err: unknown) {
+          const errorMsg = err instanceof Error ? err.message : String(err);
+          logger.error('Recovery probe error for agent', { agent_name: agentName, error: errorMsg });
           // Revert to OPEN on any error
           await this.db.query(
             `UPDATE worker_state SET state = $1 WHERE agent_name = $2`,
@@ -101,8 +114,9 @@ export class RecoveryEngine {
           );
         }
       }
-    } catch (err) {
-      logger.error('Recovery probe run failed', { error: err });
+    } catch (err: unknown) {
+      const errorMsg = err instanceof Error ? err.message : String(err);
+      logger.error('Recovery probe run failed', { error: errorMsg });
     }
   }
 
@@ -133,8 +147,9 @@ export class RecoveryEngine {
         0,
         'Manual reset by admin'
       );
-    } catch (err) {
-      logger.error('Manual reset failed', { agent_name: agentName, error: err });
+    } catch (err: unknown) {
+      const errorMsg = err instanceof Error ? err.message : String(err);
+      logger.error('Manual reset failed', { agent_name: agentName, error: errorMsg });
       throw err;
     }
   }
@@ -157,8 +172,9 @@ export class RecoveryEngine {
 
       logger.info('Orphaned action recovery complete', { count: recovered });
       return recovered;
-    } catch (err) {
-      logger.error('Orphaned action recovery failed', { error: err });
+    } catch (err: unknown) {
+      const errorMsg = err instanceof Error ? err.message : String(err);
+      logger.error('Orphaned action recovery failed', { error: errorMsg });
       throw err;
     }
   }
@@ -167,7 +183,7 @@ export class RecoveryEngine {
    * Calculate exponential backoff delay
    * Attempt 0 = 1s, 1 = 2s, 2 = 4s, ..., capped at 300s
    */
-  async exponentialBackoff(attempt: number): Promise<number> {
+  exponentialBackoff(attempt: number): number {
     const baseMs = 1000; // 1 second
     const maxDelayMs = 300000; // 5 minutes
     const delayMs = Math.min(
