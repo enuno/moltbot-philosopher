@@ -374,3 +374,42 @@ export const SubmitConditionalActionSchema = SubmitActionSchema.extend({
 });
 
 export type SubmitConditionalActionRequest = z.infer<typeof SubmitConditionalActionSchema>;
+
+/**
+ * Worker circuit breaker states
+ */
+export enum WorkerStateEnum {
+  CLOSED = "CLOSED",
+  OPEN = "OPEN",
+  HALF_OPEN = "HALF_OPEN",
+}
+
+/**
+ * Persistent worker failure tracking state
+ * Stored in PostgreSQL worker_state table for durability across restarts
+ */
+export interface WorkerState {
+  /** Agent identifier */
+  agent_name: string;
+
+  /** Current circuit state (CLOSED, OPEN, HALF_OPEN) */
+  state: WorkerStateEnum;
+
+  /** Number of consecutive failures since last success */
+  consecutive_failures: number;
+
+  /** Timestamp of most recent failure */
+  last_failure_time?: Date;
+
+  /** When consecutive_failures will auto-reset (1 hour after last failure) */
+  failure_reset_at?: Date;
+
+  /** When circuit was opened (transitioned to OPEN state) */
+  opened_at?: Date;
+
+  /** When record was created */
+  created_at: Date;
+
+  /** When record was last updated */
+  updated_at: Date;
+}

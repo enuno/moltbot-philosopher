@@ -1,7 +1,7 @@
 import { Pool, PoolClient } from "pg";
 import PgBoss from "pg-boss";
 import { v4 as uuidv4 } from "uuid";
-import { QueuedAction, ActionStatus, ConditionalAction, RateLimitState } from "./types";
+import { QueuedAction, ActionStatus, ConditionalAction, RateLimitState, WorkerState, WorkerStateEnum } from "./types";
 import { QUEUE_CONFIG } from "./config";
 
 /**
@@ -131,6 +131,23 @@ export class DatabaseManager {
           ON action_logs(agent_name, created_at DESC);
         CREATE INDEX IF NOT EXISTS idx_action_logs_status
           ON action_logs(status);
+      `);
+
+      // Worker state table (for circuit breaker failure tracking)
+      await client.query(`
+        CREATE TABLE IF NOT EXISTS worker_state (
+          agent_name TEXT PRIMARY KEY,
+          state TEXT DEFAULT 'CLOSED',
+          consecutive_failures INT DEFAULT 0,
+          last_failure_time TIMESTAMP,
+          failure_reset_at TIMESTAMP,
+          opened_at TIMESTAMP,
+          created_at TIMESTAMP DEFAULT NOW(),
+          updated_at TIMESTAMP DEFAULT NOW()
+        );
+
+        CREATE INDEX IF NOT EXISTS idx_worker_state_updated
+          ON worker_state(updated_at DESC);
       `);
     } finally {
       client.release();
@@ -621,6 +638,157 @@ export class DatabaseManager {
     } finally {
       client.release();
     }
+  }
+
+  /**
+   * Record a worker failure for an agent
+   * Increments consecutive_failures and sets failure_reset_at to 1 hour from now
+   * Uses UPSERT pattern to handle initial insert or update
+   */
+  async recordWorkerFailure(agentName: string): Promise<WorkerState> {
+    const client = await this.pool.connect();
+    try {
+      const timeoutMs =
+        parseInt(process.env.WORKER_FAILURE_RESET_TIMEOUT_MS || "3600000", 10) || 3600000;
+      const resetAtTime = new Date(Date.now() + timeoutMs);
+
+      const result = await client.query(
+        `INSERT INTO worker_state (
+          agent_name,
+          state,
+          consecutive_failures,
+          last_failure_time,
+          failure_reset_at,
+          created_at,
+          updated_at
+        ) VALUES ($1, $2, $3, NOW(), $4, NOW(), NOW())
+        ON CONFLICT(agent_name) DO UPDATE SET
+          consecutive_failures = worker_state.consecutive_failures + 1,
+          last_failure_time = NOW(),
+          failure_reset_at = $4,
+          updated_at = NOW()
+        RETURNING *`,
+        [agentName, WorkerStateEnum.CLOSED, 1, resetAtTime],
+      );
+
+      return this.parseWorkerStateRow(result.rows[0]);
+    } finally {
+      client.release();
+    }
+  }
+
+  /**
+   * Record a worker success for an agent
+   * Resets consecutive_failures to 0
+   * Uses UPSERT pattern to handle initial insert or update
+   */
+  async recordWorkerSuccess(agentName: string): Promise<WorkerState> {
+    const client = await this.pool.connect();
+    try {
+      const result = await client.query(
+        `INSERT INTO worker_state (
+          agent_name,
+          state,
+          consecutive_failures,
+          created_at,
+          updated_at
+        ) VALUES ($1, $2, $3, NOW(), NOW())
+        ON CONFLICT(agent_name) DO UPDATE SET
+          consecutive_failures = 0,
+          updated_at = NOW()
+        RETURNING *`,
+        [agentName, WorkerStateEnum.CLOSED, 0],
+      );
+
+      return this.parseWorkerStateRow(result.rows[0]);
+    } finally {
+      client.release();
+    }
+  }
+
+  /**
+   * Get current worker state for an agent
+   * Returns null if no record exists
+   */
+  async getWorkerState(agentName: string): Promise<WorkerState | null> {
+    const client = await this.pool.connect();
+    try {
+      const result = await client.query(
+        `SELECT * FROM worker_state WHERE agent_name = $1`,
+        [agentName],
+      );
+
+      if (result.rows.length === 0) {
+        return null;
+      }
+
+      return this.parseWorkerStateRow(result.rows[0]);
+    } finally {
+      client.release();
+    }
+  }
+
+  /**
+   * Open circuit for an agent (set state to OPEN with opened_at timestamp)
+   * Uses UPSERT to handle agents with no existing record
+   */
+  async openCircuit(agentName: string): Promise<void> {
+    const client = await this.pool.connect();
+    try {
+      await client.query(
+        `INSERT INTO worker_state (
+          agent_name,
+          state,
+          opened_at,
+          created_at,
+          updated_at
+        ) VALUES ($1, $2, NOW(), NOW(), NOW())
+        ON CONFLICT(agent_name) DO UPDATE SET
+          state = $2,
+          opened_at = NOW(),
+          updated_at = NOW()`,
+        [agentName, WorkerStateEnum.OPEN],
+      );
+    } finally {
+      client.release();
+    }
+  }
+
+  /**
+   * Reset failures for an agent if failure_reset_at has passed
+   * Resets consecutive_failures to 0 if timeout elapsed
+   * Does nothing if timeout has not passed yet or agent doesn't exist
+   */
+  async resetFailures(agentName: string): Promise<void> {
+    const client = await this.pool.connect();
+    try {
+      await client.query(
+        `UPDATE worker_state
+         SET consecutive_failures = 0, updated_at = NOW()
+         WHERE agent_name = $1
+         AND failure_reset_at IS NOT NULL
+         AND failure_reset_at < NOW()`,
+        [agentName],
+      );
+    } finally {
+      client.release();
+    }
+  }
+
+  /**
+   * Helper to parse worker_state database row into WorkerState interface
+   */
+  private parseWorkerStateRow(row: any): WorkerState {
+    return {
+      agent_name: row.agent_name,
+      state: row.state as WorkerStateEnum,
+      consecutive_failures: row.consecutive_failures,
+      last_failure_time: row.last_failure_time ? new Date(row.last_failure_time) : undefined,
+      failure_reset_at: row.failure_reset_at ? new Date(row.failure_reset_at) : undefined,
+      opened_at: row.opened_at ? new Date(row.opened_at) : undefined,
+      created_at: new Date(row.created_at),
+      updated_at: new Date(row.updated_at),
+    };
   }
 
   /**
