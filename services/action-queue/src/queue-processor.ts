@@ -36,7 +36,7 @@ export class QueueProcessor {
       probeIntervalMs: CIRCUIT_BREAKER_CONFIG.probeIntervalMs,
       onCircuitOpen: (agentName: string, state: WorkerState) => {
         // Fire NTFY alert when circuit opens
-        sendCircuitAlert(agentName, state.consecutive_failures).catch((error) => {
+        sendCircuitAlert(agentName, state.consecutive_failures).catch((error: unknown) => {
           console.error("Failed to send circuit breaker alert:", error);
         });
       },

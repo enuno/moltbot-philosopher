@@ -24,7 +24,7 @@ const db = new DatabaseManager();
 const processor = new QueueProcessor(db);
 const rateLimiter = new RateLimiter(db);
 const alerting = new AlertingService();
-const circuitBreaker = new CircuitBreaker(db);
+const circuitBreaker = new CircuitBreaker();
 const recoveryEngine = new RecoveryEngine(db, alerting, circuitBreaker);
 
 /**
@@ -33,10 +33,7 @@ const recoveryEngine = new RecoveryEngine(db, alerting, circuitBreaker);
 app.get("/queue/health", async (req: Request, res: Response) => {
   try {
     // Get all worker states from database
-    const allWorkerStates = await db.query(
-      `SELECT agent_name, state, consecutive_failures, last_failure_time, opened_at
-       FROM worker_state ORDER BY agent_name`
-    );
+    const allWorkerStates = await db.getAllWorkerStates();
 
     // Build circuits object from worker states
     const circuits: Record<
@@ -49,7 +46,7 @@ app.get("/queue/health", async (req: Request, res: Response) => {
       }
     > = {};
 
-    for (const row of allWorkerStates.rows) {
+    for (const row of allWorkerStates) {
       circuits[row.agent_name] = {
         state: row.state,
         consecutive_failures: row.consecutive_failures,

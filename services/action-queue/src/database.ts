@@ -817,6 +817,57 @@ export class DatabaseManager {
   }
 
   /**
+   * Get all worker states from the database
+   */
+  async getAllWorkerStates(): Promise<WorkerState[]> {
+    const client = await this.pool.connect();
+    try {
+      const result = await client.query('SELECT * FROM worker_state ORDER BY agent_name');
+      return result.rows.map((row) => ({
+        agent_name: row.agent_name,
+        state: row.state as WorkerStateEnum,
+        consecutive_failures: row.consecutive_failures,
+        last_failure_time: row.last_failure_time ? new Date(row.last_failure_time) : undefined,
+        failure_reset_at: row.failure_reset_at ? new Date(row.failure_reset_at) : undefined,
+        opened_at: row.opened_at ? new Date(row.opened_at) : undefined,
+        created_at: new Date(row.created_at),
+        updated_at: new Date(row.updated_at),
+      }));
+    } finally {
+      client.release();
+    }
+  }
+
+  /**
+   * Update worker state in the database
+   */
+  async updateWorkerState(state: WorkerState): Promise<void> {
+    const client = await this.pool.connect();
+    try {
+      await client.query(
+        `UPDATE worker_state SET
+          state = $2,
+          consecutive_failures = $3,
+          last_failure_time = $4,
+          failure_reset_at = $5,
+          opened_at = $6,
+          updated_at = NOW()
+         WHERE agent_name = $1`,
+        [
+          state.agent_name,
+          state.state,
+          state.consecutive_failures,
+          state.last_failure_time,
+          state.failure_reset_at,
+          state.opened_at,
+        ]
+      );
+    } finally {
+      client.release();
+    }
+  }
+
+  /**
    * Atomically claim an action for processing by a single worker
    * Uses INSERT ... ON CONFLICT DO NOTHING to guarantee atomicity via PRIMARY KEY constraint
    *
