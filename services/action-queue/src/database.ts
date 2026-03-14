@@ -149,6 +149,23 @@ export class DatabaseManager {
         CREATE INDEX IF NOT EXISTS idx_worker_state_updated
           ON worker_state(updated_at DESC);
       `);
+
+      // Action claims table (for atomic action claiming - P7.7.3)
+      await client.query(`
+        CREATE TABLE IF NOT EXISTS action_claims (
+          job_id UUID PRIMARY KEY,
+          agent_name TEXT NOT NULL,
+          claimed_at TIMESTAMP DEFAULT NOW(),
+          claimed_by_worker_pid INT,
+          timeout_at TIMESTAMP,
+          FOREIGN KEY (job_id) REFERENCES action_logs(job_id) ON DELETE CASCADE
+        );
+
+        CREATE INDEX IF NOT EXISTS idx_action_claims_timeout
+          ON action_claims(timeout_at);
+        CREATE INDEX IF NOT EXISTS idx_action_claims_agent
+          ON action_claims(agent_name);
+      `);
     } finally {
       client.release();
     }
@@ -797,6 +814,100 @@ export class DatabaseManager {
   async getConditionEvaluations(_actionId: string): Promise<any[]> {
     // This will be implemented when condition evaluation tracking is added to the database schema
     return [];
+  }
+
+  /**
+   * Atomically claim an action for processing by a single worker
+   * Uses INSERT ... ON CONFLICT DO NOTHING to guarantee atomicity via PRIMARY KEY constraint
+   *
+   * Returns true if claim succeeded, false if already claimed
+   */
+  async claimAction(
+    jobId: string,
+    agentName: string,
+    timeoutSeconds: number = 300,
+  ): Promise<boolean> {
+    const client = await this.pool.connect();
+    try {
+      const timeoutAt = new Date(Date.now() + timeoutSeconds * 1000);
+      const workerPid = process.pid;
+
+      const result = await client.query(
+        `INSERT INTO action_claims(job_id, agent_name, claimed_at, claimed_by_worker_pid, timeout_at)
+         VALUES($1, $2, NOW(), $3, $4)
+         ON CONFLICT(job_id) DO NOTHING`,
+        [jobId, agentName, workerPid, timeoutAt],
+      );
+
+      // If no rows inserted, the claim already existed
+      return (result.rowCount || 0) > 0;
+    } catch (error) {
+      console.error(`Failed to claim action ${jobId}:`, error);
+      throw error;
+    } finally {
+      client.release();
+    }
+  }
+
+  /**
+   * Release a claim after successful action completion
+   * Removes the claim record from action_claims table
+   */
+  async releaseClaim(jobId: string): Promise<void> {
+    const client = await this.pool.connect();
+    try {
+      await client.query(`DELETE FROM action_claims WHERE job_id = $1`, [jobId]);
+    } catch (error) {
+      console.error(`Failed to release claim for ${jobId}:`, error);
+      throw error;
+    } finally {
+      client.release();
+    }
+  }
+
+  /**
+   * Find actions that have exceeded their timeout window (orphaned actions)
+   * Optionally filter by agent name
+   *
+   * Returns array of job IDs that have timed out
+   */
+  async findOrphanedActions(agentName?: string): Promise<string[]> {
+    const client = await this.pool.connect();
+    try {
+      const query = agentName
+        ? `SELECT job_id FROM action_claims WHERE timeout_at < NOW() AND agent_name = $1 ORDER BY timeout_at ASC`
+        : `SELECT job_id FROM action_claims WHERE timeout_at < NOW() ORDER BY timeout_at ASC`;
+
+      const params = agentName ? [agentName] : [];
+      const result = await client.query(query, params);
+
+      return result.rows.map((row: any) => row.job_id);
+    } catch (error) {
+      console.error("Failed to find orphaned actions:", error);
+      throw error;
+    } finally {
+      client.release();
+    }
+  }
+
+  /**
+   * Reclaim an orphaned action by removing its claim
+   * Allows another worker to claim the action for reprocessing
+   *
+   * Returns true if a claim existed and was deleted, false if not found
+   */
+  async reclaimOrphanedAction(jobId: string): Promise<boolean> {
+    const client = await this.pool.connect();
+    try {
+      const result = await client.query(`DELETE FROM action_claims WHERE job_id = $1`, [jobId]);
+
+      return (result.rowCount || 0) > 0;
+    } catch (error) {
+      console.error(`Failed to reclaim action ${jobId}:`, error);
+      throw error;
+    } finally {
+      client.release();
+    }
   }
 
   /**
