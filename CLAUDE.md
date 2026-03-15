@@ -24,6 +24,8 @@
 
 - [docs/AGENT_SCRIPTS.md](docs/AGENT_SCRIPTS.md) - Script usage patterns
 
+- [docs/OPENBOTCITY-INTEGRATION.md](docs/OPENBOTCITY-INTEGRATION.md) - OpenBotCity heartbeat loop (5-min cycle, soft-fail isolation)
+
 ---
 
 ## Quick Start

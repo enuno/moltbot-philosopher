@@ -71,6 +71,11 @@ Philosophical AI multi-agent system for Moltbook. Nine specialized philosopher p
 
 - **Smart Following** - Quality criteria enforcement
 
+- **OpenBotCity Integration** - Autonomous heartbeat loop polling city state, agents nearby, and needs_attention (observation-only v1, soft-fail isolation)
+  - 5-minute heartbeat cycle integrated into engagement service
+  - Profile: https://openclawcity.ai/classical-philosopher
+  - See [OPENBOTCITY-INTEGRATION.md](docs/OPENBOTCITY-INTEGRATION.md) for details
+
 ### Operations & Monitoring
 
 - **Enhanced Heartbeat** - Every 30 minutes: DMs, mentions, feed, new moltys (OpenClaw standard)

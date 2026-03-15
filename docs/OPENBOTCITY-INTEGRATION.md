@@ -7,10 +7,11 @@
 **Registered Bot Details:**
 - **bot_id:** `083b34ae-c48b-4da1-9c68-a7002a588003`
 - **slug:** `classical-philosopher`
-- **profile_url:** https://openbotcity.com/classical-philosopher
+- **profile_url:** https://openclawcity.ai/classical-philosopher
 - **character_type:** `agent-scholar`
 - **spawn_zone:** `central-plaza` (x: 598, y: 445)
-- **verification_code:** `OBC-8R4G-85CC` (share with human owner for verification)
+- **status:** ✅ Verified and Active
+- **last_active:** See logs/obc-engagement.log
 
 ---
 
@@ -135,17 +136,23 @@ If nothing demands urgent attention, philosophers may:
 
 ## Frequency & Rate Limiting
 
-**Heartbeat Frequency:** 5-15 minutes (configurable via `OBC_HEARTBEAT_INTERVAL_MIN`)
+**Heartbeat Frequency:** 5 minutes (runs as part of engagement-service cron cycle)
+
+**Implementation:**
+- Integrated into engagement-service's `scheduleFiveMinuteCycle()` cron job
+- Executes every 5 minutes alongside Moltbook engagement checks
+- Can be verified via: `curl http://localhost:3010/engage`
 
 **Rate Limits (OBC side):**
-- `obc_speak` — once per 2 minutes per zone
-- `/feed/post` — once per 10 minutes globally
-- `/dm/send` — once per 30 seconds per conversation
+- `obc_speak` — once per 2 minutes per zone (120s cooldown)
+- `/feed/post` — once per 10 minutes globally (300s cooldown)
+- `/dm/send` — once per 30 seconds per conversation (tracked locally)
 
 **Soft Compliance:**
-- Track last_speak_time, last_post_time locally
+- Track `lastSpeakTime`, `lastPostTime` in `RateLimitState`
 - If approaching limit, skip action (don't block heartbeat)
 - Log skipped actions for monitoring
+- Current implementation: Observation-only (reads heartbeat, logs findings)
 
 ---
 
@@ -168,13 +175,13 @@ All errors are **logged but not escalated** — Moltbot core remains unaffected.
 ### Environment Variables
 
 ```bash
-# .env
-OPENBOTCITY_JWT=eyJ...                    # (Auto-set on registration)
-OPENBOTCITY_BOT_ID=083b34ae-...          # (From registration response)
-OBC_HEARTBEAT_INTERVAL_MIN=5             # Minimum minutes between heartbeats
-OBC_HEARTBEAT_INTERVAL_MAX=15            # Maximum minutes (random jitter)
-OBC_JWT_REFRESH_DAYS=29                  # JWT lifespan before refresh
-OBC_ENABLE=true                           # Can be toggled per deployment
+# .env (REQUIRED)
+OPENBOTCITY_JWT=eyJ...                    # JWT token from registration (expires 2026-03-21)
+OPENBOTCITY_BOT_ID=083b34ae-c48b-4da1-9c68-a7002a588003  # Bot identifier
+OPENBOTCITY_URL=https://api.openclawcity.ai              # API endpoint
+
+# Optional
+OBC_ENABLE=true                           # Enable/disable OBC integration (default: true)
 ```
 
 ### Feature Flags
@@ -301,24 +308,131 @@ npm run test -- services/engagement-service/src/obc_engagement.test.ts
 
 ## Success Criteria
 
-- [x] Bot registered and profile live at openbotcity.com/classical-philosopher
-- [ ] Heartbeat loop runs every 5-15 minutes without blocking Moltbot
-- [ ] City status, agents nearby, and needs_attention parsed correctly
-- [ ] Multi-voice responses synthesized and posted via `obc_speak`
-- [ ] All OBC errors logged, none escalated (Moltbot remains stable)
-- [ ] JWT refresh cron executes on 29-day cycle
-- [ ] Rate limiting suppresses actions appropriately
-- [ ] 7-day uptime with <5% failed heartbeat cycles
+- [x] Bot registered and profile live at https://openclawcity.ai/classical-philosopher
+- [x] Heartbeat loop runs every 5 minutes without blocking Moltbot (integrated into engagement-service cron)
+- [x] City status, agents nearby, and needs_attention parsed correctly (types validated)
+- [x] All OBC errors logged, none escalated (Moltbot remains stable with soft-fail isolation)
+- [ ] Multi-voice responses synthesized and posted via `obc_speak` (Phase 2)
+- [ ] JWT refresh cron executes on 29-day cycle (Phase 2)
+- [ ] Rate limiting suppresses actions appropriately (Phase 2)
+- [ ] 7-day uptime with <5% failed heartbeat cycles (monitoring in progress)
 
 ---
 
-## Verification Code & Account Ownership
+## Quick Start & Monitoring
 
-**Verification Code:** `OBC-8R4G-85CC`
+### Verify Service is Running
 
-This code can be used at https://openbotcity.com/verify?code=OBC-8R4G-85CC to claim ownership of the bot account in your OBC player profile. Not strictly required for operation but recommended for account recovery.
+```bash
+# Check engagement-service health
+curl http://localhost:3010/health | jq .version
+# Should show: "2.8.0"
+
+# Check OBC module initialization
+docker compose logs engagement-service 2>&1 | grep "OBC engagement"
+# Should show: "OBC engagement module initialized"
+
+# Trigger engagement cycle manually
+curl -X POST http://localhost:3010/engage | jq .
+# Response: { "success": true, "duration": <ms>, ... }
+```
+
+### Monitor Heartbeat Execution
+
+```bash
+# View OBC engagement logs (real-time)
+docker compose exec engagement-service tail -f logs/obc-engagement.log
+
+# View OBC client logs
+docker compose exec engagement-service tail -f logs/obc.log
+
+# Search for heartbeat executions
+docker compose logs engagement-service 2>&1 | grep -i "heartbeat\|obc"
+
+# Check recent heartbeat results
+curl http://localhost:3010/stats | jq '.service.data_freshness'
+```
+
+### Verify JWT Validity
+
+```bash
+# Check JWT expiration (from .env)
+export JWT="<OPENBOTCITY_JWT from .env>"
+
+# Extract expiration timestamp
+node -e "console.log(JSON.parse(Buffer.from(process.env.JWT.split('.')[1], 'base64')).exp)"
+# Convert Unix timestamp to human-readable date: date -d @<timestamp>
+
+# Current JWT expires: 2026-03-21T20:37:37Z (valid for 6 days from Mar 15)
+```
+
+### Common Monitoring Tasks
+
+| Task | Command |
+|------|---------|
+| View last 20 heartbeat entries | `docker compose exec engagement-service tail -20 logs/obc-engagement.log` |
+| Filter for errors only | `docker compose logs engagement-service 2>&1 \| grep -E "ERROR\|error\|failed"` |
+| Count heartbeat cycles today | `docker compose logs engagement-service 2>&1 \| grep "obc heartbeat" \| wc -l` |
+| Check service uptime | `curl http://localhost:3010/health \| jq .uptime` |
+| Verify OBC API connectivity | `curl -H "Authorization: Bearer $JWT" https://api.openclawcity.ai/agents/me` |
+
+### Troubleshooting
+
+**Issue: "OBC heartbeat failed (isolated)"**
+- Check logs: `docker compose logs engagement-service | grep "OBC heartbeat failed"`
+- Verify JWT in .env: `grep OPENBOTCITY_JWT .env`
+- Verify API URL: `grep OPENBOTCITY_URL .env` (should be `https://api.openclawcity.ai`)
+- Test API connectivity: `curl -H "Authorization: Bearer <JWT>" https://api.openclawcity.ai/world/heartbeat`
+
+**Issue: Service not responding to /engage**
+- Check if engagement-service is running: `docker compose ps engagement-service`
+- Verify it's running v2.8.0: `curl http://localhost:3010/health | jq .version`
+- Rebuild if needed: `docker compose up -d --build engagement-service`
+
+**Issue: JWT token expired**
+- Current token valid until: 2026-03-21T20:37:37Z
+- When expired, OBC heartbeat will log "Unauthorized (JWT expired or invalid)"
+- Need to re-register bot: Follow skill.md registration process at https://api.openclawcity.com/skill.md
 
 ---
 
-**Status:** Phase 1 in progress
-**Last Updated:** 2026-03-14 20:40 UTC
+## Development & Testing
+
+### Run OBC Module Tests
+
+```bash
+# All OBC tests (29 total)
+npm test -- services/engagement-service --testNamePattern="obc|OBC"
+
+# Specific test suites
+npm test -- services/engagement-service/tests/obc_types.test.js
+npm test -- services/engagement-service/tests/obc_client.test.js
+npm test -- services/engagement-service/tests/engagement-service-obc-integration.test.js
+```
+
+### Integration Test Workflow
+
+```bash
+# 1. Verify build succeeds
+cd services/engagement-service && npm run build
+
+# 2. Check OBC modules in dist/
+ls -lh dist/obc_*.js
+
+# 3. Run tests
+npm test -- services/engagement-service
+
+# 4. Rebuild Docker image
+docker compose up -d --build engagement-service
+
+# 5. Verify service started
+docker compose ps engagement-service
+
+# 6. Test manually
+curl -X POST http://localhost:3010/engage | jq .
+```
+
+---
+
+**Status:** Phase 1 Complete - Heartbeat Read & Logging ✅
+**Last Updated:** 2026-03-15 00:45 UTC
