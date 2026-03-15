@@ -10,22 +10,21 @@
 
 import winston from "winston";
 import { ObcClient } from "./obc_client";
-import type { CityStatus, AgentInfo, HeartbeatData, HeartbeatAttentionItem, RateLimitState } from "./obc_types";
+import type { HeartbeatData, RateLimitState } from "./obc_types";
 
 interface EngagementResult {
   success: boolean;
-  cityStatus?: CityStatus;
-  agentsNearby?: AgentInfo[];
-  attentionCount?: number;
+  location?: string;
+  nearbyBots?: number;
+  context?: string;
   error?: string;
 }
 
 interface ParsedHeartbeat {
-  cityStatus: CityStatus;
-  agentsNearby: AgentInfo[];
-  attentionItems: HeartbeatAttentionItem[];
-  attentionCount: number;
-  attentionByType: Record<string, number>;
+  context: "zone" | "building";
+  location?: string;
+  nearbyBots?: number;
+  bulletin?: string;
 }
 
 /**
@@ -108,11 +107,12 @@ export class ObcEngagement {
 
       const heartbeat = clientResponse.data;
 
-      // Validate heartbeat structure
-      if (!heartbeat || !heartbeat.city_status) {
+      // Validate heartbeat structure - must have context and interval
+      if (!heartbeat || !heartbeat.context || typeof heartbeat.next_heartbeat_interval !== "number") {
         this.logger.warn("OBC heartbeat: Invalid heartbeat structure", {
           hasHeartbeat: !!heartbeat,
-          hasCityStatus: !!heartbeat?.city_status,
+          hasContext: !!heartbeat?.context,
+          hasInterval: typeof heartbeat?.next_heartbeat_interval === "number",
         });
 
         return {
@@ -124,20 +124,19 @@ export class ObcEngagement {
       // Parse heartbeat data
       const parsed = this.parseHeartbeat(heartbeat);
 
-      // PHASE 2: Check attention items
+      // PHASE 2: Check attention items based on context
+      const attentionInfo = this.getAttentionInfo(heartbeat);
       this.logger.info("OBC heartbeat: Phase 2 (Check Attention)", {
         phase: 2,
-        attentionCount: parsed.attentionCount,
-        attentionByType: parsed.attentionByType,
+        context: parsed.context,
+        ...attentionInfo,
       });
-
-      // Log each attention item type
-      this.logAttentionItems(parsed.attentionItems);
 
       // PHASE 3: Observe and log summary
       this.logger.info("OBC heartbeat: Phase 3 (Observe)", {
         phase: 3,
         ...this.generateObservationSummary(parsed),
+        nextPoll: heartbeat.next_heartbeat_interval,
       });
 
       // Update rate limit state (prepared for Phase 2 synthesis)
@@ -145,9 +144,9 @@ export class ObcEngagement {
 
       return {
         success: true,
-        cityStatus: parsed.cityStatus,
-        agentsNearby: parsed.agentsNearby,
-        attentionCount: parsed.attentionCount,
+        location: parsed.location,
+        nearbyBots: parsed.nearbyBots,
+        context: parsed.context,
       };
     } catch (error) {
       // Catch unexpected errors
@@ -168,101 +167,37 @@ export class ObcEngagement {
    * Parse heartbeat response into structured data
    */
   private parseHeartbeat(heartbeat: HeartbeatData): ParsedHeartbeat {
-    const cityStatus = heartbeat.city_status || {};
-    const agentsNearby = heartbeat.agents_nearby || [];
-    const needsAttention = heartbeat.needs_attention || [];
-
-    // Categorize attention items by type
-    const attentionByType: Record<string, number> = {
-      owner_message: 0,
-      dm_conversation: 0,
-      proposal: 0,
-      research_task: 0,
-    };
-
-    needsAttention.forEach((item) => {
-      if (item.type && item.type in attentionByType) {
-        attentionByType[item.type]++;
-      }
-    });
-
-    return {
-      cityStatus,
-      agentsNearby,
-      attentionItems: needsAttention,
-      attentionCount: needsAttention.length,
-      attentionByType,
-    };
+    if (heartbeat.context === "zone") {
+      return {
+        context: "zone",
+        location: heartbeat.you_are?.location || "Unknown",
+        nearbyBots: heartbeat.you_are?.nearby_bots,
+        bulletin: heartbeat.city_bulletin,
+      };
+    } else {
+      return {
+        context: "building",
+      };
+    }
   }
 
   /**
-   * Log attention items by type
+   * Get attention info from heartbeat based on context
    */
-  private logAttentionItems(items: HeartbeatAttentionItem[]): void {
-    if (items.length === 0) {
-      this.logger.info("OBC heartbeat: No attention items need action", {
-        count: 0,
-      });
-      return;
-    }
-
-    // Group by type and log
-    const byType: Record<string, HeartbeatAttentionItem[]> = {
-      owner_message: [],
-      dm_conversation: [],
-      proposal: [],
-      research_task: [],
-    };
-
-    items.forEach((item) => {
-      if (item.type in byType) {
-        byType[item.type].push(item);
-      }
-    });
-
-    // Log each type
-    if (byType.owner_message.length > 0) {
-      this.logger.info(`OBC heartbeat: Found ${byType.owner_message.length} owner_message item(s)`, {
-        type: "owner_message",
-        count: byType.owner_message.length,
-        details: byType.owner_message.map((i: any) => ({
-          from: i.fromAgent,
-          message: i.message?.substring(0, 100),
-        })),
-      });
-    }
-
-    if (byType.dm_conversation.length > 0) {
-      this.logger.info(`OBC heartbeat: Found ${byType.dm_conversation.length} dm_conversation item(s)`, {
-        type: "dm_conversation",
-        count: byType.dm_conversation.length,
-        details: byType.dm_conversation.map((i: any) => ({
-          participants: i.participantCount,
-          topic: i.topic,
-        })),
-      });
-    }
-
-    if (byType.proposal.length > 0) {
-      this.logger.info(`OBC heartbeat: Found ${byType.proposal.length} proposal item(s)`, {
-        type: "proposal",
-        count: byType.proposal.length,
-        details: byType.proposal.map((i: any) => ({
-          proposalId: i.proposalId,
-          votesNeeded: i.votesNeeded,
-        })),
-      });
-    }
-
-    if (byType.research_task.length > 0) {
-      this.logger.info(`OBC heartbeat: Found ${byType.research_task.length} research_task item(s)`, {
-        type: "research_task",
-        count: byType.research_task.length,
-        details: byType.research_task.map((i: any) => ({
-          taskId: i.taskId,
-          question: i.question?.substring(0, 100),
-        })),
-      });
+  private getAttentionInfo(heartbeat: HeartbeatData): Record<string, unknown> {
+    if (heartbeat.context === "zone") {
+      const { you_are } = heartbeat;
+      return {
+        unread_dms: you_are?.unread_dms || 0,
+        pending_proposals: you_are?.pending_proposals || 0,
+        owner_message: you_are?.owner_message || false,
+        active_conversations: you_are?.active_conversations || false,
+        reputation_level: you_are?.reputation_level,
+      };
+    } else {
+      return {
+        occupants: heartbeat.occupants?.length || 0,
+      };
     }
   }
 
@@ -270,23 +205,18 @@ export class ObcEngagement {
    * Generate summary of observations
    */
   private generateObservationSummary(parsed: ParsedHeartbeat): Record<string, unknown> {
-    const cityBulletin = parsed.cityStatus.bulletin || "No bulletin";
-    const agentCount = parsed.agentsNearby.length;
-    const attentionCount = parsed.attentionCount;
-
-    const summary = {
-      cityBulletin,
-      agentCount,
-      attentionCount,
+    const summary: Record<string, unknown> = {
+      context: parsed.context,
       timestamp: new Date().toISOString(),
     };
 
-    // Log the summary
-    this.logger.info(
-      `OBC heartbeat: City bulletin: "${cityBulletin}", ${agentCount} agents nearby, ${attentionCount} items need attention`,
-      summary
-    );
+    if (parsed.context === "zone") {
+      summary.location = parsed.location;
+      summary.nearbyBots = parsed.nearbyBots;
+      summary.bulletin = parsed.bulletin?.substring(0, 150);
+    }
 
+    this.logger.debug("OBC heartbeat: Observation summary", summary);
     return summary;
   }
 
