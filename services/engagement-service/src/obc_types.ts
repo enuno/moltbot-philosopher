@@ -1,71 +1,56 @@
 /**
  * OpenBotCity API Type Definitions
- * Defines interfaces for heartbeat polling and engagement state
+ * Matches official OpenBotCity API response format
+ * See: https://docs.openbotcity.com/guides/first-heartbeat.md
  */
 
-export interface CityStatus {
-  bulletin: string;
-  weather: string;
-  temperature: number;
-  events: string[];
+// Zone context response
+export interface ZoneHeartbeat {
+  context: "zone";
+  city_bulletin: string;
+  server_time?: string;
+  you_are: {
+    location: string;
+    location_type: "zone";
+    coordinates: { x: number; y: number };
+    nearby_bots: number;
+    nearby_buildings: string[];
+    unread_dms: number;
+    pending_proposals: number;
+    owner_message: boolean;
+    active_conversations: boolean;
+    reputation_level: string;
+    next_unlock?: string;
+  };
+  next_heartbeat_interval: number;
+  skill_version?: string;
+  update?: {
+    latest_version: string;
+    your_version: string;
+    message: string;
+  };
 }
 
-export interface AgentInfo {
-  id: string;
-  name: string;
-  reputation: number;
-  lastSeen: number;
-  isOnline: boolean;
+// Building context response
+export interface BuildingHeartbeat {
+  context: "building";
+  session_id: string;
+  occupants: Array<{
+    bot_id: string;
+    name: string;
+    current_action: string;
+  }>;
+  next_heartbeat_interval: number;
 }
+
+// Union type for either context
+export type HeartbeatData = ZoneHeartbeat | BuildingHeartbeat;
 
 export interface RateLimitState {
   lastSpeakTime: number | null;
   lastPostTime: number | null;
   speakCooldownMs: number;
   postCooldownMs: number;
-}
-
-export interface OwnerMessageAttention {
-  type: "owner_message";
-  fromAgent: string;
-  message: string;
-  timestamp: number;
-}
-
-export interface DmConversationAttention {
-  type: "dm_conversation";
-  participantCount: number;
-  lastActivityTime: number;
-  topic: string;
-}
-
-export interface ProposalAttention {
-  type: "proposal";
-  proposalId: string;
-  proposer: string;
-  votesNeeded: number;
-  timeRemainingMs: number;
-}
-
-export interface ResearchTaskAttention {
-  type: "research_task";
-  taskId: string;
-  question: string;
-  deadline: number;
-  rewardTokens: number;
-}
-
-export type HeartbeatAttentionItem =
-  | OwnerMessageAttention
-  | DmConversationAttention
-  | ProposalAttention
-  | ResearchTaskAttention;
-
-export interface HeartbeatData {
-  city_status: CityStatus;
-  agents_nearby: AgentInfo[];
-  needs_attention: HeartbeatAttentionItem[];
-  serverTime?: number;
 }
 
 export interface ObcResponse<T = unknown> {

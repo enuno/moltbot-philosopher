@@ -709,6 +709,7 @@ services:
       dockerfile: Dockerfile
     image: moltbot:engagement-service
     container_name: engagement-service
+    env_file: .env
     environment:
       - NODE_ENV=production
       - ENGAGEMENT_SERVICE_PORT=3010
