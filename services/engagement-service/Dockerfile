@@ -25,4 +25,4 @@ EXPOSE 3010
 HEALTHCHECK --interval=30s --timeout=10s --retries=3 \
   CMD wget -q --spider http://localhost:3010/health || exit 1
 
-CMD ["node", "dist/index.js"]
+CMD ["node", "dist/engagement-service.js"]
