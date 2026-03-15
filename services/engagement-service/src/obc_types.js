@@ -69,9 +69,9 @@
 
 /**
  * @typedef {Object} HeartbeatData
- * @property {CityStatus} cityStatus - Current city status
- * @property {AgentInfo[]} agentsNearby - List of nearby agents
- * @property {HeartbeatAttentionItem[]} needsAttention - Items requiring attention (0 or more)
+ * @property {CityStatus} city_status - Current city status (snake_case per API contract)
+ * @property {AgentInfo[]} agents_nearby - List of nearby agents (snake_case per API contract)
+ * @property {HeartbeatAttentionItem[]} needs_attention - Items requiring attention (snake_case)
  * @property {number} serverTime - Server timestamp (Unix milliseconds)
  */
 

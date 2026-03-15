@@ -152,9 +152,27 @@ describe("ObcEngagement", () => {
   describe("Parse agents_nearby", () => {
     it("should count and parse agents correctly", async () => {
       const agents = [
-        { id: "a1", name: "Alice", reputation: 900, lastSeen: Date.now(), isOnline: true },
-        { id: "a2", name: "Bob", reputation: 750, lastSeen: Date.now(), isOnline: true },
-        { id: "a3", name: "Charlie", reputation: 600, lastSeen: Date.now(), isOnline: false },
+        {
+          id: "a1",
+          name: "Alice",
+          reputation: 900,
+          lastSeen: Date.now(),
+          isOnline: true,
+        },
+        {
+          id: "a2",
+          name: "Bob",
+          reputation: 750,
+          lastSeen: Date.now(),
+          isOnline: true,
+        },
+        {
+          id: "a3",
+          name: "Charlie",
+          reputation: 600,
+          lastSeen: Date.now(),
+          isOnline: false,
+        },
       ];
 
       mockClient.get = jest.fn().mockResolvedValue({

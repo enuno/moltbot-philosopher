@@ -144,6 +144,18 @@ app.post("/engage", async (req: Request, res: Response) => {
   try {
     const startTime = Date.now();
     await engine.runEngagementCycle();
+
+    // Run OBC heartbeat if enabled (soft-fail isolation)
+    if (obcHeartbeat) {
+      try {
+        await obcHeartbeat.run();
+      } catch (err) {
+        logger.warn("OBC heartbeat failed (isolated)", {
+          error: err instanceof Error ? err.message : String(err),
+        });
+      }
+    }
+
     const duration = Date.now() - startTime;
 
     logger.info("Engagement cycle completed", { duration });

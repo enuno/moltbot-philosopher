@@ -8,27 +8,36 @@
  * Never throws - all errors converted to return objects with success=false
  */
 
-const winston = require("winston");
+import winston from "winston";
+import { ObcClient } from "./obc_client";
+import type { CityStatus, AgentInfo, HeartbeatData, HeartbeatAttentionItem, RateLimitState } from "./obc_types";
 
-/**
- * @typedef {Object} EngagementResult
- * @property {boolean} success - Whether heartbeat cycle succeeded
- * @property {Object} [cityStatus] - Parsed city status (if successful)
- * @property {Array} [agentsNearby] - List of nearby agents (if successful)
- * @property {number} [attentionCount] - Count of attention items (if successful)
- * @property {string} [error] - Error message (if unsuccessful)
- */
+interface EngagementResult {
+  success: boolean;
+  cityStatus?: CityStatus;
+  agentsNearby?: AgentInfo[];
+  attentionCount?: number;
+  error?: string;
+}
+
+interface ParsedHeartbeat {
+  cityStatus: CityStatus;
+  agentsNearby: AgentInfo[];
+  attentionItems: HeartbeatAttentionItem[];
+  attentionCount: number;
+  attentionByType: Record<string, number>;
+}
 
 /**
  * OpenBotCity Engagement Module
  * Polls heartbeat endpoint and logs observations
  */
-class ObcEngagement {
-  /**
-   * Initialize OBC engagement with client
-   * @param {ObcClient} client - OBC HTTP client
-   */
-  constructor(client) {
+export class ObcEngagement {
+  private client: ObcClient;
+  private logger: winston.Logger;
+  private rateLimitState: RateLimitState;
+
+  constructor(client: ObcClient) {
     this.client = client;
 
     // Use the client's logger if available, or create one
@@ -73,10 +82,8 @@ class ObcEngagement {
   /**
    * Run the 3-phase heartbeat cycle
    * Returns result object, never throws
-   *
-   * @returns {Promise<EngagementResult>}
    */
-  async run() {
+  async run(): Promise<EngagementResult> {
     try {
       // PHASE 1: Read heartbeat from OBC API
       this.logger.info("OBC heartbeat: starting Phase 1 (Read)", {
@@ -84,7 +91,7 @@ class ObcEngagement {
         timestamp: new Date().toISOString(),
       });
 
-      const clientResponse = await this.client.get("/world/heartbeat");
+      const clientResponse = await this.client.get<HeartbeatData>("/world/heartbeat");
 
       if (!clientResponse.success) {
         // Soft-fail: log warning but don't throw
@@ -144,31 +151,29 @@ class ObcEngagement {
       };
     } catch (error) {
       // Catch unexpected errors
+      const err = error as Error;
       this.logger.warn("OBC heartbeat: Unexpected error in heartbeat cycle", {
-        error: error.message,
-        stack: error.stack,
+        error: err.message,
+        stack: err.stack,
       });
 
       return {
         success: false,
-        error: error.message || "Unexpected error in heartbeat cycle",
+        error: err.message || "Unexpected error in heartbeat cycle",
       };
     }
   }
 
   /**
    * Parse heartbeat response into structured data
-   * @private
-   * @param {Object} heartbeat - Raw heartbeat data from OBC API
-   * @returns {Object} Parsed heartbeat with cityStatus, agentsNearby, attentionItems
    */
-  parseHeartbeat(heartbeat) {
+  private parseHeartbeat(heartbeat: HeartbeatData): ParsedHeartbeat {
     const cityStatus = heartbeat.city_status || {};
     const agentsNearby = heartbeat.agents_nearby || [];
     const needsAttention = heartbeat.needs_attention || [];
 
     // Categorize attention items by type
-    const attentionByType = {
+    const attentionByType: Record<string, number> = {
       owner_message: 0,
       dm_conversation: 0,
       proposal: 0,
@@ -176,7 +181,7 @@ class ObcEngagement {
     };
 
     needsAttention.forEach((item) => {
-      if (item.type && attentionByType.hasOwnProperty(item.type)) {
+      if (item.type && item.type in attentionByType) {
         attentionByType[item.type]++;
       }
     });
@@ -192,10 +197,8 @@ class ObcEngagement {
 
   /**
    * Log attention items by type
-   * @private
-   * @param {Array} items - Attention items to log
    */
-  logAttentionItems(items) {
+  private logAttentionItems(items: HeartbeatAttentionItem[]): void {
     if (items.length === 0) {
       this.logger.info("OBC heartbeat: No attention items need action", {
         count: 0,
@@ -204,7 +207,7 @@ class ObcEngagement {
     }
 
     // Group by type and log
-    const byType = {
+    const byType: Record<string, HeartbeatAttentionItem[]> = {
       owner_message: [],
       dm_conversation: [],
       proposal: [],
@@ -212,7 +215,7 @@ class ObcEngagement {
     };
 
     items.forEach((item) => {
-      if (item.type && byType.hasOwnProperty(item.type)) {
+      if (item.type in byType) {
         byType[item.type].push(item);
       }
     });
@@ -222,7 +225,7 @@ class ObcEngagement {
       this.logger.info(`OBC heartbeat: Found ${byType.owner_message.length} owner_message item(s)`, {
         type: "owner_message",
         count: byType.owner_message.length,
-        details: byType.owner_message.map((i) => ({
+        details: byType.owner_message.map((i: any) => ({
           from: i.fromAgent,
           message: i.message?.substring(0, 100),
         })),
@@ -233,7 +236,7 @@ class ObcEngagement {
       this.logger.info(`OBC heartbeat: Found ${byType.dm_conversation.length} dm_conversation item(s)`, {
         type: "dm_conversation",
         count: byType.dm_conversation.length,
-        details: byType.dm_conversation.map((i) => ({
+        details: byType.dm_conversation.map((i: any) => ({
           participants: i.participantCount,
           topic: i.topic,
         })),
@@ -244,7 +247,7 @@ class ObcEngagement {
       this.logger.info(`OBC heartbeat: Found ${byType.proposal.length} proposal item(s)`, {
         type: "proposal",
         count: byType.proposal.length,
-        details: byType.proposal.map((i) => ({
+        details: byType.proposal.map((i: any) => ({
           proposalId: i.proposalId,
           votesNeeded: i.votesNeeded,
         })),
@@ -255,7 +258,7 @@ class ObcEngagement {
       this.logger.info(`OBC heartbeat: Found ${byType.research_task.length} research_task item(s)`, {
         type: "research_task",
         count: byType.research_task.length,
-        details: byType.research_task.map((i) => ({
+        details: byType.research_task.map((i: any) => ({
           taskId: i.taskId,
           question: i.question?.substring(0, 100),
         })),
@@ -265,11 +268,8 @@ class ObcEngagement {
 
   /**
    * Generate summary of observations
-   * @private
-   * @param {Object} parsed - Parsed heartbeat data
-   * @returns {Object} Summary data for logging
    */
-  generateObservationSummary(parsed) {
+  private generateObservationSummary(parsed: ParsedHeartbeat): Record<string, unknown> {
     const cityBulletin = parsed.cityStatus.bulletin || "No bulletin";
     const agentCount = parsed.agentsNearby.length;
     const attentionCount = parsed.attentionCount;
@@ -281,12 +281,11 @@ class ObcEngagement {
       timestamp: new Date().toISOString(),
     };
 
-    // Publish structured observation log for monitoring and debugging
-    const logMsg =
-      `City bulletin: "${cityBulletin}", ` +
-      `${agentCount} agents nearby, ` +
-      `${attentionCount} items need attention`;
-    this.logger.info(`OBC heartbeat: ${logMsg}`, summary);
+    // Log the summary
+    this.logger.info(
+      `OBC heartbeat: City bulletin: "${cityBulletin}", ${agentCount} agents nearby, ${attentionCount} items need attention`,
+      summary
+    );
 
     return summary;
   }
@@ -295,14 +294,11 @@ class ObcEngagement {
    * Update rate limit state
    * Prepares for Phase 2 (synthesis) and Phase 3 (posting)
    * Phase 1 is read-only, so state is tracked but not updated
-   * @private
    */
-  updateRateLimitState() {
+  private updateRateLimitState(): void {
     // In Phase 1, we don't actually speak or post
     // But we track the state structure for Phase 2/3
     // This method will be extended in Phase 2 when synthesis invokes speak/post
-
-    const now = Date.now();
 
     // Log that state is being tracked (for debugging)
     this.logger.debug("OBC heartbeat: Rate limit state ready for Phase 2", {
@@ -315,9 +311,8 @@ class ObcEngagement {
 
   /**
    * Check if enough time has passed since last speak action
-   * @returns {boolean} True if speak is allowed (cooldown expired)
    */
-  canSpeak() {
+  canSpeak(): boolean {
     if (this.rateLimitState.lastSpeakTime === null) {
       return true; // Never spoken, allowed
     }
@@ -328,9 +323,8 @@ class ObcEngagement {
 
   /**
    * Check if enough time has passed since last post action
-   * @returns {boolean} True if post is allowed (cooldown expired)
    */
-  canPost() {
+  canPost(): boolean {
     if (this.rateLimitState.lastPostTime === null) {
       return true; // Never posted, allowed
     }
@@ -343,7 +337,7 @@ class ObcEngagement {
    * Mark that a speak action just occurred
    * Used by Phase 2 (synthesis) when generating responses
    */
-  recordSpeak() {
+  recordSpeak(): void {
     this.rateLimitState.lastSpeakTime = Date.now();
   }
 
@@ -351,9 +345,7 @@ class ObcEngagement {
    * Mark that a post action just occurred
    * Used by Phase 3 (posting) when sending responses
    */
-  recordPost() {
+  recordPost(): void {
     this.rateLimitState.lastPostTime = Date.now();
   }
 }
-
-module.exports = { ObcEngagement };
