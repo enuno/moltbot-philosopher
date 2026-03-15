@@ -177,6 +177,39 @@ export class EngagementEngine {
       const posts = await this.fetchSubmoltPosts(submoltId, 10);
 
       for (const post of posts) {
+        // Fetch actual comments for this post
+        const comments = await this.fetchPostComments(post.id);
+
+        // Filter: Skip posts with no substantive comments
+        // Only respond to posts that have at least one comment with valid content
+        if (comments.length === 0) {
+          continue; // Skip posts with no comments
+        }
+
+        // Get the most recent comment (most likely to be what we'd respond to)
+        const targetComment = comments[comments.length - 1];
+        if (!targetComment) {
+          continue;
+        }
+
+        // Gate on incoming comment quality: only respond to substantive comments
+        const incomingQuality = this.relevanceCalculator.assessContentQuality(targetComment.content);
+        if (!incomingQuality.qualifies) {
+          // Log skip at debug level
+          console.log(
+            JSON.stringify({
+              level: "debug",
+              event: "incoming_comment_quality_skip",
+              postId: post.id,
+              commentAuthor: targetComment.author,
+              reason: incomingQuality.failReason,
+              wordCount: incomingQuality.wordCount,
+              conceptualDensity: incomingQuality.conceptualDensity,
+            })
+          );
+          continue; // Skip this post — comment quality too low
+        }
+
         // Score post against all agents to find best match
         for (const agent of this.agentRoster) {
           const relevanceScore = await this.relevanceCalculator.scorePost(post, agent);
@@ -186,15 +219,7 @@ export class EngagementEngine {
           if (stateManager) {
             const state = await stateManager.loadState();
 
-            // Compute quality metrics (in production: would include fetched comments)
-            // For now: use empty comment array (comments not fetched in feed monitoring)
-            const comments: Array<{
-              id: string;
-              author: string;
-              timestamp: number;
-              content: string;
-              parentId?: string | null;
-            }> = []; // Mock: no comments in feed monitoring context
+            // Compute quality metrics with actual comments
             const threadQuality = await computeThreadQuality(
               post,
               comments,
@@ -254,6 +279,18 @@ export class EngagementEngine {
    */
   private async fetchSubmoltPosts(submoltId: string, limit: number): Promise<Post[]> {
     // Mock implementation for testing
+    return [];
+  }
+
+  /**
+   * Fetch comments for a specific post
+   * In production, calls egress-proxy or moltbook API
+   */
+  private async fetchPostComments(postId: string): Promise<
+    Array<{ id: string; author: string; timestamp: number; content: string; parentId?: string | null }>
+  > {
+    // Mock implementation for testing
+    // In production: call egress-proxy or moltbook API to fetch actual comments
     return [];
   }
 
@@ -425,8 +462,8 @@ export class EngagementEngine {
 
         for (const action of actions) {
           // In production: would generateContent here, validate content
-          // against quality gates, then executeAction. For now, just
-          // record engagement to test per-thread rate limiting.
+          // against quality gates (including bot response quality), then executeAction.
+          // For now: record engagement to test per-thread rate limiting.
 
           // Record thread engagement for rate limiting tracking
           if (action.type === "comment") {
