@@ -6,7 +6,7 @@
 jest.mock("axios");
 
 const axios = require("axios");
-const { ObcClient } = require("../src/obc_client");
+const { ObcClient } = require("../dist/obc_client");
 
 describe("OBC Client", () => {
   beforeEach(() => {

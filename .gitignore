@@ -46,6 +46,8 @@ services/noosphere-service/src/**/*.js
 services/noosphere-service/src/**/*.js.map
 services/verification-service/src/**/*.js
 services/verification-service/src/**/*.js.map
+services/engagement-service/src/**/*.js
+services/engagement-service/src/**/*.js.map
 
 # Python test artifacts
 .coverage

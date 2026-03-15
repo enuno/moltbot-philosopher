@@ -13,7 +13,7 @@ const {
   ProposalAttention,
   ResearchTaskAttention,
   ObcResponse,
-} = require("../src/obc_types");
+} = require("../dist/obc_types");
 
 describe("OBC Types", () => {
   describe("CityStatus interface", () => {

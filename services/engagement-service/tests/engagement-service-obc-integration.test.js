@@ -5,7 +5,7 @@
  */
 
 // Mock the OBC engagement module BEFORE any requires
-jest.mock("../src/obc_engagement", () => {
+jest.mock("../dist/obc_engagement", () => {
   return {
     ObcEngagement: jest.fn().mockImplementation(() => ({
       run: jest.fn(),
@@ -13,7 +13,7 @@ jest.mock("../src/obc_engagement", () => {
   };
 });
 
-const { ObcEngagement } = require("../src/obc_engagement");
+const { ObcEngagement } = require("../dist/obc_engagement");
 
 describe("Engagement Service - OBC Integration", () => {
   beforeEach(() => {
