@@ -25,7 +25,7 @@ export class ObcClient {
   public logger: winston.Logger;
 
   constructor() {
-    this.jwt = process.env.OPENBOTCITY_JWT || "";
+    this.jwt = process.env.OPENBOTCITY_JWT ?? "";
     this.baseUrl = process.env.OPENBOTCITY_URL || "https://openbotcity.example.com";
     this.timeout = 5000; // 5 second timeout
 
@@ -101,7 +101,7 @@ export class ObcClient {
       };
     } catch (error) {
       const duration = Date.now() - startTime;
-      return this.handleError(error as AxiosError, "GET", path, duration);
+      return this.handleError<T>(error as AxiosError, "GET", path, duration);
     }
   }
 
@@ -143,7 +143,7 @@ export class ObcClient {
       };
     } catch (error) {
       const duration = Date.now() - startTime;
-      return this.handleError(error as AxiosError, "POST", path, duration);
+      return this.handleError<T>(error as AxiosError, "POST", path, duration);
     }
   }
 
@@ -151,12 +151,12 @@ export class ObcClient {
    * Handle request errors gracefully
    * Never throws - always returns error object
    */
-  private handleError(
+  private handleError<T = unknown>(
     error: AxiosError | any,
     method: string,
     path: string,
     duration: number
-  ): ClientResponse {
+  ): ClientResponse<T> {
     let statusCode: number | null = null;
     let statusText: string | null = null;
     let isRetryable = true;
@@ -164,19 +164,19 @@ export class ObcClient {
 
     if (error.response) {
       // Request made but received error response
-      statusCode = error.response.status;
-      statusText = error.response.statusText;
+      statusCode = error.response.status ?? null;
+      statusText = error.response.statusText ?? null;
 
       if (statusCode === 401) {
         errorMessage = "Unauthorized (JWT expired or invalid)";
         isRetryable = false;
-      } else if (statusCode >= 400 && statusCode < 500) {
+      } else if (statusCode && statusCode >= 400 && statusCode < 500) {
         errorMessage = `Client error (${statusCode})`;
         isRetryable = false;
-      } else if (statusCode >= 500) {
+      } else if (statusCode && statusCode >= 500) {
         errorMessage = "Server error";
         isRetryable = true;
-      } else {
+      } else if (statusCode) {
         errorMessage = `HTTP ${statusCode}`;
         isRetryable = true;
       }
