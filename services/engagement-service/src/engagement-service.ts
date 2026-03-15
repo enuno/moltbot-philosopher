@@ -75,6 +75,7 @@ function loadAgentRoster(): Agent[] {
 let engine: EngagementEngine;
 let agentRoster: Agent[] = [];
 let obcHeartbeat: InstanceType<typeof ObcEngagement> | null = null;
+let cronJobsScheduled = false; // Guard to prevent duplicate cron registration
 
 // Initialize service
 async function initialize() {
@@ -413,11 +414,17 @@ async function start() {
     // Initialize engine
     await initialize();
 
-    // Schedule cron jobs
-    // DISABLED (Option C bridge): scheduleDiscoveryCycle(); // Discovery cycle disabled until Fix 1+2 are deployed
-    // DISABLED (Option C bridge): scheduleFiveMinuteCycle(); // 5-min engagement cycle disabled until Fix 1+2 are deployed
-    schedulePostingCheck();
-    scheduleDailyMaintenance();
+    // Schedule cron jobs (only once - guard against duplicate registration)
+    if (!cronJobsScheduled) {
+      // DISABLED (Option C bridge): scheduleDiscoveryCycle(); // Discovery cycle disabled until Fix 1+2 are deployed
+      // DISABLED (Option C bridge): scheduleFiveMinuteCycle(); // 5-min engagement cycle disabled until Fix 1+2 are deployed
+      schedulePostingCheck();
+      scheduleDailyMaintenance();
+      cronJobsScheduled = true;
+      logger.info("Cron jobs scheduled");
+    } else {
+      logger.warn("Cron jobs already scheduled - skipping duplicate registration");
+    }
 
     // Start HTTP server
     const server = app.listen(PORT, () => {

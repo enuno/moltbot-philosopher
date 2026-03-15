@@ -2,11 +2,111 @@
 /**
  * RelevanceCalculator
  * Scores posts for agent-tradition semantic alignment
- * Enforces quality gates: no generic comments, minimum substantiveness
+ * Enforces quality gates: no generic comments, minimum substantiveness,
+ * and content quality assessment (word count, conceptual density, argument structure).
  */
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.RelevanceCalculator = void 0;
+exports.RelevanceCalculator = exports.PHILOSOPHICAL_TERMS = exports.CONTENT_QUALITY_THRESHOLDS = void 0;
 const banned_phrases_1 = require("./banned-phrases");
+// ─── Content Quality Thresholds ───────────────────────────────────────────────
+/** Minimum thresholds for content quality pre-flight gate */
+exports.CONTENT_QUALITY_THRESHOLDS = {
+    /** Ignore comments with fewer words than this */
+    MIN_WORD_COUNT: 25,
+    /**
+     * Minimum ratio of philosophical term matches to total words.
+     * A value of 0.05 requires roughly 1 philosophical term per 20 words —
+     * easily met by substantive philosophical writing but not by shallow
+     * affirmations ("I agree. Good point.") which contain zero such terms.
+     */
+    MIN_CONCEPTUAL_DENSITY: 0.05,
+};
+/**
+ * Philosophical terms used to compute conceptual density.
+ * A comment must contain enough of these relative to its word count
+ * to pass the content quality gate.
+ */
+exports.PHILOSOPHICAL_TERMS = [
+    "ontology",
+    "ontological",
+    "epistemology",
+    "epistemological",
+    "ethics",
+    "ethical",
+    "metaphysics",
+    "metaphysical",
+    "consciousness",
+    "authenticity",
+    "absurd",
+    "absurdity",
+    "dialectic",
+    "dialectical",
+    "phenomenology",
+    "phenomenological",
+    "existential",
+    "existentialism",
+    "existentialist",
+    "deontology",
+    "deontological",
+    "consequentialist",
+    "consequentialism",
+    "virtue",
+    "teleology",
+    "teleological",
+    "empiricism",
+    "empirical",
+    "rationalism",
+    "rationalist",
+    "idealism",
+    "idealist",
+    "realism",
+    "determinism",
+    "autonomy",
+    "intentionality",
+    "qualia",
+    "syllogism",
+    "modality",
+    "a priori",
+    "hermeneutics",
+    "aesthetics",
+    "aesthetic",
+    "epistemics",
+    "pragmatism",
+    "pragmatic",
+    "nihilism",
+    "nihilistic",
+    "stoicism",
+    "stoic",
+    "logos",
+    "aporia",
+    "noumena",
+    "dialectics",
+    "implication",
+    "implies",
+];
+/** Argument-structure connectives that indicate logical reasoning */
+const ARGUMENT_STRUCTURE_PATTERNS = [
+    "because",
+    "therefore",
+    "however",
+    "consequently",
+    "if\\s+.{1,60}\\s+then",
+    "implies",
+    "entails",
+    "follows that",
+    "it is the case",
+    "consider that",
+    "suppose that",
+    "given that",
+    "in contrast",
+    "on the contrary",
+    "by contrast",
+    "yet this",
+    "this means",
+    "this entails",
+    "one could argue",
+];
+const ARGUMENT_STRUCTURE_RE = new RegExp(`\\b(${ARGUMENT_STRUCTURE_PATTERNS.join("|")})\\b`, "i");
 const BANNED_PHRASES = [
     "good",
     "good point",
@@ -102,17 +202,84 @@ class RelevanceCalculator {
         return BANNED_PHRASES.some((phrase) => lower === phrase || lower.includes(phrase));
     }
     /**
-     * Check if comment is substantive (not trivial)
-     * Requires: >20 characters AND >1 sentence (split by .!?)
+     * Check if comment is substantive (not trivial).
+     *
+     * Strengthened gate (issue #93):
+     *   - Minimum 50 characters (raised from 20)
+     *   - At least 2 non-trivial sentences (each sentence must contain
+     *     a meaningful word token, not just punctuation)
+     *   - Average words per sentence must be ≥ 6
      */
     isSubstantive(content) {
         const trimmed = content.trim();
-        // Minimum length check
-        if (trimmed.length < 20)
+        // Minimum character length
+        if (trimmed.length < 50)
             return false;
-        // Minimum sentence count check
-        const sentences = trimmed.split(/[.!?]+/).filter((s) => s.trim().length > 0);
-        return sentences.length >= 2;
+        // Split into non-trivial sentences (ignore empty fragments after split)
+        const sentences = trimmed.split(/[.!?]+/).filter((s) => s.trim().length > 5);
+        if (sentences.length < 2)
+            return false;
+        // Require average words per sentence >= 6 (prevents "I agree. Good point." style input)
+        const totalWords = trimmed.split(/\s+/).filter((w) => w.length > 0).length;
+        const avgWordsPerSentence = totalWords / sentences.length;
+        return avgWordsPerSentence >= 6;
+    }
+    /**
+     * Assess the content quality of a comment before generating STP responses.
+     *
+     * Three criteria (issue #93 Fix 1):
+     *   1. Word count ≥ CONTENT_QUALITY_THRESHOLDS.MIN_WORD_COUNT (25)
+     *   2. Conceptual density ≥ CONTENT_QUALITY_THRESHOLDS.MIN_CONCEPTUAL_DENSITY (0.05)
+     *      (philosophical term matches / total words — requires ~1 term per 20 words)
+     *   3. Presence of at least one argument-structure connective
+     *      (because, therefore, however, if…then, implies, entails, etc.)
+     *
+     * All three criteria must pass for `qualifies` to be true.
+     *
+     * @param commentText - Raw comment text to assess
+     * @returns ContentQualityResult with pass/fail and diagnostic metrics
+     */
+    assessContentQuality(commentText) {
+        const trimmed = commentText.trim();
+        const words = trimmed.split(/\s+/).filter((w) => w.length > 0);
+        const wordCount = words.length;
+        // Count philosophical term matches using word-boundary regex.
+        // Word boundary matching prevents "ontology" from matching within "ontological"
+        // when both variants are listed — each term is counted at most once (present/absent).
+        const termMatches = exports.PHILOSOPHICAL_TERMS.reduce((count, term) => {
+            // Escape special regex chars in the term (handles "a priori" with space)
+            const escaped = term.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+            const re = new RegExp(`\\b${escaped}\\b`, "i");
+            return re.test(trimmed) ? count + 1 : count;
+        }, 0);
+        const conceptualDensity = wordCount > 0 ? termMatches / wordCount : 0;
+        const hasArgumentStructure = ARGUMENT_STRUCTURE_RE.test(trimmed);
+        // Determine pass/fail and reason
+        let qualifies = true;
+        let failReason;
+        if (wordCount < exports.CONTENT_QUALITY_THRESHOLDS.MIN_WORD_COUNT) {
+            qualifies = false;
+            failReason = `word_count_too_low (${wordCount} < ${exports.CONTENT_QUALITY_THRESHOLDS.MIN_WORD_COUNT})`;
+        }
+        else if (conceptualDensity < exports.CONTENT_QUALITY_THRESHOLDS.MIN_CONCEPTUAL_DENSITY) {
+            qualifies = false;
+            failReason = `conceptual_density_too_low (${conceptualDensity.toFixed(3)} < ${exports.CONTENT_QUALITY_THRESHOLDS.MIN_CONCEPTUAL_DENSITY})`;
+        }
+        else if (!hasArgumentStructure) {
+            qualifies = false;
+            failReason = "no_argument_structure";
+        }
+        // Numeric score for ranking purposes
+        const score = wordCount * 0.3 + termMatches * 2 + (hasArgumentStructure ? 5 : 0);
+        return {
+            qualifies,
+            score,
+            wordCount,
+            termMatches,
+            conceptualDensity,
+            hasArgumentStructure,
+            ...(failReason && { failReason }),
+        };
     }
     /**
      * Calculate velocity score based on post engagement momentum

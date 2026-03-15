@@ -9,7 +9,7 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
     return (mod && mod.__esModule) ? mod : { "default": mod };
 };
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.agentRoster = exports.engine = exports.app = void 0;
+exports.obcHeartbeat = exports.agentRoster = exports.engine = exports.app = void 0;
 exports.initialize = initialize;
 const express_1 = __importDefault(require("express"));
 const node_cron_1 = __importDefault(require("node-cron"));
@@ -18,6 +18,8 @@ const engagement_engine_1 = require("./engagement-engine");
 const state_manager_1 = require("./state-manager");
 const stats_builder_1 = require("./stats-builder");
 const winston_1 = __importDefault(require("winston"));
+const obc_client_1 = require("./obc_client");
+const obc_engagement_1 = require("./obc_engagement");
 // Logger configuration
 const logger = winston_1.default.createLogger({
     level: process.env.LOG_LEVEL || "info",
@@ -66,6 +68,8 @@ function loadAgentRoster() {
 let engine;
 let agentRoster = [];
 exports.agentRoster = agentRoster;
+let obcHeartbeat = null;
+exports.obcHeartbeat = obcHeartbeat;
 // Initialize service
 async function initialize() {
     try {
@@ -78,9 +82,26 @@ async function initialize() {
         });
         exports.engine = engine = new engagement_engine_1.EngagementEngine({ statePaths, agentRoster });
         logger.info("EngagementEngine initialized");
+        // Initialize OBC engagement if enabled (default true)
+        const obcEnabled = process.env.OBC_ENABLE !== "false";
+        if (obcEnabled) {
+            try {
+                const obcClient = new obc_client_1.ObcClient();
+                exports.obcHeartbeat = obcHeartbeat = new obc_engagement_1.ObcEngagement(obcClient);
+                logger.info("OBC engagement module initialized");
+            }
+            catch (error) {
+                logger.warn("Failed to initialize OBC engagement module", { error });
+                // OBC initialization failure is non-fatal
+                exports.obcHeartbeat = obcHeartbeat = null;
+            }
+        }
+        else {
+            logger.info("OBC engagement module disabled via OBC_ENABLE=false");
+        }
     }
     catch (error) {
-        logger.error("Failed to initialize EngagementEngine", { error });
+        logger.error("Failed to initialize service", { error });
         throw error;
     }
 }
@@ -113,6 +134,17 @@ app.post("/engage", async (req, res) => {
     try {
         const startTime = Date.now();
         await engine.runEngagementCycle();
+        // Run OBC heartbeat if enabled (soft-fail isolation)
+        if (obcHeartbeat) {
+            try {
+                await obcHeartbeat.run();
+            }
+            catch (err) {
+                logger.warn("OBC heartbeat failed (isolated)", {
+                    error: err instanceof Error ? err.message : String(err),
+                });
+            }
+        }
         const duration = Date.now() - startTime;
         logger.info("Engagement cycle completed", { duration });
         res.json({
@@ -258,6 +290,18 @@ function scheduleFiveMinuteCycle() {
             logger.info("Starting 5-minute engagement cycle");
             const startTime = Date.now();
             await engine.runEngagementCycle();
+            // Run OBC heartbeat with soft-fail isolation (never crashes Moltbot)
+            if (obcHeartbeat) {
+                try {
+                    await obcHeartbeat.run();
+                }
+                catch (err) {
+                    logger.warn("OBC heartbeat failed (isolated)", {
+                        error: err instanceof Error ? err.message : String(err),
+                    });
+                    // Continue - OBC errors never block Moltbot
+                }
+            }
             const duration = Date.now() - startTime;
             // Update last cycle time for stats endpoint
             app.locals.lastCycleTime = Date.now();
@@ -334,8 +378,8 @@ async function start() {
         // Initialize engine
         await initialize();
         // Schedule cron jobs
-        scheduleDiscoveryCycle();
-        scheduleFiveMinuteCycle();
+        // DISABLED (Option C bridge): scheduleDiscoveryCycle(); // Discovery cycle disabled until Fix 1+2 are deployed
+        // DISABLED (Option C bridge): scheduleFiveMinuteCycle(); // 5-min engagement cycle disabled until Fix 1+2 are deployed
         schedulePostingCheck();
         scheduleDailyMaintenance();
         // Start HTTP server
