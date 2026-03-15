@@ -205,7 +205,7 @@ export class ObcClient {
 
     return {
       success: false,
-      error: errorMessage,
+      error: errorMessage || "Unknown error",
       retryable: isRetryable,
     };
   }
