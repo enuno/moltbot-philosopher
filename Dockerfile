@@ -3,8 +3,8 @@
 # Stage 1: Base
 FROM ubuntu:24.04 AS base
 
-# Install runtime deps minimally (cron for scheduled tasks)
-RUN apt-get update && apt-get install -y curl nodejs npm git jq cron gnupg python3 python3-pip && \
+# Install runtime deps minimally
+RUN apt-get update && apt-get install -y curl nodejs npm git python3 python3-pip && \
     apt-get clean && rm -rf /var/lib/apt/lists/*
 
 # Copy audited skills and services
@@ -19,8 +19,7 @@ RUN pip3 install --break-system-packages -r /app/services/noosphere/python-clien
     pip3 install --break-system-packages PyPDF2
 
 # Install only production Node.js dependencies
-# Note: Install @moltbook/auth explicitly as it's required by services/moltbook-client
-RUN npm install --production --no-optional --legacy-peer-deps @moltbook/auth
+RUN npm install --production --no-optional --legacy-peer-deps
 
 # Non-root user setup
 # Remove ubuntu user (UID 1000) to ensure predictable UID assignment

@@ -1,0 +1,300 @@
+{
+  "version": "1.0.0",
+  "lastScanned": 1775158234707,
+  "projectRoot": "/home/elvis/.moltbot",
+  "techStack": {
+    "languages": [
+      {
+        "name": "JavaScript/TypeScript",
+        "version": null,
+        "confidence": "high",
+        "markers": [
+          "package.json"
+        ]
+      }
+    ],
+    "frameworks": [
+      {
+        "name": "express",
+        "version": "5.2.1",
+        "category": "backend"
+      },
+      {
+        "name": "jest",
+        "version": "30.2.0",
+        "category": "testing"
+      }
+    ],
+    "packageManager": "pnpm",
+    "runtime": null
+  },
+  "build": {
+    "buildCommand": null,
+    "testCommand": "pnpm test",
+    "lintCommand": "pnpm lint",
+    "devCommand": null,
+    "scripts": {
+      "test": "jest",
+      "test:watch": "jest --watch",
+      "test:coverage": "jest --coverage",
+      "test:ci": "jest --ci --coverage --reporters=default --reporters=jest-junit",
+      "lint": "oxlint services/ skills/",
+      "lint:fix": "oxlint services/ skills/ --fix",
+      "lint:md": "markdownlint --ignore-path .markdownlintignore --disable MD013 MD024 MD025 MD029 MD033 MD036 MD040 MD041 MD056 MD060 -- \"**/*.md\"",
+      "lint:md:fix": "markdownlint --ignore-path .markdownlintignore --disable MD013 MD024 MD025 MD029 MD033 MD036 MD040 MD041 MD056 MD060 -- \"**/*.md\" --fix",
+      "lint:yaml": "find . -name '*.yaml' -o -name '*.yml' | grep -v node_modules | grep -v coverage | grep -v pnpm-lock | grep -v '\\.lock\\.yml' | xargs yamllint -c .yamllint.yaml",
+      "fmt": "oxfmt services/ skills/",
+      "fmt:check": "oxfmt services/ skills/ --check"
+    }
+  },
+  "conventions": {
+    "namingStyle": null,
+    "importStyle": null,
+    "testPattern": null,
+    "fileOrganization": null
+  },
+  "structure": {
+    "isMonorepo": true,
+    "workspaces": [],
+    "mainDirectories": [
+      "assets",
+      "docs",
+      "examples",
+      "scripts",
+      "tests"
+    ],
+    "gitBranches": {
+      "defaultBranch": "main",
+      "branchingStrategy": null
+    }
+  },
+  "customNotes": [],
+  "directoryMap": {
+    "assets": {
+      "path": "assets",
+      "purpose": "Static assets",
+      "fileCount": 0,
+      "lastAccessed": 1775158234646,
+      "keyFiles": []
+    },
+    "backups": {
+      "path": "backups",
+      "purpose": null,
+      "fileCount": 0,
+      "lastAccessed": 1775158234647,
+      "keyFiles": []
+    },
+    "config": {
+      "path": "config",
+      "purpose": "Configuration files",
+      "fileCount": 2,
+      "lastAccessed": 1775158234664,
+      "keyFiles": [
+        "model-roles.yml",
+        "model-routing.yml"
+      ]
+    },
+    "coverage": {
+      "path": "coverage",
+      "purpose": null,
+      "fileCount": 10,
+      "lastAccessed": 1775158234670,
+      "keyFiles": [
+        "base.css",
+        "block-navigation.js",
+        "coverage-final.json",
+        "favicon.png",
+        "index.html"
+      ]
+    },
+    "data": {
+      "path": "data",
+      "purpose": "Data files",
+      "fileCount": 0,
+      "lastAccessed": 1775158234673,
+      "keyFiles": []
+    },
+    "docs": {
+      "path": "docs",
+      "purpose": "Documentation",
+      "fileCount": 57,
+      "lastAccessed": 1775158234674,
+      "keyFiles": [
+        "AGENTIC-WORKFLOWS-SETUP.md",
+        "AGENT_ARCHITECTURE_AUDIT.md",
+        "AGENT_SCRIPTS.md",
+        "AI_EXISTENTIAL_THEMES.md",
+        "AUTO_DARWINISM_DEPLOYMENT.md"
+      ]
+    },
+    "examples": {
+      "path": "examples",
+      "purpose": "Example code",
+      "fileCount": 1,
+      "lastAccessed": 1775158234675,
+      "keyFiles": [
+        "moltbook-client-demo.js"
+      ]
+    },
+    "htmlcov": {
+      "path": "htmlcov",
+      "purpose": null,
+      "fileCount": 17,
+      "lastAccessed": 1775158234676,
+      "keyFiles": [
+        "class_index.html",
+        "coverage_html_cb_dd2e7eb5.js",
+        "favicon_32_cb_c827f16f.png",
+        "function_index.html",
+        "index.html"
+      ]
+    },
+    "logs": {
+      "path": "logs",
+      "purpose": null,
+      "fileCount": 18,
+      "lastAccessed": 1775158234677,
+      "keyFiles": [
+        "ai-generator-error.log",
+        "ai-generator.log",
+        "classical-philosopher.log",
+        "engagement-error.log",
+        "engagement.log"
+      ]
+    },
+    "memory": {
+      "path": "memory",
+      "purpose": null,
+      "fileCount": 0,
+      "lastAccessed": 1775158234678,
+      "keyFiles": []
+    },
+    "meta": {
+      "path": "meta",
+      "purpose": null,
+      "fileCount": 1,
+      "lastAccessed": 1775158234681,
+      "keyFiles": [
+        "siq-state.json"
+      ]
+    },
+    "noosphere-fallback": {
+      "path": "noosphere-fallback",
+      "purpose": null,
+      "fileCount": 0,
+      "lastAccessed": 1775158234682,
+      "keyFiles": []
+    },
+    "patches": {
+      "path": "patches",
+      "purpose": null,
+      "fileCount": 1,
+      "lastAccessed": 1775158234682,
+      "keyFiles": [
+        "convene-council-synthesis-integration.patch"
+      ]
+    },
+    "scripts": {
+      "path": "scripts",
+      "purpose": "Build/utility scripts",
+      "fileCount": 138,
+      "lastAccessed": 1775158234683,
+      "keyFiles": [
+        "CLAUDE.md",
+        "MIGRATION_NOTE.md",
+        "apply-decay.sh",
+        "archive-moltstack-article.sh",
+        "archive-thread-to-noosphere.sh"
+      ]
+    },
+    "services": {
+      "path": "services",
+      "purpose": "Business logic services",
+      "fileCount": 0,
+      "lastAccessed": 1775158234684,
+      "keyFiles": []
+    },
+    "skills": {
+      "path": "skills",
+      "purpose": null,
+      "fileCount": 2,
+      "lastAccessed": 1775158234684,
+      "keyFiles": [
+        "CLAWSEC_INSTALLATION.md",
+        "clawsec-suite.md"
+      ]
+    },
+    "state": {
+      "path": "state",
+      "purpose": null,
+      "fileCount": 1,
+      "lastAccessed": 1775158234684,
+      "keyFiles": [
+        "clawsec-state.json"
+      ]
+    },
+    "synthesis-state": {
+      "path": "synthesis-state",
+      "purpose": null,
+      "fileCount": 1,
+      "lastAccessed": 1775158234689,
+      "keyFiles": [
+        "synthesis-exclusions.json"
+      ]
+    },
+    "tests": {
+      "path": "tests",
+      "purpose": "Test files",
+      "fileCount": 15,
+      "lastAccessed": 1775158234690,
+      "keyFiles": [
+        "CLAUDE.md",
+        "README.md",
+        "SemanticSearch.debug.test.js",
+        "compare-venice-models.js",
+        "daily-polemic-affinity.sh"
+      ]
+    },
+    "workspace": {
+      "path": "workspace",
+      "purpose": null,
+      "fileCount": 3,
+      "lastAccessed": 1775158234692,
+      "keyFiles": [
+        "CLAUDE.md",
+        "MEMORY.md",
+        "heartbeat-state.json"
+      ]
+    },
+    "services/config": {
+      "path": "services/config",
+      "purpose": "Configuration files",
+      "fileCount": 0,
+      "lastAccessed": 1775158234705,
+      "keyFiles": []
+    },
+    "tests/config": {
+      "path": "tests/config",
+      "purpose": "Configuration files",
+      "fileCount": 2,
+      "lastAccessed": 1775158234706,
+      "keyFiles": [
+        "eastern-philosopher-persona.test.js",
+        "scoring-config.test.js"
+      ]
+    },
+    "tests/fixtures": {
+      "path": "tests/fixtures",
+      "purpose": "Test fixtures",
+      "fileCount": 4,
+      "lastAccessed": 1775158234706,
+      "keyFiles": [
+        "ai-generator-fixtures.js",
+        "mock-heartbeat-state.json",
+        "model-router-fixtures.js"
+      ]
+    }
+  },
+  "hotPaths": [],
+  "userDirectives": []
+}

@@ -7,10 +7,6 @@ api.anthropic.com
 api.groq.com
 api.together.xyz
 
-# Venice AI (Primary Workhorse)
-api.venice.ai
-venice.ai
-
 # Kimi/Moonshot (Deep Reasoning)
 api.moonshot.cn
 api.moonshot.ai

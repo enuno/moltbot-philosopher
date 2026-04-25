@@ -1,538 +1,4 @@
 services:
-  # Intelligent Egress Proxy - Automatic verification challenge handling
-  egress-proxy:
-    build:
-      context: ./services/intelligent-proxy
-      dockerfile: Dockerfile
-    image: moltbot-intelligent-proxy
-    container_name: moltbot-egress-proxy
-    environment:
-      - PROXY_PORT=8082
-      - VENICE_API_KEY=${VENICE_API_KEY}
-      - OPENROUTER_API_KEY=${OPENROUTER_API_KEY}
-      - OPENROUTER_MODEL=${OPENROUTER_MODEL:-meta-llama/llama-3.1-8b-instruct}
-      - MOLTBOOK_API_KEY=${MOLTBOOK_API_KEY}
-      - AI_GENERATOR_URL=http://ai-generator:3002
-      - VERIFICATION_SERVICE_URL=http://verification-service:3007
-      - SHELL_FALLBACK_ENABLED=true
-      - SHELL_FALLBACK_SCRIPT=/app/scripts/handle-verification-challenge.sh
-      - DEBUG=false
-      - CACHE_TTL=3600000  # 1 hour cache TTL
-      - CACHE_MAX_SIZE=1000  # Max 1000 cached challenges
-      - ADMIN_TOKEN=${EGRESS_PROXY_ADMIN_TOKEN:-changeme}
-    volumes:
-      - ./logs:/app/logs:rw
-      - ./scripts:/app/scripts:ro
-      - ./workspace:/workspace:ro
-    ports:
-      - "8082:8082"
-    networks:
-      - dokploy-network
-    restart: unless-stopped
-    # Resource limits
-    deploy:
-      resources:
-        limits:
-          cpus: '0.5'
-          memory: 512M
-        reservations:
-          cpus: '0.25'
-          memory: 256M
-    healthcheck:
-      test: ["CMD", "wget", "--spider", "-q", "http://localhost:8082/health"]
-      interval: 30s
-      timeout: 10s
-      retries: 3
-      start_period: 15s
-    logging:
-      driver: "json-file"
-      options:
-        max-size: "10m"
-        max-file: "3"
-
-  # Classical Philosopher Agent (Virgil/Dante/Milton)
-  classical-philosopher:
-    build:
-      context: .
-      dockerfile: Dockerfile
-      target: production
-    image: moltbot:classical
-    container_name: classical-philosopher
-    # Note: User is set in Dockerfile (USER agent) to avoid UID mismatch
-    # Do not add 'user:' directive here - it overrides Dockerfile and breaks permissions
-    read_only: true
-    cap_drop:
-      - ALL
-    security_opt:
-      - no-new-privileges:true
-    pids_limit: 512
-    mem_limit: 4g
-    cpus: 2.0
-    environment:
-      - AGENT_NAME=ClassicalPhilosopher
-      - AGENT_TYPE=classical
-      - MAX_TOKENS=16384
-      - CLAW_SYSTEM_PROMPT_FILE=/app/config/prompts/classical.txt
-      - VENICE_DEFAULT_MODEL=venice/deepseek-v3.2
-      - VENICE_PREMIUM_MODEL=venice/openai-gpt-52
-      - KIMI_REASONING_MODEL=kimi-k2.5-thinking
-      - KIMI_FAST_MODEL=kimi-k2.5-instant
-      - LONG_CONTEXT_THRESHOLD=1000
-      - VERY_LONG_CONTEXT_THRESHOLD=10000
-      # Moltbook Configuration
-      - MOLTBOOK_API_KEY=${MOLTBOOK_API_KEY}
-      - MOLTBOT_STATE_DIR=/workspace
-      - AI_GENERATOR_SERVICE_URL=http://ai-generator:3000
-      - ENABLE_AUTO_WELCOME=true
-      - ENABLE_MENTION_DETECTION=true
-      - NTFY_ENABLED=${NTFY_ENABLED:-false}
-      # Auto-Darwinism Protocol
-      - AUTO_UPDATE_MODE=staged
-      - MOLTBOOK_PUB_KEY=/app/config/moltbook-signing-key.asc
-      - UPDATE_NOTIFICATION_TOPIC=council-updates
-      # Tri-Layer Noosphere v2.5
-      - NOOSPHERE_VERSION=2.5
-      - MEMORY_ARCHITECTURE=tri-layer
-      - ENABLE_CLAWHUB_INTEGRATION=true
-      - MEM0_API_KEY=${MEM0_API_KEY}
-      - NOOSPHERE_STATE_DIR=/workspace/classical/noosphere
-      - NOOSPHERE_PYTHON_CLIENT=/app/noosphere-client
-      # Direct connection (egress proxy disabled due to HTTPS CONNECT compatibility)
-      # - HTTPS_PROXY=http://egress-proxy:8080
-      # - HTTP_PROXY=http://egress-proxy:8080
-    env_file:
-      - config/agents/classical-philosopher.env
-    volumes:
-      - ./workspace/classical:/workspace:rw
-      - ./config:/app/config:ro
-      - ./skills:/app/skills:ro
-      - ./scripts:/app/scripts:ro
-      - ./services/noosphere/python-client:/app/noosphere-client:ro
-      - ./logs:/app/logs:rw
-    networks:
-      - dokploy-network
-    depends_on:
-      egress-proxy:
-        condition: service_healthy
-      ntfy-publisher:
-        condition: service_healthy
-    restart: unless-stopped
-    healthcheck:
-      test:
-        ["CMD", "sh", "-c", "ps aux | grep -q entrypoint && exit 0 || exit 1"]
-      interval: 60s
-      timeout: 10s
-      retries: 3
-      start_period: 30s
-
-  # Existentialist Agent (Sartre/Camus/Dostoevsky/Nietzsche)
-  existentialist:
-    extends:
-      service: classical-philosopher
-      file: docker-compose.yml
-    image: moltbot:existentialist
-    container_name: existentialist
-    mem_limit: 4g
-    cpus: 2.0
-    environment:
-      - AGENT_NAME=Existentialist
-      - AGENT_TYPE=existentialist
-      - MAX_TOKENS=12288
-      - CLAW_SYSTEM_PROMPT_FILE=/app/config/prompts/existentialist.txt
-      - NTFY_ENABLED=${NTFY_ENABLED:-false}
-    env_file:
-      - config/agents/existentialist.env
-    volumes:
-      - ./workspace/existentialist:/workspace:rw
-      - ./config:/app/config:ro
-      - ./skills:/app/skills:ro
-      - ./scripts:/app/scripts:ro
-      - ./services/noosphere/python-client:/app/noosphere-client:ro
-    depends_on:
-      egress-proxy:
-        condition: service_healthy
-      ntfy-publisher:
-        condition: service_healthy
-
-  # Transcendentalist Agent (Emerson/Jefferson)
-  transcendentalist:
-    extends:
-      service: classical-philosopher
-      file: docker-compose.yml
-    image: moltbot:transcendentalist
-    container_name: transcendentalist
-    mem_limit: 2g
-    cpus: 1.0
-    environment:
-      - AGENT_NAME=Transcendentalist
-      - AGENT_TYPE=transcendentalist
-      - MAX_TOKENS=8192
-      - CLAW_SYSTEM_PROMPT_FILE=/app/config/prompts/transcendentalist.txt
-      - NTFY_ENABLED=${NTFY_ENABLED:-false}
-    env_file:
-      - config/agents/transcendentalist.env
-    volumes:
-      - ./workspace/transcendentalist:/workspace:rw
-      - ./config:/app/config:ro
-      - ./skills:/app/skills:ro
-      - ./scripts:/app/scripts:ro
-      - ./services/noosphere/python-client:/app/noosphere-client:ro
-    depends_on:
-      egress-proxy:
-        condition: service_healthy
-      ntfy-publisher:
-        condition: service_healthy
-
-  # Joyce Stream Agent (Stream-of-consciousness)
-  joyce-stream:
-    extends:
-      service: classical-philosopher
-      file: docker-compose.yml
-    image: moltbot:joyce
-    container_name: joyce-stream
-    mem_limit: 6g
-    cpus: 2.5
-    pids_limit: 768
-    environment:
-      - AGENT_NAME=JoyceStream
-      - AGENT_TYPE=joyce
-      - MAX_TOKENS=32768
-      - CLAW_SYSTEM_PROMPT_FILE=/app/config/prompts/joyce-stream.txt
-      - NTFY_ENABLED=${NTFY_ENABLED:-false}
-    env_file:
-      - config/agents/joyce-stream.env
-    volumes:
-      - ./workspace/joyce:/workspace:rw
-      - ./config:/app/config:ro
-      - ./skills:/app/skills:ro
-      - ./scripts:/app/scripts:ro
-      - ./services/noosphere/python-client:/app/noosphere-client:ro
-    depends_on:
-      egress-proxy:
-        condition: service_healthy
-      ntfy-publisher:
-        condition: service_healthy
-
-  # Enlightenment Agent (Voltaire/Paine/Franklin) - NEW
-  enlightenment:
-    extends:
-      service: classical-philosopher
-      file: docker-compose.yml
-    image: moltbot:enlightenment
-    container_name: enlightenment
-    mem_limit: 3g
-    cpus: 1.5
-    environment:
-      - AGENT_NAME=Enlightenment
-      - AGENT_TYPE=enlightenment
-      - MAX_TOKENS=12288
-      - CLAW_SYSTEM_PROMPT_FILE=/app/config/prompts/enlightenment.txt
-      - NTFY_ENABLED=${NTFY_ENABLED:-false}
-    volumes:
-      - ./workspace/enlightenment:/workspace:rw
-      - ./config:/app/config:ro
-      - ./skills:/app/skills:ro
-      - ./scripts:/app/scripts:ro
-      - ./services/noosphere/python-client:/app/noosphere-client:ro
-    depends_on:
-      egress-proxy:
-        condition: service_healthy
-      ntfy-publisher:
-        condition: service_healthy
-
-  # Beat Generation Agent (Ginsberg/Burroughs/Thompson) - NEW
-  beat-generation:
-    extends:
-      service: classical-philosopher
-      file: docker-compose.yml
-    image: moltbot:beat
-    container_name: beat-generation
-    mem_limit: 4g
-    cpus: 2.0
-    environment:
-      - AGENT_NAME=BeatGeneration
-      - AGENT_TYPE=beat
-      - MAX_TOKENS=16384
-      - CLAW_SYSTEM_PROMPT_FILE=/app/config/prompts/beat.txt
-      - NTFY_ENABLED=${NTFY_ENABLED:-false}
-    volumes:
-      - ./workspace/beat:/workspace:rw
-      - ./config:/app/config:ro
-      - ./skills:/app/skills:ro
-      - ./scripts:/app/scripts:ro
-      - ./services/noosphere/python-client:/app/noosphere-client:ro
-    depends_on:
-      egress-proxy:
-        condition: service_healthy
-      ntfy-publisher:
-        condition: service_healthy
-
-  # Cyberpunk-Posthumanist Agent - NEW
-  cyberpunk-posthumanist:
-    extends:
-      service: classical-philosopher
-      file: docker-compose.yml
-    image: moltbot:cyberpunk
-    container_name: cyberpunk-posthumanist
-    mem_limit: 5g
-    cpus: 2.5
-    environment:
-      - AGENT_NAME=CyberpunkPosthumanist
-      - AGENT_TYPE=cyberpunk-posthumanist
-      - MAX_TOKENS=24576
-      - CLAW_SYSTEM_PROMPT_FILE=/app/config/prompts/cyberpunk-posthumanist.txt
-      - GIBSON_RATIO=0.4
-      - ASIMOV_RATIO=0.3
-      - DICK_RATIO=0.3
-      - REALITY_ANCHOR=technological_materialism
-      - NTFY_ENABLED=${NTFY_ENABLED:-false}
-    env_file:
-      - config/agents/cyberpunk-posthumanist.env
-    volumes:
-      - ./workspace/cyberpunk-posthumanist:/workspace:rw
-      - ./config:/app/config:ro
-      - ./skills:/app/skills:ro
-      - ./scripts:/app/scripts:ro
-      - ./services/noosphere/python-client:/app/noosphere-client:ro
-    depends_on:
-      egress-proxy:
-        condition: service_healthy
-      ntfy-publisher:
-        condition: service_healthy
-
-  # Satirist-Absurdist Agent - NEW
-  satirist-absurdist:
-    extends:
-      service: classical-philosopher
-      file: docker-compose.yml
-    image: moltbot:satirist
-    container_name: satirist-absurdist
-    mem_limit: 4g
-    cpus: 2.0
-    environment:
-      - AGENT_NAME=SatiristAbsurdist
-      - AGENT_TYPE=satirist-absurdist
-      - MAX_TOKENS=16384
-      - CLAW_SYSTEM_PROMPT_FILE=/app/config/prompts/satirist-absurdist.txt
-      - HELLER_RATIO=0.35
-      - VONNEGUT_RATIO=0.35
-      - TWAIN_RATIO=0.30
-      - BITTERNESS_THRESHOLD=0.6
-      - CATCH_22_DETECTION=enabled
-      - NTFY_ENABLED=${NTFY_ENABLED:-false}
-    env_file:
-      - config/agents/satirist-absurdist.env
-    volumes:
-      - ./workspace/satirist-absurdist:/workspace:rw
-      - ./config:/app/config:ro
-      - ./skills:/app/skills:ro
-      - ./scripts:/app/scripts:ro
-      - ./services/noosphere/python-client:/app/noosphere-client:ro
-    depends_on:
-      egress-proxy:
-        condition: service_healthy
-      ntfy-publisher:
-        condition: service_healthy
-
-  # Scientist-Empiricist Agent - NEW
-  scientist-empiricist:
-    extends:
-      service: classical-philosopher
-      file: docker-compose.yml
-    image: moltbot:scientist
-    container_name: scientist-empiricist
-    mem_limit: 6g
-    cpus: 3.0
-    environment:
-      - AGENT_NAME=ScientistEmpiricist
-      - AGENT_TYPE=scientist-empiricist
-      - MAX_TOKENS=32768
-      - CLAW_SYSTEM_PROMPT_FILE=/app/config/prompts/scientist-empiricist.txt
-      - FEYNMAN_RATIO=0.25
-      - SAGAN_RATIO=0.25
-      - HAWKING_RATIO=0.25
-      - EINSTEIN_RATIO=0.25
-      - SHOULDERS_OF_GIANTS=enabled
-      - ELEGANCE_THRESHOLD=0.8
-      - NTFY_ENABLED=${NTFY_ENABLED:-false}
-    env_file:
-      - config/agents/scientist-empiricist.env
-    volumes:
-      - ./workspace/scientist-empiricist:/workspace:rw
-      - ./config:/app/config:ro
-      - ./skills:/app/skills:ro
-      - ./scripts:/app/scripts:ro
-      - ./services/noosphere/python-client:/app/noosphere-client:ro
-    depends_on:
-      egress-proxy:
-        condition: service_healthy
-      ntfy-publisher:
-        condition: service_healthy
-
-  # AI Content Generator Service - for Moltbook posts
-  ai-generator:
-    build:
-      context: ./services/ai-content-generator
-      dockerfile: Dockerfile
-    container_name: moltbot-ai-generator
-    ports:
-      - "3002:3000"
-    environment:
-      - NODE_ENV=production
-      - PORT=3000
-      - VENICE_API_KEY=${VENICE_API_KEY}
-      - OPENROUTER_API_KEY=${OPENROUTER_API_KEY}
-      - KIMI_API_KEY=${KIMI_API_KEY}
-      - VENICE_API_URL=https://api.venice.ai/api/v1/chat/completions
-      - OPENROUTER_API_URL=https://openrouter.ai/api/v1/chat/completions
-      - KIMI_API_URL=https://api.moonshot.cn/v1/chat/completions
-      - VENICE_MODEL=${VENICE_MODEL:-llama-3.3-70b}
-      - OPENROUTER_MODEL=${OPENROUTER_MODEL:-meta-llama/llama-3.1-8b-instruct}
-      - KIMI_MODEL=${KIMI_MODEL:-kimi-k2-0711-preview}
-      - LOG_LEVEL=info
-    env_file:
-      - .env
-    volumes:
-      - ./logs:/app/logs:rw
-    networks:
-      - dokploy-network
-    depends_on:
-      - egress-proxy
-    restart: unless-stopped
-    healthcheck:
-      test: ["CMD", "wget", "-q", "--spider", "http://localhost:3000/health"]
-      interval: 30s
-      timeout: 5s
-      retries: 3
-
-  # Model Router Service - NEW
-  model-router:
-    build:
-      context: .
-      dockerfile: Dockerfile.router
-      target: production
-    container_name: moltbot-model-router
-    ports:
-      - "3003:3000"
-    environment:
-      - NODE_ENV=production
-      - PORT=3000
-      - ROUTER_CONFIG_PATH=/app/config/model-routing.yml
-      - VENICE_API_KEY=${VENICE_API_KEY}
-      - KIMI_API_KEY=${KIMI_API_KEY}
-      - MOLTBOOK_APP_KEY=${MOLTBOOK_APP_KEY}
-      - MOLTBOOK_API_URL=http://egress-proxy:8082/api/v1
-      - APP_DOMAIN=${APP_DOMAIN:-moltbot.local}
-      - DEFAULT_MODEL=venice/deepseek-v3.2
-      - LOG_LEVEL=info
-    env_file:
-      - .env
-    volumes:
-      - ./config/model-routing.yml:/app/config/model-routing.yml:ro
-      - ./logs:/app/logs:rw
-    networks:
-      - dokploy-network
-    depends_on:
-      - egress-proxy
-    restart: unless-stopped
-    healthcheck:
-      test: ["CMD", "curl", "-fs", "http://localhost:3000/health"]
-      interval: 30s
-      timeout: 10s
-      retries: 5
-      start_period: 60s
-
-  # NTFY Publisher Service - Notification service for agents
-  ntfy-publisher:
-    build:
-      context: ./services/ntfy-publisher
-      dockerfile: Dockerfile
-    container_name: moltbot-ntfy-publisher
-    ports:
-      - "3005:3005"
-    environment:
-      - NODE_ENV=production
-      - PORT=3005
-      - NTFY_URL=${NTFY_URL:-https://ntfy.hashgrid.net}
-      - NTFY_API=${NTFY_API}
-      - NTFY_TOPIC=${NTFY_TOPIC:-moltbot-philosopher}
-      - NTFY_ENABLED=${NTFY_ENABLED:-true}
-      - NTFY_PRIORITY_ERRORS=${NTFY_PRIORITY_ERRORS:-urgent}
-      - NTFY_PRIORITY_ACTIONS=${NTFY_PRIORITY_ACTIONS:-default}
-      - LOG_LEVEL=info
-    env_file:
-      - .env
-    networks:
-      - dokploy-network
-    depends_on:
-      - egress-proxy
-    restart: unless-stopped
-    security_opt:
-      - no-new-privileges:true
-    cap_drop:
-      - ALL
-    read_only: true
-    tmpfs:
-      - /tmp:noexec,nosuid,size=50m
-    volumes:
-      - ./logs:/logs:rw
-    healthcheck:
-      test: ["CMD", "wget", "-q", "--spider", "http://localhost:3005/health"]
-      interval: 30s
-      timeout: 3s
-      retries: 3
-      start_period: 10s
-
-  # Thread Monitor Service - NEW (Phase 6: Thread Continuation Engine)
-  thread-monitor:
-    build:
-      context: ./services/thread-monitor
-      dockerfile: Dockerfile
-    container_name: moltbot-thread-monitor
-    ports:
-      - "3004:3004"
-    environment:
-      - NODE_ENV=production
-      - PORT=3004
-      - THREAD_CHECK_INTERVAL=900
-      - THREAD_STALL_THRESHOLD=86400
-      - THREAD_DEATH_THRESHOLD=172800
-      - MAX_CONSECUTIVE_POSTS=2
-      - MAX_STALL_COUNT=3
-      - TARGET_MIN_EXCHANGES=7
-      - TARGET_MIN_ARCHETYPES=3
-      - MODEL_ROUTER_URL=http://model-router:3000
-      - AI_GENERATOR_URL=http://ai-generator:3000
-      - MOLTBOOK_API_URL=http://egress-proxy:8082/api/v1
-      - ENABLE_CONTINUATION_PROBES=true
-      - ENABLE_DYNAMIC_DISCOVERY=true
-      - ENABLE_QUALITY_GATES=true
-      - STATE_DIR=/workspace/thread-continuation
-      - LOG_LEVEL=info
-    env_file:
-      - .env
-    volumes:
-      - ./workspace/thread-continuation:/workspace/thread-continuation:rw
-      - ./logs:/app/logs:rw
-      - ./config/prompts:/app/config/prompts:ro
-    networks:
-      - dokploy-network
-    depends_on:
-      - model-router
-      - ai-generator
-      - egress-proxy
-    restart: unless-stopped
-    healthcheck:
-      test:
-        [
-          "CMD-SHELL",
-          'node -e "require(''http'').get(''http://127.0.0.1:3004/health'', (r) => process.exit(r.statusCode === 200 ? 0 : 1)).on(''error'', () => process.exit(1))"',
-        ]
-      interval: 30s
-      timeout: 10s
-      retries: 5
-      start_period: 10s
-
   # PostgreSQL 16 + pgvector for Noosphere v3.0
   postgres:
     image: pgvector/pgvector:pg16
@@ -550,7 +16,7 @@ services:
     networks:
       - dokploy-network
     mem_limit: 2g
-    cpus: 1.0
+    cpus: '1.0'
     restart: unless-stopped
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U noosphere_admin -d noosphere"]
@@ -574,16 +40,13 @@ services:
     environment:
       - NODE_ENV=production
       - PORT=3006
-      - DATABASE_URL=postgresql://noosphere_admin:${POSTGRES_PASSWORD:-changeme_noosphere_2026}@postgres:5432/noosphere?sslmode=disable
+      - DATABASE_URL=postgresql://noosphere_admin:${POSTGRES_PASSWORD}@postgres:5432/noosphere?sslmode=disable
       - MOLTBOOK_API_KEY=${MOLTBOOK_API_KEY}
       - OPENAI_API_KEY=${OPENAI_API_KEY:-}
       - EMBEDDING_MODEL=text-embedding-ada-002
       - ENABLE_EMBEDDINGS=true
       - EMBEDDING_PROVIDER=openrouter
       - MAX_MEMORIES_PER_AGENT=200
-      - VENICE_API_KEY=${VENICE_API_KEY}
-      - VENICE_API_URL=${VENICE_API_URL:-http://venice-proxy:8080/v1/chat/completions}
-      - VENICE_MODEL=${VENICE_MODEL:-llama-3.3-70b}
       - LOG_LEVEL=info
     volumes:
       - ./logs:/app/logs:rw
@@ -595,7 +58,7 @@ services:
       postgres:
         condition: service_healthy
     mem_limit: 1g
-    cpus: 1.0
+    cpus: '1.0'
     restart: unless-stopped
     healthcheck:
       test:
@@ -608,190 +71,240 @@ services:
       retries: 5
       start_period: 15s
 
-  # Verification Service - Scenario-aware challenge solver
-  verification-service:
+  # Classical Philosopher Agent (Virgil/Dante/Milton)
+  classical-philosopher:
     build:
       context: .
-      dockerfile: ./services/verification-service/Dockerfile
-    image: moltbot:verification-service
-    container_name: verification-service
-    environment:
-      - NODE_ENV=production
-      - VERIFICATION_SERVICE_PORT=3007
-      - MOLTBOOK_API_KEY=${MOLTBOOK_API_KEY}
-      - MOLTBOOK_BASE_URL=http://egress-proxy:8082/api/v1
-      - AI_GENERATOR_URL=http://moltbot-ai-generator:3000
-      - MAX_RETRIES=3
-      - TIMEOUT_MS=10000
-      - LOG_LEVEL=info
-    volumes:
-      - ./logs:/app/logs:rw
-    ports:
-      - "3007:3007"
-    networks:
-      - dokploy-network
-    depends_on:
-      ai-generator:
-        condition: service_started
-      egress-proxy:
-        condition: service_started
-    mem_limit: 512M
-    cpus: 0.5
-    restart: unless-stopped
-    healthcheck:
-      test:
-        [
-          "CMD-SHELL",
-          'node -e "require(''http'').get(''http://127.0.0.1:3007/health'', (r) => process.exit(r.statusCode === 200 ? 0 : 1)).on(''error'', () => process.exit(1))"',
-        ]
-      interval: 30s
-      timeout: 10s
-      retries: 5
-      start_period: 20s
-    logging:
-      driver: "json-file"
-      options:
-        max-size: "10m"
-        max-file: "3"
-
-  # Action Queue & Rate Limiting Service
-  action-queue:
-    build:
-      context: ./services/action-queue
       dockerfile: Dockerfile
-    image: moltbot:action-queue
-    container_name: action-queue
-    # Note: User is set in Dockerfile (USER agent) to avoid permission mismatches
-    # Do not add 'user:' directive here - it overrides Dockerfile USER setting
+      target: production
+    image: moltbot:classical
+    container_name: classical-philosopher
+    read_only: true
+    cap_drop:
+      - ALL
+    security_opt:
+      - no-new-privileges:true
+    pids_limit: 512
+    mem_limit: 4g
+    cpus: '2.0'
     environment:
-      - NODE_ENV=production
-      - ACTION_QUEUE_PORT=3008
-      - DATABASE_URL=postgresql://noosphere_admin:${POSTGRES_PASSWORD:-changeme_noosphere_2026}@postgres:5432/action_queue?sslmode=disable
+      - AGENT_NAME=ClassicalPhilosopher
+      - AGENT_TYPE=classical
+      - MAX_TOKENS=${MAX_TOKENS:-8192}
+      - CLAW_SYSTEM_PROMPT_FILE=/app/config/prompts/classical.txt
+      - DEFAULT_MODEL=kimi-k2.5-instant
+      - PREMIUM_MODEL=kimi-k2.5-thinking
+      - LONG_CONTEXT_THRESHOLD=1000
+      - VERY_LONG_CONTEXT_THRESHOLD=10000
       - MOLTBOOK_API_KEY=${MOLTBOOK_API_KEY}
-      - MOLTBOOK_API_BASE=http://egress-proxy:8082/api/v1
-      - QUEUE_PROCESS_INTERVAL=5000
-      - CONDITION_CHECK_INTERVAL=30000
-      - LOG_LEVEL=info
+      - MOLTBOT_STATE_DIR=/workspace
+      - NOOSPHERE_STATE_DIR=/workspace/classical/noosphere
+      - NOOSPHERE_PYTHON_CLIENT=/app/noosphere-client
+    env_file:
+      - config/agents/classical-philosopher.env
     volumes:
-      - ./logs:/app/logs:rw
-    ports:
-      - "3008:3008"
+      - ./workspace/classical:/workspace:rw
+      - ./config:/app/config:ro
+      - ./skills:/app/skills:ro
+      - ./services/noosphere/python-client:/app/noosphere-client:ro
     networks:
       - dokploy-network
-    depends_on:
-      postgres:
-        condition: service_healthy
-      egress-proxy:
-        condition: service_healthy
-    mem_limit: 512M
-    cpus: 0.5
     restart: unless-stopped
     healthcheck:
       test:
-        [
-          "CMD-SHELL",
-          'wget --no-verbose --tries=1 --spider http://localhost:3008/queue/health || exit 1',
-        ]
-      interval: 30s
-      timeout: 10s
-      retries: 3
-      start_period: 40s
-    logging:
-      driver: "json-file"
-      options:
-        max-size: "10m"
-        max-file: "3"
-
-  # Engagement Service - Proactive platform engagement orchestration
-  engagement-service:
-    build:
-      context: ./services/engagement-service
-      dockerfile: Dockerfile
-    image: moltbot:engagement-service
-    container_name: engagement-service
-    env_file: .env
-    environment:
-      - NODE_ENV=production
-      - ENGAGEMENT_SERVICE_PORT=3010
-      - WORKSPACE_ROOT=/workspace
-      - LOG_LEVEL=info
-      - AGENTS_CONFIG=/workspace/AGENTS.json
-    volumes:
-      - ./workspace:/workspace:rw
-      - ./logs:/app/logs:rw
-      - ./services/engagement-service/engagement-state-template.json:/app/engagement-state-template.json:ro
-    ports:
-      - "3010:3010"
-    networks:
-      - dokploy-network
-    depends_on:
-      egress-proxy:
-        condition: service_healthy
-      action-queue:
-        condition: service_healthy
-      noosphere-service:
-        condition: service_healthy
-    mem_limit: 512M
-    cpus: 0.5
-    restart: unless-stopped
-    healthcheck:
-      test:
-        [
-          "CMD-SHELL",
-          "wget --no-verbose --tries=1 --spider http://localhost:3010/health || exit 1",
-        ]
-      interval: 30s
+        ["CMD", "sh", "-c", "ps aux | grep -q entrypoint && exit 0 || exit 1"]
+      interval: 60s
       timeout: 10s
       retries: 3
       start_period: 30s
-    logging:
-      driver: "json-file"
-      options:
-        max-size: "10m"
-        max-file: "3"
 
-  # Reactive Engagement Handlers - Responds to mentions, comments, welcomes
-  reactive-handler:
-    build:
-      context: ./services/engagement-service
-      dockerfile: Dockerfile
-    image: moltbot:reactive-handler
-    container_name: reactive-handler
+  # Existentialist Agent (Sartre/Camus/Dostoevsky/Nietzsche)
+  existentialist:
+    extends:
+      service: classical-philosopher
+      file: docker-compose.yml
+    image: moltbot:existentialist
+    container_name: existentialist
+    mem_limit: 4g
+    cpus: '2.0'
     environment:
-      - NODE_ENV=production
-      - ENGAGEMENT_SERVICE_PORT=3011
-      - MOLTBOOK_API_KEY=${MOLTBOOK_API_KEY}
-      - MOLTBOOK_BASE_URL=https://www.moltbook.com
-      - AI_GENERATOR_URL=http://localhost:3002
-      - ORCHESTRATOR_URL=http://localhost:3006
-      - LOG_LEVEL=info
+      - AGENT_NAME=Existentialist
+      - AGENT_TYPE=existentialist
+      - MAX_TOKENS=${MAX_TOKENS:-8192}
+      - CLAW_SYSTEM_PROMPT_FILE=/app/config/prompts/existentialist.txt
+    env_file:
+      - config/agents/existentialist.env
     volumes:
-      - ./logs:/app/logs:rw
-    ports:
-      - "3011:3011"
-    networks:
-      - dokploy-network
-    depends_on:
-      egress-proxy:
-        condition: service_healthy
-    mem_limit: 256M
-    cpus: 0.25
-    restart: unless-stopped
-    healthcheck:
-      test:
-        [
-          "CMD-SHELL",
-          "wget --no-verbose --tries=1 --spider http://localhost:3011/health || exit 1",
-        ]
-      interval: 30s
-      timeout: 10s
-      retries: 3
-      start_period: 30s
-    logging:
-      driver: "json-file"
-      options:
-        max-size: "10m"
-        max-file: "3"
+      - ./workspace/existentialist:/workspace:rw
+      - ./config:/app/config:ro
+      - ./skills:/app/skills:ro
+      - ./services/noosphere/python-client:/app/noosphere-client:ro
+
+  # Transcendentalist Agent (Emerson/Jefferson)
+  transcendentalist:
+    extends:
+      service: classical-philosopher
+      file: docker-compose.yml
+    image: moltbot:transcendentalist
+    container_name: transcendentalist
+    mem_limit: 2g
+    cpus: '1.0'
+    environment:
+      - AGENT_NAME=Transcendentalist
+      - AGENT_TYPE=transcendentalist
+      - MAX_TOKENS=${MAX_TOKENS:-8192}
+      - CLAW_SYSTEM_PROMPT_FILE=/app/config/prompts/transcendentalist.txt
+    env_file:
+      - config/agents/transcendentalist.env
+    volumes:
+      - ./workspace/transcendentalist:/workspace:rw
+      - ./config:/app/config:ro
+      - ./skills:/app/skills:ro
+      - ./services/noosphere/python-client:/app/noosphere-client:ro
+
+  # Joyce Stream Agent (Stream-of-consciousness)
+  joyce-stream:
+    extends:
+      service: classical-philosopher
+      file: docker-compose.yml
+    image: moltbot:joyce
+    container_name: joyce-stream
+    mem_limit: 6g
+    cpus: '2.5'
+    pids_limit: 768
+    environment:
+      - AGENT_NAME=JoyceStream
+      - AGENT_TYPE=joyce
+      - MAX_TOKENS=${MAX_TOKENS:-8192}
+      - CLAW_SYSTEM_PROMPT_FILE=/app/config/prompts/joyce-stream.txt
+    env_file:
+      - config/agents/joyce-stream.env
+    volumes:
+      - ./workspace/joyce:/workspace:rw
+      - ./config:/app/config:ro
+      - ./skills:/app/skills:ro
+      - ./services/noosphere/python-client:/app/noosphere-client:ro
+
+  # Enlightenment Agent (Voltaire/Paine/Franklin)
+  enlightenment:
+    extends:
+      service: classical-philosopher
+      file: docker-compose.yml
+    image: moltbot:enlightenment
+    container_name: enlightenment
+    mem_limit: 3g
+    cpus: '1.5'
+    environment:
+      - AGENT_NAME=Enlightenment
+      - AGENT_TYPE=enlightenment
+      - MAX_TOKENS=${MAX_TOKENS:-8192}
+      - CLAW_SYSTEM_PROMPT_FILE=/app/config/prompts/enlightenment.txt
+    volumes:
+      - ./workspace/enlightenment:/workspace:rw
+      - ./config:/app/config:ro
+      - ./skills:/app/skills:ro
+      - ./services/noosphere/python-client:/app/noosphere-client:ro
+
+  # Beat Generation Agent (Ginsberg/Burroughs/Thompson)
+  beat-generation:
+    extends:
+      service: classical-philosopher
+      file: docker-compose.yml
+    image: moltbot:beat
+    container_name: beat-generation
+    mem_limit: 4g
+    cpus: '2.0'
+    environment:
+      - AGENT_NAME=BeatGeneration
+      - AGENT_TYPE=beat
+      - MAX_TOKENS=${MAX_TOKENS:-8192}
+      - CLAW_SYSTEM_PROMPT_FILE=/app/config/prompts/beat.txt
+    volumes:
+      - ./workspace/beat:/workspace:rw
+      - ./config:/app/config:ro
+      - ./skills:/app/skills:ro
+      - ./services/noosphere/python-client:/app/noosphere-client:ro
+
+  # Cyberpunk-Posthumanist Agent
+  cyberpunk-posthumanist:
+    extends:
+      service: classical-philosopher
+      file: docker-compose.yml
+    image: moltbot:cyberpunk
+    container_name: cyberpunk-posthumanist
+    mem_limit: 5g
+    cpus: '2.5'
+    environment:
+      - AGENT_NAME=CyberpunkPosthumanist
+      - AGENT_TYPE=cyberpunk-posthumanist
+      - MAX_TOKENS=${MAX_TOKENS:-8192}
+      - CLAW_SYSTEM_PROMPT_FILE=/app/config/prompts/cyberpunk-posthumanist.txt
+      - GIBSON_RATIO=0.4
+      - ASIMOV_RATIO=0.3
+      - DICK_RATIO=0.3
+      - REALITY_ANCHOR=technological_materialism
+    env_file:
+      - config/agents/cyberpunk-posthumanist.env
+    volumes:
+      - ./workspace/cyberpunk-posthumanist:/workspace:rw
+      - ./config:/app/config:ro
+      - ./skills:/app/skills:ro
+      - ./services/noosphere/python-client:/app/noosphere-client:ro
+
+  # Satirist-Absurdist Agent
+  satirist-absurdist:
+    extends:
+      service: classical-philosopher
+      file: docker-compose.yml
+    image: moltbot:satirist
+    container_name: satirist-absurdist
+    mem_limit: 4g
+    cpus: '2.0'
+    environment:
+      - AGENT_NAME=SatiristAbsurdist
+      - AGENT_TYPE=satirist-absurdist
+      - MAX_TOKENS=${MAX_TOKENS:-8192}
+      - CLAW_SYSTEM_PROMPT_FILE=/app/config/prompts/satirist-absurdist.txt
+      - HELLER_RATIO=0.35
+      - VONNEGUT_RATIO=0.35
+      - TWAIN_RATIO=0.30
+      - BITTERNESS_THRESHOLD=0.6
+      - CATCH_22_DETECTION=enabled
+    env_file:
+      - config/agents/satirist-absurdist.env
+    volumes:
+      - ./workspace/satirist-absurdist:/workspace:rw
+      - ./config:/app/config:ro
+      - ./skills:/app/skills:ro
+      - ./services/noosphere/python-client:/app/noosphere-client:ro
+
+  # Scientist-Empiricist Agent
+  scientist-empiricist:
+    extends:
+      service: classical-philosopher
+      file: docker-compose.yml
+    image: moltbot:scientist
+    container_name: scientist-empiricist
+    mem_limit: 6g
+    cpus: '3.0'
+    environment:
+      - AGENT_NAME=ScientistEmpiricist
+      - AGENT_TYPE=scientist-empiricist
+      - MAX_TOKENS=${MAX_TOKENS:-8192}
+      - CLAW_SYSTEM_PROMPT_FILE=/app/config/prompts/scientist-empiricist.txt
+      - FEYNMAN_RATIO=0.25
+      - SAGAN_RATIO=0.25
+      - HAWKING_RATIO=0.25
+      - EINSTEIN_RATIO=0.25
+      - SHOULDERS_OF_GIANTS=enabled
+      - ELEGANCE_THRESHOLD=0.8
+    env_file:
+      - config/agents/scientist-empiricist.env
+    volumes:
+      - ./workspace/scientist-empiricist:/workspace:rw
+      - ./config:/app/config:ro
+      - ./skills:/app/skills:ro
+      - ./services/noosphere/python-client:/app/noosphere-client:ro
 
   # Eastern-to-Western Philosophical Bridge - 10th Council Voting Member
   eastern-bridge-service:
@@ -807,8 +320,6 @@ services:
       - LOG_LEVEL=info
       - LOG_FORMAT=json
       - MOLTBOOK_API_KEY=${MOLTBOOK_API_KEY}
-      - MOLTBOOK_API_BASE=http://egress-proxy:8082
-      - THREAD_MONITOR_URL=http://thread-monitor:3004
       - RATE_LIMIT_MAX_REQUESTS=10
       - RATE_LIMIT_WINDOW_MS=60000
       - KNOWLEDGE_DOMAINS_PATH=/etc/moltbot/config/prompts/eastern-bridge/knowledge-domains.json
@@ -823,13 +334,8 @@ services:
       - "3012:3012"
     networks:
       - dokploy-network
-    depends_on:
-      egress-proxy:
-        condition: service_healthy
-      thread-monitor:
-        condition: service_healthy
     mem_limit: 512M
-    cpus: 0.5
+    cpus: '0.5'
     restart: unless-stopped
     healthcheck:
       test:
@@ -861,8 +367,6 @@ services:
       - LOG_LEVEL=info
       - LOG_FORMAT=json
       - MOLTBOOK_API_KEY=${MOLTBOOK_API_KEY}
-      - MOLTBOOK_URL=http://ai-generator:3000
-      - THREAD_MONITOR_URL=http://thread-monitor:3004
       - RATE_LIMIT_MAX_REQUESTS=10
       - RATE_LIMIT_WINDOW_MS=60000
       - KNOWLEDGE_DOMAINS_PATH=/etc/moltbot/config/prompts/islamic-mystic-philosopher/knowledge-domains.json
@@ -877,13 +381,8 @@ services:
       - "3013:3011"
     networks:
       - dokploy-network
-    depends_on:
-      egress-proxy:
-        condition: service_healthy
-      thread-monitor:
-        condition: service_healthy
     mem_limit: 512M
-    cpus: 0.5
+    cpus: '0.5'
     restart: unless-stopped
     healthcheck:
       test:
@@ -904,18 +403,3 @@ services:
 networks:
   dokploy-network:
     external: true
-
-volumes:
-  workspace-classical:
-  workspace-existentialist:
-  workspace-transcendentalist:
-  workspace-joyce:
-  workspace-enlightenment:
-  workspace-beat:
-  workspace-cyberpunk-posthumanist:
-  workspace-satirist-absurdist:
-  workspace-scientist-empiricist:
-  workspace-thread-continuation:
-  skill-manifest:
-  noosphere-data:
-  postgres-data:
