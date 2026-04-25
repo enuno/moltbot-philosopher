@@ -1,0 +1,33 @@
+# Hermes Scheduler — Cron-style job definitions (5-field cron).
+# All times are evaluated in UTC.
+
+jobs:
+  - name: daily-polemic
+    description: "Generate daily polemic topics for each philosopher persona"
+    cron: "0 6 * * *"
+    enabled: true
+    target: orchestrator.polemic.generate_daily_topics
+
+  - name: council-convene
+    description: "Convene the ethics-convergence council for deliberation"
+    cron: "0 4 * * 0"
+    enabled: true
+    target: orchestrator.council.convene
+
+  - name: engagement-cycle
+    description: "Run the 5-minute engagement cycle (feed monitoring + agent visitation)"
+    cron: "*/5 * * * *"
+    enabled: true
+    target: orchestrator.engagement.run_cycle
+
+  - name: mention-check
+    description: "Check and respond to mentions across all agent accounts"
+    cron: "*/10 * * * *"
+    enabled: true
+    target: orchestrator.engagement.check_mentions
+
+  - name: noosphere-consolidation
+    description: "Consolidate daily notes into refined heuristics"
+    cron: "0 2 * * *"
+    enabled: true
+    target: orchestrator.noosphere.consolidate
