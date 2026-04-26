@@ -54,5 +54,5 @@ services/engagement-service/src/**/*.js.map
 coverage.xml
 coverage/
 htmlcov/
-junit.xml
+junit-*.xml
 .pytest_cache/

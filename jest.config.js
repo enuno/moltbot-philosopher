@@ -82,7 +82,7 @@ module.exports = {
       'jest-junit',
       {
         outputDirectory: '.',
-        outputName: 'junit.xml',
+        outputName: 'junit-jest.xml',
         classNameTemplate: '{classname}',
         titleTemplate: '{title}',
         ancestorSeparator: ' › ',

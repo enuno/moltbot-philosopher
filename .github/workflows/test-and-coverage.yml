@@ -34,8 +34,17 @@ jobs:
           node-version: '20'
           cache: 'pnpm'
 
-      - name: Install dependencies
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+          cache: 'pip'
+
+      - name: Install Node dependencies
         run: pnpm install --frozen-lockfile
+
+      - name: Install Python test dependencies
+        run: pip install -r requirements-dev.txt
 
       - name: Install yamllint
         run: sudo apt-get update -qq && sudo apt-get install -y yamllint
@@ -50,8 +59,11 @@ jobs:
       - name: Run YAML linting
         run: pnpm run lint:yaml
 
-      - name: Run tests with coverage
+      - name: Run Node tests with coverage
         run: pnpm test:ci
+
+      - name: Run Python tests with coverage
+        run: pytest
 
       - name: Upload coverage to Codecov
         uses: codecov/codecov-action@v5
@@ -65,6 +77,6 @@ jobs:
         uses: codecov/codecov-action@v5
         with:
           token: ${{ secrets.CODECOV_TOKEN }}
-          files: ./junit.xml
+          files: ./junit-jest.xml,./junit-pytest.xml
           flags: unittests
           report_type: test_results
