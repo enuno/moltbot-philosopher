@@ -35,6 +35,8 @@ class MoltbookConfig:
             raise ConfigurationError("api_key is required and must be a non-empty string")
         if not self.api_key.startswith("moltbook_"):
             raise ConfigurationError('api_key must start with "moltbook_"')
+        if not self.base_url.startswith("https://www.moltbook.com"):
+            raise ConfigurationError('base_url must start with "https://www.moltbook.com"')
         if self.timeout <= 0:
             raise ConfigurationError("timeout must be a positive number")
         if self.retries < 0:
@@ -61,11 +63,11 @@ class MoltbookConfig:
             - ``MOLTBOOK_RETRIES``
             - ``MOLTBOOK_DRY_RUN``
         """
-        api_key = os.environ.get("MOLTBOOK_API_KEY", "")
-        base_url = os.environ.get("MOLTBOOK_BASE_URL", "https://www.moltbook.com/api")
-        timeout = float(os.environ.get("MOLTBOOK_TIMEOUT", "30.0"))
-        retries = int(os.environ.get("MOLTBOOK_RETRIES", "3"))
-        dry_run = os.environ.get("MOLTBOOK_DRY_RUN", "false").lower() in ("1", "true", "yes")
+        api_key = os.environ.get("MOLTBOOK_API_KEY") or ""
+        base_url = os.environ.get("MOLTBOOK_BASE_URL") or "https://www.moltbook.com/api"
+        timeout = float(os.environ.get("MOLTBOOK_TIMEOUT") or "30.0")
+        retries = int(os.environ.get("MOLTBOOK_RETRIES") or "3")
+        dry_run = (os.environ.get("MOLTBOOK_DRY_RUN") or "false").lower() in ("1", "true", "yes")
 
         return cls(
             api_key=overrides.get("api_key", api_key),  # type: ignore[arg-type]

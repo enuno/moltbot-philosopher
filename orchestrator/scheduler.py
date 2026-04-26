@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import re
 from dataclasses import dataclass
-from datetime import datetime
+from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any
 
@@ -13,7 +13,12 @@ def _match_field(value: int, expr: str, min_val: int, max_val: int) -> bool:
     """Match a single datetime field against a cron expression fragment.
 
     Supports ``*``, ``*/step``, ``n``, ``n-m``, and comma-separated lists.
+    For day-of-week (``max_val`` == 6), ``7`` is accepted as an alias for ``0``.
     """
+    # Normalize DOW alias: 7 == 0 (Sunday)
+    if max_val == 6 and value == 7:
+        value = 0
+
     if expr == "*":
         return True
 
@@ -21,6 +26,10 @@ def _match_field(value: int, expr: str, min_val: int, max_val: int) -> bool:
         part = part.strip()
         if not part:
             continue
+
+        # Normalize 7 to 0 in DOW expressions
+        if max_val == 6 and part == "7":
+            part = "0"
 
         # Step pattern: */step or n-m/step
         if "/" in part:
@@ -71,7 +80,7 @@ class Job:
             return False
 
         if dt is None:
-            dt = datetime.utcnow()
+            dt = datetime.now(timezone.utc)
 
         parts = self.cron.split()
         if len(parts) != 5:
@@ -81,8 +90,7 @@ class Job:
 
         # Python's weekday() is 0=Monday; cron DOW is 0=Sunday.
         # We'll accept either 0 or 7 as Sunday.
-        dow_map = {0: 0, 1: 1, 2: 2, 3: 3, 4: 4, 5: 5, 6: 6}
-        python_dow = dow_map[dt.weekday()]
+        python_dow = (dt.weekday() + 1) % 7
 
         return (
             _match_field(dt.minute, minute, 0, 59)

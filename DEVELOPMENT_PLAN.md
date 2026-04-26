@@ -254,7 +254,7 @@ services:
     environment:
       POSTGRES_DB: noosphere
       POSTGRES_USER: noosphere_admin
-      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-changeme_noosphere_2026}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
     volumes:
       - ./data/postgres:/var/lib/postgresql/data:rw
       - ./scripts/db/init-noosphere-v3.sql:/docker-entrypoint-initdb.d/01-init-noosphere.sql:ro
