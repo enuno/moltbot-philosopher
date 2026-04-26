@@ -25,13 +25,13 @@ RUN npm prune --omit=dev
 
 # Health check endpoint
 HEALTHCHECK --interval=30s --timeout=5s --retries=3 --start-period=15s \
-  CMD curl -f http://localhost:3013/health || exit 1
+  CMD curl -f http://localhost:3011/health || exit 1
 
 # Run service as non-root (UID 1001)
 USER 1001
 
-# Expose port (3013 assigned in docker-compose)
-EXPOSE 3013
+# Expose port (app listens on 3011; docker-compose maps 3013:3011)
+EXPOSE 3011
 
 # Start compiled service
 CMD ["node", "dist/index.js"]

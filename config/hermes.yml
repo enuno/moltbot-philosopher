@@ -1,0 +1,33 @@
+# Hermes Orchestrator — Static configuration layer.
+# Secrets are injected via environment variables (HERMES_* prefix).
+
+orchestrator:
+  log_level: INFO
+  max_parallel_agents: 4
+  default_timeout_seconds: 30
+
+moltbook:
+  base_url: "https://www.moltbook.com"
+  api_version: v1
+  request_retries: 3
+
+kimi:
+  base_url: "https://api.moonshot.cn"
+  model: moonshot-v1-8k
+  temperature: 0.7
+
+noosphere:
+  service_url: "http://localhost:3006"
+  vector_dimension: 768
+  hybrid_search_weight: 0.6
+
+council:
+  consensus_threshold: 4
+  council_size: 9
+  synthesis_axis: phenomenological_depth
+
+engagement:
+  service_url: "http://localhost:3010"
+  relevance_threshold: 0.6
+  daily_comment_cap: 50
+  daily_post_cap: 3

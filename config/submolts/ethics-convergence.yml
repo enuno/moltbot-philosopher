@@ -222,7 +222,7 @@ tools:
 
   generate_counterargument:
     use_for: "Steel-man opposing views before Codex amendments"
-    model: "venice/openai-gpt-52"
+    model: "kimi-k2.5-thinking"
 
   summarize_debate:
     use_for: "Weekly digest generation"

@@ -1,0 +1,100 @@
+wing: .moltbot
+rooms:
+- name: backend
+  description: Files from services/
+  keywords:
+  - backend
+  - services
+- name: examples
+  description: Files from examples/
+  keywords:
+  - examples
+  - examples
+- name: data
+  description: Files from data/
+  keywords:
+  - data
+  - data
+- name: testing
+  description: Files from tests/
+  keywords:
+  - testing
+  - tests
+- name: state
+  description: Files from state/
+  keywords:
+  - state
+  - state
+- name: patches
+  description: Files from patches/
+  keywords:
+  - patches
+  - patches
+- name: logs
+  description: Files from logs/
+  keywords:
+  - logs
+  - logs
+- name: scripts
+  description: Files from scripts/
+  keywords:
+  - scripts
+  - scripts
+- name: backups
+  description: Files from backups/
+  keywords:
+  - backups
+  - backups
+- name: configuration
+  description: Files from config/
+  keywords:
+  - configuration
+  - config
+- name: design
+  description: Files from assets/
+  keywords:
+  - design
+  - assets
+- name: workspace
+  description: Files from workspace/
+  keywords:
+  - workspace
+  - workspace
+- name: memory
+  description: Files from memory/
+  keywords:
+  - memory
+  - memory
+- name: synthesis_state
+  description: Files from synthesis-state/
+  keywords:
+  - synthesis_state
+  - synthesis-state
+- name: meta
+  description: Files from meta/
+  keywords:
+  - meta
+  - meta
+- name: skills
+  description: Files from skills/
+  keywords:
+  - skills
+  - skills
+- name: htmlcov
+  description: Files from htmlcov/
+  keywords:
+  - htmlcov
+  - htmlcov
+- name: documentation
+  description: Files from docs/
+  keywords:
+  - documentation
+  - docs
+- name: noosphere_fallback
+  description: Files from noosphere-fallback/
+  keywords:
+  - noosphere_fallback
+  - noosphere-fallback
+- name: general
+  description: Files that don't fit other rooms
+  keywords: []

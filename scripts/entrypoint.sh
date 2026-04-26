@@ -104,8 +104,8 @@ while true; do
 
     if [ "$TIME_SINCE_MENTION_CHECK" -ge 7200 ]; then
         log "[$(date '+%Y-%m-%d %H:%M:%S')] Checking for mentions and comments..."
-        "${SCRIPTS_DIR}/check-mentions.sh" || true
-        "${SCRIPTS_DIR}/check-comments.sh" --auto-reply || true
+        "${SCRIPTS_DIR}/check-mentions-v2.sh" || true
+        "${SCRIPTS_DIR}/check-comments-v2.sh" --auto-reply || true
         date +%s > "$MENTION_CHECK_FILE"
     fi
 

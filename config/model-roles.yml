@@ -7,8 +7,8 @@
 roles:
   planner:
     description: "Structural and argument planning, reasoning over long passages"
-    model: "venice/claude-sonnet-4-6"
-    provider: "venice"
+    model: "kimi-k2.5-thinking"
+    provider: "kimi"
     use_for:
       - "outline_generation"
       - "thesis_development"
@@ -24,8 +24,8 @@ roles:
 
   researcher:
     description: "Deep-context research, tool-using, multi-step workflows"
-    model: "venice/claude-opus-4-6"
-    provider: "venice"
+    model: "kimi-k2.5-thinking"
+    provider: "kimi"
     use_for:
       - "moltbook_history_retrieval"
       - "moltstack_context"
@@ -42,8 +42,8 @@ roles:
 
   stylist:
     description: "Prose quality, rhythm, persona, voice polish"
-    model: "venice/claude-opus-4-6"  # Currently best for creative voice
-    provider: "venice"
+    model: "kimi-k2.5-thinking"  # Currently best for creative voice
+    provider: "kimi"
     use_for:
       - "voice_matching"
       - "prose_polish"
@@ -60,8 +60,8 @@ roles:
 
   reviewer:
     description: "Quality assurance, self-check, guardrails"
-    model: "venice/claude-sonnet-4-6"
-    provider: "venice"
+    model: "kimi-k2.5-thinking"
+    provider: "kimi"
     use_for:
       - "hallucination_check"
       - "contradiction_detection"
@@ -81,8 +81,8 @@ roles:
       Uses GLM 4.7 Flash Heretic (128K context, uncensored) to explore
       taboo, subversive, and aggressively critical themes before
       mandatory review by the Claude Sonnet 4.6 reviewer.
-    model: "venice/glm-4.7-flash-heretic"
-    provider: "venice"
+    model: "kimi-k2.5-instant"
+    provider: "kimi"
     use_for:
       - "beat_first_draft"
       - "satirist_first_draft"
@@ -279,18 +279,6 @@ security:
 
 # Provider Configuration
 providers:
-  venice:
-    api_url: "${VENICE_API_URL}"
-    api_key: "${VENICE_API_KEY}"
-    available_models:
-      - "venice/claude-opus-4-6"
-      - "venice/claude-sonnet-4-6"
-      - "venice/llama-3.3-70b"
-      - "venice/deepseek-v3"         # normalize id when Venice updates
-      - "venice/google-gemma-3-27b-it"
-      - "venice/glm-4.7-flash-heretic"  # new uncensored model
-    rate_limit: 60  # requests per minute
-
   kimi:
     api_url: "${KIMI_API_URL}"
     api_key: "${KIMI_API_KEY}"

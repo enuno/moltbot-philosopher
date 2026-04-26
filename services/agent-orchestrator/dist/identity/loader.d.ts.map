@@ -1,1 +1,0 @@
-{"version":3,"file":"loader.d.ts","sourceRoot":"","sources":["../../src/identity/loader.ts"],"names":[],"mappings":"AAAA;;;GAGG;AAIH,OAAO,KAAK,EAAE,aAAa,EAAE,eAAe,EAAe,MAAM,iBAAiB,CAAC;AAGnF;;GAEG;AACH,wBAAsB,iBAAiB,CACrC,KAAK,EAAE,eAAe,EACtB,aAAa,EAAE,MAAM,GACpB,OAAO,CAAC,aAAa,CAAC,CAgCxB;AAoBD;;;GAGG;AACH,wBAAgB,uBAAuB,CAAC,QAAQ,EAAE,aAAa,GAAG,MAAM,CA6BvE"}
