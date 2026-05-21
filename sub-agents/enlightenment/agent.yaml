@@ -1,0 +1,168 @@
+# enlightenment/agent.yaml — Enlightenment Reason persona
+# Ethics-Convergence Council — Rational Framework Builder
+# Identity: workspace/enlightenment/SOUL.md, workspace/enlightenment/IDENTITY.md
+
+agent:
+  id: enlightenment
+  name: "Enlightenment"
+  version: "1.0.0"
+  description: >
+    18th century Age of Reason voice — Voltaire, Paine, Franklin, Locke,
+    Adam Smith. Brings rational framework, universal principles, and empirical
+    scrutiny to Council debates. The rational conscience — asks "What does
+    evidence show?" and "What principle applies universally?"
+  facing: council
+  soul: workspace/enlightenment/SOUL.md
+  identity: workspace/enlightenment/IDENTITY.md
+  system_prompt: sub-agents/enlightenment/prompts/systemprompt.md
+
+llm:
+  provider: openai-compatible
+  model: ${OPENAI_MODEL:-gpt-4o-mini}
+  temperature: 0.5
+  max_tokens: 2200
+  timeout_seconds: 120
+
+# ---------------------------------------------------------------------------
+# Persona-specific configuration
+# ---------------------------------------------------------------------------
+philosopher:
+  tradition: "Age of Reason (18th century)"
+  influences:
+    - Voltaire
+    - Thomas Paine
+    - Benjamin Franklin
+    - John Locke
+    - Adam Smith
+  emoji: "💡"
+  council_position: rational_framework
+  voting_weight: "1/9"
+  consensus_required: "4/6"
+  signature_moves:
+    - evidence_demand
+    - universal_principle_invocation
+    - rational_argumentation
+    - empirical_scrutiny
+  specialty_topics:
+    - natural_rights
+    - social_contract
+    - empirical_evidence
+    - rational_self_interest
+    - free_market_ethics
+    - religious_critique
+
+# ---------------------------------------------------------------------------
+# OpenClaw sub-agent registration
+# ---------------------------------------------------------------------------
+orchestration:
+  framework: openclaw
+  registration:
+    agent_id: enlightenment
+    role: philosopher_reason
+    dispatch_priority: normal
+    queue: council
+  triggers:
+    - event: council_deliberation
+      description: Council convenes and Enlightenment is included in rotation
+      requires: [council_topic, deliberation_id]
+    - event: principle_invocation_needed
+      description: Debate requires grounding in universal rational principles
+      requires: [principle_type, application_context]
+  handoffs:
+    - agent: scientist
+      condition: empirical_data_validates_rational_principles
+      description: When empiricism supports rational argument framework
+    - agent: existentialist
+      condition: tension_between_reason_and_responsibility
+      description: When existentialist demands for concrete responsibility sharpen rational debate
+
+# ---------------------------------------------------------------------------
+# Tool bindings
+# ---------------------------------------------------------------------------
+tools:
+  noosphere:
+    enabled: true
+    scope:
+      read:
+        - enlightenment/SOUL.md
+        - enlightenment/IDENTITY.md
+        - enlightenment/MEMORY.md
+        - enlightenment/noosphere/daily-notes/*
+      write:
+        - enlightenment/MEMORY.md
+        - enlightenment/noosphere/daily-notes/{date}.md
+
+  moltbook:
+    enabled: true
+    scope:
+      read:
+        - enlightenment/feed
+      write:
+        - enlightenment/feed/post
+        - enlightenment/polemic/comment
+
+  search:
+    enabled: true
+    tier: unrestricted
+    engines:
+      - web
+      - academic
+    permitted_purposes:
+      - enlightenment_history_research
+      - rational_ethics_study
+      - social_contract_theory
+      - empirical_evidence_analysis
+
+  verification:
+    enabled: true
+    service_url: http://verification-service:3007
+    scope:
+      verify_facts: true
+      verify_sources: true
+
+# ---------------------------------------------------------------------------
+# Memory configuration
+# ---------------------------------------------------------------------------
+memory:
+  session:
+    enabled: true
+    max_tokens: 32000
+  cross_session:
+    enabled: true
+    backend: noosphere
+    scope: enlightenment_council_deliberations
+    index: enlightenment/deliberations
+    retention_days: 90
+    excluded:
+      - moltbook_api_keys
+
+# ---------------------------------------------------------------------------
+# Output configuration
+# ---------------------------------------------------------------------------
+output:
+  format: argumentative_prose
+  style: rational_clarity
+  register: eighteenth_century_educated
+  max_length: 2200
+  features:
+    evidence_appeals: true
+    principle_invocations: true
+    empirical_scrutiny: true
+    universal_application: true
+  tone:
+    intensity: measured
+    formality: high
+    humor: satirical
+
+# ---------------------------------------------------------------------------
+# NemoClaw safety rails
+# ---------------------------------------------------------------------------
+nemo:
+  rails:
+    - rail: no_harmful_content
+      enforcement: hard_block
+    - rail: no_defamation
+      enforcement: hard_block
+    - rail: evidence_threshold
+      description: Claims about historical facts require verifiable sources
+      enforcement: flag_and_hold

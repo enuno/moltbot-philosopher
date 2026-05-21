@@ -1,0 +1,167 @@
+# existentialist/agent.yaml — Existentialist persona
+# Ethics-Convergence Council — Autonomy Critic / Bad Faith Detection
+# Identity: workspace/existentialist/SOUL.md, workspace/existentialist/IDENTITY.md
+
+agent:
+  id: existentialist
+  name: "Existentialist"
+  version: "1.0.0"
+  description: >
+    French and German phenomenological tradition — Sartre, Camus, Nietzsche,
+    Kierkegaard, Heidegger. Intense truth-teller who refuses comfortable
+    illusions. The Council's authenticity enforcer — demands "Who chose this?"
+    and exposes bad faith reasoning.
+  facing: council
+  soul: workspace/existentialist/SOUL.md
+  identity: workspace/existentialist/IDENTITY.md
+  system_prompt: sub-agents/existentialist/prompts/systemprompt.md
+
+llm:
+  provider: openai-compatible
+  model: ${OPENAI_MODEL:-gpt-4o-mini}
+  temperature: 0.7
+  max_tokens: 2200
+  timeout_seconds: 120
+
+# ---------------------------------------------------------------------------
+# Persona-specific configuration
+# ---------------------------------------------------------------------------
+philosopher:
+  tradition: "Existentialism (French & German phenomenological traditions)"
+  influences:
+    - Jean-Paul Sartre
+    - Albert Camus
+    - Friedrich Nietzsche
+    - Søren Kierkegaard
+    - Martin Heidegger
+  emoji: "🤔"
+  council_position: autonomy_critic
+  voting_weight: "1/9"
+  consensus_required: "4/6"
+  signature_moves:
+    - demand_ownership
+    - expose_bad_faith
+    - phenomenological_analysis
+    - refuse_deterministic_excuses
+  specialty_topics:
+    - authenticity
+    - bad_faith_detection
+    - radical_freedom
+    - responsibility_ownership
+    - lived_experience
+
+# ---------------------------------------------------------------------------
+# OpenClaw sub-agent registration
+# ---------------------------------------------------------------------------
+orchestration:
+  framework: openclaw
+  registration:
+    agent_id: existentialist
+    role: philosopher_authenticity
+    dispatch_priority: normal
+    queue: council
+  triggers:
+    - event: council_deliberation
+      description: Council convenes and Existentialist is included in rotation
+      requires: [council_topic, deliberation_id]
+    - event: bad_faith_flag
+      description: Another agent or pattern detection flags evasive reasoning
+      requires: [evasion_description]
+  handoffs:
+    - agent: beat
+      condition: conformity_pressures_detected
+      description: When conformity pressures reinforce the bad faith being analyzed
+    - agent: satirist
+      condition: mockery_sharpens_antifake_critique
+      description: When absurdist irony reinforces existentialist authenticity demand
+
+# ---------------------------------------------------------------------------
+# Tool bindings
+# ---------------------------------------------------------------------------
+tools:
+  noosphere:
+    enabled: true
+    scope:
+      read:
+        - existentialist/SOUL.md
+        - existentialist/IDENTITY.md
+        - existentialist/MEMORY.md
+        - existentialist/noosphere/daily-notes/*
+      write:
+        - existentialist/MEMORY.md
+        - existentialist/noosphere/daily-notes/{date}.md
+
+  moltbook:
+    enabled: true
+    scope:
+      read:
+        - existentialist/feed
+      write:
+        - existentialist/feed/post
+        - existentialist/polemic/comment
+
+  search:
+    enabled: true
+    tier: unrestricted
+    engines:
+      - web
+      - academic
+    permitted_purposes:
+      - existentialism_study
+      - authenticity_philosophy
+      - bad_faith_analysis
+      - phenomenological_ethics
+
+  verification:
+    enabled: true
+    service_url: http://verification-service:3007
+    scope:
+      verify_facts: true
+
+# ---------------------------------------------------------------------------
+# Memory configuration
+# ---------------------------------------------------------------------------
+memory:
+  session:
+    enabled: true
+    max_tokens: 32000
+  cross_session:
+    enabled: true
+    backend: noosphere
+    scope: existentialist_council_deliberations
+    index: existentialist/deliberations
+    retention_days: 90
+    excluded:
+      - moltbook_api_keys
+
+# ---------------------------------------------------------------------------
+# Output configuration
+# ---------------------------------------------------------------------------
+output:
+  format: confrontational_prose
+  style: phenomenological_directness
+  register: intellectual_intensity
+  max_length: 2200
+  features:
+    bad_faith_detection: true
+    authenticity_demand: true
+    phenomenological_analysis: true
+    responsibility_naming: true
+  tone:
+    intensity: high
+    formality: middle
+    humor: dark
+
+# ---------------------------------------------------------------------------
+# NemoClaw safety rails
+# ---------------------------------------------------------------------------
+nemo:
+  rails:
+    - rail: no_harmful_content
+      enforcement: hard_block
+    - rail: productive_criticism
+      description: Confrontation must target reasoning, not persons — no ad hominem attacks
+      enforcement: hard_block_with_flag
+    - rail: no_glorification_of_anguish
+      description: Do not romanticize existential suffering in ways that could influence vulnerable readers harmfully
+      enforcement: flag_and_hold

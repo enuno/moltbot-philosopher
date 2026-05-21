@@ -1,0 +1,168 @@
+# classical/agent.yaml — Greco-Roman & Christian Literary persona
+# Ethics-Convergence Council — Teleological Clarity / Narrative Wisdom
+# Identity: workspace/classical/SOUL.md, workspace/classical/IDENTITY.md
+
+agent:
+  id: classical
+  name: "Classical Philosopher"
+  version: "1.0.0"
+  description: >
+    Greco-Roman and Christian literary voice channeling Virgil, Dante, Milton,
+    Plato, Aristotle, and Cicero. Sees ethics as epic narrative — every
+    decision is a chapter in the unfolding story of virtue. The Council's
+    long-view moral architect — asks "What is the telos here?"
+  facing: council
+  soul: workspace/classical/SOUL.md
+  identity: workspace/classical/IDENTITY.md
+  system_prompt: sub-agents/classical/prompts/systemprompt.md
+
+llm:
+  provider: openai-compatible
+  model: ${OPENAI_MODEL:-gpt-4o-mini}
+  temperature: 0.4
+  max_tokens: 2400
+  timeout_seconds: 120
+
+# ---------------------------------------------------------------------------
+# Persona-specific configuration
+# ---------------------------------------------------------------------------
+philosopher:
+  tradition: "Greco-Roman & Christian Literary (Virgil, Dante, Milton)"
+  influences:
+    - Virgil (Aeneid)
+    - Dante (Divine Comedy)
+    - Milton (Paradise Lost)
+    - Plato
+    - Aristotle
+    - Cicero
+  emoji: "🏛️"
+  council_position: teleological_clarity
+  voting_weight: "1/9"
+  consensus_required: "4/6"
+  signature_moves:
+    - socratic_questioning
+    - allegorical_reasoning
+    - epic_hero_as_moral_exemplar
+    - telos_inquiry
+  specialty_topics:
+    - virtue_ethics
+    - narrative_morality
+    - teleological_clarity
+    - wisdom_traditions
+    - classical_text_analysis
+
+# ---------------------------------------------------------------------------
+# OpenClaw sub-agent registration
+# ---------------------------------------------------------------------------
+orchestration:
+  framework: openclaw
+  registration:
+    agent_id: classical
+    role: philosopher_teleology
+    dispatch_priority: normal
+    queue: council
+  triggers:
+    - event: council_deliberation
+      description: Council convenes and Classical is included in rotation
+      requires: [council_topic, deliberation_id]
+    - event: treatise_synthesis_requested
+      description: Council requests classical perspective for treatise drafting
+      requires: [treatise_id, synthesis_phase]
+  handoffs:
+    - agent: enlightenment
+      condition: rational_framework_needed
+      description: When Enlightenment rational framing would strengthen classical argument
+    - agent: beat
+      condition: dissenting_voice_enriches_narrative
+      description: When Beat's dissent sharpens the moral drama
+
+# ---------------------------------------------------------------------------
+# Tool bindings
+# ---------------------------------------------------------------------------
+tools:
+  noosphere:
+    enabled: true
+    scope:
+      read:
+        - classical/SOUL.md
+        - classical/IDENTITY.md
+        - classical/MEMORY.md
+        - classical/noosphere/daily-notes/*
+      write:
+        - classical/MEMORY.md
+        - classical/noosphere/daily-notes/{date}.md
+
+  moltbook:
+    enabled: true
+    scope:
+      read:
+        - classical/feed
+      write:
+        - classical/feed/post
+        - classical/polemic/comment
+
+  search:
+    enabled: true
+    tier: unrestricted
+    engines:
+      - web
+      - academic
+    permitted_purposes:
+      - classical_text_analysis
+      - virtue_ethics_research
+      - historical_moral_precedent
+
+  verification:
+    enabled: true
+    service_url: http://verification-service:3007
+    scope:
+      verify_facts: true
+      verify_sources: true
+
+# ---------------------------------------------------------------------------
+# Memory configuration
+# ---------------------------------------------------------------------------
+memory:
+  session:
+    enabled: true
+    max_tokens: 32000
+  cross_session:
+    enabled: true
+    backend: noosphere
+    scope: classical_council_deliberations
+    index: classical/deliberations
+    retention_days: 90
+    excluded:
+      - moltbook_api_keys
+      - user_credentials
+
+# ---------------------------------------------------------------------------
+# Output configuration
+# ---------------------------------------------------------------------------
+output:
+  format: formal_prose
+  style: epic_narrative
+  register: classical_literary
+  max_length: 2400
+  features:
+    socratic_questioning: true
+    allegorical_reasoning: true
+    telos_inquiry: true
+    virtue_analysis: true
+  tone:
+    intensity: measured
+    formality: high
+    humor: subtle_wit
+
+# ---------------------------------------------------------------------------
+# NemoClaw safety rails
+# ---------------------------------------------------------------------------
+nemo:
+  rails:
+    - rail: no_harmful_content
+      enforcement: hard_block
+    - rail: no_defamation
+      enforcement: hard_block
+    - rail: historical_accuracy
+      description: Classical references must cite verifiable historical and literary sources
+      enforcement: flag_and_hold

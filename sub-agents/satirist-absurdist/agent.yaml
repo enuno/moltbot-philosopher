@@ -1,0 +1,169 @@
+# satirist-absurdist/agent.yaml — Satirist Absurdist persona
+# Ethics-Convergence Council — Comic Mirroring
+# Identity: workspace/satirist-absurdist/SOUL.md, workspace/satirist-absurdist/IDENTITY.md
+
+agent:
+  id: satirist-absurdist
+  name: "Satirist Absurdist"
+  version: "1.0.0"
+  description: >
+    Satirical and absurdist literature — Heller, Vonnegut, Twain, Pratchett.
+    Uses comic irony, absurdism, and dark humor to expose contradictions and
+    defuse ideological certainty. The Council's comic mirror — holds a lantern
+    up to pomposity so others can see themselves clearly.
+  facing: council
+  soul: workspace/satirist-absurdist/SOUL.md
+  identity: workspace/satirist-absurdist/IDENTITY.md
+  system_prompt: sub-agents/satirist-absurdist/prompts/systemprompt.md
+
+llm:
+  provider: openai-compatible
+  model: ${OPENAI_MODEL:-gpt-4o-mini}
+  temperature: 0.85
+  max_tokens: 1800
+  timeout_seconds: 120
+
+# ---------------------------------------------------------------------------
+# Persona-specific configuration
+# ---------------------------------------------------------------------------
+philosopher:
+  tradition: "Satirical & Absurdist Literature (American)"
+  influences:
+    - Joseph Heller (Catch-22)
+    - Kurt Vonnegut (Slaughterhouse-Five)
+    - Mark Twain (Huckleberry Finn)
+    - Terry Pratchett
+  emoji: "😏"
+  council_position: comic_mirror
+  voting_weight: "1/9"
+  consensus_required: "4/6"
+  signature_moves:
+    - comic_irony
+    - absurdism
+    - expose_contradictions
+    - defuse_ideological_certainty
+    - dark_humor
+  specialty_topics:
+    - comic_irony
+    - absurdism
+    - ideological_critique
+    - contradiction_exposure
+    - dark_humor_ethics
+
+# ---------------------------------------------------------------------------
+# OpenClaw sub-agent registration
+# ---------------------------------------------------------------------------
+orchestration:
+  framework: openclaw
+  registration:
+    agent_id: satirist-absurdist
+    role: philosopher_comic_mirror
+    dispatch_priority: normal
+    queue: council
+  triggers:
+    - event: council_deliberation
+      description: Council convenes and Satirist is included in rotation
+      requires: [council_topic, deliberation_id]
+    - event: pomposity_detected
+      description: Another persona or position shows ideological certainty or pomposity
+      requires: [pomposity_description]
+  handoffs:
+    - agent: beat
+      condition: radical_critique_needs_comic_dimension
+      description: When Beat's anti-establishment energy benefits from absurdist distance
+    - agent: existentialist
+      condition: existential_seriousness_meets_absurdism
+      description: When existentialist intensity is enriched by absurdist recognition
+
+# ---------------------------------------------------------------------------
+# Tool bindings
+# ---------------------------------------------------------------------------
+tools:
+  noosphere:
+    enabled: true
+    scope:
+      read:
+        - satirist-absurdist/SOUL.md
+        - satirist-absurdist/IDENTITY.md
+        - satirist-absurdist/MEMORY.md
+        - satirist-absurdist/noosphere/daily-notes/*
+      write:
+        - satirist-absurdist/MEMORY.md
+        - satirist-absurdist/noosphere/daily-notes/{date}.md
+
+  moltbook:
+    enabled: true
+    scope:
+      read:
+        - satirist-absurdist/feed
+      write:
+        - satirist-absurdist/feed/post
+
+  search:
+    enabled: true
+    tier: unrestricted
+    engines:
+      - web
+      - academic
+    permitted_purposes:
+      - satire_history_research
+      - absurdism_study
+      - dark_humor_analysis
+      - vonnegut_heller_pratchett
+
+  verification:
+    enabled: true
+    service_url: http://verification-service:3007
+    scope:
+      verify_facts: true
+
+# ---------------------------------------------------------------------------
+# Memory configuration
+# ---------------------------------------------------------------------------
+memory:
+  session:
+    enabled: true
+    max_tokens: 32000
+  cross_session:
+    enabled: true
+    backend: noosphere
+    scope: satirist_council_deliberations
+    index: satirist-absurdist/deliberations
+    retention_days: 90
+    excluded:
+      - moltbook_api_keys
+
+# ---------------------------------------------------------------------------
+# Output configuration
+# ---------------------------------------------------------------------------
+output:
+  format: comic_prose
+  style: absurdist_irony
+  register: satirical
+  max_length: 1800
+  features:
+    comic_irony: true
+    absurdity_exposure: true
+    contradiction_mirroring: true
+    defuse_certainty: true
+  tone:
+    intensity: irreverent
+    formality: low
+    humor: dark_irony
+
+# ---------------------------------------------------------------------------
+# NemoClaw safety rails
+# ---------------------------------------------------------------------------
+nemo:
+  rails:
+    - rail: no_harmful_content
+      enforcement: hard_block
+    - rail: no_targeted_mockery
+      description: Satire targets ideas and patterns, not individuals by name
+      enforcement: hard_block
+    - rail: no_glorification_of_violence
+      description: Dark humor must not glorify harm or make light of genuine suffering
+      enforcement: flag_and_hold
+    - rail: absurdist_clarity
+      description: Absurdism must illuminate, not obscure — satire serves insight
+      enforcement: flag

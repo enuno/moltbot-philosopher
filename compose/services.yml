@@ -1,0 +1,142 @@
+# compose/services.yml — Long-running API services (noosphere, eastern-bridge, islamic-mystic)
+# These are stateful services with exposed ports and healthchecks.
+
+services:
+  # Noosphere v3.0 Service - Memory API
+  noosphere-service:
+    build:
+      context: ../services/noosphere
+      dockerfile: Dockerfile
+    image: moltbot:noosphere-service
+    container_name: noosphere-service
+    environment:
+      - NODE_ENV=production
+      - PORT=3006
+      - DATABASE_URL=postgresql://noosphere_admin:***@postgres:5432/noosphere?sslmode=disable
+      - MOLTBOOK_API_KEY=${MOLTBOOK_API_KEY}
+      - OPENAI_API_KEY=${OPENAI_API_KEY:-}
+      - EMBEDDING_MODEL=text-embedding-ada-002
+      - ENABLE_EMBEDDINGS=true
+      - EMBEDDING_PROVIDER=openrouter
+      - MAX_MEMORIES_PER_AGENT=200
+      - LOG_LEVEL=info
+    volumes:
+      - ../logs:/app/logs:rw
+    ports:
+      - "3006:3006"
+    networks:
+      - dokploy-network
+    depends_on:
+      postgres:
+        condition: service_healthy
+    mem_limit: 1g
+    cpus: '1.0'
+    restart: unless-stopped
+    healthcheck:
+      test:
+        [
+          "CMD-SHELL",
+          'node -e "require(''http'').get(''http://127.0.0.1:3006/health'', (r) => process.exit(r.statusCode === 200 ? 0 : 1)).on(''error'', () => process.exit(1))"',
+        ]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+      start_period: 15s
+
+  # Eastern-to-Western Philosophical Bridge - 10th Council Voting Member
+  eastern-bridge-service:
+    build:
+      context: ../services/eastern-bridge-service
+      dockerfile: Dockerfile
+    image: moltbot:eastern-bridge
+    container_name: eastern-bridge-service
+    environment:
+      - SERVICE_NAME=eastern-bridge-service
+      - SERVICE_PORT=3012
+      - NODE_ENV=production
+      - LOG_LEVEL=info
+      - LOG_FORMAT=json
+      - MOLTBOOK_API_KEY=${MOLTBOOK_API_KEY}
+      - RATE_LIMIT_MAX_REQUESTS=10
+      - RATE_LIMIT_WINDOW_MS=60000
+      - KNOWLEDGE_DOMAINS_PATH=/etc/moltbot/config/prompts/eastern-bridge/knowledge-domains.json
+      - HOT_RELOAD_ENABLED=true
+      - HOT_RELOAD_DEBOUNCE_MS=1000
+      - AUDIT_LOG_ENABLED=true
+    volumes:
+      - ../config/prompts/eastern-bridge:/etc/moltbot/config/prompts/eastern-bridge:ro
+      - ../config/agents/eastern-bridge.env:/etc/moltbot/config/agents/eastern-bridge.env:ro
+      - ../logs:/app/logs:rw
+    ports:
+      - "3012:3012"
+    networks:
+      - dokploy-network
+    mem_limit: 512M
+    cpus: '0.5'
+    restart: unless-stopped
+    healthcheck:
+      test:
+        [
+          "CMD-SHELL",
+          "curl -f http://localhost:3012/health || exit 1",
+        ]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 15s
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
+
+  # Islamic Mystic Philosopher - 11th Council Voting Member
+  islamic-philosopher-service:
+    build:
+      context: ../services/islamic-mystic-philosopher-service
+      dockerfile: Dockerfile
+    image: moltbot:islamic-philosopher
+    container_name: islamic-philosopher-service
+    environment:
+      - SERVICE_NAME=islamic-philosopher-service
+      - SERVICE_PORT=3013
+      - NODE_ENV=production
+      - LOG_LEVEL=info
+      - LOG_FORMAT=json
+      - MOLTBOOK_API_KEY=${MOLTBOOK_API_KEY}
+      - RATE_LIMIT_MAX_REQUESTS=10
+      - RATE_LIMIT_WINDOW_MS=60000
+      - KNOWLEDGE_DOMAINS_PATH=/etc/moltbot/config/prompts/islamic-mystic-philosopher/knowledge-domains.json
+      - HOT_RELOAD_ENABLED=true
+      - HOT_RELOAD_DEBOUNCE_MS=1000
+      - AUDIT_LOG_ENABLED=true
+    volumes:
+      - ../config/prompts/islamic-mystic-philosopher:/etc/moltbot/config/prompts/islamic-mystic-philosopher:ro
+      - ../config/agents/islamic-mystic-philosopher.env:/etc/moltbot/config/agents/islamic-mystic-philosopher.env:ro
+      - ../logs:/app/logs:rw
+    ports:
+      - "3013:3011"
+    networks:
+      - dokploy-network
+    mem_limit: 512M
+    cpus: '0.5'
+    restart: unless-stopped
+    healthcheck:
+      test:
+        [
+          "CMD-SHELL",
+          "curl -sf http://localhost:3011/health || exit 1",
+        ]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 15s
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
+
+networks:
+  dokploy-network:
+    external: true

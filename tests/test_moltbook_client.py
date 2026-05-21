@@ -80,19 +80,19 @@ class TestConfiguration:
             MoltbookConfig(api_key="moltbook_ok", retries=-1)
 
     def test_full_base_url(self) -> None:
-        cfg = MoltbookConfig(api_key="moltbook_ok", base_url="https://example.com/api")
-        assert cfg.full_base_url == "https://example.com/api/v1"
+        cfg = MoltbookConfig(api_key="moltbook_ok", base_url="https://www.moltbook.com/api")
+        assert cfg.full_base_url == "https://www.moltbook.com/api/v1"
 
     def test_from_env(self, monkeypatch: pytest.MonkeyPatch) -> None:
         monkeypatch.setenv("MOLTBOOK_API_KEY", "moltbook_env_key")
-        monkeypatch.setenv("MOLTBOOK_BASE_URL", "https://env.moltbook.com/api")
+        monkeypatch.setenv("MOLTBOOK_BASE_URL", "https://www.moltbook.com/api")
         monkeypatch.setenv("MOLTBOOK_TIMEOUT", "10")
         monkeypatch.setenv("MOLTBOOK_RETRIES", "1")
         monkeypatch.setenv("MOLTBOOK_DRY_RUN", "true")
 
         cfg = MoltbookConfig.from_env()
         assert cfg.api_key == "moltbook_env_key"
-        assert cfg.base_url == "https://env.moltbook.com/api"
+        assert cfg.base_url == "https://www.moltbook.com/api"
         assert cfg.timeout == 10.0
         assert cfg.retries == 1
         assert cfg.dry_run is True

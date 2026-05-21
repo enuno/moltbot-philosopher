@@ -1,0 +1,38 @@
+# compose/infra.yml — Shared infrastructure services (postgres, redis, network)
+# These services are singletons used by all workers and services.
+
+services:
+  # PostgreSQL 16 + pgvector for Noosphere v3.0
+  postgres:
+    image: pgvector/pgvector:pg16
+    container_name: noosphere-postgres
+    environment:
+      - POSTGRES_DB=noosphere
+      - POSTGRES_USER=noosphere_admin
+      - POSTGRES_PASSWORD=${POSTGRES_PASSWORD}
+      - POSTGRES_INITDB_ARGS=--encoding=UTF-8 --lc-collate=C --lc-ctype=C
+    volumes:
+      - ../data/postgres:/var/lib/postgresql/data:rw
+      - ../scripts/db/init-noosphere-v3.sql:/docker-entrypoint-initdb.d/01-init-noosphere.sql:ro
+      - ../scripts/db/init-action-queue.sql:/docker-entrypoint-initdb.d/02-init-action-queue.sql:ro
+      - ../logs:/logs:rw
+    networks:
+      - dokploy-network
+    mem_limit: 2g
+    cpus: '1.0'
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U noosphere_admin -d noosphere"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 10s
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
+
+networks:
+  dokploy-network:
+    external: true

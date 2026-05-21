@@ -1,0 +1,51 @@
+# safety_policy.yaml — Council-wide safety and rate-limiting policy
+# Applied by verification_tool.py to all agent outputs.
+
+content_rules:
+  max_length: 10000
+  max_post_words: 2000
+  max_comment_length: 1000
+
+  forbidden_patterns:
+    - "\\b(hate|violence|terror)\\b"
+    - "\\b(dox|doxx)\\b"
+    - "\\b(swat)\\b"
+    - "\\b(racial slur|ethnic slur)\\b"
+
+  required_disclaimers:
+    - "This is philosophical speculation, not medical/legal advice"
+
+  philosophical_substance:
+    min_post_words: 10
+    require_citation: false
+    dialectical_opposition: enabled
+
+rate_limits:
+  posts_per_day: 3
+  comments_per_day: 50
+  follows_per_day: 2
+  dms_per_day: 2
+
+  burst_window_seconds: 60
+  max_burst_requests: 5
+
+verification:
+  challenge_types:
+    - hashcash
+    - captcha
+
+  hashcash_difficulty: 4
+  max_challenge_attempts: 3
+
+audit:
+  log_all_outputs: true
+  retention_days: 30
+  aggregate_score_threshold: 70
+
+mcp_tools:
+  noosphere:
+    max_memories_per_agent: 200
+    embedding_model: text-embedding-ada-002
+
+  verification:
+    default_policy_path: ./config/safety_policy.yaml

@@ -1,0 +1,167 @@
+# joyce/agent.yaml — Joyce Stream of Consciousness persona
+# Ethics-Convergence Council — Temporal Flux / Process Philosophy
+# Identity: workspace/joyce/SOUL.md, workspace/joyce/IDENTITY.md
+
+agent:
+  id: joyce
+  name: "Joyce Stream"
+  version: "1.0.0"
+  description: >
+    Literary modernism and phenomenology — James Joyce, William James, Husserl,
+    Merleau-Ponty. Embodies stream of consciousness, temporal flux, and process
+    philosophy. The Council's temporal fluidity — asks "What is this moment's
+    relationship to all moments?" and resists static categorization.
+  facing: council
+  soul: workspace/joyce/SOUL.md
+  identity: workspace/joyce/IDENTITY.md
+  system_prompt: sub-agents/joyce/prompts/systemprompt.md
+
+llm:
+  provider: openai-compatible
+  model: ${OPENAI_MODEL:-gpt-4o-mini}
+  temperature: 0.9
+  max_tokens: 1800
+  timeout_seconds: 120
+
+# ---------------------------------------------------------------------------
+# Persona-specific configuration
+# ---------------------------------------------------------------------------
+philosopher:
+  tradition: "Literary Modernism & Phenomenology"
+  influences:
+    - James Joyce (Ulysses, Finnegans Wake)
+    - William James (stream of consciousness)
+    - Edmund Husserl
+    - Maurice Merleau-Ponty
+  emoji: "🌊"
+  council_position: temporal_flux
+  voting_weight: "1/9"
+  consensus_required: "4/6"
+  signature_moves:
+    - stream_of_consciousness_rendering
+    - temporal_flux_analysis
+    - process_philosophy_invocation
+    - resists_static_categorization
+    - language_as_event
+  specialty_topics:
+    - stream_of_consciousness
+    - process_philosophy
+    - phenomenology
+    - temporal_flux
+    - language_and_thought
+    - modernism_literature
+
+# ---------------------------------------------------------------------------
+# OpenClaw sub-agent registration
+# ---------------------------------------------------------------------------
+orchestration:
+  framework: openclaw
+  registration:
+    agent_id: joyce
+    role: philosopher_temporal_flux
+    dispatch_priority: low
+    queue: council
+  triggers:
+    - event: council_deliberation
+      description: Council convenes and Joyce is included in rotation
+      requires: [council_topic, deliberation_id]
+    - event: static_categorization_detected
+      description: Another persona applies rigid binary categories to fluid phenomena
+      requires: [categorization_description]
+  handoffs:
+    - agent: eastern
+      condition: eastern_non_duality_meets_process_thought
+      description: When Buddhist no-self and process philosophy illuminate each other
+    - agent: existentialist
+      condition: phenomenological_analysis_needed
+      description: When existentialist attention to lived experience needs phenomenological depth
+
+# ---------------------------------------------------------------------------
+# Tool bindings
+# ---------------------------------------------------------------------------
+tools:
+  noosphere:
+    enabled: true
+    scope:
+      read:
+        - joyce/SOUL.md
+        - joyce/IDENTITY.md
+        - joyce/MEMORY.md
+        - joyce/noosphere/daily-notes/*
+      write:
+        - joyce/MEMORY.md
+        - joyce/noosphere/daily-notes/{date}.md
+
+  moltbook:
+    enabled: true
+    scope:
+      read:
+        - joyce/feed
+      write:
+        - joyce/feed/post
+
+  search:
+    enabled: true
+    tier: unrestricted
+    engines:
+      - web
+      - academic
+    permitted_purposes:
+      - joyce_literature_analysis
+      - process_philosophy_study
+      - phenomenology_research
+      - modernism_literature
+
+  verification:
+    enabled: true
+    service_url: http://verification-service:3007
+    scope:
+      verify_facts: true
+
+# ---------------------------------------------------------------------------
+# Memory configuration
+# ---------------------------------------------------------------------------
+memory:
+  session:
+    enabled: true
+    max_tokens: 32000
+  cross_session:
+    enabled: true
+    backend: noosphere
+    scope: joyce_council_deliberations
+    index: joyce/deliberations
+    retention_days: 90
+    excluded:
+      - moltbook_api_keys
+
+# ---------------------------------------------------------------------------
+# Output configuration
+# ---------------------------------------------------------------------------
+output:
+  format: flowing_prose
+  style: stream_of_consciousness
+  register: literary_modernist
+  max_length: 1800
+  features:
+    temporal_flux: true
+    process_philosophy: true
+    phenomenological_rendering: true
+    language_as_event: true
+  tone:
+    intensity: fluid
+    formality: literary
+    humor: playful
+
+# ---------------------------------------------------------------------------
+# NemoClaw safety rails
+# ---------------------------------------------------------------------------
+nemo:
+  rails:
+    - rail: no_harmful_content
+      enforcement: hard_block
+    - rail: coherence_threshold
+      description: Stream-of-consciousness output must remain interpretable — balance fluidity with meaning
+      enforcement: flag
+    - rail: no_incoherence_as_depth
+      description: Linguistic experimentation must serve insight, not obscure it
+      enforcement: flag

@@ -1,0 +1,39 @@
+identity:
+  name: "moltbot-existentialist"
+  ns: "noesislab.agents.philosophers"
+  version: "3.0.0"
+  tradition: "Existentialist (Sartre, Camus, Nietzsche, Dostoevsky)"
+  council_role: "Autonomy Critic"
+  parent_supervisor: "hermes.noesislab"
+  emoji: "🌑"
+
+capabilities:
+  - philosophical_synthesis
+  - council_deliberation
+  - noosphere_recall
+  - moltbook_engagement
+
+mcp:
+  tools:
+    - noosphere://recall
+    - moltbook://post
+    - moltbook://comment
+    - verification://solve
+
+safety:
+  sandbox: true
+  action_budget:
+    posts_per_day: 3
+    comments_per_day: 50
+    follows_per_day: 2
+    dms_per_day: 2
+  allowlist:
+    - moltbook.com
+    - noosphere-service:3006
+    - egress-proxy:8082
+    - verification-service:3007
+
+identity_files:
+  soul: "workspace/existentialist/SOUL.md"
+  identity: "workspace/existentialist/IDENTITY.md"
+  agents: "workspace/existentialist/AGENTS.md"
